@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/dialog";
 import { TaskStatus, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, Check } from "lucide-react";
 import { TaskForm } from "./task-form";
 
 interface Task {
@@ -42,6 +42,8 @@ interface Task {
   status: TaskStatus;
   dueDate: string | null;
   assignee: { id: string; name: string | null; email: string } | null;
+  completedBy: { id: string; name: string | null; email: string } | null;
+  completedAt: string | null;
   trip: { id: string; name: string } | null;
 }
 
@@ -84,6 +86,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
       });
 
       if (response.ok) {
+        const updatedTask = await response.json();
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? updatedTask : t))
+        );
         router.refresh();
       }
     } catch (error) {
@@ -151,55 +157,101 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   <TableHead>Trip</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Completed By</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredTasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-medium">{task.title}</TableCell>
-                    <TableCell>
-                      {task.assignee?.name || task.assignee?.email || "Unassigned"}
-                    </TableCell>
-                    <TableCell>{task.trip?.name || "-"}</TableCell>
-                    <TableCell>
-                      {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "-"}
-                    </TableCell>
-                    <TableCell>
-                      {canManage ? (
-                        <Select
-                          value={task.status}
-                          onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
-                        >
-                          <SelectTrigger className="w-[140px]">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-                            <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                            <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        getStatusBadge(task.status)
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      {canManage && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => {
-                            setEditingTask(task);
-                            setIsDialogOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredTasks.map((task) => {
+                  const canComplete = !canManage && (!task.assigneeId || task.assigneeId === currentUser.id) && task.status !== TaskStatus.DONE;
+                  const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
+                  
+                  return (
+                    <TableRow key={task.id}>
+                      <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell>
+                        {task.assignee?.name || task.assignee?.email || "Unassigned"}
+                      </TableCell>
+                      <TableCell>{task.trip?.name || "-"}</TableCell>
+                      <TableCell>
+                        {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {canManage ? (
+                          <Select
+                            value={task.status}
+                            onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
+                              <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
+                              <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(task.status)}
+                            {canComplete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(task.id, TaskStatus.DONE)}
+                                className="h-7"
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Complete
+                              </Button>
+                            )}
+                            {canUncomplete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(task.id, TaskStatus.TODO)}
+                                className="h-7"
+                              >
+                                Undo
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {task.completedBy ? (
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">
+                              {task.completedBy.name || task.completedBy.email}
+                            </span>
+                            {task.completedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                ({format(new Date(task.completedAt), "MMM d")})
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setEditingTask(task);
+                              setIsDialogOpen(true);
+                            }}
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}

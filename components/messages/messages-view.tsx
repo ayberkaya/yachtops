@@ -7,10 +7,15 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users } from "lucide-react";
+import { Send, Hash, Users, Menu } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface User {
   id: string;
@@ -61,6 +66,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const [isSending, setIsSending] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>({});
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const canManage = canManageUsers(session?.user || null);
@@ -324,8 +330,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   if (!selectedChannel) {
     return (
       <div className="flex h-full border rounded-lg overflow-hidden bg-background">
-        {/* Channel List - Left Sidebar */}
-        <div className="w-80 border-r flex flex-col bg-muted/30">
+        {/* Channel List - Left Sidebar (Desktop) */}
+        <div className="hidden md:flex w-80 border-r flex-col bg-muted/30">
           <ChannelList
             channels={channels}
             selectedChannelId=""
@@ -339,12 +345,33 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           />
         </div>
 
+        {/* Mobile Channel Menu */}
+        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+          <SheetContent side="left" className="w-[300px] p-0">
+            <ChannelList
+              channels={channels}
+              selectedChannelId=""
+              onSelectChannel={(channel) => {
+                handleChannelSelect(channel);
+                setMobileMenuOpen(false);
+              }}
+              onChannelCreated={handleChannelCreated}
+              onChannelUpdated={handleChannelUpdated}
+              onChannelDeleted={handleChannelDeleted}
+              allUsers={allUsers}
+              canManage={canManage}
+              unreadCounts={unreadCounts}
+            />
+          </SheetContent>
+        </Sheet>
+
         {/* Empty State - Right Side */}
-        <div className="flex-1 flex items-center justify-center bg-background">
-          <div className="text-center text-muted-foreground">
+        <div className="flex-1 flex flex-col items-center justify-center bg-background">
+          <div className="text-center text-muted-foreground p-4">
             {canManage ? (
               <div className="space-y-4">
-                <p>No channel selected. Select a channel or create a new one.</p>
+                <p className="md:hidden">Tap the menu button to select a channel or create a new one.</p>
+                <p className="hidden md:block">No channel selected. Select a channel or create a new one.</p>
               </div>
             ) : (
               <p>No channel selected. Select a channel to start messaging.</p>
@@ -357,8 +384,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
   return (
     <div className="flex h-full border rounded-lg overflow-hidden bg-background">
-      {/* Channel List - Left Sidebar */}
-      <div className="w-80 border-r flex flex-col bg-muted/30">
+      {/* Channel List - Left Sidebar (Desktop) */}
+      <div className="hidden md:flex w-80 border-r flex-col bg-muted/30">
         <ChannelList
           channels={channels}
           selectedChannelId={selectedChannel.id}
@@ -372,11 +399,39 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         />
       </div>
 
+      {/* Mobile Channel Menu */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetContent side="left" className="w-[300px] p-0">
+          <ChannelList
+            channels={channels}
+            selectedChannelId={selectedChannel.id}
+            onSelectChannel={(channel) => {
+              handleChannelSelect(channel);
+              setMobileMenuOpen(false);
+            }}
+            onChannelCreated={handleChannelCreated}
+            onChannelUpdated={handleChannelUpdated}
+            onChannelDeleted={handleChannelDeleted}
+            allUsers={allUsers}
+            canManage={canManage}
+            unreadCounts={unreadCounts}
+          />
+        </SheetContent>
+      </Sheet>
+
       {/* Messages - Right Side */}
-      <div className="flex-1 flex flex-col bg-background">
+      <div className="flex-1 flex flex-col bg-background w-full md:w-auto">
         {/* Header */}
         <div className="border-b p-4 bg-muted/30">
           <div className="flex items-center gap-3">
+            {/* Mobile: Show channel list button */}
+            <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon">
+                  <Menu className="h-5 w-5" />
+                </Button>
+              </SheetTrigger>
+            </Sheet>
             {selectedChannel.isGeneral ? (
               <Hash className="h-5 w-5" />
             ) : (

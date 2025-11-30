@@ -18,6 +18,12 @@ export const metadata: Metadata = {
   description: "Complete yacht operations management system",
 };
 
+export const viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{

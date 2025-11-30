@@ -40,15 +40,21 @@ export async function GET(request: NextRequest) {
       where.tripId = tripId;
     }
 
-    // CREW can only see their own tasks
+    // CREW can see their own tasks OR unassigned tasks
     if (session.user.role === "CREW") {
-      where.assigneeId = session.user.id;
+      where.OR = [
+        { assigneeId: session.user.id },
+        { assigneeId: null },
+      ];
     }
 
     const tasks = await db.task.findMany({
       where,
       include: {
         assignee: {
+          select: { id: true, name: true, email: true },
+        },
+        completedBy: {
           select: { id: true, name: true, email: true },
         },
         trip: {
@@ -102,6 +108,9 @@ export async function POST(request: NextRequest) {
       },
       include: {
         assignee: {
+          select: { id: true, name: true, email: true },
+        },
+        completedBy: {
           select: { id: true, name: true, email: true },
         },
         trip: {

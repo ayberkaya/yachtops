@@ -66,7 +66,8 @@ model User {
   yacht         Yacht?    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
   
   createdTrips  Trip[]    @relation("TripCreator")
-  assignedTasks Task[]
+  assignedTasks Task[]    @relation("TaskAssignee")
+  completedTasks Task[]   @relation("TaskCompleter")
   createdExpenses Expense[] @relation("ExpenseCreator")
   approvedExpenses Expense[] @relation("ExpenseApprover")
   messages      Message[]
@@ -130,7 +131,10 @@ model Task {
   title      String
   description String?
   assigneeId String?    @map("assignee_id")
-  assignee   User?      @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  completedById String? @map("completed_by_id")
+  completedBy User?    @relation("TaskCompleter", fields: [completedById], references: [id], onDelete: SetNull)
+  completedAt DateTime? @map("completed_at")
   dueDate    DateTime?  @map("due_date")
   status     TaskStatus @default(TODO)
   createdAt  DateTime   @default(now()) @map("created_at")

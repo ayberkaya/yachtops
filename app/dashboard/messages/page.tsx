@@ -62,7 +62,7 @@ export default async function MessagesPage() {
     : [];
 
   return (
-    <div className="h-[calc(100vh-8rem)]">
+    <div className="h-[calc(100vh-8rem)] md:h-[calc(100vh-8rem)]">
       <MessagesView
         initialChannels={accessibleChannels}
         allUsers={allUsers}

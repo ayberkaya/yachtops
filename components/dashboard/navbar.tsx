@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,20 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Menu } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { canManageUsers, canApproveExpenses } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
 
 export function Navbar() {
   const { data: session } = useSession();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!session?.user) return null;
 
@@ -32,97 +40,136 @@ export function Navbar() {
         .slice(0, 2)
     : user.email[0].toUpperCase();
 
+  const navLinks = (
+    <>
+      <Link
+        href="/dashboard"
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Dashboard
+      </Link>
+      {hasPermission(user, "expenses.view", user.permissions) && (
+        <Link
+          href="/dashboard/expenses"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Expenses
+        </Link>
+      )}
+      {hasPermission(user, "expenses.approve", user.permissions) && (
+        <Link
+          href="/dashboard/expenses/pending"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Pending Approval
+        </Link>
+      )}
+      {hasPermission(user, "trips.view", user.permissions) && (
+        <Link
+          href="/dashboard/trips"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Trips
+        </Link>
+      )}
+      {hasPermission(user, "tasks.view", user.permissions) && (
+        <Link
+          href="/dashboard/tasks"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Tasks
+        </Link>
+      )}
+      {hasPermission(user, "users.view", user.permissions) && (
+        <Link
+          href="/dashboard/users"
+          className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          Users
+        </Link>
+      )}
+      <Link
+        href="/dashboard/messages"
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Messages
+      </Link>
+      <Link
+        href="/dashboard/performance"
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Performance
+      </Link>
+    </>
+  );
+
   return (
     <nav className="border-b bg-background">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <Link href="/dashboard" className="text-xl font-bold">
             YachtOps
           </Link>
           <div className="hidden gap-4 md:flex">
-            <Link
-              href="/dashboard"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Dashboard
-            </Link>
-            {hasPermission(user, "expenses.view", user.permissions) && (
-              <Link
-                href="/dashboard/expenses"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Expenses
-              </Link>
-            )}
-            {hasPermission(user, "expenses.approve", user.permissions) && (
-              <Link
-                href="/dashboard/expenses/pending"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Pending Approval
-              </Link>
-            )}
-            {hasPermission(user, "trips.view", user.permissions) && (
-              <Link
-                href="/dashboard/trips"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Trips
-              </Link>
-            )}
-            {hasPermission(user, "tasks.view", user.permissions) && (
-              <Link
-                href="/dashboard/tasks"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Tasks
-              </Link>
-            )}
-            {hasPermission(user, "users.view", user.permissions) && (
-              <Link
-                href="/dashboard/users"
-                className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-              >
-                Users
-              </Link>
-            )}
-            <Link
-              href="/dashboard/messages"
-              className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Messages
-            </Link>
+            {navLinks}
           </div>
         </div>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>{initials}</AvatarFallback>
-              </Avatar>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end">
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
-                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
-                <p className="text-xs leading-none text-muted-foreground capitalize">{user.role.toLowerCase()}</p>
+        
+        {/* Mobile Menu */}
+        <div className="flex items-center gap-4">
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild className="md:hidden">
+              <Button variant="ghost" size="icon">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[300px]">
+              <div className="flex flex-col gap-4 mt-4">
+                <h2 className="text-lg font-semibold mb-2">Menu</h2>
+                {navLinks}
               </div>
-            </DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/dashboard/settings">Settings</Link>
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              onClick={() => signOut({ callbackUrl: "/" })}
-              className="text-destructive"
-            >
-              Sign Out
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+            </SheetContent>
+          </Sheet>
+
+          {/* User Menu */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                <Avatar className="h-8 w-8">
+                  <AvatarFallback>{initials}</AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent className="w-56" align="end">
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">{user.name || "User"}</p>
+                  <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
+                  <p className="text-xs leading-none text-muted-foreground capitalize">{user.role.toLowerCase()}</p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
+                <Link href="/dashboard/settings">Settings</Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="text-destructive"
+              >
+                Sign Out
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
       </div>
     </nav>
   );

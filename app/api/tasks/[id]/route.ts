@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
+import { canManageUsers } from "@/lib/auth";
 import { TaskStatus } from "@prisma/client";
 import { z } from "zod";
 
@@ -32,6 +33,9 @@ export async function GET(
         assignee: {
           select: { id: true, name: true, email: true },
         },
+        completedBy: {
+          select: { id: true, name: true, email: true },
+        },
         trip: {
           select: { id: true, name: true },
         },
@@ -42,8 +46,8 @@ export async function GET(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // CREW can only view their own tasks
-    if (session.user.role === "CREW" && task.assigneeId !== session.user.id) {
+    // CREW can view their own tasks OR unassigned tasks
+    if (session.user.role === "CREW" && task.assigneeId && task.assigneeId !== session.user.id) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -82,21 +86,34 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // CREW can only update status of their own tasks
+    // CREW can update status of their own tasks OR unassigned tasks
     if (session.user.role === "CREW") {
-      if (existingTask.assigneeId !== session.user.id) {
+      if (existingTask.assigneeId && existingTask.assigneeId !== session.user.id) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       // CREW can only update status
       const updateData: any = {};
       if (validated.status) {
         updateData.status = validated.status;
+        // If marking as DONE and not already completed, set completedBy and completedAt
+        if (validated.status === TaskStatus.DONE && !existingTask.completedById) {
+          updateData.completedById = session.user.id;
+          updateData.completedAt = new Date();
+        }
+        // If marking as not DONE, clear completion info
+        if (validated.status !== TaskStatus.DONE) {
+          updateData.completedById = null;
+          updateData.completedAt = null;
+        }
       }
       const task = await db.task.update({
         where: { id },
         data: updateData,
         include: {
           assignee: {
+            select: { id: true, name: true, email: true },
+          },
+          completedBy: {
             select: { id: true, name: true, email: true },
           },
           trip: {
@@ -115,13 +132,28 @@ export async function PATCH(
     if (validated.dueDate !== undefined) {
       updateData.dueDate = validated.dueDate ? new Date(validated.dueDate) : null;
     }
-    if (validated.status) updateData.status = validated.status;
+    if (validated.status) {
+      updateData.status = validated.status;
+      // If marking as DONE and not already completed, set completedBy and completedAt
+      if (validated.status === TaskStatus.DONE && !existingTask.completedById) {
+        updateData.completedById = session.user.id;
+        updateData.completedAt = new Date();
+      }
+      // If marking as not DONE, clear completion info
+      if (validated.status !== TaskStatus.DONE) {
+        updateData.completedById = null;
+        updateData.completedAt = null;
+      }
+    }
 
     const task = await db.task.update({
       where: { id },
       data: updateData,
       include: {
         assignee: {
+          select: { id: true, name: true, email: true },
+        },
+        completedBy: {
           select: { id: true, name: true, email: true },
         },
         trip: {
