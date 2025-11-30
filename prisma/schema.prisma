@@ -1,0 +1,234 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  OWNER
+  CAPTAIN
+  CREW
+}
+
+enum TripStatus {
+  PLANNED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  DONE
+}
+
+enum ExpenseStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  OWNER_ACCOUNT
+  OTHER
+}
+
+enum PaidBy {
+  VESSEL
+  OWNER
+  CHARTERER
+  CREW_PERSONAL
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  passwordHash  String    @map("password_hash")
+  name          String?
+  role          UserRole  @default(CREW)
+  permissions   String?   // JSON string of permissions array
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  yachtId       String?   @map("yacht_id")
+  yacht         Yacht?    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  
+  createdTrips  Trip[]    @relation("TripCreator")
+  assignedTasks Task[]
+  createdExpenses Expense[] @relation("ExpenseCreator")
+  approvedExpenses Expense[] @relation("ExpenseApprover")
+  messages      Message[]
+  channels      MessageChannel[] @relation("ChannelMembers")
+  createdChannels MessageChannel[] @relation("ChannelCreator")
+
+  @@map("users")
+}
+
+model Yacht {
+  id               String   @id @default(cuid())
+  name             String
+  flag             String?
+  length           Float?   // in meters
+  registrationNumber String? @map("registration_number")
+  notes            String?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  users            User[]
+  trips            Trip[]
+  expenses         Expense[]
+  expenseCategories ExpenseCategory[]
+  tasks            Task[]
+  messageChannels  MessageChannel[]
+
+  @@map("yachts")
+}
+
+model Trip {
+  id            String     @id @default(cuid())
+  yachtId      String     @map("yacht_id")
+  yacht        Yacht      @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name         String
+  code         String?
+  startDate    DateTime   @map("start_date")
+  endDate      DateTime?  @map("end_date")
+  departurePort String?   @map("departure_port")
+  arrivalPort  String?    @map("arrival_port")
+  status       TripStatus @default(PLANNED)
+  notes        String?
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  // Relations
+  createdByUserId String?  @map("created_by_user_id")
+  createdBy       User?    @relation("TripCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  tasks           Task[]
+  expenses        Expense[]
+
+  @@map("trips")
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  yachtId    String     @map("yacht_id")
+  yacht      Yacht      @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  tripId     String?    @map("trip_id")
+  trip       Trip?      @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  title      String
+  description String?
+  assigneeId String?    @map("assignee_id")
+  assignee   User?      @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  dueDate    DateTime?  @map("due_date")
+  status     TaskStatus @default(TODO)
+  createdAt  DateTime   @default(now()) @map("created_at")
+  updatedAt  DateTime   @updatedAt @map("updated_at")
+
+  @@map("tasks")
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  yachtId  String    @map("yacht_id")
+  yacht    Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  expenses  Expense[]
+
+  @@unique([yachtId, name])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id                  String        @id @default(cuid())
+  yachtId            String        @map("yacht_id")
+  yacht              Yacht         @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  tripId             String?       @map("trip_id")
+  trip               Trip?         @relation(fields: [tripId], references: [id], onDelete: SetNull)
+  createdByUserId    String        @map("created_by_user_id")
+  createdBy          User          @relation("ExpenseCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  approvedByUserId   String?       @map("approved_by_user_id")
+  approvedBy         User?         @relation("ExpenseApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
+  status             ExpenseStatus @default(DRAFT)
+  date               DateTime
+  categoryId         String        @map("category_id")
+  category           ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  description        String
+  amount             Float
+  currency           String        @default("EUR")
+  exchangeRateToBase Float?        @map("exchange_rate_to_base")
+  baseAmount         Float?        @map("base_amount")
+  paymentMethod      PaymentMethod @map("payment_method")
+  paidBy             PaidBy        @map("paid_by")
+  vendorName         String?       @map("vendor_name")
+  invoiceNumber      String?       @map("invoice_number")
+  vatRate            Float?        @map("vat_rate")
+  vatAmount          Float?        @map("vat_amount")
+  totalAmountWithVat Float?        @map("total_amount_with_vat")
+  isReimbursable     Boolean       @default(false) @map("is_reimbursable")
+  notes              String?
+  createdAt          DateTime      @default(now()) @map("created_at")
+  updatedAt          DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  receipts           ExpenseReceipt[]
+
+  @@map("expenses")
+}
+
+model ExpenseReceipt {
+  id        String   @id @default(cuid())
+  expenseId String   @map("expense_id")
+  expense   Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  fileUrl   String   @map("file_url")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+
+  @@map("expense_receipts")
+}
+
+model MessageChannel {
+  id          String   @id @default(cuid())
+  yachtId     String   @map("yacht_id")
+  yacht       Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  isGeneral   Boolean  @default(false) @map("is_general") // General channel - everyone can access
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdByUserId String? @map("created_by_user_id")
+  createdBy   User?   @relation("ChannelCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+
+  // Relations
+  members     User[]  @relation("ChannelMembers")
+  messages    Message[]
+
+  @@map("message_channels")
+}
+
+model Message {
+  id          String   @id @default(cuid())
+  channelId   String   @map("channel_id")
+  channel     MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId      String   @map("user_id")
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  content     String
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("messages")
+}

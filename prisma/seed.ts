@@ -1,0 +1,166 @@
+import { PrismaClient, UserRole } from "@prisma/client";
+import bcrypt from "bcryptjs";
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log("🌱 Seeding database...");
+
+  // Create a yacht
+  const yacht = await prisma.yacht.upsert({
+    where: { id: "yacht-1" },
+    update: {},
+    create: {
+      id: "yacht-1",
+      name: "Sea Breeze",
+      flag: "Malta",
+      length: 45,
+      registrationNumber: "MT-12345",
+      notes: "Main yacht for operations",
+    },
+  });
+
+  console.log("✅ Created yacht:", yacht.name);
+
+  // Create owner
+  const ownerPassword = await bcrypt.hash("owner123", 10);
+  const owner = await prisma.user.upsert({
+    where: { email: "owner@yachtops.com" },
+    update: {
+      passwordHash: ownerPassword,
+      name: "John Owner",
+      role: UserRole.OWNER,
+      yachtId: yacht.id,
+    },
+    create: {
+      email: "owner@yachtops.com",
+      passwordHash: ownerPassword,
+      name: "John Owner",
+      role: UserRole.OWNER,
+      yachtId: yacht.id,
+    },
+  });
+
+  console.log("✅ Created owner:", owner.email, "(password: owner123)");
+
+  // Create captain
+  const captainPassword = await bcrypt.hash("captain123", 10);
+  const captain = await prisma.user.upsert({
+    where: { email: "captain@yachtops.com" },
+    update: {
+      passwordHash: captainPassword,
+      name: "Sarah Captain",
+      role: UserRole.CAPTAIN,
+      yachtId: yacht.id,
+    },
+    create: {
+      email: "captain@yachtops.com",
+      passwordHash: captainPassword,
+      name: "Sarah Captain",
+      role: UserRole.CAPTAIN,
+      yachtId: yacht.id,
+    },
+  });
+
+  console.log("✅ Created captain:", captain.email, "(password: captain123)");
+
+  // Create crew member
+  const crewPassword = await bcrypt.hash("crew123", 10);
+  const crew = await prisma.user.upsert({
+    where: { email: "crew@yachtops.com" },
+    update: {
+      passwordHash: crewPassword,
+      name: "Mike Crew",
+      role: UserRole.CREW,
+      yachtId: yacht.id,
+    },
+    create: {
+      email: "crew@yachtops.com",
+      passwordHash: crewPassword,
+      name: "Mike Crew",
+      role: UserRole.CREW,
+      yachtId: yacht.id,
+    },
+  });
+
+  console.log("✅ Created crew:", crew.email, "(password: crew123)");
+
+  // Create expense categories
+  const categories = [
+    "Fuel",
+    "Marina & Port Fees",
+    "Provisions",
+    "Cleaning & Laundry",
+    "Maintenance & Repairs",
+    "Crew",
+    "Tender & Toys",
+    "Miscellaneous",
+  ];
+
+  for (const categoryName of categories) {
+    await prisma.expenseCategory.upsert({
+      where: {
+        yachtId_name: {
+          yachtId: yacht.id,
+          name: categoryName,
+        },
+      },
+      update: {},
+      create: {
+        name: categoryName,
+        yachtId: yacht.id,
+      },
+    });
+  }
+
+  console.log("✅ Created expense categories");
+
+  // Create a sample trip
+  const trip = await prisma.trip.create({
+    data: {
+      yachtId: yacht.id,
+      name: "Summer Charter 2024",
+      code: "SUM-2024-001",
+      startDate: new Date("2024-07-01"),
+      endDate: new Date("2024-07-15"),
+      departurePort: "Monaco",
+      arrivalPort: "Cannes",
+      status: "COMPLETED",
+      createdByUserId: captain.id,
+    },
+  });
+
+  console.log("✅ Created trip:", trip.name);
+
+  // Create general message channel
+  const generalChannel = await prisma.messageChannel.create({
+    data: {
+      yachtId: yacht.id,
+      name: "General",
+      description: "General discussion channel for all crew members",
+      isGeneral: true,
+      createdByUserId: owner.id,
+      members: {
+        connect: [owner.id, captain.id, crew.id].map((id) => ({ id })),
+      },
+    },
+  });
+
+  console.log("✅ Created general message channel");
+
+  console.log("\n🎉 Seeding completed!");
+  console.log("\n📝 Test credentials:");
+  console.log("  Owner:   owner@yachtops.com / owner123");
+  console.log("  Captain: captain@yachtops.com / captain123");
+  console.log("  Crew:    crew@yachtops.com / crew123");
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+  });
+

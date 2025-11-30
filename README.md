@@ -1,36 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# YachtOps - Yacht Operations Management System
 
-## Getting Started
+Production-ready yacht operations management system for private and charter yachts.
 
-First, run the development server:
+## 🚀 Quick Start
+
+### 1. Environment Setup
+
+Create a `.env` file in the root directory:
+
+```env
+# Database
+DATABASE_URL="postgresql://user:password@localhost:5432/yachtops?schema=public"
+
+# NextAuth
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key-here"
+```
+
+**Generate NEXTAUTH_SECRET:**
+```bash
+openssl rand -base64 32
+```
+
+### 2. Database Setup
+
+#### Option A: Local PostgreSQL (Docker)
+```bash
+docker run --name yachtops-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=yachtops -p 5432:5432 -d postgres:16
+```
+
+Then use:
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/yachtops?schema=public"
+```
+
+#### Option B: Cloud Database
+- [Supabase](https://supabase.com) - Free PostgreSQL
+- [Neon](https://neon.tech) - Serverless PostgreSQL
+
+### 3. Run Migrations
+
+```bash
+npx prisma migrate dev --name init
+```
+
+### 4. Seed Database (Optional)
+
+```bash
+npm run db:seed
+```
+
+This creates:
+- A yacht: "Sea Breeze"
+- Owner: `owner@yachtops.com` / `owner123`
+- Captain: `captain@yachtops.com` / `captain123`
+- Crew: `crew@yachtops.com` / `crew123`
+- Expense categories
+- Sample trip
+
+### 5. Start Development Server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000)
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📋 Features
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### ✅ Implemented (MVP)
 
-## Learn More
+- **Authentication & Authorization**
+  - Email/password authentication
+  - Role-based access control (OWNER, CAPTAIN, CREW)
+  - Protected routes
 
-To learn more about Next.js, take a look at the following resources:
+- **Dashboards**
+  - OWNER/CAPTAIN: Overview, pending expenses, recent expenses, upcoming trips
+  - CREW: My tasks, my expenses, quick actions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- **Expense Management**
+  - Expense category management (OWNER/CAPTAIN only)
+  - Expense creation with full details
+  - Expense list with filters (status, category, trip, date range, search)
+  - Expense approval workflow (SUBMITTED → APPROVED/REJECTED)
+  - Pending expenses review page
+  - Multi-currency support with base currency conversion
+  - VAT calculation
+  - Reimbursable expenses tracking
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### 🚧 Coming Soon
 
-## Deploy on Vercel
+- Trips management (CRUD)
+- Tasks management (CRUD)
+- Receipt file upload
+- Expense reporting (by category, by trip, reimbursable)
+- Inventory management
+- Maintenance logs
+- Document management
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 🏗️ Tech Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Framework:** Next.js 16 (App Router)
+- **Language:** TypeScript
+- **Styling:** Tailwind CSS
+- **UI Components:** shadcn/ui
+- **Database:** PostgreSQL
+- **ORM:** Prisma 7
+- **Authentication:** NextAuth.js v5 (beta)
+- **Forms:** React Hook Form + Zod
+- **Date Handling:** date-fns
+
+## 📁 Project Structure
+
+```
+yachtops/
+├── app/                    # Next.js App Router
+│   ├── api/               # API routes
+│   ├── auth/              # Authentication pages
+│   └── dashboard/         # Protected dashboard pages
+├── components/            # React components
+│   ├── dashboard/        # Dashboard components
+│   ├── expenses/         # Expense-related components
+│   └── ui/               # shadcn/ui components
+├── lib/                  # Utilities
+│   ├── auth.ts          # Auth helpers
+│   ├── auth-config.ts   # NextAuth configuration
+│   └── db.ts            # Prisma client
+├── prisma/              # Database
+│   ├── schema.prisma    # Prisma schema
+│   └── seed.ts          # Seed script
+└── types/               # TypeScript types
+```
+
+## 🔐 Roles & Permissions
+
+- **OWNER**: Full access, can manage users, approve expenses
+- **CAPTAIN**: Can manage users, approve expenses, create trips/tasks
+- **CREW**: Can create expenses, view assigned tasks, update task status
+
+## 📝 Notes
+
+- The application is mobile-responsive and works as a PWA
+- Expense module is the core feature and is fully functional
+- Receipt upload functionality requires additional file storage setup (e.g., AWS S3, Cloudinary)
+
+## 🐛 Troubleshooting
+
+### Prisma Client not found
+```bash
+npx prisma generate
+```
+
+### Database connection issues
+- Check your `.env` file has correct `DATABASE_URL`
+- Ensure PostgreSQL is running
+- Verify connection string format
+
+### NextAuth errors
+- Ensure `NEXTAUTH_SECRET` is set in `.env`
+- Check `NEXTAUTH_URL` matches your development URL
+
+## 📄 License
+
+Private project - All rights reserved
