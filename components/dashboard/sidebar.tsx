@@ -125,6 +125,11 @@ export function Sidebar() {
           label: "Marina / Port Permissions",
           permission: "documents.marina.view",
         },
+        {
+          href: "/dashboard/documents/vessel-crew",
+          label: "Vessel & Crew Documents",
+          permission: "documents.vesselcrew.view",
+        },
       ],
     },
     {

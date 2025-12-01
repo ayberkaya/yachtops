@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { format, differenceInDays, isPast, isToday } from "date-fns";
 import { AlertTriangle, Calendar } from "lucide-react";
 
-interface MarinaPermissionDocument {
+interface VesselCrewDocument {
   id: string;
   title: string;
   fileUrl: string;
@@ -19,12 +19,12 @@ interface MarinaPermissionDocument {
   createdAt: string;
 }
 
-interface MarinaPermissionsViewProps {
-  initialDocs: MarinaPermissionDocument[];
+interface VesselCrewDocumentsViewProps {
+  initialDocs: VesselCrewDocument[];
 }
 
-export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProps) {
-  const [docs, setDocs] = useState<MarinaPermissionDocument[]>(initialDocs);
+export function VesselCrewDocumentsView({ initialDocs }: VesselCrewDocumentsViewProps) {
+  const [docs, setDocs] = useState<VesselCrewDocument[]>(initialDocs);
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -75,7 +75,7 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
       }
       formData.append("file", file);
 
-      const res = await fetch("/api/marina-permissions", {
+      const res = await fetch("/api/vessel-crew-documents", {
         method: "POST",
         body: formData,
       });
@@ -105,9 +105,9 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Add Marina / Port Permission</CardTitle>
+          <CardTitle>Add Vessel & Crew Document</CardTitle>
           <CardDescription>
-            Upload a document file (e.g. PDF or image) related to marina or port permissions.
+            Upload a document file (e.g. PDF or image) related to vessel or crew documentation.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -140,7 +140,7 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
                   type="date"
                   value={expiryDate}
                   onChange={(e) => setExpiryDate(e.target.value)}
-                  placeholder="When does this permission expire?"
+                  placeholder="When does this document expire?"
                 />
                 <p className="text-xs text-muted-foreground">
                   You will receive a warning when the expiry date is approaching (30 days before).
@@ -149,7 +149,7 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
               <div className="space-y-2">
                 <label className="text-sm font-medium">Notes</label>
                 <Textarea
-                  placeholder="Optional notes about this permission document"
+                  placeholder="Optional notes about this document"
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
                   rows={4}
@@ -167,15 +167,15 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
 
       <Card>
         <CardHeader>
-          <CardTitle>Permission Records</CardTitle>
+          <CardTitle>Document Records</CardTitle>
           <CardDescription>
-            All marina / port permission documents uploaded for this yacht.
+            All vessel & crew documents uploaded for this yacht.
           </CardDescription>
         </CardHeader>
         <CardContent>
           {docs.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No marina / port permission documents uploaded yet.
+              No vessel & crew documents uploaded yet.
             </p>
           ) : (
             <div className="space-y-3">
@@ -195,7 +195,7 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-2">
                         <p className="text-sm font-medium">
-                          {doc.title || "Marina / Port Permission"}
+                          {doc.title || "Vessel & Crew Document"}
                         </p>
                         {expiryStatus && (
                           <Badge
@@ -261,5 +261,4 @@ export function MarinaPermissionsView({ initialDocs }: MarinaPermissionsViewProp
     </div>
   );
 }
-
 

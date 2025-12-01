@@ -34,6 +34,7 @@ export type Permission =
   | "documents.view"
   | "documents.receipts.view"
   | "documents.marina.view"
+  | "documents.vesselcrew.view"
   | "documents.upload"
   | "inventory.view"
   | "inventory.alcohol.view"
@@ -86,6 +87,7 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
     "documents.view",
     "documents.receipts.view",
     "documents.marina.view",
+    "documents.vesselcrew.view",
     "documents.upload",
   ],
   Inventory: [
@@ -132,6 +134,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "documents.view",
     "documents.receipts.view",
     "documents.marina.view",
+    "documents.vesselcrew.view",
     "documents.upload",
     "inventory.view",
     "inventory.alcohol.view",
@@ -170,6 +173,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "documents.view",
     "documents.receipts.view",
     "documents.marina.view",
+    "documents.vesselcrew.view",
     "documents.upload",
     "inventory.view",
     "inventory.alcohol.view",
