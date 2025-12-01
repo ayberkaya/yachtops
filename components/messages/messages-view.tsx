@@ -75,6 +75,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
   useEffect(() => {
     if (selectedChannel) {
+      // Disable auto-scroll when channel changes (user manually selected)
+      setShouldAutoScroll(false);
       fetchMessages(selectedChannel.id);
       // Mark channel as read when selected
       if (selectedChannel.id) {
@@ -133,8 +135,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
-        // Only auto-scroll on explicit loads, not during silent background refreshes
-        setShouldAutoScroll(!silent);
+        // Don't auto-scroll when fetching messages (only scroll when user sends a message)
+        // setShouldAutoScroll is controlled separately in handleSendMessage
         
         // Update last read time for current channel
         if (channelId === selectedChannel?.id) {
@@ -254,6 +256,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       alert("You don't have access to this channel");
       return;
     }
+    // Disable auto-scroll when channel is selected manually
+    setShouldAutoScroll(false);
     setSelectedChannel(channel);
     setMessages([]);
     // Mark as read when selected

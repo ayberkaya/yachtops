@@ -4,24 +4,22 @@ import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { 
-  Menu, 
-  LogOut, 
-  Activity, 
-  DollarSign, 
-  CheckSquare, 
-  Users, 
+import {
+  Menu,
+  LogOut,
+  Activity,
+  DollarSign,
+  CheckSquare,
+  Users,
   MessageSquare,
   TrendingUp,
   ShoppingCart,
   Anchor,
-  ChevronRight
+  ChevronRight,
+  FileText,
+  Package,
 } from "lucide-react";
 import { canManageUsers } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
@@ -56,18 +54,33 @@ export function Sidebar() {
       label: "Expenses",
       icon: DollarSign,
       permission: "expenses.view",
+      // Smaller child link under Expenses for pending approvals
+      children: [
+        {
+          href: "/dashboard/expenses/pending",
+          label: "Pending Approval",
+          permission: "expenses.approve",
+        },
+      ],
     },
     {
-      href: "/dashboard/expenses/pending",
-      label: "Pending Approval",
-      icon: DollarSign,
-      permission: "expenses.approve",
-    },
-    {
-      href: "/dashboard/trips",
-      label: "Trips",
-      icon: Anchor,
-      permission: "trips.view",
+      href: "/dashboard/documents",
+      label: "Documents",
+      icon: FileText,
+      permission: "expenses.view",
+      // Child sections for expense-related documents
+      children: [
+        {
+          href: "/dashboard/documents/receipts",
+          label: "Receipts & Invoices",
+          permission: "expenses.view",
+        },
+        {
+          href: "/dashboard/documents/marina-permissions",
+          label: "Marina / Port Permissions",
+          permission: null,
+        },
+      ],
     },
     {
       href: "/dashboard/tasks",
@@ -76,10 +89,10 @@ export function Sidebar() {
       permission: "tasks.view",
     },
     {
-      href: "/dashboard/users",
-      label: "Users",
-      icon: Users,
-      permission: "users.view",
+      href: "/dashboard/shopping",
+      label: "Shopping",
+      icon: ShoppingCart,
+      permission: null,
     },
     {
       href: "/dashboard/messages",
@@ -88,19 +101,40 @@ export function Sidebar() {
       permission: null,
     },
     {
+      href: "/dashboard/trips",
+      label: "Trips",
+      icon: Anchor,
+      permission: "trips.view",
+    },
+    {
+      href: "/dashboard/users",
+      label: "Users",
+      icon: Users,
+      permission: "users.view",
+    },
+    {
       href: "/dashboard/performance",
       label: "Performance",
       icon: TrendingUp,
       permission: null,
     },
     {
-      href: "/dashboard/shopping",
-      label: "Shopping",
-      icon: ShoppingCart,
+      href: "/dashboard/inventory",
+      label: "Inventory",
+      icon: Package,
       permission: null,
+      children: [
+        {
+          href: "/dashboard/inventory/alcohol-stock",
+          label: "Alcohol Stock",
+          permission: null,
+        },
+      ],
     },
   ].filter(
-    (item) => !item.permission || hasPermission(user, item.permission, user.permissions)
+    (item) =>
+      !item.permission ||
+      hasPermission(user, item.permission, user.permissions)
   );
 
   const NavContent = () => (
@@ -108,7 +142,7 @@ export function Sidebar() {
       {navItems.map((item) => {
         // Highlight logic:
         // - Dashboard: only exact /dashboard
-        // - Expenses: only /dashboard/expenses (NOT /dashboard/expenses/pending)
+        // - Expenses: /dashboard/expenses and ANY nested routes (including /pending)
         // - Others: exact match or nested routes (startsWith)
         let isActive = false;
         if (item.href === "/dashboard") {
@@ -116,33 +150,74 @@ export function Sidebar() {
         } else if (item.href === "/dashboard/expenses") {
           isActive =
             pathname === "/dashboard/expenses" ||
-            (pathname.startsWith("/dashboard/expenses/") &&
-              !pathname.startsWith("/dashboard/expenses/pending"));
+            pathname.startsWith("/dashboard/expenses/");
+        } else if (item.href === "/dashboard/inventory") {
+          isActive =
+            pathname === "/dashboard/inventory" ||
+            pathname.startsWith("/dashboard/inventory/");
         } else {
           isActive =
             pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+            (item.href !== "/dashboard" &&
+              pathname.startsWith(item.href + "/"));
         }
         const Icon = item.icon;
-        
+
         return (
-          <Link
-            key={item.href}
-            href={item.href}
-            onClick={() => setMobileMenuOpen(false)}
-            className={`flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
-              isActive
-                ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg shadow-teal-500/25"
-                : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
-            }`}
-          >
-            <Icon 
-              size={20} 
-              className={isActive ? "text-white" : "text-slate-400 group-hover:text-teal-400"} 
-            />
-            <span className="text-sm font-medium flex-1">{item.label}</span>
-            {isActive && <ChevronRight size={16} className="text-white" />}
-          </Link>
+          <div key={item.href}>
+            <Link
+              href={item.href}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
+                isActive
+                  ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg shadow-teal-500/25"
+                  : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+              }`}
+            >
+              <Icon
+                size={20}
+                className={
+                  isActive
+                    ? "text-white"
+                    : "text-slate-400 group-hover:text-teal-400"
+                }
+              />
+              <span className="text-sm font-medium flex-1">
+                {item.label}
+              </span>
+              {isActive && (
+                <ChevronRight size={16} className="text-white" />
+              )}
+            </Link>
+
+            {/* Children (e.g. Pending Approval) rendered as smaller indented links.
+                Only show when parent item is active (Expenses section open). */}
+            {isActive &&
+              item.children &&
+              item.children.map((child) => {
+                if (
+                  child.permission &&
+                  !hasPermission(user, child.permission, user.permissions)
+                ) {
+                  return null;
+                }
+                const childActive = pathname === child.href;
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    onClick={() => setMobileMenuOpen(false)}
+                    className={`ml-9 mt-1 mb-1 block text-base ${
+                      childActive
+                        ? "text-teal-200 font-medium"
+                        : "text-slate-300 hover:text-teal-100"
+                    }`}
+                  >
+                    {child.label}
+                  </Link>
+                );
+              })}
+          </div>
         );
       })}
     </nav>
@@ -159,8 +234,12 @@ export function Sidebar() {
               <Anchor className="text-white w-6 h-6" />
             </div>
             <div>
-              <span className="font-bold text-lg tracking-wider block">YACHT</span>
-              <span className="text-xs text-slate-400 uppercase tracking-widest">Operations</span>
+              <span className="font-bold text-lg tracking-wider block">
+                YACHT
+              </span>
+              <span className="text-xs text-slate-400 uppercase tracking-widest">
+                Operations
+              </span>
             </div>
           </div>
         </div>
@@ -177,8 +256,12 @@ export function Sidebar() {
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">{user.name || "User"}</p>
-              <p className="text-xs text-slate-400 truncate capitalize">{user.role.toLowerCase()}</p>
+              <p className="text-sm font-semibold text-white truncate">
+                {user.name || "User"}
+              </p>
+              <p className="text-xs text-slate-400 truncate capitalize">
+                {user.role.toLowerCase()}
+              </p>
             </div>
           </div>
           <button
@@ -199,15 +282,22 @@ export function Sidebar() {
               <Menu className="h-5 w-5" />
             </button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700">
+          <SheetContent
+            side="left"
+            className="w-[280px] p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700"
+          >
             <div className="p-6 border-b border-slate-700/50">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
                   <Anchor className="text-white w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-bold text-lg tracking-wider block text-white">YACHT</span>
-                  <span className="text-xs text-slate-400 uppercase tracking-widest">Operations</span>
+                  <span className="font-bold text-lg tracking-wider block text-white">
+                    YACHT
+                  </span>
+                  <span className="text-xs text-slate-400 uppercase tracking-widest">
+                    Operations
+                  </span>
                 </div>
               </div>
             </div>
@@ -220,8 +310,12 @@ export function Sidebar() {
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{user.name || "User"}</p>
-                  <p className="text-xs text-slate-400 truncate capitalize">{user.role.toLowerCase()}</p>
+                  <p className="text-sm font-semibold text-white truncate">
+                    {user.name || "User"}
+                  </p>
+                  <p className="text-xs text-slate-400 truncate capitalize">
+                    {user.role.toLowerCase()}
+                  </p>
                 </div>
               </div>
               <button
@@ -241,4 +335,5 @@ export function Sidebar() {
     </>
   );
 }
+
 

@@ -38,6 +38,8 @@ const expenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).default(ExpenseStatus.DRAFT),
   // UI-only field to select which crew member paid when PaidBy = CREW_PERSONAL
   crewPersonalId: z.string().optional().nullable(),
+  // UI-only field to capture whose card was used when paymentMethod = CARD
+  cardOwner: z.string().optional().nullable(),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
@@ -70,6 +72,8 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
   const paidBy = form.watch("paidBy");
   const crewPersonalId = form.watch("crewPersonalId");
+  const paymentMethod = form.watch("paymentMethod");
+  const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   // Load crew users (for PaidBy = CREW_PERSONAL dropdown)
   React.useEffect(() => {
@@ -97,16 +101,20 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
       const url = initialData ? `/api/expenses/${initialData.id}` : "/api/expenses";
       const method = initialData ? "PATCH" : "POST";
 
-      // We don't send crewPersonalId directly to the API (it's UI-only).
-      // Instead, if PaidBy = CREW_PERSONAL, we append the selected crew member
-      // into the notes field so the information is still stored.
-      const { crewPersonalId, notes, ...rest } = data as any;
+      // We don't send crewPersonalId or cardOwner directly to the API (they're UI-only).
+      // Instead, we append this information into the notes field so it is stored.
+      const { crewPersonalId, cardOwner, notes, ...rest } = data as any;
 
       let finalNotes = notes || "";
       if (rest.paidBy === PaidBy.CREW_PERSONAL && crewPersonalId) {
         const crew = crewUsers.find((u) => u.id === crewPersonalId);
         const crewLabel = crew?.name || crew?.email || "Unknown crew";
         const tag = `Crew personal: ${crewLabel}`;
+        finalNotes = finalNotes ? `${finalNotes}\n${tag}` : tag;
+      }
+
+      if (rest.paymentMethod === PaymentMethod.CARD && cardOwner) {
+        const tag = `Card owner: ${cardOwner}`;
         finalNotes = finalNotes ? `${finalNotes}\n${tag}` : tag;
       }
 
@@ -124,6 +132,20 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
         setError(result.error || "Failed to save expense");
         setIsLoading(false);
         return;
+      }
+
+      // If a receipt photo was selected, upload it as an optional receipt
+      if (receiptFile && result?.id) {
+        try {
+          const receiptFormData = new FormData();
+          receiptFormData.append("file", receiptFile);
+          await fetch(`/api/expenses/${result.id}/receipt`, {
+            method: "POST",
+            body: receiptFormData,
+          });
+        } catch (uploadError) {
+          console.error("Failed to upload receipt image", uploadError);
+        }
       }
 
       router.push("/dashboard/expenses");
@@ -305,6 +327,47 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
               />
             </div>
 
+            {/* When payment method is card, show an input to specify whose card */}
+            {paymentMethod === PaymentMethod.CARD && (
+              <FormField
+                control={form.control}
+                name="cardOwner"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Card Owner</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Whose card was used?"
+                        {...field}
+                        value={field.value || ""}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      Enter the name or description of whose card was used for this payment.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+
+            {/* Optional receipt photo upload */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                Receipt Photo (optional)
+              </p>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setReceiptFile(e.target.files?.[0] ?? null)
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                You can attach a photo of the receipt for this expense.
+              </p>
+            </div>
+
             {/* When paid by crew personal, show a dropdown to select which crew member */}
             {paidBy === PaidBy.CREW_PERSONAL && crewUsers.length > 0 && (
               <FormField
@@ -347,21 +410,11 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                   <FormItem>
                     <FormLabel>Vendor Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="Vendor name" {...field} value={field.value || ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="invoiceNumber"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Invoice Number</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Invoice number" {...field} value={field.value || ""} />
+                      <Input
+                        placeholder="Vendor name"
+                        {...field}
+                        value={field.value || ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,0 +1,36 @@
+import { redirect } from "next/navigation";
+import { getSession } from "@/lib/get-session";
+import { db } from "@/lib/db";
+import { AlcoholStockView } from "@/components/inventory/alcohol-stock-view";
+
+export default async function AlcoholStockPage() {
+  const session = await getSession();
+
+  if (!session?.user) {
+    redirect("/auth/signin");
+  }
+
+  if (!session.user.yachtId) {
+    redirect("/dashboard");
+  }
+
+  const stocks = await db.alcoholStock.findMany({
+    where: {
+      yachtId: session.user.yachtId,
+    },
+    orderBy: { name: "asc" },
+  });
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-3xl font-bold">Alcohol Stock</h1>
+        <p className="text-muted-foreground">
+          Manage vessel alcohol inventory and stock levels
+        </p>
+      </div>
+      <AlcoholStockView initialStocks={stocks} />
+    </div>
+  );
+}
+

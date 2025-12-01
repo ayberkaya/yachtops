@@ -18,6 +18,27 @@ interface ExpenseDetailProps {
 export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailProps) {
   const router = useRouter();
 
+  // Derive extra display info from notes for UI-only fields (crew personal, card owner)
+  let crewPersonalLabel: string | null = null;
+  let cardOwnerLabel: string | null = null;
+
+  if (typeof expense.notes === "string" && expense.notes.length > 0) {
+    const noteLines = expense.notes.split("\n").map((l: string) => l.trim());
+    const crewLine = noteLines.find((l) =>
+      l.toLowerCase().startsWith("crew personal:")
+    );
+    if (crewLine) {
+      crewPersonalLabel = crewLine.slice("crew personal:".length).trim();
+    }
+
+    const cardLine = noteLines.find((l) =>
+      l.toLowerCase().startsWith("card owner:")
+    );
+    if (cardLine) {
+      cardOwnerLabel = cardLine.slice("card owner:".length).trim();
+    }
+  }
+
   const getStatusBadge = (status: ExpenseStatus) => {
     const variants: Record<ExpenseStatus, "default" | "secondary" | "destructive" | "outline"> = {
       [ExpenseStatus.DRAFT]: "outline",
@@ -141,6 +162,22 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
               <p className="text-sm font-medium text-muted-foreground">Paid By</p>
               <p>{expense.paidBy.replace("_", " ")}</p>
             </div>
+            {expense.paidBy === PaidBy.CREW_PERSONAL && crewPersonalLabel && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Crew Personal
+                </p>
+                <p>{crewPersonalLabel}</p>
+              </div>
+            )}
+            {expense.paymentMethod === PaymentMethod.CARD && cardOwnerLabel && (
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Card Owner
+                </p>
+                <p>{cardOwnerLabel}</p>
+              </div>
+            )}
             {expense.vendorName && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Vendor</p>

@@ -125,6 +125,8 @@ model Yacht {
   messageChannels  MessageChannel[]
   products         Product[]
   shoppingLists    ShoppingList[]
+  marinaPermissionDocuments MarinaPermissionDocument[]
+  alcoholStocks    AlcoholStock[]
 
   @@map("yachts")
 }
@@ -236,6 +238,18 @@ model ExpenseReceipt {
   @@map("expense_receipts")
 }
 
+model MarinaPermissionDocument {
+  id        String   @id @default(cuid())
+  yachtId   String   @map("yacht_id")
+  yacht     Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  title     String
+  fileUrl   String   @map("file_url")
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("marina_permission_documents")
+}
+
 model MessageChannel {
   id          String   @id @default(cuid())
   yachtId     String   @map("yacht_id")
@@ -319,4 +333,20 @@ model ShoppingItem {
   updatedAt   DateTime      @updatedAt @map("updated_at")
 
   @@map("shopping_items")
+}
+
+model AlcoholStock {
+  id              String   @id @default(cuid())
+  yachtId         String   @map("yacht_id")
+  yacht           Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name            String   // Alcohol name (from template or custom)
+  quantity        Float    @default(0) // Current stock quantity
+  unit            String   @default("bottle") // bottle, liter, etc.
+  lowStockThreshold Float? @map("low_stock_threshold") // Alert when stock falls below this
+  notes           String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([yachtId, name])
+  @@map("alcohol_stocks")
 }
