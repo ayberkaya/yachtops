@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { Send, Hash, Users, Menu } from "lucide-react";
@@ -67,16 +66,11 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  // Control when we auto-scroll so the view doesn't jump while the user scrolls up
-  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const canManage = canManageUsers(session?.user || null);
 
   useEffect(() => {
     if (selectedChannel) {
-      // Disable auto-scroll when channel changes (user manually selected)
-      setShouldAutoScroll(false);
       fetchMessages(selectedChannel.id);
       // Mark channel as read when selected
       if (selectedChannel.id) {
@@ -92,13 +86,6 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       }
     }
   }, [selectedChannel]);
-
-  // Auto-scroll only when explicitly requested (e.g. after sending a message
-  // or changing channel). Background polling updates should NOT force scroll.
-  useEffect(() => {
-    if (!shouldAutoScroll) return;
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, shouldAutoScroll]);
 
   // Initialize unread counts for all channels on mount
   useEffect(() => {
@@ -135,8 +122,6 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
-        // Don't auto-scroll when fetching messages (only scroll when user sends a message)
-        // setShouldAutoScroll is controlled separately in handleSendMessage
         
         // Update last read time for current channel
         if (channelId === selectedChannel?.id) {
@@ -200,8 +185,6 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       return;
     }
 
-    // When user sends a message, keep them at the bottom
-    setShouldAutoScroll(true);
     setIsSending(true);
     try {
       const response = await fetch("/api/messages", {
@@ -256,8 +239,6 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       alert("You don't have access to this channel");
       return;
     }
-    // Disable auto-scroll when channel is selected manually
-    setShouldAutoScroll(false);
     setSelectedChannel(channel);
     setMessages([]);
     // Mark as read when selected
@@ -432,9 +413,9 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       </Sheet>
 
       {/* Messages - Right Side */}
-      <div className="flex-1 flex flex-col bg-background w-full md:w-auto">
-        {/* Header */}
-        <div className="border-b p-4 bg-muted/30">
+      <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
+        {/* Header - Fixed */}
+        <div className="border-b p-4 bg-muted/30 flex-shrink-0">
           <div className="flex items-center gap-3">
             {/* Mobile: Show channel list button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -463,56 +444,55 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           </div>
         </div>
 
-        {/* Messages Area */}
-        <ScrollArea className="flex-1 p-4">
-              {isLoading && messages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  Loading messages...
-                </div>
-              ) : messages.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  No messages yet. Start the conversation!
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {messages.map((message) => {
-                    const isOwnMessage = message.user.id === currentUser.id;
-                    return (
-                      <div
-                        key={message.id}
-                        className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
-                      >
-                        <div
-                          className={`max-w-[70%] rounded-lg p-3 ${
-                            isOwnMessage
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-muted"
-                          }`}
-                        >
-                          {!isOwnMessage && (
-                            <p className="text-xs font-medium mb-1 opacity-70">
-                              {message.user.name || message.user.email}
-                            </p>
-                          )}
-                          <p className="text-sm whitespace-pre-wrap">
-                            {message.content}
-                          </p>
-                          <p className="text-xs mt-1 opacity-70">
-                            {formatDistanceToNow(new Date(message.createdAt), {
-                              addSuffix: true,
-                            })}
-                          </p>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  <div ref={messagesEndRef} />
-                </div>
-              )}
-            </ScrollArea>
+        {/* Messages Area - Scrollable, grows to fill space */}
+        <div className="flex-1 overflow-y-auto p-4 min-h-0">
+          {isLoading && messages.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              Loading messages...
+            </div>
+          ) : messages.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8">
+              No messages yet. Start the conversation!
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {messages.map((message) => {
+                const isOwnMessage = message.user.id === currentUser.id;
+                return (
+                  <div
+                    key={message.id}
+                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`max-w-[70%] rounded-lg p-3 ${
+                        isOwnMessage
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      }`}
+                    >
+                      {!isOwnMessage && (
+                        <p className="text-xs font-medium mb-1 opacity-70">
+                          {message.user.name || message.user.email}
+                        </p>
+                      )}
+                      <p className="text-sm whitespace-pre-wrap">
+                        {message.content}
+                      </p>
+                      <p className="text-xs mt-1 opacity-70">
+                        {formatDistanceToNow(new Date(message.createdAt), {
+                          addSuffix: true,
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
 
-            {/* Input Area */}
-            <div className="border-t p-4 bg-muted/30">
+        {/* Input Area - Fixed at bottom */}
+        <div className="border-t p-4 bg-muted/30 flex-shrink-0">
           <form
             onSubmit={(e) => {
               e.preventDefault();
