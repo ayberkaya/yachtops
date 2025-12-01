@@ -19,6 +19,9 @@ import {
 import { ExpenseCategory, Trip, PaymentMethod, PaidBy, ExpenseStatus } from "@prisma/client";
 import { Textarea } from "@/components/ui/textarea";
 
+// UI-only schema for the expense form. We intentionally drop VAT/base amount fields
+// to simplify the UI. The API schema still supports them optionally, but we no longer
+// collect or send them from the form.
 const expenseSchema = z.object({
   tripId: z.string().optional().nullable(),
   date: z.string().min(1, "Date is required"),
@@ -26,15 +29,10 @@ const expenseSchema = z.object({
   description: z.string().min(1, "Description is required"),
   amount: z.number().positive("Amount must be positive"),
   currency: z.string().default("EUR"),
-  exchangeRateToBase: z.number().optional().nullable(),
-  baseAmount: z.number().optional().nullable(),
   paymentMethod: z.nativeEnum(PaymentMethod),
   paidBy: z.nativeEnum(PaidBy),
   vendorName: z.string().optional().nullable(),
   invoiceNumber: z.string().optional().nullable(),
-  vatRate: z.number().optional().nullable(),
-  vatAmount: z.number().optional().nullable(),
-  totalAmountWithVat: z.number().optional().nullable(),
   isReimbursable: z.boolean().default(false),
   notes: z.string().optional().nullable(),
   status: z.nativeEnum(ExpenseStatus).default(ExpenseStatus.DRAFT),
@@ -62,37 +60,8 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
       paidBy: PaidBy.VESSEL,
       isReimbursable: false,
       status: ExpenseStatus.DRAFT,
-      exchangeRateToBase: null,
-      baseAmount: null,
-      vatRate: null,
-      vatAmount: null,
-      totalAmountWithVat: null,
     },
   });
-
-  const amount = form.watch("amount");
-  const vatRate = form.watch("vatRate");
-  const currency = form.watch("currency");
-
-  // Calculate VAT and total when amount or VAT rate changes
-  React.useEffect(() => {
-    if (amount && vatRate) {
-      const vat = (amount * vatRate) / 100;
-      const total = amount + vat;
-      form.setValue("vatAmount", vat);
-      form.setValue("totalAmountWithVat", total);
-    }
-  }, [amount, vatRate, form]);
-
-  // Set base amount same as amount if EUR, or calculate if other currency
-  React.useEffect(() => {
-    if (amount) {
-      if (currency === "EUR") {
-        form.setValue("baseAmount", amount);
-        form.setValue("exchangeRateToBase", 1);
-      }
-    }
-  }, [amount, currency, form]);
 
   const onSubmit = async (data: ExpenseFormData) => {
     setIsLoading(true);
@@ -345,70 +314,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-3">
-              <FormField
-                control={form.control}
-                name="vatRate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>VAT Rate (%)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || null)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="vatAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>VAT Amount</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || null)}
-                        readOnly
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="totalAmountWithVat"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Total with VAT</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || null)}
-                        readOnly
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            {/* VAT-related fields removed from UI for simplicity */}
 
             <div className="grid gap-4 md:grid-cols-2">
               <FormField

@@ -2,9 +2,11 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import Link from "next/link";
 import { ExpenseStatus } from "@prisma/client";
 import { format } from "date-fns";
+import { DollarSign, Calendar, AlertCircle, TrendingUp, Clock } from "lucide-react";
 
 export async function OwnerCaptainDashboard() {
   const session = await getSession();

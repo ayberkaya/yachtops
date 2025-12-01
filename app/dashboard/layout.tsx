@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { Navbar } from "@/components/dashboard/navbar";
+import { Sidebar } from "@/components/dashboard/sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -14,9 +14,13 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar />
-      <main className="container mx-auto px-2 sm:px-4 py-4 sm:py-6">{children}</main>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white flex flex-col md:flex-row">
+      <Sidebar />
+      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-white p-6 md:p-8 lg:p-10">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
+      </main>
     </div>
   );
 }

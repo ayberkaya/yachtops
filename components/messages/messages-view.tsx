@@ -68,6 +68,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // Control when we auto-scroll so the view doesn't jump while the user scrolls up
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
 
   const canManage = canManageUsers(session?.user || null);
 
@@ -89,10 +91,12 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   }, [selectedChannel]);
 
+  // Auto-scroll only when explicitly requested (e.g. after sending a message
+  // or changing channel). Background polling updates should NOT force scroll.
   useEffect(() => {
-    // Auto-scroll to bottom when new messages arrive
+    if (!shouldAutoScroll) return;
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, shouldAutoScroll]);
 
   // Initialize unread counts for all channels on mount
   useEffect(() => {
@@ -129,6 +133,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       if (response.ok) {
         const data = await response.json();
         setMessages(data);
+        // Only auto-scroll on explicit loads, not during silent background refreshes
+        setShouldAutoScroll(!silent);
         
         // Update last read time for current channel
         if (channelId === selectedChannel?.id) {
@@ -192,6 +198,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       return;
     }
 
+    // When user sends a message, keep them at the bottom
+    setShouldAutoScroll(true);
     setIsSending(true);
     try {
       const response = await fetch("/api/messages", {

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
 import { PerformanceView } from "@/components/performance/performance-view";
+import { UserRole } from "@prisma/client";
 
 export default async function PerformancePage() {
   const session = await getSession();
@@ -11,11 +12,14 @@ export default async function PerformancePage() {
     redirect("/auth/signin");
   }
 
-  // Get all users for filter (only for OWNER/CAPTAIN)
+  // Get all crew users for filter (exclude OWNER/CAPTAIN)
   const allUsers = canManageUsers(session.user)
     ? await db.user.findMany({
         where: {
           yachtId: session.user.yachtId || undefined,
+          role: {
+            notIn: [UserRole.OWNER, UserRole.CAPTAIN],
+          },
         },
         select: {
           id: true,
