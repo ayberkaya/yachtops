@@ -108,6 +108,13 @@ export function Navbar() {
       >
         Performance
       </Link>
+      <Link
+        href="/dashboard/shopping"
+        className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+        onClick={() => setMobileMenuOpen(false)}
+      >
+        Shopping
+      </Link>
     </>
   );
 

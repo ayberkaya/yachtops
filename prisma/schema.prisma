@@ -51,6 +51,34 @@ enum PaidBy {
   CREW_PERSONAL
 }
 
+enum StoreType {
+  MARKET
+  BUTCHER
+  GROCERY
+  DELI
+  BAKERY
+  FISH_MARKET
+  PHARMACY
+  OTHER
+}
+
+enum ShoppingListStatus {
+  DRAFT
+  ACTIVE
+  COMPLETED
+}
+
+enum ItemUnit {
+  PIECE
+  KG
+  LITER
+  GRAM
+  PACK
+  BOX
+  BOTTLE
+  OTHER
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -73,6 +101,7 @@ model User {
   messages      Message[]
   channels      MessageChannel[] @relation("ChannelMembers")
   createdChannels MessageChannel[] @relation("ChannelCreator")
+  createdShoppingLists ShoppingList[] @relation("ShoppingListCreator")
 
   @@map("users")
 }
@@ -94,6 +123,8 @@ model Yacht {
   expenseCategories ExpenseCategory[]
   tasks            Task[]
   messageChannels  MessageChannel[]
+  products         Product[]
+  shoppingLists    ShoppingList[]
 
   @@map("yachts")
 }
@@ -235,4 +266,57 @@ model Message {
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   @@map("messages")
+}
+
+model Product {
+  id        String   @id @default(cuid())
+  yachtId   String   @map("yacht_id")
+  yacht     Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name      String
+  defaultUnit ItemUnit @default(PIECE) @map("default_unit")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  items     ShoppingItem[]
+
+  @@unique([yachtId, name])
+  @@map("products")
+}
+
+model ShoppingList {
+  id          String            @id @default(cuid())
+  yachtId     String            @map("yacht_id")
+  yacht       Yacht             @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  status      ShoppingListStatus @default(DRAFT)
+  createdByUserId String?        @map("created_by_user_id")
+  createdBy   User?              @relation("ShoppingListCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  // Relations
+  items       ShoppingItem[]
+
+  @@map("shopping_lists")
+}
+
+model ShoppingItem {
+  id          String        @id @default(cuid())
+  listId      String        @map("list_id")
+  list        ShoppingList  @relation(fields: [listId], references: [id], onDelete: Cascade)
+  productId   String?       @map("product_id")
+  product     Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  name        String        // Product name (from catalog or manual entry)
+  quantity    Float
+  unit        ItemUnit
+  storeId     String?       @map("store_id") // Optional: assigned later
+  storeName   String?       @map("store_name") // Optional: store name if not in catalog
+  isCompleted Boolean       @default(false) @map("is_completed")
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  @@map("shopping_items")
 }
