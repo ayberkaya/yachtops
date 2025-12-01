@@ -3,16 +3,19 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { TripStatus } from "@prisma/client";
+import { TripStatus, TripType } from "@prisma/client";
 
 const tripSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().optional().nullable(),
+  type: z.nativeEnum(TripType).default(TripType.CHARTER),
   startDate: z.string(),
   endDate: z.string().optional().nullable(),
   departurePort: z.string().optional().nullable(),
   arrivalPort: z.string().optional().nullable(),
   status: z.nativeEnum(TripStatus).default(TripStatus.PLANNED),
+  mainGuest: z.string().optional().nullable(),
+  guestCount: z.number().int().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -40,6 +43,12 @@ export async function GET(request: NextRequest) {
         createdBy: {
           select: { id: true, name: true, email: true },
         },
+          _count: {
+            select: {
+              expenses: true,
+              tasks: true,
+            },
+          },
       },
       orderBy: { startDate: "desc" },
     });
@@ -80,11 +89,14 @@ export async function POST(request: NextRequest) {
         yachtId: session.user.yachtId,
         name: validated.name,
         code: validated.code || null,
+        type: validated.type,
         startDate: new Date(validated.startDate),
         endDate: validated.endDate ? new Date(validated.endDate) : null,
         departurePort: validated.departurePort || null,
         arrivalPort: validated.arrivalPort || null,
         status: validated.status,
+        mainGuest: validated.mainGuest || null,
+        guestCount: validated.guestCount || null,
         notes: validated.notes || null,
         createdByUserId: session.user.id,
       },
@@ -92,6 +104,12 @@ export async function POST(request: NextRequest) {
         createdBy: {
           select: { id: true, name: true, email: true },
         },
+          _count: {
+            select: {
+              expenses: true,
+              tasks: true,
+            },
+          },
       },
     });
 

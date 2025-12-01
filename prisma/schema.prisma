@@ -23,6 +23,14 @@ enum TripStatus {
   CANCELLED
 }
 
+enum TripType {
+  CHARTER
+  PRIVATE
+  DELIVERY
+  MAINTENANCE
+  OTHER
+}
+
 enum TaskStatus {
   TODO
   IN_PROGRESS
@@ -137,11 +145,14 @@ model Trip {
   yacht        Yacht      @relation(fields: [yachtId], references: [id], onDelete: Cascade)
   name         String
   code         String?
+  type         TripType   @default(CHARTER) @map("trip_type")
   startDate    DateTime   @map("start_date")
   endDate      DateTime?  @map("end_date")
   departurePort String?   @map("departure_port")
   arrivalPort  String?    @map("arrival_port")
   status       TripStatus @default(PLANNED)
+  mainGuest    String?    @map("main_guest")
+  guestCount   Int?       @map("guest_count")
   notes        String?
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")
@@ -151,8 +162,24 @@ model Trip {
   createdBy       User?    @relation("TripCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
   tasks           Task[]
   expenses        Expense[]
+  itineraryDays   TripItineraryDay[]
 
   @@map("trips")
+}
+
+model TripItineraryDay {
+  id          String   @id @default(cuid())
+  tripId     String   @map("trip_id")
+  trip       Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  dayIndex   Int      @map("day_index") // 1, 2, 3... or can use date
+  date       DateTime? // Optional specific date
+  fromLocation String? @map("from_location")
+  toLocation   String? @map("to_location")
+  activities   String? // Planned activities / notes
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("trip_itinerary_days")
 }
 
 model Task {

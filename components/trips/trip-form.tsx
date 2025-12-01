@@ -18,16 +18,19 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
-import { TripStatus } from "@prisma/client";
+import { TripStatus, TripType } from "@prisma/client";
 
 const tripSchema = z.object({
   name: z.string().min(1, "Name is required"),
   code: z.string().optional().nullable(),
+  type: z.nativeEnum(TripType).default(TripType.CHARTER),
   startDate: z.string().min(1, "Start date is required"),
   endDate: z.string().optional().nullable(),
   departurePort: z.string().optional().nullable(),
   arrivalPort: z.string().optional().nullable(),
   status: z.nativeEnum(TripStatus).default(TripStatus.PLANNED),
+  mainGuest: z.string().optional().nullable(),
+  guestCount: z.number().int().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -48,21 +51,27 @@ export function TripForm({ trip, onSuccess }: TripFormProps) {
       ? {
           name: trip.name,
           code: trip.code || "",
+          type: trip.type || TripType.CHARTER,
           startDate: trip.startDate ? new Date(trip.startDate).toISOString().split("T")[0] : "",
           endDate: trip.endDate ? new Date(trip.endDate).toISOString().split("T")[0] : "",
           departurePort: trip.departurePort || "",
           arrivalPort: trip.arrivalPort || "",
           status: trip.status,
+          mainGuest: trip.mainGuest || "",
+          guestCount: trip.guestCount || null,
           notes: trip.notes || "",
         }
       : {
           name: "",
           code: "",
+          type: TripType.CHARTER,
           startDate: "",
           endDate: "",
           departurePort: "",
           arrivalPort: "",
           status: TripStatus.PLANNED,
+          mainGuest: "",
+          guestCount: null,
           notes: "",
         },
   });
@@ -134,6 +143,33 @@ export function TripForm({ trip, onSuccess }: TripFormProps) {
             )}
           />
 
+          <FormField
+            control={form.control}
+            name="type"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Type</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value={TripType.CHARTER}>Charter</SelectItem>
+                    <SelectItem value={TripType.PRIVATE}>Private</SelectItem>
+                    <SelectItem value={TripType.DELIVERY}>Delivery</SelectItem>
+                    <SelectItem value={TripType.MAINTENANCE}>Maintenance</SelectItem>
+                    <SelectItem value={TripType.OTHER}>Other</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
             name="status"
@@ -212,6 +248,42 @@ export function TripForm({ trip, onSuccess }: TripFormProps) {
                 <FormLabel>Arrival Port</FormLabel>
                 <FormControl>
                   <Input placeholder="Arrival port" {...field} value={field.value || ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="mainGuest"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Main Guest</FormLabel>
+                <FormControl>
+                  <Input placeholder="Primary guest name" {...field} value={field.value || ""} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="guestCount"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Guest Count</FormLabel>
+                <FormControl>
+                  <Input
+                    type="number"
+                    placeholder="Number of guests"
+                    {...field}
+                    value={field.value || ""}
+                    onChange={(e) => field.onChange(e.target.value ? parseInt(e.target.value) : null)}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>

@@ -2,17 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { TripStatus } from "@prisma/client";
+import { TripStatus, TripType } from "@prisma/client";
 import { z } from "zod";
 
 const updateTripSchema = z.object({
   name: z.string().min(1).optional(),
   code: z.string().optional().nullable(),
+  type: z.nativeEnum(TripType).optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional().nullable(),
   departurePort: z.string().optional().nullable(),
   arrivalPort: z.string().optional().nullable(),
   status: z.nativeEnum(TripStatus).optional(),
+  mainGuest: z.string().optional().nullable(),
+  guestCount: z.number().int().positive().optional().nullable(),
   notes: z.string().optional().nullable(),
 });
 
@@ -36,6 +39,12 @@ export async function GET(
         createdBy: {
           select: { id: true, name: true, email: true },
         },
+          _count: {
+            select: {
+              expenses: true,
+              tasks: true,
+            },
+          },
       },
     });
 
@@ -85,6 +94,7 @@ export async function PATCH(
     const updateData: any = {};
     if (validated.name) updateData.name = validated.name;
     if (validated.code !== undefined) updateData.code = validated.code;
+    if (validated.type) updateData.type = validated.type;
     if (validated.startDate) updateData.startDate = new Date(validated.startDate);
     if (validated.endDate !== undefined) {
       updateData.endDate = validated.endDate ? new Date(validated.endDate) : null;
@@ -92,6 +102,8 @@ export async function PATCH(
     if (validated.departurePort !== undefined) updateData.departurePort = validated.departurePort;
     if (validated.arrivalPort !== undefined) updateData.arrivalPort = validated.arrivalPort;
     if (validated.status) updateData.status = validated.status;
+    if (validated.mainGuest !== undefined) updateData.mainGuest = validated.mainGuest;
+    if (validated.guestCount !== undefined) updateData.guestCount = validated.guestCount;
     if (validated.notes !== undefined) updateData.notes = validated.notes;
 
     const trip = await db.trip.update({
@@ -101,6 +113,12 @@ export async function PATCH(
         createdBy: {
           select: { id: true, name: true, email: true },
         },
+          _count: {
+            select: {
+              expenses: true,
+              tasks: true,
+            },
+          },
       },
     });
 

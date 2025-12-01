@@ -25,8 +25,38 @@ export default async function TripsPage() {
       createdBy: {
         select: { id: true, name: true, email: true },
       },
+      expenses: {
+        select: {
+          id: true,
+          amount: true,
+          currency: true,
+          status: true,
+        },
+      },
+      _count: {
+        select: {
+          expenses: true,
+          tasks: true,
+        },
+      },
     },
     orderBy: { startDate: "desc" },
+  });
+
+  // Calculate expense summaries per trip
+  const tripsWithExpenseSummary = trips.map((trip) => {
+    const approvedExpenses = trip.expenses.filter((e) => e.status === "APPROVED");
+    const expensesByCurrency: Record<string, number> = {};
+    
+    approvedExpenses.forEach((exp) => {
+      const currency = exp.currency;
+      expensesByCurrency[currency] = (expensesByCurrency[currency] || 0) + Number(exp.amount);
+    });
+
+    return {
+      ...trip,
+      expenseSummary: expensesByCurrency,
+    };
   });
 
   return (
@@ -37,7 +67,7 @@ export default async function TripsPage() {
           <p className="text-muted-foreground">Manage yacht trips and charters</p>
         </div>
       </div>
-      <TripList initialTrips={trips} canManage={canManageUsers(session.user)} />
+      <TripList initialTrips={tripsWithExpenseSummary} canManage={canManageUsers(session.user)} />
     </div>
   );
 }
