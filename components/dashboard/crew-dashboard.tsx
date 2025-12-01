@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { TaskStatus } from "@prisma/client";
 import { format } from "date-fns";
+import { AlertTriangle, Package } from "lucide-react";
+import { hasPermission } from "@/lib/permissions";
 
 export async function CrewDashboard() {
   const session = await getSession();
@@ -44,12 +46,74 @@ export async function CrewDashboard() {
   const pendingTasksCount = myTasks.filter((t) => t.status === TaskStatus.TODO).length;
   const inProgressTasksCount = myTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS).length;
 
+  // Fetch low stock alcohol items (if user has inventory permission)
+  const lowStockItems: any[] = [];
+  if (hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
+    const allStocks = await db.alcoholStock.findMany({
+      where: {
+        yachtId: session.user.yachtId || undefined,
+      },
+    });
+    
+    lowStockItems.push(
+      ...allStocks.filter((stock) => {
+        if (stock.lowStockThreshold === null) return false;
+        return stock.quantity <= stock.lowStockThreshold;
+      })
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">My Dashboard</h1>
         <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
       </div>
+
+      {/* Low Stock Alert */}
+      {lowStockItems.length > 0 && (
+        <Card className="border-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                <CardTitle className="text-orange-900 dark:text-orange-100">
+                  Low Stock Alert
+                </CardTitle>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/inventory/alcohol-stock">View Inventory</Link>
+              </Button>
+            </div>
+            <CardDescription className="text-orange-700 dark:text-orange-300">
+              {lowStockItems.length} alcohol item{lowStockItems.length > 1 ? "s" : ""} below threshold
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {lowStockItems.map((item) => (
+                <div
+                  key={item.id}
+                  className="flex items-center justify-between p-2 rounded-md bg-white/50 dark:bg-slate-800/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <Package className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                    <span className="font-medium text-sm">{item.name}</span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                      {item.quantity} {item.unit}
+                    </span>
+                    <span className="text-xs text-orange-600 dark:text-orange-400 ml-2">
+                      (Threshold: {item.lowStockThreshold} {item.unit})
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
