@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -20,14 +20,31 @@ import {
   ChevronRight,
   FileText,
   Package,
+  Moon,
+  Sun,
 } from "lucide-react";
 import { canManageUsers } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
+import { useTheme } from "next-themes";
 
 export function Sidebar() {
   const { data: session } = useSession();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Auto-collapse when a menu item is selected
+  useEffect(() => {
+    if (pathname && pathname !== "/dashboard") {
+      setIsCollapsed(true);
+    }
+  }, [pathname]);
 
   if (!session?.user) return null;
 
@@ -167,32 +184,42 @@ export function Sidebar() {
           <div key={item.href}>
             <Link
               href={item.href}
-              onClick={() => setMobileMenuOpen(false)}
-              className={`flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
+              onClick={() => {
+                setMobileMenuOpen(false);
+                if (!isCollapsed) {
+                  setIsCollapsed(true);
+                }
+              }}
+              className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                 isActive
                   ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg shadow-teal-500/25"
-                  : "text-slate-300 hover:bg-slate-800/50 hover:text-white"
+                  : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
               }`}
+              title={isCollapsed ? item.label : undefined}
             >
               <Icon
                 size={20}
                 className={
                   isActive
                     ? "text-white"
-                    : "text-slate-400 group-hover:text-teal-400"
+                    : "text-slate-600 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400"
                 }
               />
-              <span className="text-sm font-medium flex-1">
-                {item.label}
-              </span>
-              {isActive && (
-                <ChevronRight size={16} className="text-white" />
+              {!isCollapsed && (
+                <>
+                  <span className="text-sm font-medium flex-1">
+                    {item.label}
+                  </span>
+                  {isActive && (
+                    <ChevronRight size={16} className="text-white" />
+                  )}
+                </>
               )}
             </Link>
 
             {/* Children (e.g. Pending Approval) rendered as smaller indented links.
-                Only show when parent item is active (Expenses section open). */}
-            {isActive &&
+                Only show when parent item is active (Expenses section open) and not collapsed. */}
+            {!isCollapsed && isActive &&
               item.children &&
               item.children.map((child) => {
                 if (
@@ -209,8 +236,8 @@ export function Sidebar() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={`ml-9 mt-1 mb-1 block text-base ${
                       childActive
-                        ? "text-teal-200 font-medium"
-                        : "text-slate-300 hover:text-teal-100"
+                        ? "text-teal-600 dark:text-teal-200 font-medium"
+                        : "text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-100"
                     }`}
                   >
                     {child.label}
@@ -226,51 +253,106 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex bg-gradient-to-b from-slate-900 to-slate-800 text-white w-72 flex-shrink-0 flex-col shadow-2xl z-20 border-r border-slate-700/50">
+      <aside className={`hidden md:flex bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-white ${isCollapsed ? "w-20" : "w-72"} flex-shrink-0 flex-col shadow-2xl z-20 border-r border-slate-200 dark:border-slate-700/50 transition-all duration-300`}>
+        {/* Hamburger Menu Button */}
+        <div className={`p-3 border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50 ${isCollapsed ? "flex justify-center" : ""}`}>
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+            title={isCollapsed ? "Expand menu" : "Collapse menu"}
+          >
+            <Menu className="h-5 w-5 text-slate-900 dark:text-white" />
+          </button>
+        </div>
+
         {/* Logo Section */}
-        <div className="p-6 border-b border-slate-700/50 bg-slate-900/50">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Anchor className="text-white w-6 h-6" />
-            </div>
-            <div>
-              <span className="font-bold text-lg tracking-wider block">
-                YACHT
-              </span>
-              <span className="text-xs text-slate-400 uppercase tracking-widest">
-                Operations
-              </span>
+        {!isCollapsed && (
+          <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50">
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+                <Anchor className="text-white w-6 h-6" />
+              </div>
+              <div>
+                <span className="font-bold text-lg tracking-wider block text-slate-900 dark:text-white">
+                  YACHT
+                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                  Operations
+                </span>
+              </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Navigation */}
         <NavContent />
 
         {/* User Profile Section */}
-        <div className="p-4 border-t border-slate-700/50 bg-slate-900/30">
-          <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-800/50">
-            <Avatar className="h-10 w-10 border-2 border-teal-500/50">
-              <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-white truncate">
-                {user.name || "User"}
-              </p>
-              <p className="text-xs text-slate-400 truncate capitalize">
-                {user.role.toLowerCase()}
-              </p>
+        <div className={`p-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-100/30 dark:bg-slate-900/30 ${isCollapsed ? "px-2" : ""}`}>
+          {!isCollapsed ? (
+            <>
+              <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-200/50 dark:bg-slate-800/50">
+                <Avatar className="h-10 w-10 border-2 border-teal-500/50">
+                  <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
+                    {user.name || "User"}
+                  </p>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 truncate capitalize">
+                    {user.role.toLowerCase()}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun size={16} />
+                ) : (
+                  <Moon size={16} />
+                )}
+                <span>Toggle Theme</span>
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+              >
+                <LogOut size={16} />
+                <span>Sign Out</span>
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center space-y-3">
+              <Avatar className="h-10 w-10 border-2 border-teal-500/50">
+                <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+              <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+                title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                ) : (
+                  <Moon size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                )}
+              </button>
+              <button
+                onClick={() => signOut({ callbackUrl: "/" })}
+                className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+                title="Sign Out"
+              >
+                <LogOut size={16} className="text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400" />
+              </button>
             </div>
-          </div>
-          <button
-            onClick={() => signOut({ callbackUrl: "/" })}
-            className="flex items-center space-x-2 text-slate-400 hover:text-red-400 w-full text-sm p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
-          >
-            <LogOut size={16} />
-            <span>Sign Out</span>
-          </button>
+          )}
         </div>
       </aside>
 
@@ -278,52 +360,64 @@ export function Sidebar() {
       <div className="md:hidden">
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetTrigger asChild>
-            <button className="fixed top-4 left-4 z-30 p-2 bg-slate-900 text-white rounded-lg shadow-lg">
+            <button className="fixed top-4 left-4 z-30 p-2 bg-slate-900 dark:bg-slate-800 text-white rounded-lg shadow-lg">
               <Menu className="h-5 w-5" />
             </button>
           </SheetTrigger>
           <SheetContent
             side="left"
-            className="w-[280px] p-0 bg-gradient-to-b from-slate-900 to-slate-800 border-slate-700"
+            className="w-[280px] p-0 bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 border-slate-200 dark:border-slate-700"
           >
-            <div className="p-6 border-b border-slate-700/50">
+            <div className="p-6 border-b border-slate-200 dark:border-slate-700/50">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
                   <Anchor className="text-white w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-bold text-lg tracking-wider block text-white">
+                  <span className="font-bold text-lg tracking-wider block text-slate-900 dark:text-white">
                     YACHT
                   </span>
-                  <span className="text-xs text-slate-400 uppercase tracking-widest">
+                  <span className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-widest">
                     Operations
                   </span>
                 </div>
               </div>
             </div>
             <NavContent />
-            <div className="p-4 border-t border-slate-700/50">
-              <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-800/50">
+            <div className="p-4 border-t border-slate-200 dark:border-slate-700/50">
+              <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-200/50 dark:bg-slate-800/50">
                 <Avatar className="h-10 w-10 border-2 border-teal-500/50">
                   <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">
                     {user.name || "User"}
                   </p>
-                  <p className="text-xs text-slate-400 truncate capitalize">
+                  <p className="text-xs text-slate-600 dark:text-slate-400 truncate capitalize">
                     {user.role.toLowerCase()}
                   </p>
                 </div>
               </div>
               <button
+                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                {mounted && theme === "dark" ? (
+                  <Sun size={16} />
+                ) : (
+                  <Moon size={16} />
+                )}
+                <span>Toggle Theme</span>
+              </button>
+              <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   signOut({ callbackUrl: "/" });
                 }}
-                className="flex items-center space-x-2 text-slate-400 hover:text-red-400 w-full text-sm p-2 rounded-lg hover:bg-slate-800/50 transition-colors"
+                className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
               >
                 <LogOut size={16} />
                 <span>Sign Out</span>

@@ -74,8 +74,7 @@ export function ShoppingListDetail({
   const [lastCompletedItem, setLastCompletedItem] = useState<ShoppingItem | null>(null);
   
   // New item form state
-  const [selectedProductId, setSelectedProductId] = useState<string>("manual");
-  const [manualProductName, setManualProductName] = useState("");
+  const [productName, setProductName] = useState("");
   const [newItemQuantity, setNewItemQuantity] = useState("1");
   const [newItemUnit, setNewItemUnit] = useState<ItemUnit>(ItemUnit.PIECE);
   const [newItemNotes, setNewItemNotes] = useState("");
@@ -112,18 +111,9 @@ export function ShoppingListDetail({
   };
 
   const handleAddItem = async () => {
-    const productName = selectedProductId && selectedProductId !== "manual"
-      ? products.find((p) => p.id === selectedProductId)?.name || ""
-      : manualProductName.trim();
+    const trimmedProductName = productName.trim();
 
-    if (!productName) return;
-
-    const selectedProduct = selectedProductId && selectedProductId !== "manual"
-      ? products.find((p) => p.id === selectedProductId)
-      : null;
-    const unit = selectedProduct
-      ? (selectedProduct.defaultUnit as ItemUnit)
-      : newItemUnit;
+    if (!trimmedProductName) return;
 
     try {
       const response = await fetch("/api/shopping-items", {
@@ -131,10 +121,10 @@ export function ShoppingListDetail({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           listId,
-          productId: selectedProductId && selectedProductId !== "manual" ? selectedProductId : null,
-          name: productName,
+          productId: null,
+          name: trimmedProductName,
           quantity: parseFloat(newItemQuantity) || 1,
-          unit: unit,
+          unit: newItemUnit,
           notes: newItemNotes || null,
         }),
       });
@@ -143,8 +133,7 @@ export function ShoppingListDetail({
         const newItem = await response.json();
         setItems((prev) => [...prev, newItem]);
         // Reset form
-        setSelectedProductId("manual");
-        setManualProductName("");
+        setProductName("");
         setNewItemQuantity("1");
         setNewItemUnit(ItemUnit.PIECE);
         setNewItemNotes("");
@@ -250,19 +239,6 @@ export function ShoppingListDetail({
     OTHER: "Diğer",
   };
 
-  const handleProductSelect = (productId: string) => {
-    if (productId === "manual") {
-      setSelectedProductId("manual");
-      setManualProductName("");
-    } else {
-      setSelectedProductId(productId);
-      const product = products.find((p) => p.id === productId);
-      if (product) {
-        setManualProductName("");
-        setNewItemUnit(product.defaultUnit as ItemUnit);
-      }
-    }
-  };
 
   if (isLoading) {
     return (
@@ -314,34 +290,18 @@ export function ShoppingListDetail({
         {/* Add Item Form */}
         <div className="space-y-2 p-4 border rounded-lg bg-muted/30">
           <div className="flex gap-2">
-            <Select value={selectedProductId} onValueChange={handleProductSelect}>
-              <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select product or type manually" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="manual">Type manually...</SelectItem>
-                {products.map((product) => (
-                  <SelectItem key={product.id} value={product.id}>
-                    {product.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {selectedProductId === "manual" && (
-              <Input
-                placeholder="Product name"
-                value={manualProductName}
-                onChange={(e) => setManualProductName(e.target.value)}
-                className="flex-1"
-              />
-            )}
-            {selectedProductId && selectedProductId !== "manual" && (
-              <Input
-                value={products.find((p) => p.id === selectedProductId)?.name || ""}
-                disabled
-                className="flex-1"
-              />
-            )}
+            <Input
+              placeholder="Product name"
+              value={productName}
+              onChange={(e) => setProductName(e.target.value)}
+              className="flex-1"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  handleAddItem();
+                }
+              }}
+            />
           </div>
           <div className="flex gap-2">
             <Input
@@ -368,7 +328,7 @@ export function ShoppingListDetail({
             </Select>
             <Button
               onClick={handleAddItem}
-              disabled={selectedProductId === "manual" ? !manualProductName.trim() : false}
+              disabled={!productName.trim()}
             >
               <Plus className="h-4 w-4 mr-2" />
               Add
