@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -32,8 +32,11 @@ export function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -45,6 +48,31 @@ export function Sidebar() {
       setIsCollapsed(true);
     }
   }, [pathname]);
+
+  // Determine if sidebar should appear expanded (either not collapsed or hovered)
+  const isExpanded = !isCollapsed || isHovered;
+
+  // Close sidebar when clicking outside (only if not hovered and manually opened)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node) &&
+        !isCollapsed && // Only if sidebar is manually opened (not collapsed)
+        !isHovered // Only if not hovered
+      ) {
+        setIsCollapsed(true);
+      }
+    };
+
+    if (!isCollapsed) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isCollapsed, isHovered]);
 
   if (!session?.user) return null;
 
@@ -180,8 +208,15 @@ export function Sidebar() {
         }
         const Icon = item.icon;
 
+        const isItemHovered = hoveredItemId === item.href;
+        const showChildren = isExpanded && (isActive || isItemHovered) && item.children;
+
         return (
-          <div key={item.href}>
+          <div 
+            key={item.href}
+            onMouseEnter={() => setHoveredItemId(item.href)}
+            onMouseLeave={() => setHoveredItemId(null)}
+          >
             <Link
               href={item.href}
               onClick={() => {
@@ -190,12 +225,12 @@ export function Sidebar() {
                   setIsCollapsed(true);
                 }
               }}
-              className={`flex items-center ${isCollapsed ? "justify-center" : "space-x-3"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
+              className={`flex items-center ${isExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                 isActive
                   ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg shadow-teal-500/25"
                   : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
               }`}
-              title={isCollapsed ? item.label : undefined}
+              title={isExpanded ? undefined : item.label}
             >
               <Icon
                 size={20}
@@ -205,45 +240,52 @@ export function Sidebar() {
                     : "text-slate-600 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400"
                 }
               />
-              {!isCollapsed && (
+              {isExpanded && (
                 <>
                   <span className="text-sm font-medium flex-1">
                     {item.label}
                   </span>
-                  {isActive && (
-                    <ChevronRight size={16} className="text-white" />
+                  {(isActive || isItemHovered) && item.children && (
+                    <ChevronRight size={16} className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"} />
                   )}
                 </>
               )}
             </Link>
 
             {/* Children (e.g. Pending Approval) rendered as smaller indented links.
-                Only show when parent item is active (Expenses section open) and not collapsed. */}
-            {!isCollapsed && isActive &&
-              item.children &&
-              item.children.map((child) => {
-                if (
-                  child.permission &&
-                  !hasPermission(user, child.permission, user.permissions)
-                ) {
-                  return null;
-                }
-                const childActive = pathname === child.href;
-                return (
-                  <Link
-                    key={child.href}
-                    href={child.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={`ml-9 mt-1 mb-1 block text-base ${
-                      childActive
-                        ? "text-teal-600 dark:text-teal-200 font-medium"
-                        : "text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-100"
-                    }`}
-                  >
-                    {child.label}
-                  </Link>
-                );
-              })}
+                Show when parent item is active or hovered, and sidebar is expanded. */}
+            {showChildren && (
+              <div className="overflow-hidden">
+                <div className="space-y-1">
+                  {item.children.map((child, index) => {
+                    if (
+                      child.permission &&
+                      !hasPermission(user, child.permission, user.permissions)
+                    ) {
+                      return null;
+                    }
+                    const childActive = pathname === child.href;
+                    return (
+                      <Link
+                        key={child.href}
+                        href={child.href}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out ${
+                          childActive
+                            ? "text-teal-600 dark:text-teal-200 font-medium"
+                            : "text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-100"
+                        }`}
+                        style={{
+                          animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
+                        }}
+                      >
+                        {child.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
         );
       })}
@@ -253,9 +295,14 @@ export function Sidebar() {
   return (
     <>
       {/* Desktop Sidebar */}
-      <aside className={`hidden md:flex bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-white ${isCollapsed ? "w-20" : "w-72"} flex-shrink-0 flex-col shadow-2xl z-20 border-r border-slate-200 dark:border-slate-700/50 transition-all duration-300`}>
+      <aside 
+        ref={sidebarRef}
+        className={`hidden md:flex bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-white ${isExpanded ? "w-72" : "w-20"} flex-shrink-0 flex-col shadow-2xl z-20 border-r border-slate-200 dark:border-slate-700/50 transition-all duration-300`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         {/* Hamburger Menu Button */}
-        <div className={`p-3 border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50 ${isCollapsed ? "flex justify-center" : ""}`}>
+        <div className={`p-3 border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50 ${isExpanded ? "" : "flex justify-center"}`}>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
@@ -266,10 +313,10 @@ export function Sidebar() {
         </div>
 
         {/* Logo Section */}
-        {!isCollapsed && (
-          <div className="p-6 border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg">
+        <div className="border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50 p-6 h-[88px] flex items-center">
+          {isExpanded ? (
+            <div className="flex items-center space-x-3 w-full">
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                 <Anchor className="text-white w-6 h-6" />
               </div>
               <div>
@@ -281,15 +328,21 @@ export function Sidebar() {
                 </span>
               </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="flex items-center justify-center w-full">
+              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <Anchor className="text-white w-6 h-6" />
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Navigation */}
         <NavContent />
 
         {/* User Profile Section */}
-        <div className={`p-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-100/30 dark:bg-slate-900/30 ${isCollapsed ? "px-2" : ""}`}>
-          {!isCollapsed ? (
+        <div className={`p-4 border-t border-slate-200 dark:border-slate-700/50 bg-slate-100/30 dark:bg-slate-900/30 ${isExpanded ? "" : "px-2"}`}>
+          {isExpanded ? (
             <>
               <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-200/50 dark:bg-slate-800/50">
                 <Avatar className="h-10 w-10 border-2 border-teal-500/50">

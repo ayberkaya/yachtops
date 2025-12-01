@@ -51,6 +51,8 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     const title = (formData.get("title") as string | null) || "Marina / Port Permission";
     const notes = (formData.get("notes") as string | null) || null;
+    const expiryDateStr = formData.get("expiryDate") as string | null;
+    const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
@@ -68,6 +70,7 @@ export async function POST(request: NextRequest) {
         title,
         fileUrl: dataUrl,
         notes,
+        expiryDate,
       },
     });
 

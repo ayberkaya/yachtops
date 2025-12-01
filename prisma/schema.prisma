@@ -266,13 +266,14 @@ model ExpenseReceipt {
 }
 
 model MarinaPermissionDocument {
-  id        String   @id @default(cuid())
-  yachtId   String   @map("yacht_id")
-  yacht     Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  id        String    @id @default(cuid())
+  yachtId   String    @map("yacht_id")
+  yacht     Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
   title     String
-  fileUrl   String   @map("file_url")
+  fileUrl   String    @map("file_url")
   notes     String?
-  createdAt DateTime @default(now()) @map("created_at")
+  expiryDate DateTime? @map("expiry_date")
+  createdAt DateTime  @default(now()) @map("created_at")
 
   @@map("marina_permission_documents")
 }
