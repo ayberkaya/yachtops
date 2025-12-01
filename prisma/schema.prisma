@@ -87,6 +87,14 @@ enum ItemUnit {
   OTHER
 }
 
+enum MaintenanceType {
+  PREVENTIVE
+  REPAIR
+  INSPECTION
+  UPGRADE
+  EMERGENCY
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -110,6 +118,7 @@ model User {
   channels      MessageChannel[] @relation("ChannelMembers")
   createdChannels MessageChannel[] @relation("ChannelCreator")
   createdShoppingLists ShoppingList[] @relation("ShoppingListCreator")
+  createdMaintenanceLogs MaintenanceLog[] @relation("MaintenanceCreator")
 
   @@map("users")
 }
@@ -136,6 +145,7 @@ model Yacht {
   marinaPermissionDocuments MarinaPermissionDocument[]
   vesselCrewDocuments      VesselCrewDocument[]
   alcoholStocks    AlcoholStock[]
+  maintenanceLogs  MaintenanceLog[]
 
   @@map("yachts")
 }
@@ -391,4 +401,40 @@ model AlcoholStock {
 
   @@unique([yachtId, name])
   @@map("alcohol_stocks")
+}
+
+model MaintenanceLog {
+  id              String          @id @default(cuid())
+  yachtId         String          @map("yacht_id")
+  yacht           Yacht           @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  type            MaintenanceType
+  title           String
+  description     String?
+  component       String?         // Engine, Hull, Electronics, etc.
+  serviceProvider String?         @map("service_provider") // Marina, technician name
+  cost            Float?
+  currency        String          @default("EUR")
+  date            DateTime
+  nextDueDate     DateTime?       @map("next_due_date") // For preventive maintenance
+  mileage         Float?          // Engine hours or nautical miles
+  mileageUnit     String?         @map("mileage_unit") // hours, nm (nautical miles)
+  notes           String?
+  createdByUserId String?         @map("created_by_user_id")
+  createdBy       User?           @relation("MaintenanceCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  documents       MaintenanceDocument[]
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt        DateTime        @updatedAt @map("updated_at")
+
+  @@map("maintenance_logs")
+}
+
+model MaintenanceDocument {
+  id              String         @id @default(cuid())
+  maintenanceId   String         @map("maintenance_id")
+  maintenance     MaintenanceLog @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+  fileUrl         String         @map("file_url")
+  title           String?
+  uploadedAt      DateTime       @default(now()) @map("uploaded_at")
+
+  @@map("maintenance_documents")
 }

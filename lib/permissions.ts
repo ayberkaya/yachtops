@@ -38,7 +38,11 @@ export type Permission =
   | "documents.upload"
   | "inventory.view"
   | "inventory.alcohol.view"
-  | "inventory.alcohol.manage";
+  | "inventory.alcohol.manage"
+  | "maintenance.view"
+  | "maintenance.create"
+  | "maintenance.edit"
+  | "maintenance.delete";
 
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Expenses: [
@@ -95,6 +99,12 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
     "inventory.alcohol.view",
     "inventory.alcohol.manage",
   ],
+  Maintenance: [
+    "maintenance.view",
+    "maintenance.create",
+    "maintenance.edit",
+    "maintenance.delete",
+  ],
   Settings: [
     "settings.view",
     "settings.edit",
@@ -139,6 +149,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "inventory.view",
     "inventory.alcohol.view",
     "inventory.alcohol.manage",
+    "maintenance.view",
+    "maintenance.create",
+    "maintenance.edit",
+    "maintenance.delete",
     "settings.view",
     "settings.edit",
   ],
@@ -178,6 +192,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "inventory.view",
     "inventory.alcohol.view",
     "inventory.alcohol.manage",
+    "maintenance.view",
+    "maintenance.create",
+    "maintenance.edit",
+    "maintenance.delete",
     "settings.view",
   ],
   CREW: [

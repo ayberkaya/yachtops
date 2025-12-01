@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { TaskStatus } from "@prisma/client";
 import { format, differenceInDays, isPast, isToday } from "date-fns";
-import { AlertTriangle, Package, FileText } from "lucide-react";
+import { AlertTriangle, Package, FileText, Wrench, Clock } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 
 export async function CrewDashboard() {
@@ -92,12 +92,96 @@ export async function CrewDashboard() {
     );
   }
 
+  // Fetch upcoming maintenance (if user has maintenance permission)
+  const upcomingMaintenance: any[] = [];
+  if (hasPermission(session.user, "maintenance.view", session.user.permissions)) {
+    const allMaintenance = await db.maintenanceLog.findMany({
+      where: {
+        yachtId: session.user.yachtId || undefined,
+        nextDueDate: {
+          not: null,
+        },
+      },
+    });
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    upcomingMaintenance.push(
+      ...allMaintenance.filter((maint) => {
+        if (!maint.nextDueDate) return false;
+        const dueDate = new Date(maint.nextDueDate);
+        dueDate.setHours(0, 0, 0, 0);
+
+        // Show if due within 30 days
+        const daysUntilDue = differenceInDays(dueDate, today);
+        return daysUntilDue <= 30 && daysUntilDue >= 0;
+      })
+    );
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">My Dashboard</h1>
         <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
       </div>
+
+      {/* Upcoming Maintenance Alert */}
+      {upcomingMaintenance.length > 0 && (
+        <Card className="border-orange-500 bg-orange-50/50 dark:bg-orange-950/20">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Wrench className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+                <CardTitle className="text-orange-900 dark:text-orange-100">
+                  Upcoming Maintenance
+                </CardTitle>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <Link href="/dashboard/maintenance">View Maintenance</Link>
+              </Button>
+            </div>
+            <CardDescription className="text-orange-700 dark:text-orange-300">
+              {upcomingMaintenance.length} maintenance item{upcomingMaintenance.length > 1 ? "s" : ""} due within 30 days
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {upcomingMaintenance.map((maint) => {
+                const dueDate = new Date(maint.nextDueDate);
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                dueDate.setHours(0, 0, 0, 0);
+                const daysUntilDue = differenceInDays(dueDate, today);
+
+                return (
+                  <div
+                    key={maint.id}
+                    className="flex items-center justify-between p-2 rounded-md bg-white/50 dark:bg-slate-800/50"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-orange-600 dark:text-orange-400" />
+                      <span className="font-medium text-sm">{maint.title}</span>
+                      {maint.component && (
+                        <span className="text-xs text-muted-foreground">({maint.component})</span>
+                      )}
+                    </div>
+                    <div className="text-right">
+                      <span className="text-sm font-semibold text-orange-700 dark:text-orange-300">
+                        Due in {daysUntilDue} day{daysUntilDue > 1 ? "s" : ""}
+                      </span>
+                      <p className="text-xs text-muted-foreground">
+                        {format(dueDate, "MMM d, yyyy")}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Low Stock Alert */}
       {lowStockItems.length > 0 && (

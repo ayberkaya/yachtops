@@ -20,6 +20,7 @@ import {
   ChevronRight,
   FileText,
   Package,
+  Wrench,
   Moon,
   Sun,
 } from "lucide-react";
@@ -157,18 +158,6 @@ export function Sidebar() {
       permission: "trips.view",
     },
     {
-      href: "/dashboard/users",
-      label: "Users",
-      icon: Users,
-      permission: "users.view",
-    },
-    {
-      href: "/dashboard/performance",
-      label: "Performance",
-      icon: TrendingUp,
-      permission: "performance.view",
-    },
-    {
       href: "/dashboard/inventory",
       label: "Inventory",
       icon: Package,
@@ -180,6 +169,12 @@ export function Sidebar() {
           permission: "inventory.alcohol.view",
         },
       ],
+    },
+    {
+      href: "/dashboard/maintenance",
+      label: "Maintenance",
+      icon: Wrench,
+      permission: "maintenance.view",
     },
   ].filter(
     (item) =>
@@ -364,6 +359,34 @@ export function Sidebar() {
                   </p>
                 </div>
               </div>
+              {hasPermission(user, "users.view", user.permissions) && (
+                <Link
+                  href="/dashboard/users"
+                  onClick={() => {
+                    if (!isCollapsed) {
+                      setIsCollapsed(true);
+                    }
+                  }}
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                >
+                  <Users size={16} />
+                  <span>Users</span>
+                </Link>
+              )}
+              {hasPermission(user, "performance.view", user.permissions) && (
+                <Link
+                  href="/dashboard/performance"
+                  onClick={() => {
+                    if (!isCollapsed) {
+                      setIsCollapsed(true);
+                    }
+                  }}
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                >
+                  <TrendingUp size={16} />
+                  <span>Performance</span>
+                </Link>
+              )}
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
@@ -391,6 +414,26 @@ export function Sidebar() {
                   {initials}
                 </AvatarFallback>
               </Avatar>
+              {hasPermission(user, "users.view", user.permissions) && (
+                <Link
+                  href="/dashboard/users"
+                  onClick={() => setIsCollapsed(true)}
+                  className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+                  title="Users"
+                >
+                  <Users size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                </Link>
+              )}
+              {hasPermission(user, "performance.view", user.permissions) && (
+                <Link
+                  href="/dashboard/performance"
+                  onClick={() => setIsCollapsed(true)}
+                  className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+                  title="Performance"
+                >
+                  <TrendingUp size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                </Link>
+              )}
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
@@ -458,6 +501,26 @@ export function Sidebar() {
                   </p>
                 </div>
               </div>
+              {hasPermission(user, "users.view", user.permissions) && (
+                <Link
+                  href="/dashboard/users"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                >
+                  <Users size={16} />
+                  <span>Users</span>
+                </Link>
+              )}
+              {hasPermission(user, "performance.view", user.permissions) && (
+                <Link
+                  href="/dashboard/performance"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                >
+                  <TrendingUp size={16} />
+                  <span>Performance</span>
+                </Link>
+              )}
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"

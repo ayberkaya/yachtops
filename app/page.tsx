@@ -6,7 +6,9 @@ import { ThemeToggle } from "@/components/theme-toggle";
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 relative overflow-hidden">
-      <ThemeToggle />
+      <div className="absolute top-4 right-4 z-20">
+        <ThemeToggle />
+      </div>
       {/* Subtle background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-teal-400/10 rounded-full blur-3xl"></div>
