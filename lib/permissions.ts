@@ -20,7 +20,24 @@ export type Permission =
   | "users.edit"
   | "users.delete"
   | "settings.view"
-  | "settings.edit";
+  | "settings.edit"
+  | "messages.view"
+  | "messages.create"
+  | "messages.edit"
+  | "messages.delete"
+  | "messages.channels.manage"
+  | "shopping.view"
+  | "shopping.create"
+  | "shopping.edit"
+  | "shopping.delete"
+  | "performance.view"
+  | "documents.view"
+  | "documents.receipts.view"
+  | "documents.marina.view"
+  | "documents.upload"
+  | "inventory.view"
+  | "inventory.alcohol.view"
+  | "inventory.alcohol.manage";
 
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Expenses: [
@@ -49,6 +66,33 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
     "users.edit",
     "users.delete",
   ],
+  Messages: [
+    "messages.view",
+    "messages.create",
+    "messages.edit",
+    "messages.delete",
+    "messages.channels.manage",
+  ],
+  Shopping: [
+    "shopping.view",
+    "shopping.create",
+    "shopping.edit",
+    "shopping.delete",
+  ],
+  Performance: [
+    "performance.view",
+  ],
+  Documents: [
+    "documents.view",
+    "documents.receipts.view",
+    "documents.marina.view",
+    "documents.upload",
+  ],
+  Inventory: [
+    "inventory.view",
+    "inventory.alcohol.view",
+    "inventory.alcohol.manage",
+  ],
   Settings: [
     "settings.view",
     "settings.edit",
@@ -75,6 +119,23 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "users.create",
     "users.edit",
     "users.delete",
+    "messages.view",
+    "messages.create",
+    "messages.edit",
+    "messages.delete",
+    "messages.channels.manage",
+    "shopping.view",
+    "shopping.create",
+    "shopping.edit",
+    "shopping.delete",
+    "performance.view",
+    "documents.view",
+    "documents.receipts.view",
+    "documents.marina.view",
+    "documents.upload",
+    "inventory.view",
+    "inventory.alcohol.view",
+    "inventory.alcohol.manage",
     "settings.view",
     "settings.edit",
   ],
@@ -96,6 +157,23 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "users.view",
     "users.create",
     "users.edit",
+    "messages.view",
+    "messages.create",
+    "messages.edit",
+    "messages.delete",
+    "messages.channels.manage",
+    "shopping.view",
+    "shopping.create",
+    "shopping.edit",
+    "shopping.delete",
+    "performance.view",
+    "documents.view",
+    "documents.receipts.view",
+    "documents.marina.view",
+    "documents.upload",
+    "inventory.view",
+    "inventory.alcohol.view",
+    "inventory.alcohol.manage",
     "settings.view",
   ],
   CREW: [
@@ -103,6 +181,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "expenses.create",
     "tasks.view",
     "trips.view",
+    "messages.view",
+    "messages.create",
+    "shopping.view",
+    "shopping.create",
     "settings.view",
   ],
 };

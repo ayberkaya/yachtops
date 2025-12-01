@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
 import { PerformanceView } from "@/components/performance/performance-view";
+import { hasPermission } from "@/lib/permissions";
 import { UserRole } from "@prisma/client";
 
 export default async function PerformancePage() {
@@ -10,6 +11,11 @@ export default async function PerformancePage() {
 
   if (!session?.user) {
     redirect("/auth/signin");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "performance.view", session.user.permissions)) {
+    redirect("/dashboard");
   }
 
   // Get all crew users for filter (exclude OWNER/CAPTAIN)

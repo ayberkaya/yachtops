@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function InventoryPage() {
   const session = await getSession();
@@ -9,6 +10,11 @@ export default async function InventoryPage() {
   }
 
   if (!session.user.yachtId) {
+    redirect("/dashboard");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "inventory.view", session.user.permissions)) {
     redirect("/dashboard");
   }
 

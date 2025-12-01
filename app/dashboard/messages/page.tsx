@@ -2,12 +2,18 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { MessagesView } from "@/components/messages/messages-view";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function MessagesPage() {
   const session = await getSession();
 
   if (!session?.user) {
     redirect("/auth/signin");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "messages.view", session.user.permissions)) {
+    redirect("/dashboard");
   }
 
   // Get all accessible channels

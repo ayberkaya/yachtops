@@ -5,6 +5,7 @@ import { ExpenseStatus } from "@prisma/client";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
 import { format } from "date-fns";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function ReceiptsPage() {
   const session = await getSession();
@@ -14,6 +15,11 @@ export default async function ReceiptsPage() {
   }
 
   if (!session.user.yachtId) {
+    redirect("/dashboard");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "documents.receipts.view", session.user.permissions)) {
     redirect("/dashboard");
   }
 

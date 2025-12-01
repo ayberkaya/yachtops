@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { MarinaPermissionsView } from "@/components/documents/marina-permissions-view";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function MarinaPermissionsPage() {
   const session = await getSession();
@@ -11,6 +12,11 @@ export default async function MarinaPermissionsPage() {
   }
 
   if (!session.user.yachtId) {
+    redirect("/dashboard");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "documents.marina.view", session.user.permissions)) {
     redirect("/dashboard");
   }
 

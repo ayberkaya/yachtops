@@ -2,12 +2,18 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ShoppingListView } from "@/components/shopping/shopping-list-view";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function ShoppingPage() {
   const session = await getSession();
 
   if (!session?.user) {
     redirect("/auth/signin");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "shopping.view", session.user.permissions)) {
+    redirect("/dashboard");
   }
 
   // Fetch lists and products

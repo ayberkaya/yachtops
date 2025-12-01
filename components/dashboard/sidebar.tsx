@@ -67,18 +67,18 @@ export function Sidebar() {
       href: "/dashboard/documents",
       label: "Documents",
       icon: FileText,
-      permission: "expenses.view",
+      permission: "documents.view",
       // Child sections for expense-related documents
       children: [
         {
           href: "/dashboard/documents/receipts",
           label: "Receipts & Invoices",
-          permission: "expenses.view",
+          permission: "documents.receipts.view",
         },
         {
           href: "/dashboard/documents/marina-permissions",
           label: "Marina / Port Permissions",
-          permission: null,
+          permission: "documents.marina.view",
         },
       ],
     },
@@ -92,13 +92,13 @@ export function Sidebar() {
       href: "/dashboard/shopping",
       label: "Shopping",
       icon: ShoppingCart,
-      permission: null,
+      permission: "shopping.view",
     },
     {
       href: "/dashboard/messages",
       label: "Messages",
       icon: MessageSquare,
-      permission: null,
+      permission: "messages.view",
     },
     {
       href: "/dashboard/trips",
@@ -116,18 +116,18 @@ export function Sidebar() {
       href: "/dashboard/performance",
       label: "Performance",
       icon: TrendingUp,
-      permission: null,
+      permission: "performance.view",
     },
     {
       href: "/dashboard/inventory",
       label: "Inventory",
       icon: Package,
-      permission: null,
+      permission: "inventory.view",
       children: [
         {
           href: "/dashboard/inventory/alcohol-stock",
           label: "Alcohol Stock",
-          permission: null,
+          permission: "inventory.alcohol.view",
         },
       ],
     },

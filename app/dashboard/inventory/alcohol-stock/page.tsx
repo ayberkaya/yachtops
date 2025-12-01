@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { AlcoholStockView } from "@/components/inventory/alcohol-stock-view";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function AlcoholStockPage() {
   const session = await getSession();
@@ -11,6 +12,11 @@ export default async function AlcoholStockPage() {
   }
 
   if (!session.user.yachtId) {
+    redirect("/dashboard");
+  }
+
+  // Check permission
+  if (!hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
     redirect("/dashboard");
   }
 
