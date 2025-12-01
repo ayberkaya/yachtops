@@ -36,6 +36,8 @@ const expenseSchema = z.object({
   isReimbursable: z.boolean().default(false),
   notes: z.string().optional().nullable(),
   status: z.nativeEnum(ExpenseStatus).default(ExpenseStatus.DRAFT),
+  // UI-only field to select which crew member paid when PaidBy = CREW_PERSONAL
+  crewPersonalId: z.string().optional().nullable(),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
@@ -50,6 +52,9 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [crewUsers, setCrewUsers] = useState<
+    { id: string; name: string | null; email: string; role?: string | null }[]
+  >([]);
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema),
@@ -63,6 +68,27 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     },
   });
 
+  const paidBy = form.watch("paidBy");
+  const crewPersonalId = form.watch("crewPersonalId");
+
+  // Load crew users (for PaidBy = CREW_PERSONAL dropdown)
+  React.useEffect(() => {
+    const loadCrew = async () => {
+      try {
+        const res = await fetch("/api/users");
+        if (!res.ok) return;
+        const data = await res.json();
+        const crew = (data || []).filter(
+          (u: any) => u.role === "CREW"
+        );
+        setCrewUsers(crew);
+      } catch (e) {
+        console.error("Failed to load crew users for expense form", e);
+      }
+    };
+    loadCrew();
+  }, []);
+
   const onSubmit = async (data: ExpenseFormData) => {
     setIsLoading(true);
     setError(null);
@@ -71,10 +97,25 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
       const url = initialData ? `/api/expenses/${initialData.id}` : "/api/expenses";
       const method = initialData ? "PATCH" : "POST";
 
+      // We don't send crewPersonalId directly to the API (it's UI-only).
+      // Instead, if PaidBy = CREW_PERSONAL, we append the selected crew member
+      // into the notes field so the information is still stored.
+      const { crewPersonalId, notes, ...rest } = data as any;
+
+      let finalNotes = notes || "";
+      if (rest.paidBy === PaidBy.CREW_PERSONAL && crewPersonalId) {
+        const crew = crewUsers.find((u) => u.id === crewPersonalId);
+        const crewLabel = crew?.name || crew?.email || "Unknown crew";
+        const tag = `Crew personal: ${crewLabel}`;
+        finalNotes = finalNotes ? `${finalNotes}\n${tag}` : tag;
+      }
+
+      const payload = { ...rest, notes: finalNotes };
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(payload),
       });
 
       const result = await response.json();
@@ -166,7 +207,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
               )}
             />
 
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
                 name="amount"
@@ -211,26 +252,6 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 )}
               />
 
-              <FormField
-                control={form.control}
-                name="baseAmount"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Base Amount (EUR)</FormLabel>
-                    <FormControl>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        {...field}
-                        value={field.value || ""}
-                        onChange={(e) => field.onChange(parseFloat(e.target.value) || null)}
-                      />
-                    </FormControl>
-                    <FormDescription>Amount in base currency</FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
@@ -283,6 +304,40 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 )}
               />
             </div>
+
+            {/* When paid by crew personal, show a dropdown to select which crew member */}
+            {paidBy === PaidBy.CREW_PERSONAL && crewUsers.length > 0 && (
+              <FormField
+                control={form.control}
+                name="crewPersonalId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Crew Personal</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value || ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select crew member" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {crewUsers.map((crew) => (
+                          <SelectItem key={crew.id} value={crew.id}>
+                            {crew.name || crew.email}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>
+                      Select which crew member paid this expense.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <FormField

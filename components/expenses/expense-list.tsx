@@ -25,7 +25,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ExpenseCategory, Trip, ExpenseStatus } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar } from "lucide-react";
 
 interface Expense {
   id: string;
@@ -60,6 +60,7 @@ export function ExpenseList({ initialExpenses, categories, trips, currentUserId 
     endDate: "",
     search: "",
   });
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   useEffect(() => {
     const fetchExpenses = async () => {
@@ -114,20 +115,32 @@ export function ExpenseList({ initialExpenses, categories, trips, currentUserId 
 
   return (
     <div className="space-y-4">
-      {canCreate && (
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setFiltersOpen((open) => !open)}
+          className="inline-flex items-center gap-2"
+        >
+          <SlidersHorizontal className="h-4 w-4" />
+          <span>{filtersOpen ? "Hide filters" : "Show filters"}</span>
+        </Button>
+
+        {canCreate && (
           <Button asChild>
             <Link href="/dashboard/expenses/new">
               <Plus className="mr-2 h-4 w-4" />
               New Expense
             </Link>
           </Button>
-        </div>
-      )}
+        )}
+      </div>
 
-      <Card>
-        <CardContent className="p-4">
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {filtersOpen && (
+        <Card className="animate-in fade-in slide-in-from-top-1">
+          <CardContent className="p-4">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <div className="relative">
               <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
@@ -188,22 +201,39 @@ export function ExpenseList({ initialExpenses, categories, trips, currentUserId 
               </SelectContent>
             </Select>
 
-            <Input
-              type="date"
-              placeholder="Start Date"
-              value={filters.startDate}
-              onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
-            />
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                Start Date
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={filters.startDate}
+                  onChange={(e) => setFilters({ ...filters, startDate: e.target.value })}
+                  className="pl-8"
+                />
+              </div>
+            </div>
 
-            <Input
-              type="date"
-              placeholder="End Date"
-              value={filters.endDate}
-              onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
-            />
-          </div>
-        </CardContent>
-      </Card>
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-muted-foreground">
+                End Date
+              </label>
+              <div className="relative">
+                <Calendar className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="date"
+                  value={filters.endDate}
+                  onChange={(e) => setFilters({ ...filters, endDate: e.target.value })}
+                  className="pl-8"
+                />
+              </div>
+            </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardContent className="p-0">

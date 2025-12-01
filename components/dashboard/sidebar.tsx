@@ -106,7 +106,23 @@ export function Sidebar() {
   const NavContent = () => (
     <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
       {navItems.map((item) => {
-        const isActive = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        // Highlight logic:
+        // - Dashboard: only exact /dashboard
+        // - Expenses: only /dashboard/expenses (NOT /dashboard/expenses/pending)
+        // - Others: exact match or nested routes (startsWith)
+        let isActive = false;
+        if (item.href === "/dashboard") {
+          isActive = pathname === "/dashboard";
+        } else if (item.href === "/dashboard/expenses") {
+          isActive =
+            pathname === "/dashboard/expenses" ||
+            (pathname.startsWith("/dashboard/expenses/") &&
+              !pathname.startsWith("/dashboard/expenses/pending"));
+        } else {
+          isActive =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+        }
         const Icon = item.icon;
         
         return (
