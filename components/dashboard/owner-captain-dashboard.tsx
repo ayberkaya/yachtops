@@ -8,6 +8,7 @@ import { ExpenseStatus } from "@prisma/client";
 import { format } from "date-fns";
 import { DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Package } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
+import { MonthlyReportDownload } from "./monthly-report-download";
 
 export async function OwnerCaptainDashboard() {
   const session = await getSession();
@@ -251,6 +252,9 @@ export async function OwnerCaptainDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Monthly Report Download */}
+      <MonthlyReportDownload />
     </div>
   );
 }
