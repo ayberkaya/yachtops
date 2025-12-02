@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users, Menu } from "lucide-react";
+import { Send, Hash, Users, Menu, Image as ImageIcon, X } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
@@ -26,6 +26,7 @@ interface User {
 interface Message {
   id: string;
   content: string;
+  imageUrl: string | null;
   createdAt: string;
   user: {
     id: string;
@@ -61,13 +62,32 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   );
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
 
   const canManage = canManageUsers(session?.user || null);
+
+  // Auto-scroll to bottom when messages change
+  const scrollToBottom = (smooth = true) => {
+    if (messagesContainerRef.current) {
+      messagesContainerRef.current.scrollTo({
+        top: messagesContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+  };
+
+  useEffect(() => {
+    // Scroll to bottom when messages change
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     if (selectedChannel) {
@@ -121,7 +141,13 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       const response = await fetch(`/api/messages?channelId=${channelId}`);
       if (response.ok) {
         const data = await response.json();
+        const previousLength = messages.length;
         setMessages(data);
+        
+        // Scroll to bottom if new messages were added (during polling)
+        if (silent && data.length > previousLength && channelId === selectedChannel?.id) {
+          setTimeout(() => scrollToBottom(true), 100);
+        }
         
         // Update last read time for current channel
         if (channelId === selectedChannel?.id) {
@@ -176,8 +202,32 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.type.startsWith("image/")) {
+        setSelectedImage(file);
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+        // Reset input value to allow selecting the same file again
+        e.target.value = "";
+      } else {
+        alert("Please select an image file");
+        e.target.value = "";
+      }
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
   const handleSendMessage = async () => {
-    if (!newMessage.trim() || !selectedChannel || isSending) return;
+    if ((!newMessage.trim() && !selectedImage) || !selectedChannel || isSending) return;
 
     // Check access before sending
     if (!hasChannelAccess(selectedChannel)) {
@@ -187,19 +237,41 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
     setIsSending(true);
     try {
-      const response = await fetch("/api/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          channelId: selectedChannel.id,
-          content: newMessage.trim(),
-        }),
-      });
+      let response: Response;
+
+      if (selectedImage) {
+        // Send with FormData for image
+        const formData = new FormData();
+        formData.append("channelId", selectedChannel.id);
+        if (newMessage.trim()) {
+          formData.append("content", newMessage.trim());
+        }
+        formData.append("image", selectedImage);
+
+        response = await fetch("/api/messages", {
+          method: "POST",
+          body: formData,
+        });
+      } else {
+        // Send as JSON for text-only messages
+        response = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channelId: selectedChannel.id,
+            content: newMessage.trim(),
+          }),
+        });
+      }
 
       if (response.ok) {
         const message = await response.json();
         setMessages((prev) => [...prev, message]);
         setNewMessage("");
+        setSelectedImage(null);
+        setImagePreview(null);
+        // Scroll to bottom immediately after sending message
+        setTimeout(() => scrollToBottom(true), 50);
         // Update channel message count
         setChannels((prev) =>
           prev.map((ch) =>
@@ -214,8 +286,9 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           )
         );
       } else {
-        const result = await response.json();
-        alert(result.error || "Failed to send message");
+        const result = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Failed to send message:", result);
+        alert(result.error || result.details || "Failed to send message");
       }
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -445,7 +518,10 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         </div>
 
         {/* Messages Area - Scrollable, grows to fill space */}
-        <div className="flex-1 overflow-y-auto p-4 min-h-0">
+        <div 
+          ref={messagesContainerRef}
+          className="flex-1 overflow-y-auto p-4 min-h-0"
+        >
           {isLoading && messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               Loading messages...
@@ -475,9 +551,20 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           {message.user.name || message.user.email}
                         </p>
                       )}
-                      <p className="text-sm whitespace-pre-wrap">
-                        {message.content}
-                      </p>
+                      {message.imageUrl && (
+                        <div className="mb-2">
+                          <img
+                            src={message.imageUrl}
+                            alt="Message attachment"
+                            className="max-w-full h-auto rounded-lg max-h-96 object-contain"
+                          />
+                        </div>
+                      )}
+                      {message.content && (
+                        <p className="text-sm whitespace-pre-wrap">
+                          {message.content}
+                        </p>
+                      )}
                       <p className="text-xs mt-1 opacity-70">
                         {formatDistanceToNow(new Date(message.createdAt), {
                           addSuffix: true,
@@ -487,12 +574,29 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                   </div>
                 );
               })}
+              <div ref={messagesEndRef} />
             </div>
           )}
         </div>
 
         {/* Input Area - Fixed at bottom */}
         <div className="border-t p-4 bg-muted/30 flex-shrink-0">
+          {imagePreview && (
+            <div className="mb-2 relative inline-block">
+              <img
+                src={imagePreview}
+                alt="Preview"
+                className="max-w-xs max-h-48 rounded-lg object-contain border"
+              />
+              <button
+                type="button"
+                onClick={handleRemoveImage}
+                className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full p-1 hover:bg-destructive/90"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
@@ -500,14 +604,51 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             }}
             className="flex gap-2"
           >
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-              disabled={isSending}
-              className="flex-1"
-            />
-            <Button type="submit" disabled={isSending || !newMessage.trim()}>
+            <div className="flex-1 flex gap-2">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+                disabled={isSending}
+                className="flex-1"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (newMessage.trim() || selectedImage) {
+                      handleSendMessage();
+                    }
+                  }
+                }}
+              />
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  disabled={isSending}
+                  id="image-input"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="icon" 
+                  disabled={isSending}
+                  onClick={() => {
+                    const input = document.getElementById("image-input") as HTMLInputElement;
+                    if (input) {
+                      input.click();
+                    }
+                  }}
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </label>
+            </div>
+            <Button 
+              type="submit" 
+              disabled={isSending || (!newMessage.trim() && !selectedImage)}
+            >
               <Send className="h-4 w-4" />
             </Button>
           </form>
