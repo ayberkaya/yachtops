@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +51,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState<ShoppingList | null>(null);
+  const detailRef = useRef<HTMLDivElement>(null);
 
   const getStatusBadge = (status: ShoppingListStatus) => {
     const variants: Record<ShoppingListStatus, "default" | "secondary" | "outline"> = {
@@ -88,6 +89,19 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
     }
     router.refresh();
   };
+
+  // Scroll to detail when a list is selected
+  useEffect(() => {
+    if (selectedList && detailRef.current) {
+      // Small delay to ensure the component is rendered
+      setTimeout(() => {
+        detailRef.current?.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "start" 
+        });
+      }, 100);
+    }
+  }, [selectedList]);
 
   return (
     <div className="space-y-6">
@@ -192,13 +206,15 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
 
       {/* List Detail */}
       {selectedList && (
-        <ShoppingListDetail
-          listId={selectedList}
-          products={initialProducts}
-          onClose={() => setSelectedList(null)}
-          onUpdate={handleListUpdated}
-          onDelete={handleListDeleted}
-        />
+        <div ref={detailRef}>
+          <ShoppingListDetail
+            listId={selectedList}
+            products={initialProducts}
+            onClose={() => setSelectedList(null)}
+            onUpdate={handleListUpdated}
+            onDelete={handleListDeleted}
+          />
+        </div>
       )}
     </div>
   );
