@@ -67,23 +67,63 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
       const url = task ? `/api/tasks/${task.id}` : "/api/tasks";
       const method = task ? "PATCH" : "POST";
 
+      // Clean up the data: convert "none" strings to null
+      const cleanedData = {
+        ...data,
+        tripId: data.tripId === "none" || !data.tripId ? null : data.tripId,
+        assigneeId: data.assigneeId === "none" || !data.assigneeId ? null : data.assigneeId,
+        assigneeRole: data.assigneeRole === "none" || !data.assigneeRole ? null : data.assigneeRole,
+        dueDate: data.dueDate || null,
+        description: data.description || null,
+      };
+
+      console.log("Form data before submit:", data);
+      console.log("Cleaned data to send:", cleanedData);
+
       const response = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
+        body: JSON.stringify(cleanedData),
       });
 
-      const result = await response.json();
+      // Check if response is JSON before parsing
+      const contentType = response.headers.get("content-type");
+      let result;
+      
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.error("Failed to parse JSON response:", jsonError);
+          const text = await response.text();
+          setError(`Server error: ${response.status} ${response.statusText}. Response: ${text.substring(0, 200)}`);
+          setIsLoading(false);
+          return;
+        }
+      } else {
+        // Response is not JSON, read as text
+        const text = await response.text();
+        console.error("Non-JSON response received:", text);
+        setError(`Server returned non-JSON response. Status: ${response.status}. ${text.substring(0, 200)}`);
+        setIsLoading(false);
+        return;
+      }
 
       if (!response.ok) {
-        setError(result.error || "Failed to save task");
+        // Show detailed error message from API
+        const errorMessage = result.error || result.message || "Failed to save task";
+        const errorDetails = result.details ? ` Details: ${JSON.stringify(result.details)}` : "";
+        setError(`${errorMessage}${errorDetails}`);
+        console.error("Task creation error:", result);
         setIsLoading(false);
         return;
       }
 
       onSuccess();
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      console.error("Task form submission error:", err);
+      const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
+      setError(errorMessage);
       setIsLoading(false);
     }
   };

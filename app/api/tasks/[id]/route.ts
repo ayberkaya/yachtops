@@ -81,7 +81,15 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const validated = updateTaskSchema.parse(body);
+    
+    // Clean up the data: convert "none" strings to null for enum fields
+    const cleanedBody = {
+      ...body,
+      assigneeId: body.assigneeId === "none" || body.assigneeId === "" ? null : body.assigneeId,
+      assigneeRole: body.assigneeRole === "none" || body.assigneeRole === "" ? null : body.assigneeRole,
+    };
+    
+    const validated = updateTaskSchema.parse(cleanedBody);
 
     const existingTask = await db.task.findUnique({
       where: {
@@ -191,16 +199,18 @@ export async function PATCH(
     return NextResponse.json(task);
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("Validation error updating task:", error.issues);
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
-        { status: 400 }
+        { error: "Invalid input", details: error.issues },
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
     console.error("Error updating task:", error);
+    console.error("Request body:", body);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      { error: "Internal server error", message: error instanceof Error ? error.message : "Unknown error" },
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
 }
