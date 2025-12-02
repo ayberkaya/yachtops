@@ -23,6 +23,7 @@ import {
   Wrench,
   Moon,
   Sun,
+  FileCheck,
 } from "lucide-react";
 import { canManageUsers } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
@@ -392,6 +393,18 @@ export function Sidebar() {
                   <span>Performance</span>
                 </Link>
               )}
+              <Link
+                href="/dashboard/my-documents"
+                onClick={() => {
+                  if (!isCollapsed) {
+                    setIsCollapsed(true);
+                  }
+                }}
+                className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+              >
+                <FileCheck size={16} />
+                <span>My Documents</span>
+              </Link>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
@@ -439,6 +452,14 @@ export function Sidebar() {
                   <TrendingUp size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
                 </Link>
               )}
+              <Link
+                href="/dashboard/my-documents"
+                onClick={() => setIsCollapsed(true)}
+                className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
+                title="My Documents"
+              >
+                <FileCheck size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+              </Link>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
                 className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
