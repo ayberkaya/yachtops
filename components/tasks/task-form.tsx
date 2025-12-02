@@ -18,13 +18,14 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus, UserRole } from "@prisma/client";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
+  assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
 });
@@ -48,11 +49,15 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
       title: "",
       description: "",
       assigneeId: null,
+      assigneeRole: null,
       tripId: null,
       dueDate: "",
       status: TaskStatus.TODO,
     },
   });
+
+  const assigneeId = form.watch("assigneeId");
+  const assigneeRole = form.watch("assigneeRole");
 
   const onSubmit = async (data: TaskFormData) => {
     setIsLoading(true);
@@ -130,14 +135,20 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
             name="assigneeId"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Assignee</FormLabel>
+                <FormLabel>Assign to Person</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                  defaultValue={field.value || "none"}
+                  onValueChange={(value) => {
+                    field.onChange(value === "none" ? null : value);
+                    // Clear assigneeRole when assigning to a person
+                    if (value !== "none") {
+                      form.setValue("assigneeRole", null);
+                    }
+                  }}
+                  value={field.value || "none"}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select assignee" />
+                      <SelectValue placeholder="Select person" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
@@ -156,26 +167,29 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
 
           <FormField
             control={form.control}
-            name="tripId"
+            name="assigneeRole"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Trip (Optional)</FormLabel>
+                <FormLabel>Assign to Role</FormLabel>
                 <Select
-                  onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                  defaultValue={field.value || "none"}
+                  onValueChange={(value) => {
+                    field.onChange(value === "none" ? null : value);
+                    // Clear assigneeId when assigning to a role
+                    if (value !== "none") {
+                      form.setValue("assigneeId", null);
+                    }
+                  }}
+                  value={field.value || "none"}
                 >
                   <FormControl>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select trip" />
+                      <SelectValue placeholder="Select role" />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">No trip</SelectItem>
-                    {trips.map((trip) => (
-                      <SelectItem key={trip.id} value={trip.id}>
-                        {trip.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="none">No role assignment</SelectItem>
+                    <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
+                    <SelectItem value={UserRole.CREW}>Crew</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -183,6 +197,35 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
             )}
           />
         </div>
+
+        <FormField
+          control={form.control}
+          name="tripId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Trip (Optional)</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                value={field.value || "none"}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select trip" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">No trip</SelectItem>
+                  {trips.map((trip) => (
+                    <SelectItem key={trip.id} value={trip.id}>
+                      {trip.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField

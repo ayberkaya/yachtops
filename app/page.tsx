@@ -1,13 +1,54 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Anchor, ArrowRight, Navigation, DollarSign, CheckSquare } from "lucide-react";
-import { ThemeToggle } from "@/components/theme-toggle";
+import { Anchor, ArrowRight, Navigation, DollarSign, CheckSquare, Moon, Sun } from "lucide-react";
+import { useTheme } from "next-themes";
+import { useState, useEffect } from "react";
+
+function ThemeToggleButton() {
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) {
+    return (
+      <Button
+        variant="outline"
+        size="icon"
+        className="fixed top-4 right-4 z-50"
+        disabled
+      >
+        <Sun className="h-5 w-5" />
+      </Button>
+    );
+  }
+
+  return (
+    <Button
+      variant="outline"
+      size="icon"
+      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      className="fixed top-4 right-4 z-50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-slate-200 dark:border-slate-700 shadow-lg hover:bg-white dark:hover:bg-slate-800"
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+    >
+      {theme === "dark" ? (
+        <Sun className="h-5 w-5" />
+      ) : (
+        <Moon className="h-5 w-5" />
+      )}
+    </Button>
+  );
+}
 
 export default function Home() {
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 p-4 relative overflow-hidden">
       <div className="absolute top-4 right-4 z-20">
-        <ThemeToggle />
+        <ThemeToggleButton />
       </div>
       {/* Subtle background elements */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">

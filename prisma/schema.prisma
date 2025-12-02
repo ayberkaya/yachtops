@@ -114,12 +114,14 @@ model User {
   completedTasks Task[]   @relation("TaskCompleter")
   createdExpenses Expense[] @relation("ExpenseCreator")
   approvedExpenses Expense[] @relation("ExpenseApprover")
-  messages      Message[]
+  sentMessages    Message[] @relation("MessageSender")
+  readMessages    MessageRead[] @relation("MessageReader")
   channels      MessageChannel[] @relation("ChannelMembers")
   createdChannels MessageChannel[] @relation("ChannelCreator")
   createdShoppingLists ShoppingList[] @relation("ShoppingListCreator")
   createdMaintenanceLogs MaintenanceLog[] @relation("MaintenanceCreator")
   crewDocuments CrewDocument[] @relation("CrewDocumentOwner")
+  createdCashTransactions CashTransaction[] @relation("CashTransactionCreator")
 
   @@map("users")
 }
@@ -148,6 +150,7 @@ model Yacht {
   crewDocuments            CrewDocument[]
   alcoholStocks    AlcoholStock[]
   maintenanceLogs  MaintenanceLog[]
+  cashTransactions CashTransaction[]
 
   @@map("yachts")
 }
@@ -205,6 +208,7 @@ model Task {
   description String?
   assigneeId String?    @map("assignee_id")
   assignee   User?      @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  assigneeRole UserRole? @map("assignee_role")
   completedById String? @map("completed_by_id")
   completedBy User?    @relation("TaskCompleter", fields: [completedById], references: [id], onDelete: SetNull)
   completedAt DateTime? @map("completed_at")
@@ -264,6 +268,7 @@ model Expense {
 
   // Relations
   receipts           ExpenseReceipt[]
+  cashTransactions   CashTransaction[]
 
   @@map("expenses")
 }
@@ -276,6 +281,28 @@ model ExpenseReceipt {
   uploadedAt DateTime @default(now()) @map("uploaded_at")
 
   @@map("expense_receipts")
+}
+
+enum CashTransactionType {
+  DEPOSIT  // Para girişi
+  WITHDRAWAL // Para çıkışı (expense ile bağlantılı)
+}
+
+model CashTransaction {
+  id          String              @id @default(cuid())
+  yachtId     String              @map("yacht_id")
+  yacht       Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  type        CashTransactionType
+  amount      Float
+  currency    String              @default("EUR")
+  description String?
+  expenseId   String?             @map("expense_id")
+  expense     Expense?            @relation(fields: [expenseId], references: [id], onDelete: SetNull)
+  createdByUserId String          @map("created_by_user_id")
+  createdBy   User                @relation("CashTransactionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
+  createdAt   DateTime            @default(now()) @map("created_at")
+
+  @@map("cash_transactions")
 }
 
 model MarinaPermissionDocument {
@@ -343,13 +370,28 @@ model Message {
   channelId   String   @map("channel_id")
   channel     MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
   userId      String   @map("user_id")
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  content     String
+  user        User     @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
+  content     String?
   imageUrl    String?  @map("image_url")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
+  // Relations
+  reads       MessageRead[]
+
   @@map("messages")
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation("MessageReader", fields: [userId], references: [id], onDelete: Cascade)
+  readAt    DateTime @default(now()) @map("read_at")
+
+  @@unique([messageId, userId])
+  @@map("message_reads")
 }
 
 model Product {

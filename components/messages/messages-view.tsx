@@ -25,7 +25,7 @@ interface User {
 
 interface Message {
   id: string;
-  content: string;
+  content: string | null;
   imageUrl: string | null;
   createdAt: string;
   user: {
@@ -33,6 +33,15 @@ interface Message {
     name: string | null;
     email: string;
   };
+  reads?: {
+    userId: string;
+    readAt: string;
+    user: {
+      id: string;
+      name: string | null;
+      email: string;
+    };
+  }[];
 }
 
 interface Channel {
@@ -565,11 +574,28 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           {message.content}
                         </p>
                       )}
-                      <p className="text-xs mt-1 opacity-70">
-                        {formatDistanceToNow(new Date(message.createdAt), {
-                          addSuffix: true,
-                        })}
-                      </p>
+                      <div className="flex items-center justify-between mt-1 gap-2">
+                        <p className="text-xs opacity-70">
+                          {formatDistanceToNow(new Date(message.createdAt), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                        {isOwnMessage && (
+                          <div className="flex items-center gap-1 text-xs opacity-70">
+                            {message.reads && message.reads.length > 0 ? (
+                              <>
+                                <span>✓✓</span>
+                                <span>Read</span>
+                              </>
+                            ) : (
+                              <>
+                                <span>✓</span>
+                                <span>Sent</span>
+                              </>
+                            )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

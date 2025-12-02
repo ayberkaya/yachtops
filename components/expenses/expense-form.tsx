@@ -63,10 +63,10 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     defaultValues: initialData || {
       date: new Date().toISOString().split("T")[0],
       currency: "EUR",
-      paymentMethod: PaymentMethod.CARD,
+      paymentMethod: PaymentMethod.CASH,
       paidBy: PaidBy.VESSEL,
       isReimbursable: false,
-      status: ExpenseStatus.DRAFT,
+      status: ExpenseStatus.SUBMITTED,
     },
   });
 
@@ -391,23 +391,6 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
               </div>
             </div>
 
-            {/* Optional receipt photo upload */}
-            <div className="space-y-2">
-              <p className="text-sm font-medium text-muted-foreground">
-                Receipt Photo (optional)
-              </p>
-              <Input
-                type="file"
-                accept="image/*"
-                onChange={(e) =>
-                  setReceiptFile(e.target.files?.[0] ?? null)
-                }
-              />
-              <p className="text-xs text-muted-foreground">
-                You can attach a photo of the receipt for this expense.
-              </p>
-            </div>
-
             <div className="grid gap-4 md:grid-cols-2">
               <FormField
                 control={form.control}
@@ -506,6 +489,23 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 </FormItem>
               )}
             />
+
+            {/* Optional receipt photo upload */}
+            <div className="space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">
+                Receipt Photo (optional)
+              </p>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) =>
+                  setReceiptFile(e.target.files?.[0] ?? null)
+                }
+              />
+              <p className="text-xs text-muted-foreground">
+                You can attach a photo of the receipt for this expense.
+              </p>
+            </div>
 
             <FormField
               control={form.control}

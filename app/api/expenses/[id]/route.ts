@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ExpenseStatus } from "@prisma/client";
+import { ExpenseStatus, PaidBy, CashTransactionType } from "@prisma/client";
 import { z } from "zod";
 
 const updateExpenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).optional(),
+  rejectReason: z.string().optional().nullable(),
   // Add other fields that can be updated
 });
 
@@ -102,15 +103,78 @@ export async function PATCH(
           );
         }
 
+        // If approving and paid by Vessel, check cash balance and create transaction
+        if (validated.status === ExpenseStatus.APPROVED && existingExpense.paidBy === PaidBy.VESSEL) {
+          // Check if cash transaction already exists (to prevent duplicate)
+          const existingCashTransaction = await db.cashTransaction.findFirst({
+            where: {
+              expenseId: existingExpense.id,
+            },
+          });
+
+          if (!existingCashTransaction) {
+            // Check cash balance
+            const cashTransactions = await db.cashTransaction.findMany({
+              where: {
+                yachtId: session.user.yachtId,
+              },
+            });
+
+            const balance = cashTransactions.reduce((acc, transaction) => {
+              if (transaction.type === CashTransactionType.DEPOSIT) {
+                return acc + transaction.amount;
+              } else {
+                return acc - transaction.amount;
+              }
+            }, 0);
+
+            if (balance < existingExpense.amount) {
+              return NextResponse.json(
+                {
+                  error: "Insufficient cash balance",
+                  balance,
+                  required: existingExpense.amount,
+                },
+                { status: 400 }
+              );
+            }
+
+            // Create cash withdrawal transaction
+            await db.cashTransaction.create({
+              data: {
+                yachtId: session.user.yachtId,
+                type: CashTransactionType.WITHDRAWAL,
+                amount: existingExpense.amount,
+                currency: existingExpense.currency,
+                description: `Expense: ${existingExpense.description}`,
+                expenseId: existingExpense.id,
+                createdByUserId: session.user.id,
+              },
+            });
+          }
+        }
+
+        // Prepare update data
+        const updateData: any = {
+          status: validated.status,
+          approvedByUserId:
+            validated.status === ExpenseStatus.APPROVED
+              ? session.user.id
+              : null,
+        };
+
+        // If rejecting, add reject reason to notes
+        if (validated.status === ExpenseStatus.REJECTED && validated.rejectReason) {
+          const existingNotes = existingExpense.notes || "";
+          const rejectNote = `Rejection reason: ${validated.rejectReason}`;
+          updateData.notes = existingNotes
+            ? `${existingNotes}\n\n${rejectNote}`
+            : rejectNote;
+        }
+
         const expense = await db.expense.update({
           where: { id },
-          data: {
-            status: validated.status,
-            approvedByUserId:
-              validated.status === ExpenseStatus.APPROVED
-                ? session.user.id
-                : null,
-          },
+          data: updateData,
           include: {
             createdBy: {
               select: { id: true, name: true, email: true },

@@ -43,6 +43,7 @@ interface Task {
   status: TaskStatus;
   dueDate: string | null;
   assignee: { id: string; name: string | null; email: string } | null;
+  assigneeRole: UserRole | null;
   completedBy: { id: string; name: string | null; email: string } | null;
   completedAt: string | null;
   trip: { id: string; name: string } | null;
@@ -165,7 +166,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
       ) : viewMode === "cards" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTasks.map((task) => {
-            const canComplete = !canManage && (!task.assignee || task.assignee.id === currentUser.id) && task.status !== TaskStatus.DONE;
+            const canComplete = !canManage && 
+              (!task.assignee || task.assignee.id === currentUser.id) && 
+              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
+              task.status !== TaskStatus.DONE;
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             return (
@@ -182,12 +186,17 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   )}
                 </CardHeader>
                 <CardContent className="flex-1 space-y-2 text-sm">
-                  {task.assignee && (
+                  {task.assignee ? (
                     <p className="flex items-center gap-2 text-muted-foreground">
                       <User className="h-4 w-4" />
                       {task.assignee.name || task.assignee.email}
                     </p>
-                  )}
+                  ) : task.assigneeRole ? (
+                    <p className="flex items-center gap-2 text-muted-foreground">
+                      <User className="h-4 w-4" />
+                      {task.assigneeRole}
+                    </p>
+                  ) : null}
                   {task.trip && (
                     <p className="flex items-center gap-2 text-muted-foreground">
                       <Ship className="h-4 w-4" />
@@ -281,14 +290,21 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               </TableHeader>
               <TableBody>
                 {filteredTasks.map((task) => {
-                  const canComplete = !canManage && (!task.assignee || task.assignee.id === currentUser.id) && task.status !== TaskStatus.DONE;
+                  const canComplete = !canManage && 
+              (!task.assignee || task.assignee.id === currentUser.id) && 
+              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
+              task.status !== TaskStatus.DONE;
                   const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
                   
                   return (
                     <TableRow key={task.id}>
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>
-                        {task.assignee?.name || task.assignee?.email || "Unassigned"}
+                        {task.assignee
+                          ? task.assignee.name || task.assignee.email
+                          : task.assigneeRole
+                          ? task.assigneeRole
+                          : "Unassigned"}
                       </TableCell>
                       <TableCell>{task.trip?.name || "-"}</TableCell>
                       <TableCell>

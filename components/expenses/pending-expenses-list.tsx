@@ -6,6 +6,16 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ExpenseStatus } from "@prisma/client";
 import { Check, X } from "lucide-react";
@@ -32,6 +42,9 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
   const router = useRouter();
   const [expenses, setExpenses] = useState(initialExpenses);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectingExpenseId, setRejectingExpenseId] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
 
   const handleApprove = async (id: string) => {
     setProcessingId(id);
@@ -56,17 +69,31 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
     }
   };
 
-  const handleReject = async (id: string) => {
-    if (!confirm("Are you sure you want to reject this expense?")) {
+  const handleRejectClick = (id: string) => {
+    setRejectingExpenseId(id);
+    setRejectReason("");
+    setRejectDialogOpen(true);
+  };
+
+  const handleReject = async () => {
+    if (!rejectingExpenseId) return;
+
+    if (!rejectReason.trim()) {
+      alert("Please provide a reason for rejection");
       return;
     }
 
-    setProcessingId(id);
+    setProcessingId(rejectingExpenseId);
+    setRejectDialogOpen(false);
+    
     try {
-      const response = await fetch(`/api/expenses/${id}`, {
+      const response = await fetch(`/api/expenses/${rejectingExpenseId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: ExpenseStatus.REJECTED }),
+        body: JSON.stringify({ 
+          status: ExpenseStatus.REJECTED,
+          rejectReason: rejectReason.trim(),
+        }),
       });
 
       if (!response.ok) {
@@ -80,6 +107,8 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
       alert("An error occurred. Please try again.");
     } finally {
       setProcessingId(null);
+      setRejectingExpenseId(null);
+      setRejectReason("");
     }
   };
 
@@ -157,7 +186,7 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
                 <Button
                   variant="destructive"
                   size="sm"
-                  onClick={() => handleReject(expense.id)}
+                  onClick={() => handleRejectClick(expense.id)}
                   disabled={processingId === expense.id}
                 >
                   <X className="mr-2 h-4 w-4" />
@@ -168,6 +197,50 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
           </CardContent>
         </Card>
       ))}
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Expense</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this expense. This will be added to the expense notes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejectReason">Rejection Reason *</Label>
+              <Textarea
+                id="rejectReason"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Enter the reason for rejection..."
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectDialogOpen(false);
+                setRejectReason("");
+                setRejectingExpenseId(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleReject}
+              disabled={!rejectReason.trim() || processingId !== null}
+            >
+              Reject Expense
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -56,12 +56,77 @@ export async function GET(request: NextRequest) {
         user: {
           select: { id: true, name: true, email: true },
         },
+        reads: {
+          select: {
+            userId: true,
+            readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "asc" },
       take: 100, // Limit to last 100 messages
     });
 
-    return NextResponse.json(messages);
+    // Mark messages as read for current user when fetching
+    // Only mark messages that are not sent by current user
+    const unreadMessages = messages.filter(
+      (msg) => msg.userId !== session.user.id
+    );
+
+    if (unreadMessages.length > 0) {
+      const messageIds = unreadMessages.map((msg) => msg.id);
+      
+      // Check which messages are already read
+      const existingReads = await db.messageRead.findMany({
+        where: {
+          messageId: { in: messageIds },
+          userId: session.user.id,
+        },
+        select: { messageId: true },
+      });
+
+      const alreadyReadIds = new Set(existingReads.map((r) => r.messageId));
+      const toMarkAsRead = messageIds.filter((id) => !alreadyReadIds.has(id));
+
+      // Mark unread messages as read
+      if (toMarkAsRead.length > 0) {
+        await db.messageRead.createMany({
+          data: toMarkAsRead.map((messageId) => ({
+            messageId,
+            userId: session.user.id,
+          })),
+          skipDuplicates: true,
+        });
+      }
+    }
+
+    // Re-fetch messages to include newly created reads
+    const updatedMessages = await db.message.findMany({
+      where: {
+        channelId,
+      },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        reads: {
+          select: {
+            userId: true,
+            readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+      orderBy: { createdAt: "asc" },
+      take: 100,
+    });
+
+    return NextResponse.json(updatedMessages);
   } catch (error) {
     console.error("Error fetching messages:", error);
     return NextResponse.json(
@@ -161,12 +226,12 @@ export async function POST(request: NextRequest) {
     const messageData: {
       channelId: string;
       userId: string;
-      content: string;
+      content: string | null;
       imageUrl?: string | null;
     } = {
       channelId: validated.channelId,
       userId: session.user.id,
-      content: hasContent ? validated.content!.trim() : "",
+      content: hasContent ? validated.content!.trim() : null,
     };
 
     if (hasImage) {

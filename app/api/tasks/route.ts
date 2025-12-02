@@ -3,13 +3,14 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus, UserRole } from "@prisma/client";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
+  assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
 });
@@ -40,11 +41,12 @@ export async function GET(request: NextRequest) {
       where.tripId = tripId;
     }
 
-    // CREW can see their own tasks OR unassigned tasks
+    // CREW can see their own tasks, unassigned tasks, or tasks assigned to their role
     if (session.user.role === "CREW") {
       where.OR = [
         { assigneeId: session.user.id },
         { assigneeId: null },
+        { assigneeRole: session.user.role },
       ];
     }
 
@@ -103,6 +105,7 @@ export async function POST(request: NextRequest) {
         title: validated.title,
         description: validated.description || null,
         assigneeId: validated.assigneeId || null,
+        assigneeRole: validated.assigneeRole || null,
         dueDate: validated.dueDate ? new Date(validated.dueDate) : null,
         status: validated.status,
       },

@@ -1,10 +1,21 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ExpenseStatus, PaymentMethod, PaidBy } from "@prisma/client";
 import { ArrowLeft, Check, X } from "lucide-react";
@@ -17,6 +28,9 @@ interface ExpenseDetailProps {
 
 export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailProps) {
   const router = useRouter();
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Derive extra display info from notes for UI-only fields (crew personal, card owner)
   let crewPersonalLabel: string | null = null;
@@ -274,30 +288,18 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
             <div className="flex gap-4 justify-end">
               <Button
                 variant="destructive"
-                onClick={async () => {
-                  if (!confirm("Are you sure you want to reject this expense?")) return;
-                  try {
-                    const response = await fetch(`/api/expenses/${expense.id}`, {
-                      method: "PATCH",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({ status: ExpenseStatus.REJECTED }),
-                    });
-                    if (response.ok) {
-                      router.refresh();
-                    } else {
-                      const result = await response.json();
-                      alert(result.error || "Failed to reject expense");
-                    }
-                  } catch (error) {
-                    alert("An error occurred. Please try again.");
-                  }
+                onClick={() => {
+                  setRejectReason("");
+                  setRejectDialogOpen(true);
                 }}
+                disabled={isProcessing}
               >
                 <X className="mr-2 h-4 w-4" />
                 Reject
               </Button>
               <Button
                 onClick={async () => {
+                  setIsProcessing(true);
                   try {
                     const response = await fetch(`/api/expenses/${expense.id}`, {
                       method: "PATCH",
@@ -312,8 +314,11 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
                     }
                   } catch (error) {
                     alert("An error occurred. Please try again.");
+                  } finally {
+                    setIsProcessing(false);
                   }
                 }}
+                disabled={isProcessing}
               >
                 <Check className="mr-2 h-4 w-4" />
                 Approve
@@ -322,6 +327,80 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
           </CardContent>
         </Card>
       )}
+
+      {/* Reject Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reject Expense</DialogTitle>
+            <DialogDescription>
+              Please provide a reason for rejecting this expense. This will be added to the expense notes.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="rejectReason">Rejection Reason *</Label>
+              <Textarea
+                id="rejectReason"
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Enter the reason for rejection..."
+                rows={4}
+                required
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRejectDialogOpen(false);
+                setRejectReason("");
+              }}
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={async () => {
+                if (!rejectReason.trim()) {
+                  alert("Please provide a reason for rejection");
+                  return;
+                }
+
+                setIsProcessing(true);
+                setRejectDialogOpen(false);
+                
+                try {
+                  const response = await fetch(`/api/expenses/${expense.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ 
+                      status: ExpenseStatus.REJECTED,
+                      rejectReason: rejectReason.trim(),
+                    }),
+                  });
+                  if (response.ok) {
+                    router.refresh();
+                  } else {
+                    const result = await response.json();
+                    alert(result.error || "Failed to reject expense");
+                  }
+                } catch (error) {
+                  alert("An error occurred. Please try again.");
+                } finally {
+                  setIsProcessing(false);
+                  setRejectReason("");
+                }
+              }}
+              disabled={!rejectReason.trim() || isProcessing}
+            >
+              Reject Expense
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

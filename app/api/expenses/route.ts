@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { ExpenseStatus, PaymentMethod, PaidBy } from "@prisma/client";
+import { ExpenseStatus, PaymentMethod, PaidBy, CashTransactionType } from "@prisma/client";
 
 const expenseSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -115,6 +115,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = expenseSchema.parse(body);
 
+    // Create expense (cash balance check and transaction creation will happen on approval)
     const expense = await db.expense.create({
       data: {
         yachtId: session.user.yachtId,

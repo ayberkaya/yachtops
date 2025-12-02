@@ -97,16 +97,25 @@ export function Sidebar() {
       permission: null,
     },
     {
-      href: "/dashboard/expenses",
-      label: "Expenses",
+      href: "#",
+      label: "Income & Expenses",
       icon: DollarSign,
       permission: "expenses.view",
-      // Smaller child link under Expenses for pending approvals
       children: [
+        {
+          href: "/dashboard/expenses",
+          label: "Expenses",
+          permission: "expenses.view",
+        },
         {
           href: "/dashboard/expenses/pending",
           label: "Pending Approval",
           permission: "expenses.approve",
+        },
+        {
+          href: "/dashboard/cash",
+          label: "Cash",
+          permission: "expenses.view",
         },
       ],
     },
@@ -225,7 +234,10 @@ export function Sidebar() {
           >
             <Link
               href={item.href}
-              onClick={() => {
+              onClick={(e) => {
+                if (item.href === "#") {
+                  e.preventDefault();
+                }
                 setMobileMenuOpen(false);
                 if (!isCollapsed) {
                   setIsCollapsed(true);

@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
-import { TaskStatus } from "@prisma/client";
+import { TaskStatus, UserRole } from "@prisma/client";
 import { z } from "zod";
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
+  assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).optional(),
 });
@@ -46,9 +47,16 @@ export async function GET(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // CREW can view their own tasks OR unassigned tasks
-    if (session.user.role === "CREW" && task.assigneeId && task.assigneeId !== session.user.id) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // CREW can view their own tasks, unassigned tasks, or tasks assigned to their role
+    if (session.user.role === "CREW") {
+      const canView = 
+        !task.assigneeId || // Unassigned
+        task.assigneeId === session.user.id || // Assigned to them
+        task.assigneeRole === session.user.role; // Assigned to their role
+      
+      if (!canView) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
     }
 
     return NextResponse.json(task);
@@ -86,9 +94,14 @@ export async function PATCH(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // CREW can update status of their own tasks OR unassigned tasks
+    // CREW can update status of their own tasks, unassigned tasks, or tasks assigned to their role
     if (session.user.role === "CREW") {
-      if (existingTask.assigneeId && existingTask.assigneeId !== session.user.id) {
+      const canUpdate = 
+        !existingTask.assigneeId || // Unassigned
+        existingTask.assigneeId === session.user.id || // Assigned to them
+        existingTask.assigneeRole === session.user.role; // Assigned to their role
+      
+      if (!canUpdate) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
       // CREW can only update status
@@ -128,7 +141,20 @@ export async function PATCH(
     const updateData: any = {};
     if (validated.title) updateData.title = validated.title;
     if (validated.description !== undefined) updateData.description = validated.description;
-    if (validated.assigneeId !== undefined) updateData.assigneeId = validated.assigneeId;
+    if (validated.assigneeId !== undefined) {
+      updateData.assigneeId = validated.assigneeId;
+      // If assigning to a person, clear role assignment
+      if (validated.assigneeId) {
+        updateData.assigneeRole = null;
+      }
+    }
+    if (validated.assigneeRole !== undefined) {
+      updateData.assigneeRole = validated.assigneeRole;
+      // If assigning to a role, clear person assignment
+      if (validated.assigneeRole) {
+        updateData.assigneeId = null;
+      }
+    }
     if (validated.dueDate !== undefined) {
       updateData.dueDate = validated.dueDate ? new Date(validated.dueDate) : null;
     }
