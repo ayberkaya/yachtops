@@ -39,6 +39,11 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const createdBy = searchParams.get("createdBy");
+    const currency = searchParams.get("currency");
+    const paymentMethod = searchParams.get("paymentMethod");
+    const minAmount = searchParams.get("minAmount");
+    const maxAmount = searchParams.get("maxAmount");
+    const isReimbursable = searchParams.get("isReimbursable");
 
     const where: any = {
       yachtId: session.user.yachtId || undefined,
@@ -64,6 +69,28 @@ export async function GET(request: NextRequest) {
     }
     if (createdBy) {
       where.createdByUserId = createdBy;
+    }
+    if (currency) {
+      where.currency = currency;
+    }
+    if (paymentMethod) {
+      where.paymentMethod = paymentMethod;
+    }
+    if (isReimbursable !== null && isReimbursable !== undefined && isReimbursable !== "") {
+      where.isReimbursable = isReimbursable === "true";
+    }
+    // Amount range filtering - filter by baseAmount if available, otherwise by amount
+    if (minAmount || maxAmount) {
+      const amountFilter: any = {};
+      if (minAmount) {
+        amountFilter.gte = parseFloat(minAmount);
+      }
+      if (maxAmount) {
+        amountFilter.lte = parseFloat(maxAmount);
+      }
+      // We'll need to filter in memory or use a more complex query
+      // For now, we'll filter by amount field
+      where.amount = amountFilter;
     }
 
     const expenses = await db.expense.findMany({

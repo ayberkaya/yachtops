@@ -39,8 +39,8 @@ export default async function ExpensesPage() {
     take: 50,
   });
 
-  // Fetch categories and trips for filters
-  const [categories, trips] = await Promise.all([
+  // Fetch categories, trips, and users for filters
+  const [categories, trips, users] = await Promise.all([
     db.expenseCategory.findMany({
       where: {
         yachtId: session.user.yachtId || undefined,
@@ -53,6 +53,13 @@ export default async function ExpensesPage() {
       },
       orderBy: { startDate: "desc" },
       take: 50,
+    }),
+    db.user.findMany({
+      where: {
+        yachtId: session.user.yachtId || undefined,
+      },
+      select: { id: true, name: true, email: true },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -68,6 +75,7 @@ export default async function ExpensesPage() {
         initialExpenses={expenses}
         categories={categories}
         trips={trips}
+        users={users}
         currentUserId={session.user.id}
       />
     </div>
