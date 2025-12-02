@@ -4,7 +4,7 @@ import { canManageUsers } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { TaskStatus, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -14,6 +14,7 @@ const taskSchema = z.object({
   assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
 });
 
 export async function GET(request: NextRequest) {
@@ -161,6 +162,7 @@ export async function POST(request: NextRequest) {
         assigneeRole: validated.assigneeRole || null,
         dueDate: validated.dueDate ? new Date(validated.dueDate) : null,
         status: validated.status,
+        priority: (validated.priority || "MEDIUM") as TaskPriority,
       },
       include: {
         assignee: {

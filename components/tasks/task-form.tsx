@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
-import { TaskStatus, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -28,6 +28,7 @@ const taskSchema = z.object({
   assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -53,6 +54,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
       tripId: null,
       dueDate: "",
       status: TaskStatus.TODO,
+      priority: "MEDIUM" as const,
     },
   });
 
@@ -75,6 +77,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
         assigneeRole: data.assigneeRole === "none" || !data.assigneeRole ? null : data.assigneeRole,
         dueDate: data.dueDate || null,
         description: data.description || null,
+        priority: data.priority || "MEDIUM", // Ensure priority is always set
       };
 
       console.log("Form data before submit:", data);
@@ -111,10 +114,24 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
 
       if (!response.ok) {
         // Show detailed error message from API
-        const errorMessage = result.error || result.message || "Failed to save task";
-        const errorDetails = result.details ? ` Details: ${JSON.stringify(result.details)}` : "";
+        let errorMessage = "Failed to save task";
+        let errorDetails = "";
+        
+        if (result) {
+          errorMessage = result.error || result.message || errorMessage;
+          if (result.details) {
+            errorDetails = ` Details: ${JSON.stringify(result.details)}`;
+          }
+        } else {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        
         setError(`${errorMessage}${errorDetails}`);
-        console.error("Task creation error:", result);
+        console.error("Task creation error:", {
+          status: response.status,
+          statusText: response.statusText,
+          result: result,
+        });
         setIsLoading(false);
         return;
       }
@@ -267,7 +284,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
           )}
         />
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 md:grid-cols-3">
           <FormField
             control={form.control}
             name="dueDate"
@@ -281,6 +298,30 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                     value={field.value || ""}
                   />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="priority"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Priority</FormLabel>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "MEDIUM"}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="LOW">Low</SelectItem>
+                    <SelectItem value="MEDIUM">Medium</SelectItem>
+                    <SelectItem value="HIGH">High</SelectItem>
+                    <SelectItem value="URGENT">Urgent</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

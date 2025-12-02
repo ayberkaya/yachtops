@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
-import { TaskStatus, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { z } from "zod";
 
 const updateTaskSchema = z.object({
@@ -12,6 +12,7 @@ const updateTaskSchema = z.object({
   assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).optional(),
+  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
 });
 
 export async function GET(
@@ -39,6 +40,22 @@ export async function GET(
         },
         trip: {
           select: { id: true, name: true },
+        },
+        comments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        attachments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
@@ -127,6 +144,26 @@ export async function PATCH(
           updateData.completedAt = null;
         }
       }
+      
+      // If no updates, return existing task
+      if (Object.keys(updateData).length === 0) {
+        const task = await db.task.findUnique({
+          where: { id },
+          include: {
+            assignee: {
+              select: { id: true, name: true, email: true },
+            },
+            completedBy: {
+              select: { id: true, name: true, email: true },
+            },
+            trip: {
+              select: { id: true, name: true },
+            },
+          },
+        });
+        return NextResponse.json(task);
+      }
+      
       const task = await db.task.update({
         where: { id },
         data: updateData,
@@ -166,6 +203,9 @@ export async function PATCH(
     if (validated.dueDate !== undefined) {
       updateData.dueDate = validated.dueDate ? new Date(validated.dueDate) : null;
     }
+    if (validated.priority !== undefined) {
+      updateData.priority = validated.priority as TaskPriority;
+    }
     if (validated.status) {
       updateData.status = validated.status;
       // If marking as DONE and not already completed, set completedBy and completedAt
@@ -178,6 +218,41 @@ export async function PATCH(
         updateData.completedById = null;
         updateData.completedAt = null;
       }
+    }
+
+    // If no updates, return existing task
+    if (Object.keys(updateData).length === 0) {
+      const task = await db.task.findUnique({
+        where: { id },
+        include: {
+          assignee: {
+            select: { id: true, name: true, email: true },
+          },
+          completedBy: {
+            select: { id: true, name: true, email: true },
+          },
+          trip: {
+            select: { id: true, name: true },
+          },
+          comments: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+            orderBy: { createdAt: "asc" },
+          },
+          attachments: {
+            include: {
+              user: {
+                select: { id: true, name: true, email: true },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+          },
+        },
+      });
+      return NextResponse.json(task);
     }
 
     const task = await db.task.update({
@@ -193,6 +268,22 @@ export async function PATCH(
         trip: {
           select: { id: true, name: true },
         },
+        comments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        attachments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+        },
       },
     });
 
@@ -207,9 +298,9 @@ export async function PATCH(
     }
 
     console.error("Error updating task:", error);
-    console.error("Request body:", body);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error", message: error instanceof Error ? error.message : "Unknown error" },
+      { error: "Internal server error", message: errorMessage },
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }

@@ -30,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { TaskStatus, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
 import { Plus, Pencil, Check, List, LayoutGrid, Calendar, User, Ship, CheckCircle2 } from "lucide-react";
 import { TaskForm } from "./task-form";
@@ -41,6 +41,7 @@ interface Task {
   title: string;
   description: string | null;
   status: TaskStatus;
+  priority: TaskPriority;
   dueDate: string | null;
   assignee: { id: string; name: string | null; email: string } | null;
   assigneeRole: UserRole | null;
@@ -80,6 +81,23 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     return (
       <Badge variant={variants[status]}>
         {status.replace("_", " ")}
+      </Badge>
+    );
+  };
+
+  const getPriorityBadge = (priority: TaskPriority | string) => {
+    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
+      LOW: "outline",
+      MEDIUM: "secondary",
+      HIGH: "default",
+      URGENT: "destructive",
+    };
+
+    const priorityStr = typeof priority === "string" ? priority : priority;
+    
+    return (
+      <Badge variant={variants[priorityStr] || "secondary"}>
+        {priorityStr}
       </Badge>
     );
   };
@@ -238,8 +256,15 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">{task.title}</CardTitle>
-                    {getStatusBadge(task.status)}
+                    <CardTitle className="text-lg">
+                      <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
+                        {task.title}
+                      </Link>
+                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      {getPriorityBadge(task.priority)}
+                      {getStatusBadge(task.status)}
+                    </div>
                   </div>
                   {task.description && (
                     <CardDescription className="line-clamp-2 mt-2">
@@ -356,6 +381,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <TableHeader>
                       <TableRow>
                         <TableHead>Title</TableHead>
+                        <TableHead>Priority</TableHead>
                         <TableHead>Assignee</TableHead>
                         <TableHead>Trip</TableHead>
                         <TableHead>Due Date</TableHead>
@@ -380,6 +406,9 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       className={isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""}
                     >
                       <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell>
+                        {getPriorityBadge(task.priority)}
+                      </TableCell>
                       <TableCell>
                         {task.assignee
                           ? task.assignee.name || task.assignee.email
