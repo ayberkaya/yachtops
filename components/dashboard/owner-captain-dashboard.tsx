@@ -9,6 +9,7 @@ import { format, differenceInDays, isPast, isToday } from "date-fns";
 import { DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Package, FileText, Wrench, Bell } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import { MonthlyReportDownload } from "./monthly-report-download";
+import { QuickActions } from "./quick-actions";
 
 export async function OwnerCaptainDashboard() {
   const session = await getSession();
@@ -168,9 +169,12 @@ export async function OwnerCaptainDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
+        </div>
+        <QuickActions />
       </div>
 
       {/* Role-Assigned Tasks Alert - Dikkat çekici bildirim */}

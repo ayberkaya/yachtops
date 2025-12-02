@@ -7,6 +7,7 @@ import { TaskStatus, UserRole } from "@prisma/client";
 import { format, differenceInDays, isPast, isToday } from "date-fns";
 import { AlertTriangle, Package, FileText, Wrench, Clock, Bell } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
+import { QuickActions } from "./quick-actions";
 
 export async function CrewDashboard() {
   const session = await getSession();
@@ -139,9 +140,12 @@ export async function CrewDashboard() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">My Dashboard</h1>
-        <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">My Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
+        </div>
+        <QuickActions />
       </div>
 
       {/* Role-Assigned Tasks Alert - Dikkat çekici bildirim */}
