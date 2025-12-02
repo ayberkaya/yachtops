@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users, Menu, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download } from "lucide-react";
+import { Send, Hash, Users, Menu, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
@@ -15,6 +15,12 @@ import {
   SheetContent,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface User {
   id: string;
@@ -112,6 +118,10 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const [editingContent, setEditingContent] = useState("");
   const [replyingToMessageId, setReplyingToMessageId] = useState<string | null>(null);
   const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
+  const [showReadBy, setShowReadBy] = useState<string | null>(null);
+  const [forwardingMessageId, setForwardingMessageId] = useState<string | null>(null);
+  const [longPressMessageId, setLongPressMessageId] = useState<string | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -974,7 +984,145 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
                       } ${message.isPinned ? "ring-2 ring-yellow-400" : ""}`}
+                      onTouchStart={(e) => {
+                        // Mobile long press
+                        longPressTimerRef.current = setTimeout(() => {
+                          setLongPressMessageId(message.id);
+                          // Prevent default to avoid text selection
+                          e.preventDefault();
+                        }, 500); // 500ms long press
+                      }}
+                      onTouchEnd={() => {
+                        if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                      }}
+                      onTouchMove={() => {
+                        // Cancel long press if user moves finger
+                        if (longPressTimerRef.current) {
+                          clearTimeout(longPressTimerRef.current);
+                          longPressTimerRef.current = null;
+                        }
+                      }}
                     >
+                      {/* Dropdown Menu - Top Right (Desktop - hover only) */}
+                      <div className="absolute top-2 right-2 z-10 opacity-0 group-hover:opacity-100 transition-opacity hidden md:block">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 p-0"
+                            >
+                              <ChevronDown className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setReplyingToMessageId(message.id);
+                                setEditingContent("");
+                              }}
+                            >
+                              <Reply className="h-4 w-4 mr-2" />
+                              Reply
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setForwardingMessageId(message.id);
+                              }}
+                            >
+                              <Forward className="h-4 w-4 mr-2" />
+                              Forward
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => handlePinMessage(message.id, !message.isPinned)}
+                            >
+                              <Pin className={`h-4 w-4 mr-2 ${message.isPinned ? "fill-current" : ""}`} />
+                              {message.isPinned ? "Unpin" : "Pin"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                // Star functionality - to be implemented
+                                console.log("Star message:", message.id);
+                              }}
+                            >
+                              <Star className="h-4 w-4 mr-2" />
+                              Star
+                            </DropdownMenuItem>
+                            {isOwnMessage && (
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteMessage(message.id)}
+                                variant="destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                      
+                      {/* Mobile Dropdown Menu (long press) */}
+                      <div className="md:hidden">
+                        <DropdownMenu open={longPressMessageId === message.id} onOpenChange={(open) => {
+                          if (!open) setLongPressMessageId(null);
+                        }}>
+                          <DropdownMenuContent align="end" className="w-48">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setReplyingToMessageId(message.id);
+                                setEditingContent("");
+                                setLongPressMessageId(null);
+                              }}
+                            >
+                              <Reply className="h-4 w-4 mr-2" />
+                              Reply
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setForwardingMessageId(message.id);
+                                setLongPressMessageId(null);
+                              }}
+                            >
+                              <Forward className="h-4 w-4 mr-2" />
+                              Forward
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                handlePinMessage(message.id, !message.isPinned);
+                                setLongPressMessageId(null);
+                              }}
+                            >
+                              <Pin className={`h-4 w-4 mr-2 ${message.isPinned ? "fill-current" : ""}`} />
+                              {message.isPinned ? "Unpin" : "Pin"}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                // Star functionality - to be implemented
+                                console.log("Star message:", message.id);
+                                setLongPressMessageId(null);
+                              }}
+                            >
+                              <Star className="h-4 w-4 mr-2" />
+                              Star
+                            </DropdownMenuItem>
+                            {isOwnMessage && (
+                              <DropdownMenuItem
+                                onClick={() => {
+                                  handleDeleteMessage(message.id);
+                                  setLongPressMessageId(null);
+                                }}
+                                variant="destructive"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                       {message.isPinned && (
                         <div className="absolute -top-2 -right-2">
                           <Pin className="h-4 w-4 text-yellow-400 fill-yellow-400" />
@@ -1007,20 +1155,29 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           {message.attachments.map((att) => (
                             <div
                               key={att.id}
-                              className="flex items-center gap-2 p-2 bg-background/50 rounded text-xs"
+                              className="flex items-center gap-2 p-2 bg-background/50 rounded text-xs cursor-pointer hover:bg-background/70 transition-colors"
+                              onClick={() => {
+                                // Open PDF in new tab
+                                if (att.mimeType?.includes("pdf") || att.fileName.endsWith(".pdf")) {
+                                  window.open(att.fileUrl, "_blank");
+                                } else {
+                                  // Download other files
+                                  const link = document.createElement("a");
+                                  link.href = att.fileUrl;
+                                  link.download = att.fileName;
+                                  link.click();
+                                }
+                              }}
                             >
                               <FileText className="h-4 w-4" />
                               <span className="flex-1 truncate">{att.fileName}</span>
-                              <a
-                                href={att.fileUrl}
-                                download={att.fileName}
-                                className="text-primary hover:underline"
-                              >
-                                <Download className="h-4 w-4" />
-                              </a>
+                              <Download className="h-4 w-4" />
                               {isOwnMessage && (
                                 <button
-                                  onClick={() => handleDeleteAttachment(message.id, att.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteAttachment(message.id, att.id);
+                                  }}
                                   className="text-destructive hover:underline"
                                 >
                                   <X className="h-4 w-4" />
@@ -1073,69 +1230,45 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           })}
                         </p>
                         {isOwnMessage && (
-                          <div className="flex items-center gap-1 text-xs opacity-70">
-                            {message.reads && message.reads.length > 0 ? (
-                              <>
-                                <span>✓✓</span>
-                                <span>Read</span>
-                              </>
-                            ) : (
-                              <>
-                                <span>✓</span>
-                                <span>Sent</span>
-                              </>
+                          <div className="relative">
+                            <button
+                              onClick={() => {
+                                if (message.reads && message.reads.length > 0) {
+                                  setShowReadBy(showReadBy === message.id ? null : message.id);
+                                }
+                              }}
+                              className="flex items-center gap-1 text-xs opacity-70 hover:opacity-100 transition-opacity cursor-pointer"
+                            >
+                              {message.reads && message.reads.length > 0 ? (
+                                <>
+                                  <CheckCheck className="h-3 w-3" />
+                                  <span>Read</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Check className="h-3 w-3" />
+                                  <span>Sent</span>
+                                </>
+                              )}
+                            </button>
+                            {/* Read by list */}
+                            {showReadBy === message.id && message.reads && message.reads.length > 0 && (
+                              <div className="absolute bottom-full right-0 mb-2 bg-popover border rounded-lg shadow-lg p-2 min-w-[200px] z-10">
+                                <div className="text-xs font-semibold mb-1">Read by:</div>
+                                <div className="space-y-1">
+                                  {message.reads.map((read) => (
+                                    <div key={read.userId} className="text-xs flex items-center gap-2">
+                                      <span>{read.user.name || read.user.email}</span>
+                                      <span className="text-muted-foreground">
+                                        {formatDistanceToNow(new Date(read.readAt), { addSuffix: true })}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             )}
                           </div>
                         )}
-                      </div>
-                      {/* Action buttons */}
-                      <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => {
-                            setReplyingToMessageId(message.id);
-                            setEditingContent("");
-                          }}
-                        >
-                          <Reply className="h-3 w-3 mr-1" />
-                          Reply
-                        </Button>
-                        {isOwnMessage && (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs"
-                              onClick={() => {
-                                setEditingMessageId(message.id);
-                                setEditingContent(message.content || "");
-                              }}
-                            >
-                              <Edit2 className="h-3 w-3 mr-1" />
-                              Edit
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 px-2 text-xs text-destructive"
-                              onClick={() => handleDeleteMessage(message.id)}
-                            >
-                              <Trash2 className="h-3 w-3 mr-1" />
-                              Delete
-                            </Button>
-                          </>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 px-2 text-xs"
-                          onClick={() => handlePinMessage(message.id, !message.isPinned)}
-                        >
-                          <Pin className={`h-3 w-3 mr-1 ${message.isPinned ? "fill-current" : ""}`} />
-                          {message.isPinned ? "Unpin" : "Pin"}
-                        </Button>
                       </div>
                       {/* Replies */}
                       {hasReplies && (
