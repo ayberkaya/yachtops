@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users, Menu, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck } from "lucide-react";
+import { Send, Hash, Users, Menu, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
@@ -124,6 +124,13 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const [notificationPreferences, setNotificationPreferences] = useState({
+    desktopEnabled: true,
+    soundEnabled: true,
+    mentionEnabled: true,
+  });
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const lastMessageIdRef = useRef<string | null>(null);
 
   const canManage = canManageUsers(session?.user || null);
 
@@ -170,6 +177,15 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     });
   }, [channels.length]); // Only run when channels change
 
+  // Fetch notification preferences on mount
+  useEffect(() => {
+    fetchNotificationPreferences();
+    // Request notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
+
   // Poll for new messages every 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
@@ -188,6 +204,118 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
     return () => clearInterval(interval);
   }, [selectedChannel, channels]);
+
+  // Check for new messages and show notifications
+  useEffect(() => {
+    if (messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+      
+      // Only notify if it's a new message (not the one we just sent) and from different channel
+      if (lastMessage.id !== lastMessageIdRef.current && 
+          lastMessage.user.id !== currentUser.id) {
+        
+        // Get current user info
+        const currentUserInfo = allUsers.find(u => u.id === currentUser.id);
+        const userEmail = session?.user?.email || currentUserInfo?.email || "";
+        const userName = currentUserInfo?.name || "";
+        const emailPrefix = userEmail.split("@")[0];
+        
+        // Check if message contains @mention of current user
+        const isMentioned = lastMessage.content && (
+          (userName && lastMessage.content.includes(`@${userName}`)) ||
+          (userEmail && lastMessage.content.includes(`@${userEmail}`)) ||
+          (emailPrefix && lastMessage.content.includes(`@${emailPrefix}`))
+        );
+        
+        // Only notify if:
+        // 1. It's a mention and mention notifications are enabled, OR
+        // 2. It's from a different channel (not currently viewing)
+        const shouldNotify = isMentioned 
+          ? notificationPreferences.mentionEnabled 
+          : lastMessage.channelId !== selectedChannel?.id;
+        
+        if (!shouldNotify) {
+          lastMessageIdRef.current = lastMessage.id;
+          return;
+        }
+        
+        lastMessageIdRef.current = lastMessage.id;
+        
+        // Get channel name for notification
+        const messageChannel = channels.find(ch => ch.id === lastMessage.channelId);
+        const channelName = messageChannel?.name || "Unknown";
+        
+        // Show desktop notification
+        if (notificationPreferences.desktopEnabled && "Notification" in window && Notification.permission === "granted") {
+          const senderName = lastMessage.user.name || lastMessage.user.email;
+          const notificationTitle = isMentioned ? `@${senderName} mentioned you` : `New message in #${channelName}`;
+          
+          new Notification(notificationTitle, {
+            body: `${senderName}: ${lastMessage.content || "Sent an attachment"}`,
+            icon: "/favicon.ico",
+            tag: lastMessage.id,
+            requireInteraction: isMentioned, // Require interaction for mentions
+          });
+        }
+        
+        // Play sound notification
+        if (notificationPreferences.soundEnabled) {
+          playNotificationSound();
+        }
+      }
+    }
+  }, [messages, notificationPreferences, selectedChannel, currentUser]);
+
+  const fetchNotificationPreferences = async () => {
+    try {
+      const response = await fetch("/api/notifications/preferences");
+      if (response.ok) {
+        const prefs = await response.json();
+        setNotificationPreferences(prefs);
+      }
+    } catch (error) {
+      console.error("Error fetching notification preferences:", error);
+    }
+  };
+
+  const updateNotificationPreferences = async (updates: Partial<typeof notificationPreferences>) => {
+    try {
+      const response = await fetch("/api/notifications/preferences", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      if (response.ok) {
+        const prefs = await response.json();
+        setNotificationPreferences(prefs);
+      }
+    } catch (error) {
+      console.error("Error updating notification preferences:", error);
+    }
+  };
+
+  const playNotificationSound = () => {
+    try {
+      // Create audio context for notification sound
+      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      
+      oscillator.frequency.value = 800;
+      oscillator.type = "sine";
+      
+      gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+      gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+      
+      oscillator.start(audioContext.currentTime);
+      oscillator.stop(audioContext.currentTime + 0.5);
+    } catch (error) {
+      console.error("Error playing notification sound:", error);
+    }
+  };
 
   const fetchMessages = async (channelId: string, silent = false) => {
     if (!silent) setIsLoading(true);
@@ -921,6 +1049,60 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             >
               <Pin className="h-4 w-4" />
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon">
+                  <Bell className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="px-2 py-1.5 text-sm font-semibold">Notification Settings</div>
+                <DropdownMenuItem
+                  onClick={() => {
+                    if ("Notification" in window && Notification.permission !== "granted") {
+                      Notification.requestPermission();
+                    }
+                    updateNotificationPreferences({ desktopEnabled: !notificationPreferences.desktopEnabled });
+                  }}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>Desktop Notifications</span>
+                    <input
+                      type="checkbox"
+                      checked={notificationPreferences.desktopEnabled}
+                      onChange={() => {}}
+                      className="ml-2"
+                    />
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => updateNotificationPreferences({ soundEnabled: !notificationPreferences.soundEnabled })}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>Sound Notifications</span>
+                    <input
+                      type="checkbox"
+                      checked={notificationPreferences.soundEnabled}
+                      onChange={() => {}}
+                      className="ml-2"
+                    />
+                  </div>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => updateNotificationPreferences({ mentionEnabled: !notificationPreferences.mentionEnabled })}
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <span>@Mentions</span>
+                    <input
+                      type="checkbox"
+                      checked={notificationPreferences.mentionEnabled}
+                      onChange={() => {}}
+                      className="ml-2"
+                    />
+                  </div>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
@@ -1382,7 +1564,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                     setNewMessage(e.target.value);
                   }
                 }}
-                placeholder={replyingToMessageId ? "Type a reply..." : "Type a message..."}
+                placeholder={replyingToMessageId ? "Type a reply... (use @username to mention)" : "Type a message... (use @username to mention)"}
                 disabled={isSending}
                 className="flex-1"
                 onKeyDown={(e) => {

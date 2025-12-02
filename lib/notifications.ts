@@ -4,16 +4,18 @@ import { NotificationType, UserRole } from "@prisma/client";
 export async function createNotification(
   userId: string,
   type: NotificationType,
-  message: string,
-  taskId?: string
+  content: string,
+  taskId?: string,
+  messageId?: string
 ) {
   try {
     return await db.notification.create({
       data: {
         userId,
         type,
-        message,
+        content,
         taskId: taskId || null,
+        messageId: messageId || null,
       },
     });
   } catch (error) {

@@ -339,6 +339,18 @@ export async function POST(request: NextRequest) {
     });
 
     console.log("Message created successfully:", message.id);
+    
+    // Notify mentions (async, don't wait)
+    const { notifyMentions } = await import("@/lib/message-notifications");
+    const senderName = session.user.name || session.user.email;
+    notifyMentions(
+      message.id,
+      validated.channelId,
+      message.content,
+      senderName,
+      session.user.yachtId || null
+    ).catch(err => console.error("Error sending mention notifications:", err));
+    
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -17,8 +17,8 @@ import {
 
 interface Notification {
   id: string;
-  type: "TASK_ASSIGNED" | "TASK_COMPLETED" | "TASK_DUE_SOON" | "TASK_OVERDUE";
-  message: string;
+  type: "TASK_ASSIGNED" | "TASK_COMPLETED" | "TASK_DUE_SOON" | "TASK_OVERDUE" | "MESSAGE_MENTION" | "MESSAGE_RECEIVED";
+  content: string;
   read: boolean;
   createdAt: string;
   task: {
@@ -26,6 +26,15 @@ interface Notification {
     title: string;
     status: string;
     dueDate: string | null;
+  } | null;
+  message: {
+    id: string;
+    channelId: string;
+    content: string | null;
+    channel: {
+      id: string;
+      name: string;
+    };
   } | null;
 }
 
@@ -115,6 +124,8 @@ export function NotificationsView() {
       TASK_COMPLETED: "secondary",
       TASK_DUE_SOON: "outline",
       TASK_OVERDUE: "destructive",
+      MESSAGE_MENTION: "default",
+      MESSAGE_RECEIVED: "secondary",
     };
 
     const labels: Record<Notification["type"], string> = {
@@ -122,11 +133,13 @@ export function NotificationsView() {
       TASK_COMPLETED: "Completed",
       TASK_DUE_SOON: "Due Soon",
       TASK_OVERDUE: "Overdue",
+      MESSAGE_MENTION: "Mention",
+      MESSAGE_RECEIVED: "Message",
     };
 
     return (
-      <Badge variant={variants[type]}>
-        {labels[type]}
+      <Badge variant={variants[type] || "default"}>
+        {labels[type] || type}
       </Badge>
     );
   };
@@ -188,7 +201,7 @@ export function NotificationsView() {
                               {format(new Date(notification.createdAt), "MMM d, h:mm a")}
                             </span>
                           </div>
-                          <p className="text-sm">{notification.message}</p>
+                          <p className="text-sm">{notification.content}</p>
                           {notification.task && (
                             <Link
                               href={`/dashboard/tasks/${notification.task.id}`}
@@ -196,6 +209,15 @@ export function NotificationsView() {
                               onClick={() => markAsRead(notification.id)}
                             >
                               View task →
+                            </Link>
+                          )}
+                          {notification.message && (
+                            <Link
+                              href={`/dashboard/messages?channel=${notification.message.channelId}`}
+                              className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              View message →
                             </Link>
                           )}
                         </div>
@@ -227,13 +249,21 @@ export function NotificationsView() {
                               {format(new Date(notification.createdAt), "MMM d, h:mm a")}
                             </span>
                           </div>
-                          <p className="text-sm">{notification.message}</p>
+                          <p className="text-sm">{notification.content}</p>
                           {notification.task && (
                             <Link
                               href={`/dashboard/tasks/${notification.task.id}`}
                               className="text-xs text-blue-600 hover:underline mt-1 inline-block"
                             >
                               View task →
+                            </Link>
+                          )}
+                          {notification.message && (
+                            <Link
+                              href={`/dashboard/messages?channel=${notification.message.channelId}`}
+                              className="text-xs text-blue-600 hover:underline mt-1 inline-block"
+                            >
+                              View message →
                             </Link>
                           )}
                         </div>

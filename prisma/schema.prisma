@@ -109,6 +109,7 @@ model User {
   name         String?
   role         UserRole @default(CREW)
   permissions  String? // JSON string of permissions array
+  notificationPreferences String? @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences") // JSON string
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
@@ -269,6 +270,8 @@ enum NotificationType {
   TASK_COMPLETED
   TASK_DUE_SOON
   TASK_OVERDUE
+  MESSAGE_MENTION
+  MESSAGE_RECEIVED
 }
 
 model Notification {
@@ -278,7 +281,9 @@ model Notification {
   type      NotificationType
   taskId    String?          @map("task_id")
   task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  message   String
+  messageId String?          @map("message_id")
+  message   Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  content   String
   read      Boolean          @default(false)
   createdAt DateTime         @default(now()) @map("created_at")
 
@@ -450,6 +455,7 @@ model Message {
   // Relations
   reads          MessageRead[]
   attachments    MessageAttachment[]
+  notifications  Notification[]
 
   @@map("messages")
 }

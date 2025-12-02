@@ -31,6 +31,19 @@ export async function GET(request: NextRequest) {
             dueDate: true,
           },
         },
+        message: {
+          select: {
+            id: true,
+            channelId: true,
+            content: true,
+            channel: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       orderBy: { createdAt: "desc" },
       take: 50,
