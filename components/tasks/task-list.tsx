@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -56,13 +56,17 @@ interface TaskListProps {
   currentUser: { id: string; role: UserRole };
 }
 
+type ViewMode = "table" | "cards";
+type GroupBy = "none" | "assignee" | "trip" | "status";
+
 export function TaskList({ initialTasks, users, trips, currentUser }: TaskListProps) {
   const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
+  const [viewMode, setViewMode] = useState<ViewMode>("cards");
+  const [groupBy, setGroupBy] = useState<GroupBy>("none");
 
   const canManage = currentUser.role !== "CREW";
 
@@ -104,6 +108,38 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     ? tasks 
     : tasks.filter(t => t.status === statusFilter);
 
+  // Group tasks
+  const groupedTasks = useMemo(() => {
+    if (groupBy === "none") {
+      return { "All": filteredTasks };
+    }
+
+    const groups: Record<string, Task[]> = {};
+    
+    filteredTasks.forEach((task) => {
+      let key = "Unassigned";
+      
+      switch (groupBy) {
+        case "assignee":
+          key = task.assignee ? (task.assignee.name || task.assignee.email) : (task.assigneeRole || "Unassigned");
+          break;
+        case "trip":
+          key = task.trip?.name || "No Trip";
+          break;
+        case "status":
+          key = task.status.replace("_", " ");
+          break;
+      }
+      
+      if (!groups[key]) {
+        groups[key] = [];
+      }
+      groups[key].push(task);
+    });
+    
+    return groups;
+  }, [filteredTasks, groupBy]);
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -116,45 +152,51 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   New Task
                 </Button>
               </DialogTrigger>
-              <DialogContent className="max-w-2xl">
-                <DialogHeader>
-                  <DialogTitle>{editingTask ? "Edit Task" : "New Task"}</DialogTitle>
-                  <DialogDescription>
-                    {editingTask ? "Update task details" : "Create a new task"}
-                  </DialogDescription>
-                </DialogHeader>
-                <TaskForm
-                  task={editingTask}
-                  users={users}
-                  trips={trips}
-                  onSuccess={() => {
-                    setIsDialogOpen(false);
-                    router.refresh();
-                  }}
-                />
-              </DialogContent>
             </Dialog>
           )}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
-          >
-            {viewMode === "table" ? <LayoutGrid className="mr-2 h-4 w-4" /> : <List className="mr-2 h-4 w-4" />}
-            {viewMode === "table" ? "Card View" : "Table View"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant={viewMode === "table" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("table")}
+            >
+              <List className="mr-2 h-4 w-4" />
+              Table
+            </Button>
+            <Button
+              variant={viewMode === "cards" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("cards")}
+            >
+              <LayoutGrid className="mr-2 h-4 w-4" />
+              Cards
+            </Button>
+          </div>
         </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-[180px]">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-            <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-            <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupBy)}>
+            <SelectTrigger className="w-[140px]">
+              <SelectValue placeholder="Group by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">No Grouping</SelectItem>
+              <SelectItem value="assignee">By Assignee</SelectItem>
+              <SelectItem value="trip">By Trip</SelectItem>
+              <SelectItem value="status">By Status</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Statuses</SelectItem>
+              <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
+              <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
+              <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {filteredTasks.length === 0 ? (
@@ -164,8 +206,19 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
           </CardContent>
         </Card>
       ) : viewMode === "cards" ? (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTasks.map((task) => {
+        <div className="space-y-6">
+          {Object.entries(groupedTasks).map(([groupKey, groupTasks]) => (
+            <div key={groupKey}>
+              {groupBy !== "none" && (
+                <h3 className="text-lg font-semibold mb-3">
+                  {groupKey}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({groupTasks.length} {groupTasks.length === 1 ? "task" : "tasks"})
+                  </span>
+                </h3>
+              )}
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {groupTasks.map((task) => {
             const canComplete = !canManage && 
               (!task.assignee || task.assignee.id === currentUser.id) && 
               (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
@@ -281,24 +334,38 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               </Card>
             );
           })}
+              </div>
+            </div>
+          ))}
         </div>
-      ) : (
-        <Card>
-          <CardContent className="p-0">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Assignee</TableHead>
-                  <TableHead>Trip</TableHead>
-                  <TableHead>Due Date</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Completed By</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTasks.map((task) => {
+      ) : viewMode === "table" ? (
+        <div className="space-y-6">
+          {Object.entries(groupedTasks).map(([groupKey, groupTasks]) => (
+            <div key={groupKey}>
+              {groupBy !== "none" && (
+                <h3 className="text-lg font-semibold mb-3">
+                  {groupKey}
+                  <span className="ml-2 text-sm font-normal text-muted-foreground">
+                    ({groupTasks.length} {groupTasks.length === 1 ? "task" : "tasks"})
+                  </span>
+                </h3>
+              )}
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Assignee</TableHead>
+                        <TableHead>Trip</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Completed By</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {groupTasks.map((task) => {
                   const canComplete = !canManage && 
               (!task.assignee || task.assignee.id === currentUser.id) && 
               (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
@@ -399,13 +466,35 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </TableCell>
                     </TableRow>
                   );
-                })}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{editingTask ? "Edit Task" : "New Task"}</DialogTitle>
+            <DialogDescription>
+              {editingTask ? "Update task details" : "Create a new task"}
+            </DialogDescription>
+          </DialogHeader>
+          <TaskForm
+            task={editingTask}
+            users={users}
+            trips={trips}
+            onSuccess={() => {
+              setIsDialogOpen(false);
+              router.refresh();
+            }}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-
