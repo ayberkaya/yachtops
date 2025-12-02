@@ -129,6 +129,7 @@ model User {
   createdMaintenanceLogs  MaintenanceLog[]  @relation("MaintenanceCreator")
   taskComments            TaskComment[]     @relation("TaskCommentAuthor")
   taskAttachments         TaskAttachment[]  @relation("TaskAttachmentUploader")
+  notifications           Notification[]
   crewDocuments           CrewDocument[]    @relation("CrewDocumentOwner")
   createdCashTransactions CashTransaction[] @relation("CashTransactionCreator")
 
@@ -229,6 +230,7 @@ model Task {
 
   comments    TaskComment[]
   attachments TaskAttachment[]
+  notifications Notification[]
 
   @@map("tasks")
 }
@@ -259,6 +261,27 @@ model TaskAttachment {
   createdAt DateTime @default(now()) @map("created_at")
 
   @@map("task_attachments")
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_COMPLETED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  taskId    String?          @map("task_id")
+  task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  message   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  @@map("notifications")
 }
 
 model ExpenseCategory {

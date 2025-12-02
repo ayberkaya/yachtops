@@ -5,6 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { notifyTaskAssignment } from "@/lib/notifications";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -178,6 +179,17 @@ export async function POST(request: NextRequest) {
     });
 
     console.log("POST /api/tasks - Task created successfully:", task.id);
+    
+    // Create notification if task is assigned
+    if (task.assigneeId || task.assigneeRole) {
+      await notifyTaskAssignment(
+        task.id,
+        task.assigneeId,
+        task.assigneeRole,
+        task.title
+      );
+    }
+    
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     // Always return JSON, even for errors

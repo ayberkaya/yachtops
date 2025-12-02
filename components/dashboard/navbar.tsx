@@ -22,6 +22,7 @@ import { Menu } from "lucide-react";
 import { UserRole } from "@prisma/client";
 import { canManageUsers, canApproveExpenses } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
+import { NotificationsView } from "@/components/notifications/notifications-view";
 
 export function Navbar() {
   const { data: session } = useSession();
@@ -131,7 +132,10 @@ export function Navbar() {
         </div>
         
         {/* Mobile Menu */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          {hasPermission(user, "tasks.view", user.permissions) && (
+            <NotificationsView />
+          )}
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">

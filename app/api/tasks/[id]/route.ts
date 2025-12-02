@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { z } from "zod";
+import { notifyTaskAssignment, notifyTaskCompletion } from "@/lib/notifications";
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
@@ -179,6 +180,16 @@ export async function PATCH(
           },
         },
       });
+
+      // Create notification if task was completed
+      if (validated.status === TaskStatus.DONE && !existingTask.completedById && task.completedBy) {
+        await notifyTaskCompletion(
+          task.id,
+          task.title,
+          task.completedBy
+        );
+      }
+
       return NextResponse.json(task);
     }
 
@@ -286,6 +297,33 @@ export async function PATCH(
         },
       },
     });
+
+    // Create notifications
+    // Check if assignment changed
+    if (validated.assigneeId !== undefined && validated.assigneeId !== existingTask.assigneeId) {
+      await notifyTaskAssignment(
+        task.id,
+        task.assigneeId,
+        task.assigneeRole,
+        task.title
+      );
+    } else if (validated.assigneeRole !== undefined && validated.assigneeRole !== existingTask.assigneeRole) {
+      await notifyTaskAssignment(
+        task.id,
+        task.assigneeId,
+        task.assigneeRole,
+        task.title
+      );
+    }
+
+    // Check if task was completed
+    if (validated.status === TaskStatus.DONE && !existingTask.completedById && task.completedBy) {
+      await notifyTaskCompletion(
+        task.id,
+        task.title,
+        task.completedBy
+      );
+    }
 
     return NextResponse.json(task);
   } catch (error) {
