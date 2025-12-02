@@ -123,6 +123,7 @@ model User {
   approvedExpenses        Expense[]         @relation("ExpenseApprover")
   sentMessages            Message[]         @relation("MessageSender")
   readMessages            MessageRead[]     @relation("MessageReader")
+  messageAttachments      MessageAttachment[] @relation("MessageAttachmentUploader")
   channels                MessageChannel[]  @relation("ChannelMembers")
   createdChannels         MessageChannel[]  @relation("ChannelCreator")
   createdShoppingLists    ShoppingList[]    @relation("ShoppingListCreator")
@@ -430,18 +431,25 @@ model MessageChannel {
 }
 
 model Message {
-  id        String         @id @default(cuid())
-  channelId String         @map("channel_id")
-  channel   MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId    String         @map("user_id")
-  user      User           @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
-  content   String?
-  imageUrl  String?        @map("image_url")
-  createdAt DateTime       @default(now()) @map("created_at")
-  updatedAt DateTime       @updatedAt @map("updated_at")
+  id             String         @id @default(cuid())
+  channelId      String         @map("channel_id")
+  channel        MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  userId         String         @map("user_id")
+  user           User           @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
+  content        String?
+  imageUrl       String?        @map("image_url")
+  parentMessageId String?       @map("parent_message_id")
+  parentMessage  Message?       @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies        Message[]      @relation("MessageReplies")
+  isPinned       Boolean        @default(false) @map("is_pinned")
+  editedAt       DateTime?      @map("edited_at")
+  deletedAt      DateTime?      @map("deleted_at")
+  createdAt      DateTime       @default(now()) @map("created_at")
+  updatedAt      DateTime       @updatedAt @map("updated_at")
 
   // Relations
-  reads MessageRead[]
+  reads          MessageRead[]
+  attachments    MessageAttachment[]
 
   @@map("messages")
 }
@@ -456,6 +464,21 @@ model MessageRead {
 
   @@unique([messageId, userId])
   @@map("message_reads")
+}
+
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String   @map("user_id")
+  user      User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
+  fileName  String   @map("file_name")
+  fileUrl   String   @map("file_url")
+  fileSize  Int?     @map("file_size")
+  mimeType  String?  @map("mime_type")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("message_attachments")
 }
 
 model Product {

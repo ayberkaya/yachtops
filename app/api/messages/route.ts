@@ -51,6 +51,8 @@ export async function GET(request: NextRequest) {
     const messages = await db.message.findMany({
       where: {
         channelId,
+        deletedAt: null,
+        parentMessageId: null, // Only top-level messages, replies are fetched separately
       },
       include: {
         user: {
@@ -60,6 +62,23 @@ export async function GET(request: NextRequest) {
           select: {
             userId: true,
             readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        replies: {
+          where: { deletedAt: null },
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+          take: 10, // Limit replies per message
+        },
+        attachments: {
+          include: {
             user: {
               select: { id: true, name: true, email: true },
             },
@@ -107,6 +126,8 @@ export async function GET(request: NextRequest) {
     const updatedMessages = await db.message.findMany({
       where: {
         channelId,
+        deletedAt: null,
+        parentMessageId: null,
       },
       include: {
         user: {
@@ -116,6 +137,23 @@ export async function GET(request: NextRequest) {
           select: {
             userId: true,
             readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        replies: {
+          where: { deletedAt: null },
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+          take: 10,
+        },
+        attachments: {
+          include: {
             user: {
               select: { id: true, name: true, email: true },
             },
@@ -143,17 +181,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    console.log("POST /api/messages - Starting request processing");
+    
     // Check if request has FormData (image upload) or JSON
     const contentType = request.headers.get("content-type") || "";
+    console.log("Content-Type:", contentType);
     let validated: z.infer<typeof messageSchema>;
+    let hasFiles = false;
 
-    // Try to parse as FormData first (for image uploads)
+    // Try to parse as FormData first (for image/uploads)
     if (contentType.includes("multipart/form-data")) {
       try {
+        console.log("Parsing FormData...");
         const formData = await request.formData();
         const file = formData.get("image") as File | null;
+        const files = formData.getAll("file") as File[];
         const channelId = formData.get("channelId") as string;
         const content = formData.get("content") as string | null;
+
+        console.log("FormData parsed - channelId:", channelId, "hasImage:", !!file, "hasFiles:", files.length, "hasContent:", !!content);
+
+        if (!channelId) {
+          console.error("Channel ID is missing");
+          return NextResponse.json(
+            { error: "Channel ID is required" },
+            { status: 400 }
+          );
+        }
+
+        // Check if there are files (for attachments)
+        hasFiles = files.some((f) => f && f.size > 0);
+        console.log("hasFiles:", hasFiles);
 
         let imageUrl: string | null = null;
         if (file && file.size > 0) {
@@ -171,8 +229,14 @@ export async function POST(request: NextRequest) {
         });
       } catch (formError) {
         console.error("Error parsing FormData:", formError);
+        if (formError instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: "Invalid form data", details: formError.errors },
+            { status: 400 }
+          );
+        }
         return NextResponse.json(
-          { error: "Invalid form data" },
+          { error: "Invalid form data", details: formError instanceof Error ? formError.message : String(formError) },
           { status: 400 }
         );
       }
@@ -183,24 +247,34 @@ export async function POST(request: NextRequest) {
         validated = messageSchema.parse(body);
       } catch (jsonError) {
         console.error("Error parsing JSON:", jsonError);
+        if (jsonError instanceof z.ZodError) {
+          return NextResponse.json(
+            { error: "Invalid JSON data", details: jsonError.errors },
+            { status: 400 }
+          );
+        }
         return NextResponse.json(
-          { error: "Invalid JSON data" },
+          { error: "Invalid JSON data", details: jsonError instanceof Error ? jsonError.message : String(jsonError) },
           { status: 400 }
         );
       }
     }
 
-    // Validate that at least content or imageUrl is provided
+    // Validate that at least content, imageUrl, or files are provided
     const hasContent = validated.content && validated.content.trim().length > 0;
     const hasImage = validated.imageUrl && validated.imageUrl.length > 0;
     
-    if (!hasContent && !hasImage) {
+    console.log("Validation - hasContent:", hasContent, "hasImage:", hasImage, "hasFiles:", hasFiles);
+    
+    if (!hasContent && !hasImage && !hasFiles) {
+      console.error("Validation failed - no content, image, or files");
       return NextResponse.json(
-        { error: "Message content or image is required" },
+        { error: "Message content, image, or file attachment is required" },
         { status: 400 }
       );
     }
 
+    console.log("Checking channel access...");
     // Check if user has access to this channel
     const channel = await db.messageChannel.findUnique({
       where: {
@@ -238,15 +312,33 @@ export async function POST(request: NextRequest) {
       messageData.imageUrl = validated.imageUrl!;
     }
 
+    console.log("Creating message...");
     const message = await db.message.create({
       data: messageData,
       include: {
         user: {
           select: { id: true, name: true, email: true },
         },
+        reads: {
+          select: {
+            userId: true,
+            readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        attachments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
       },
     });
 
+    console.log("Message created successfully:", message.id);
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -259,8 +351,15 @@ export async function POST(request: NextRequest) {
     console.error("Error creating message:", error);
     console.error("Error details:", error instanceof Error ? error.message : String(error));
     console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    
+    // Return more detailed error message
+    const errorMessage = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Internal server error", details: error instanceof Error ? error.message : String(error) },
+      { 
+        error: "Internal server error", 
+        details: errorMessage,
+        stack: process.env.NODE_ENV === "development" && error instanceof Error ? error.stack : undefined
+      },
       { status: 500 }
     );
   }

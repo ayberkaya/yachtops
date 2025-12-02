@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users, Menu, Image as ImageIcon, X } from "lucide-react";
+import { Send, Hash, Users, Menu, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
@@ -23,11 +23,36 @@ interface User {
   role?: string;
 }
 
+interface MessageAttachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileSize: number | null;
+  mimeType: string | null;
+  createdAt: string;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+  };
+}
+
 interface Message {
   id: string;
   content: string | null;
   imageUrl: string | null;
   createdAt: string;
+  editedAt?: string | null;
+  deletedAt?: string | null;
+  isPinned?: boolean;
+  parentMessageId?: string | null;
+  parentMessage?: Message | null;
+  replies?: Message[];
+  attachments?: MessageAttachment[];
+  channel?: {
+    id: string;
+    name: string;
+  };
   user: {
     id: string;
     name: string | null;
@@ -70,14 +95,23 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     initialChannels[0] || null
   );
   const [messages, setMessages] = useState<Message[]>([]);
+  const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>({});
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Message[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
+  const [replyingToMessageId, setReplyingToMessageId] = useState<string | null>(null);
+  const [expandedReplies, setExpandedReplies] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
 
@@ -101,6 +135,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   useEffect(() => {
     if (selectedChannel) {
       fetchMessages(selectedChannel.id);
+      fetchPinnedMessages();
       // Mark channel as read when selected
       if (selectedChannel.id) {
         const now = new Date().toISOString();
@@ -235,8 +270,9 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     setImagePreview(null);
   };
 
-  const handleSendMessage = async () => {
-    if ((!newMessage.trim() && !selectedImage) || !selectedChannel || isSending) return;
+  const handleSendMessage = async (isReply = false, parentId?: string) => {
+    const messageContent = isReply ? editingContent : newMessage;
+    if ((!messageContent.trim() && !selectedImage && selectedFiles.length === 0) || !selectedChannel || isSending) return;
 
     // Check access before sending
     if (!hasChannelAccess(selectedChannel)) {
@@ -248,19 +284,164 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     try {
       let response: Response;
 
-      if (selectedImage) {
-        // Send with FormData for image
+      if (isReply && parentId) {
+        // Send reply
+        const formData = new FormData();
+        if (messageContent.trim()) {
+          formData.append("content", messageContent.trim());
+        }
+        if (selectedImage) {
+          formData.append("image", selectedImage);
+        }
+
+        response = await fetch(`/api/messages/${parentId}/replies`, {
+          method: "POST",
+          body: formData,
+        });
+
+        if (response.ok) {
+          const message = await response.json();
+          // Update parent message with new reply
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === parentId
+                ? { ...msg, replies: [...(msg.replies || []), message] }
+                : msg
+            )
+          );
+          setNewMessage("");
+          setEditingContent("");
+          setSelectedImage(null);
+          setImagePreview(null);
+          setSelectedFiles([]);
+          setReplyingToMessageId(null);
+          setEditingMessageId(null);
+          // Scroll to bottom immediately after sending message
+          setTimeout(() => scrollToBottom(true), 50);
+          // Update channel message count
+          setChannels((prev) =>
+            prev.map((ch) =>
+              ch.id === selectedChannel.id
+                ? { 
+                    ...ch, 
+                    _count: { 
+                      messages: (ch._count?.messages || 0) + 1 
+                    } 
+                  }
+                : ch
+            )
+          );
+        } else {
+          // Handle error response
+          let errorMessage = "Failed to send reply";
+          try {
+            const errorData = await response.json();
+            errorMessage = errorData.error || errorData.details || errorMessage;
+            console.error("Failed to send reply:", errorData);
+          } catch (parseError) {
+            console.error("Failed to parse error response:", parseError);
+            errorMessage = `Failed to send reply (Status: ${response.status})`;
+          }
+          alert(errorMessage);
+        }
+        return; // Early return to avoid duplicate processing
+      } else if (selectedImage || selectedFiles.length > 0) {
+        // Send with FormData for image/files
         const formData = new FormData();
         formData.append("channelId", selectedChannel.id);
-        if (newMessage.trim()) {
-          formData.append("content", newMessage.trim());
+        if (messageContent.trim()) {
+          formData.append("content", messageContent.trim());
         }
-        formData.append("image", selectedImage);
+        if (selectedImage) {
+          formData.append("image", selectedImage);
+        }
+        // Add files to FormData so API can detect them
+        selectedFiles.forEach((file) => {
+          formData.append("file", file);
+        });
 
         response = await fetch("/api/messages", {
           method: "POST",
           body: formData,
         });
+
+        if (response.ok) {
+          const message = await response.json();
+          
+          // If message was created and we have files, upload them as attachments
+          if (selectedFiles.length > 0) {
+            try {
+              // Upload files as attachments
+              for (const file of selectedFiles) {
+                await handleUploadAttachment(message.id, file);
+              }
+              // Re-fetch message to get attachments
+              const updatedResponse = await fetch(`/api/messages/${message.id}`);
+              if (updatedResponse.ok) {
+                const updatedMessage = await updatedResponse.json();
+                setMessages((prev) => [...prev, updatedMessage]);
+              } else {
+                // If re-fetch fails, still add the original message
+                setMessages((prev) => [...prev, message]);
+              }
+            } catch (attachmentError) {
+              console.error("Error uploading attachments:", attachmentError);
+              // Still add the message even if attachments fail
+              setMessages((prev) => [...prev, message]);
+            }
+          } else {
+            // No files to upload, just add the message
+            setMessages((prev) => [...prev, message]);
+          }
+          
+          setNewMessage("");
+          setEditingContent("");
+          setSelectedImage(null);
+          setImagePreview(null);
+          setSelectedFiles([]);
+          setReplyingToMessageId(null);
+          setEditingMessageId(null);
+          // Scroll to bottom immediately after sending message
+          setTimeout(() => scrollToBottom(true), 50);
+          // Update channel message count
+          setChannels((prev) =>
+            prev.map((ch) =>
+              ch.id === selectedChannel.id
+                ? { 
+                    ...ch, 
+                    _count: { 
+                      messages: (ch._count?.messages || 0) + 1 
+                    } 
+                  }
+                : ch
+            )
+          );
+        } else {
+          // Handle error response
+          let errorMessage = `Failed to send message (Status: ${response.status})`;
+          try {
+            const text = await response.text();
+            console.error("Error response text:", text);
+            console.error("Error response status:", response.status);
+            console.error("Error response headers:", Object.fromEntries(response.headers.entries()));
+            
+            if (text && text.trim()) {
+              try {
+                const errorData = JSON.parse(text);
+                errorMessage = errorData.error || errorData.details || errorMessage;
+                console.error("Failed to send message (parsed):", errorData);
+              } catch (jsonError) {
+                // If not JSON, use the text as error message
+                errorMessage = text.substring(0, 200) || errorMessage;
+                console.error("Failed to send message (non-JSON response):", text.substring(0, 200));
+              }
+            }
+          } catch (parseError) {
+            console.error("Failed to parse error response:", parseError);
+          }
+          alert(errorMessage);
+        }
+        return; // Early return to avoid duplicate processing
       } else {
         // Send as JSON for text-only messages
         response = await fetch("/api/messages", {
@@ -268,17 +449,32 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             channelId: selectedChannel.id,
-            content: newMessage.trim(),
+            content: messageContent.trim(),
           }),
         });
       }
 
       if (response.ok) {
         const message = await response.json();
-        setMessages((prev) => [...prev, message]);
+        if (isReply && parentId) {
+          // Update parent message with new reply
+          setMessages((prev) =>
+            prev.map((msg) =>
+              msg.id === parentId
+                ? { ...msg, replies: [...(msg.replies || []), message] }
+                : msg
+            )
+          );
+        } else {
+          setMessages((prev) => [...prev, message]);
+        }
         setNewMessage("");
+        setEditingContent("");
         setSelectedImage(null);
         setImagePreview(null);
+        setSelectedFiles([]);
+        setReplyingToMessageId(null);
+        setEditingMessageId(null);
         // Scroll to bottom immediately after sending message
         setTimeout(() => scrollToBottom(true), 50);
         // Update channel message count
@@ -295,14 +491,177 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           )
         );
       } else {
-        const result = await response.json().catch(() => ({ error: "Unknown error" }));
-        console.error("Failed to send message:", result);
-        alert(result.error || result.details || "Failed to send message");
+        // Handle error response
+        let errorMessage = `Failed to send message (Status: ${response.status})`;
+        try {
+          const text = await response.text();
+          console.error("Error response text:", text);
+          console.error("Error response status:", response.status);
+          console.error("Error response headers:", Object.fromEntries(response.headers.entries()));
+          
+          if (text && text.trim()) {
+            try {
+              const errorData = JSON.parse(text);
+              errorMessage = errorData.error || errorData.details || errorMessage;
+              console.error("Failed to send message (parsed):", errorData);
+            } catch (jsonError) {
+              // If not JSON, use the text as error message
+              errorMessage = text.substring(0, 200) || errorMessage;
+              console.error("Failed to send message (non-JSON response):", text.substring(0, 200));
+            }
+          }
+        } catch (parseError) {
+          console.error("Failed to parse error response:", parseError);
+        }
+        alert(errorMessage);
       }
     } catch (error) {
-      alert("An error occurred. Please try again.");
+      console.error("Error in handleSendMessage:", error);
+      alert(`An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim() || !selectedChannel) return;
+    setIsSearching(true);
+    try {
+      const response = await fetch(`/api/messages/search?q=${encodeURIComponent(searchQuery)}&channelId=${selectedChannel.id}`);
+      if (response.ok) {
+        const results = await response.json();
+        setSearchResults(results);
+      }
+    } catch (error) {
+      console.error("Error searching messages:", error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleEditMessage = async (messageId: string) => {
+    if (!editingContent.trim()) return;
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: editingContent.trim() }),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? updated : msg))
+        );
+        setEditingMessageId(null);
+        setEditingContent("");
+      }
+    } catch (error) {
+      console.error("Error editing message:", error);
+    }
+  };
+
+  const handleDeleteMessage = async (messageId: string) => {
+    if (!confirm("Are you sure you want to delete this message?")) return;
+    try {
+      const response = await fetch(`/api/messages/${messageId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setMessages((prev) => prev.filter((msg) => msg.id !== messageId));
+      }
+    } catch (error) {
+      console.error("Error deleting message:", error);
+    }
+  };
+
+  const handlePinMessage = async (messageId: string, isPinned: boolean) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/pin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPinned }),
+      });
+      if (response.ok) {
+        const updated = await response.json();
+        setMessages((prev) =>
+          prev.map((msg) => (msg.id === messageId ? updated : msg))
+        );
+        if (isPinned) {
+          fetchPinnedMessages();
+        }
+      }
+    } catch (error) {
+      console.error("Error pinning message:", error);
+    }
+  };
+
+  const fetchPinnedMessages = async () => {
+    if (!selectedChannel) return;
+    try {
+      const response = await fetch(`/api/messages/pinned?channelId=${selectedChannel.id}`);
+      if (response.ok) {
+        const pinned = await response.json();
+        setPinnedMessages(pinned);
+      }
+    } catch (error) {
+      console.error("Error fetching pinned messages:", error);
+    }
+  };
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    setSelectedFiles((prev) => [...prev, ...files]);
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleUploadAttachment = async (messageId: string, file: File) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("fileName", file.name);
+
+      const response = await fetch(`/api/messages/${messageId}/attachments`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        const attachment = await response.json();
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? { ...msg, attachments: [...(msg.attachments || []), attachment] }
+              : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error uploading attachment:", error);
+    }
+  };
+
+  const handleDeleteAttachment = async (messageId: string, attachmentId: string) => {
+    try {
+      const response = await fetch(`/api/messages/${messageId}/attachments/${attachmentId}`, {
+        method: "DELETE",
+      });
+      if (response.ok) {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.id === messageId
+              ? {
+                  ...msg,
+                  attachments: msg.attachments?.filter((att) => att.id !== attachmentId),
+                }
+              : msg
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error deleting attachment:", error);
     }
   };
 
@@ -498,7 +857,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
         {/* Header - Fixed */}
         <div className="border-b p-4 bg-muted/30 flex-shrink-0">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 mb-2">
             {/* Mobile: Show channel list button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="md:hidden">
@@ -524,6 +883,35 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
               <Badge variant="secondary">General</Badge>
             )}
           </div>
+          {/* Search Bar */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Search messages..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+              className="flex-1"
+            />
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={handleSearch}
+              disabled={isSearching}
+            >
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={fetchPinnedMessages}
+            >
+              <Pin className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Messages Area - Scrollable, grows to fill space */}
@@ -535,6 +923,32 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             <div className="text-center text-muted-foreground py-8">
               Loading messages...
             </div>
+          ) : searchResults.length > 0 ? (
+            <div className="space-y-4">
+              <div className="text-sm text-muted-foreground mb-2">
+                Search results ({searchResults.length})
+              </div>
+              {searchResults.map((message) => (
+                <div key={message.id} className="border rounded-lg p-3 bg-muted/50">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="text-xs font-medium">
+                      {message.user.name || message.user.email}
+                    </span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
+                    </span>
+                    {message.channel && (
+                      <Badge variant="outline" className="text-xs">
+                        {message.channel.name}
+                      </Badge>
+                    )}
+                  </div>
+                  {message.content && (
+                    <p className="text-sm">{message.content}</p>
+                  )}
+                </div>
+              ))}
+            </div>
           ) : messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
               No messages yet. Start the conversation!
@@ -542,19 +956,38 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           ) : (
             <div className="space-y-4">
               {messages.map((message) => {
+                if (message.deletedAt) return null;
                 const isOwnMessage = message.user.id === currentUser.id;
+                const isEditing = editingMessageId === message.id;
+                const isReplying = replyingToMessageId === message.id;
+                const hasReplies = message.replies && message.replies.length > 0;
+                const showReplies = expandedReplies.has(message.id);
+
                 return (
                   <div
                     key={message.id}
-                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"}`}
+                    className={`flex ${isOwnMessage ? "justify-end" : "justify-start"} group`}
                   >
                     <div
-                      className={`max-w-[70%] rounded-lg p-3 ${
+                      className={`max-w-[70%] rounded-lg p-3 relative ${
                         isOwnMessage
                           ? "bg-primary text-primary-foreground"
                           : "bg-muted"
-                      }`}
+                      } ${message.isPinned ? "ring-2 ring-yellow-400" : ""}`}
                     >
+                      {message.isPinned && (
+                        <div className="absolute -top-2 -right-2">
+                          <Pin className="h-4 w-4 text-yellow-400 fill-yellow-400" />
+                        </div>
+                      )}
+                      {message.parentMessage && (
+                        <div className="mb-2 text-xs opacity-70 border-l-2 pl-2">
+                          Replying to: {message.parentMessage.user.name || message.parentMessage.user.email}
+                          {message.parentMessage.content && (
+                            <span className="ml-1">- {message.parentMessage.content.substring(0, 50)}...</span>
+                          )}
+                        </div>
+                      )}
                       {!isOwnMessage && (
                         <p className="text-xs font-medium mb-1 opacity-70">
                           {message.user.name || message.user.email}
@@ -569,10 +1002,69 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           />
                         </div>
                       )}
-                      {message.content && (
-                        <p className="text-sm whitespace-pre-wrap">
-                          {message.content}
-                        </p>
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mb-2 space-y-1">
+                          {message.attachments.map((att) => (
+                            <div
+                              key={att.id}
+                              className="flex items-center gap-2 p-2 bg-background/50 rounded text-xs"
+                            >
+                              <FileText className="h-4 w-4" />
+                              <span className="flex-1 truncate">{att.fileName}</span>
+                              <a
+                                href={att.fileUrl}
+                                download={att.fileName}
+                                className="text-primary hover:underline"
+                              >
+                                <Download className="h-4 w-4" />
+                              </a>
+                              {isOwnMessage && (
+                                <button
+                                  onClick={() => handleDeleteAttachment(message.id, att.id)}
+                                  className="text-destructive hover:underline"
+                                >
+                                  <X className="h-4 w-4" />
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      {isEditing ? (
+                        <div className="space-y-2">
+                          <Input
+                            value={editingContent}
+                            onChange={(e) => setEditingContent(e.target.value)}
+                            className="text-sm"
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              onClick={() => handleEditMessage(message.id)}
+                            >
+                              Save
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setEditingMessageId(null);
+                                setEditingContent("");
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        message.content && (
+                          <p className="text-sm whitespace-pre-wrap">
+                            {message.content}
+                            {message.editedAt && (
+                              <span className="text-xs opacity-50 ml-1">(edited)</span>
+                            )}
+                          </p>
+                        )
                       )}
                       <div className="flex items-center justify-between mt-1 gap-2">
                         <p className="text-xs opacity-70">
@@ -596,6 +1088,86 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                           </div>
                         )}
                       </div>
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => {
+                            setReplyingToMessageId(message.id);
+                            setEditingContent("");
+                          }}
+                        >
+                          <Reply className="h-3 w-3 mr-1" />
+                          Reply
+                        </Button>
+                        {isOwnMessage && (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs"
+                              onClick={() => {
+                                setEditingMessageId(message.id);
+                                setEditingContent(message.content || "");
+                              }}
+                            >
+                              <Edit2 className="h-3 w-3 mr-1" />
+                              Edit
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 px-2 text-xs text-destructive"
+                              onClick={() => handleDeleteMessage(message.id)}
+                            >
+                              <Trash2 className="h-3 w-3 mr-1" />
+                              Delete
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => handlePinMessage(message.id, !message.isPinned)}
+                        >
+                          <Pin className={`h-3 w-3 mr-1 ${message.isPinned ? "fill-current" : ""}`} />
+                          {message.isPinned ? "Unpin" : "Pin"}
+                        </Button>
+                      </div>
+                      {/* Replies */}
+                      {hasReplies && (
+                        <div className="mt-2">
+                          <button
+                            onClick={() => {
+                              const newExpanded = new Set(expandedReplies);
+                              if (showReplies) {
+                                newExpanded.delete(message.id);
+                              } else {
+                                newExpanded.add(message.id);
+                              }
+                              setExpandedReplies(newExpanded);
+                            }}
+                            className="text-xs text-primary hover:underline"
+                          >
+                            {showReplies ? "Hide" : "Show"} {message.replies?.length} {message.replies?.length === 1 ? "reply" : "replies"}
+                          </button>
+                          {showReplies && message.replies && (
+                            <div className="mt-2 ml-4 space-y-2 border-l-2 pl-2">
+                              {message.replies.map((reply) => (
+                                <div key={reply.id} className="text-sm">
+                                  <span className="font-medium text-xs">
+                                    {reply.user.name || reply.user.email}:
+                                  </span>{" "}
+                                  {reply.content}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
@@ -607,6 +1179,20 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
         {/* Input Area - Fixed at bottom */}
         <div className="border-t p-4 bg-muted/30 flex-shrink-0">
+          {replyingToMessageId && (
+            <div className="mb-2 p-2 bg-muted rounded-lg flex items-center justify-between">
+              <span className="text-sm text-muted-foreground">
+                Replying to message...
+              </span>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyingToMessageId(null)}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           {imagePreview && (
             <div className="mb-2 relative inline-block">
               <img
@@ -623,25 +1209,61 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
               </button>
             </div>
           )}
+          {selectedFiles.length > 0 && (
+            <div className="mb-2 space-y-1">
+              {selectedFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 p-2 bg-background rounded text-xs"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span className="flex-1 truncate">{file.name}</span>
+                  <button
+                    onClick={() => handleRemoveFile(index)}
+                    className="text-destructive hover:underline"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
           <form
             onSubmit={(e) => {
               e.preventDefault();
-              handleSendMessage();
+              if (replyingToMessageId) {
+                handleSendMessage(true, replyingToMessageId);
+              } else {
+                handleSendMessage();
+              }
             }}
             className="flex gap-2"
           >
             <div className="flex-1 flex gap-2">
               <Input
-                value={newMessage}
-                onChange={(e) => setNewMessage(e.target.value)}
-                placeholder="Type a message..."
+                value={replyingToMessageId ? editingContent : newMessage}
+                onChange={(e) => {
+                  if (replyingToMessageId) {
+                    setEditingContent(e.target.value);
+                  } else {
+                    setNewMessage(e.target.value);
+                  }
+                }}
+                placeholder={replyingToMessageId ? "Type a reply..." : "Type a message..."}
                 disabled={isSending}
                 className="flex-1"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    if (newMessage.trim() || selectedImage) {
-                      handleSendMessage();
+                    const hasContent = replyingToMessageId
+                      ? editingContent.trim()
+                      : newMessage.trim();
+                    if (hasContent || selectedImage || selectedFiles.length > 0) {
+                      if (replyingToMessageId) {
+                        handleSendMessage(true, replyingToMessageId);
+                      } else {
+                        handleSendMessage();
+                      }
                     }
                   }
                 }}
@@ -670,10 +1292,40 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                   <ImageIcon className="h-4 w-4" />
                 </Button>
               </label>
+              <label className="cursor-pointer">
+                <input
+                  type="file"
+                  accept=".pdf,.doc,.docx,.txt,.xls,.xlsx"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={isSending}
+                  multiple
+                  id="file-input"
+                />
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="icon" 
+                  disabled={isSending}
+                  onClick={() => {
+                    const input = document.getElementById("file-input") as HTMLInputElement;
+                    if (input) {
+                      input.click();
+                    }
+                  }}
+                >
+                  <Paperclip className="h-4 w-4" />
+                </Button>
+              </label>
             </div>
             <Button 
               type="submit" 
-              disabled={isSending || (!newMessage.trim() && !selectedImage)}
+              disabled={
+                isSending ||
+                ((replyingToMessageId ? !editingContent.trim() : !newMessage.trim()) &&
+                  !selectedImage &&
+                  selectedFiles.length === 0)
+              }
             >
               <Send className="h-4 w-4" />
             </Button>

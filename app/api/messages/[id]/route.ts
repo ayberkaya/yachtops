@@ -4,8 +4,88 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 
 const updateMessageSchema = z.object({
-  content: z.string().min(1, "Message content is required"),
+  content: z.string().min(1, "Message content is required").optional(),
 });
+
+export async function GET(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+
+    const message = await db.message.findUnique({
+      where: { id, deletedAt: null },
+      include: {
+        user: {
+          select: { id: true, name: true, email: true },
+        },
+        channel: {
+          include: {
+            members: {
+              select: { id: true },
+            },
+          },
+        },
+        reads: {
+          select: {
+            userId: true,
+            readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        replies: {
+          where: { deletedAt: null },
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+          orderBy: { createdAt: "asc" },
+        },
+        attachments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        parentMessage: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!message) {
+      return NextResponse.json({ error: "Message not found" }, { status: 404 });
+    }
+
+    // Check channel access
+    if (!message.channel.isGeneral && 
+        !message.channel.members.some((m) => m.id === session.user.id)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    return NextResponse.json(message);
+  } catch (error) {
+    console.error("Error fetching message:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
 
 export async function PATCH(
   request: NextRequest,
@@ -22,7 +102,7 @@ export async function PATCH(
     const validated = updateMessageSchema.parse(body);
 
     const existingMessage = await db.message.findUnique({
-      where: { id },
+      where: { id, deletedAt: null },
       include: {
         channel: {
           include: {
@@ -49,14 +129,36 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const updateData: { content?: string; editedAt: Date } = {
+      editedAt: new Date(),
+    };
+
+    if (validated.content !== undefined) {
+      updateData.content = validated.content;
+    }
+
     const message = await db.message.update({
       where: { id },
-      data: {
-        content: validated.content,
-      },
+      data: updateData,
       include: {
         user: {
           select: { id: true, name: true, email: true },
+        },
+        reads: {
+          select: {
+            userId: true,
+            readAt: true,
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        },
+        attachments: {
+          include: {
+            user: {
+              select: { id: true, name: true, email: true },
+            },
+          },
         },
       },
     });
@@ -111,8 +213,13 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    await db.message.delete({
+    // Soft delete
+    await db.message.update({
       where: { id },
+      data: {
+        deletedAt: new Date(),
+        content: null, // Clear content on delete
+      },
     });
 
     return NextResponse.json({ success: true });
