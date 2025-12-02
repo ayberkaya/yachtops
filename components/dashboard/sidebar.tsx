@@ -38,11 +38,44 @@ export function Sidebar() {
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch pending tasks count
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchPendingTasksCount = async () => {
+      try {
+        const response = await fetch("/api/tasks");
+        if (response.ok) {
+          const tasks = await response.json();
+          // Filter tasks: assigned to user, assigned to user's role, or unassigned, and not completed
+          const pendingCount = tasks.filter((task: any) => {
+            const isAssignedToUser = task.assigneeId === session.user.id;
+            const isAssignedToRole = task.assigneeRole === session.user.role;
+            const isUnassigned = !task.assigneeId && !task.assigneeRole;
+            const isNotCompleted = task.status !== "DONE";
+            
+            return (isAssignedToUser || isAssignedToRole || isUnassigned) && isNotCompleted;
+          }).length;
+          
+          setPendingTasksCount(pendingCount);
+        }
+      } catch (error) {
+        console.error("Error fetching pending tasks count:", error);
+      }
+    };
+
+    fetchPendingTasksCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingTasksCount, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
 
   // Auto-collapse when a menu item is selected
   useEffect(() => {
@@ -243,7 +276,7 @@ export function Sidebar() {
                   setIsCollapsed(true);
                 }
               }}
-              className={`flex items-center ${isExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
+              className={`relative flex items-center ${isExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                 isActive
                   ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg shadow-teal-500/25"
                   : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
@@ -263,10 +296,24 @@ export function Sidebar() {
                   <span className="text-sm font-medium flex-1">
                     {item.label}
                   </span>
+                  {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
+                    <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
+                      isActive 
+                        ? "bg-white/20 text-white" 
+                        : "bg-red-500 text-white"
+                    }`}>
+                      {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                    </span>
+                  )}
                   {(isActive || isItemHovered) && item.children && (
                     <ChevronRight size={16} className={isActive ? "text-white" : "text-slate-600 dark:text-slate-400"} />
                   )}
                 </>
+              )}
+              {!isExpanded && item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
+                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
+                  {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                </span>
               )}
             </Link>
 

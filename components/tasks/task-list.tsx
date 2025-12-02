@@ -172,8 +172,17 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               task.status !== TaskStatus.DONE;
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
+            const isTodo = task.status === TaskStatus.TODO;
+            
             return (
-              <Card key={task.id} className="flex flex-col">
+              <Card 
+                key={task.id} 
+                className={`flex flex-col ${
+                  isTodo 
+                    ? "border-2 border-amber-400 dark:border-amber-500 bg-amber-50/30 dark:bg-amber-950/20" 
+                    : ""
+                }`}
+              >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">{task.title}</CardTitle>
@@ -296,8 +305,13 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               task.status !== TaskStatus.DONE;
                   const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
                   
+                  const isTodo = task.status === TaskStatus.TODO;
+                  
                   return (
-                    <TableRow key={task.id}>
+                    <TableRow 
+                      key={task.id}
+                      className={isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""}
+                    >
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>
                         {task.assignee
