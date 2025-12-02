@@ -67,7 +67,16 @@ export default async function TripsPage() {
           <p className="text-muted-foreground">Manage yacht trips and charters</p>
         </div>
       </div>
-      <TripList initialTrips={tripsWithExpenseSummary} canManage={canManageUsers(session.user)} />
+      <TripList 
+        initialTrips={tripsWithExpenseSummary.map(trip => ({
+          ...trip,
+          startDate: trip.startDate.toISOString().split('T')[0],
+          endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : null,
+          createdAt: trip.createdAt.toISOString(),
+          updatedAt: trip.updatedAt.toISOString(),
+        }))} 
+        canManage={canManageUsers(session.user)} 
+      />
     </div>
   );
 }

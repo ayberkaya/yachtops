@@ -38,14 +38,14 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
 
   if (typeof expense.notes === "string" && expense.notes.length > 0) {
     const noteLines = expense.notes.split("\n").map((l: string) => l.trim());
-    const crewLine = noteLines.find((l) =>
+    const crewLine = noteLines.find((l: string) =>
       l.toLowerCase().startsWith("crew personal:")
     );
     if (crewLine) {
       crewPersonalLabel = crewLine.slice("crew personal:".length).trim();
     }
 
-    const cardLine = noteLines.find((l) =>
+    const cardLine = noteLines.find((l: string) =>
       l.toLowerCase().startsWith("card owner:")
     );
     if (cardLine) {

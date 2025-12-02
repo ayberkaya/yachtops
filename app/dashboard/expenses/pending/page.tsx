@@ -46,7 +46,14 @@ export default async function PendingExpensesPage() {
         <h1 className="text-3xl font-bold">Pending Expenses</h1>
         <p className="text-muted-foreground">Review and approve submitted expenses</p>
       </div>
-      <PendingExpensesList expenses={pendingExpenses} />
+      <PendingExpensesList 
+        expenses={pendingExpenses.map(exp => ({
+          ...exp,
+          date: exp.date.toISOString().split('T')[0],
+          createdAt: exp.createdAt.toISOString(),
+          updatedAt: exp.updatedAt.toISOString(),
+        }))} 
+      />
     </div>
   );
 }

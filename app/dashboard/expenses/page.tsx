@@ -72,7 +72,12 @@ export default async function ExpensesPage() {
         </div>
       </div>
       <ExpenseList
-        initialExpenses={expenses}
+        initialExpenses={expenses.map(exp => ({
+          ...exp,
+          date: exp.date.toISOString().split('T')[0],
+          createdAt: exp.createdAt.toISOString(),
+          updatedAt: exp.updatedAt.toISOString(),
+        }))}
         categories={categories}
         trips={trips}
         users={users}

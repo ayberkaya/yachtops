@@ -459,7 +459,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         if (!open) {
                           setEditingStock(null);
                           setThresholdValue("");
-                          setEditingCategory("");
+                          setEditingCategory("NONE");
                         } else {
                           setEditingStock(stock);
                           setThresholdValue(stock.lowStockThreshold?.toString() || "");
@@ -517,7 +517,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                             onClick={() => {
                               setEditingStock(null);
                               setThresholdValue("");
-                              setEditingCategory("");
+                              setEditingCategory("NONE");
                             }}
                           >
                             Cancel

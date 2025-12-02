@@ -129,9 +129,9 @@ export async function POST(request: NextRequest) {
         validated = cashTransactionSchema.parse(body);
       } catch (validationError) {
         if (validationError instanceof z.ZodError) {
-          console.error("POST /api/cash - Validation error:", validationError.errors);
+          console.error("POST /api/cash - Validation error:", validationError.issues);
           return NextResponse.json(
-            { error: "Invalid input", details: validationError.errors },
+            { error: "Invalid input", details: validationError.issues },
             { status: 400 }
           );
         }

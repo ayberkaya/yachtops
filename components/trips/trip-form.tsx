@@ -46,7 +46,7 @@ export function TripForm({ trip, onSuccess }: TripFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<TripFormData>({
-    resolver: zodResolver(tripSchema),
+    resolver: zodResolver(tripSchema) as any,
     defaultValues: trip
       ? {
           name: trip.name,

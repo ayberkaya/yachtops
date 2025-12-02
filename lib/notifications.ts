@@ -80,11 +80,6 @@ export async function notifyTaskCompletion(
   try {
     const task = await db.task.findUnique({
       where: { id: taskId },
-      include: {
-        assignee: {
-          select: { id: true },
-        },
-      },
       select: {
         id: true,
         yachtId: true,

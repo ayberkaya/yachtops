@@ -36,7 +36,15 @@ export default async function MaintenancePage() {
         </p>
       </div>
 
-      <MaintenanceList initialLogs={logs} />
+      <MaintenanceList 
+        initialLogs={logs.map(log => ({
+          ...log,
+          date: log.date.toISOString().split('T')[0],
+          nextDueDate: log.nextDueDate ? log.nextDueDate.toISOString().split('T')[0] : null,
+          createdAt: log.createdAt.toISOString(),
+          updatedAt: log.updatedAt.toISOString(),
+        }))} 
+      />
     </div>
   );
 }

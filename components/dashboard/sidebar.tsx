@@ -41,9 +41,16 @@ export function Sidebar() {
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setMounted(true);
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
   // Fetch pending tasks count
@@ -255,7 +262,7 @@ export function Sidebar() {
   ].filter(
     (item) =>
       !item.permission ||
-      hasPermission(user, item.permission, user.permissions)
+      hasPermission(user, item.permission as any, user.permissions)
   );
 
   const NavContent = () => (
@@ -353,7 +360,7 @@ export function Sidebar() {
                   {item.children.map((child, index) => {
                     if (
                       child.permission &&
-                      !hasPermission(user, child.permission, user.permissions)
+                      !hasPermission(user, child.permission as any, user.permissions)
                     ) {
                       return null;
                     }

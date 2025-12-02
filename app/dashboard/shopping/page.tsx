@@ -48,7 +48,14 @@ export default async function ShoppingPage() {
           Create and manage your shopping lists
         </p>
       </div>
-      <ShoppingListView initialLists={lists} initialProducts={products} />
+      <ShoppingListView 
+        initialLists={lists.map(list => ({
+          ...list,
+          createdAt: list.createdAt.toISOString(),
+          updatedAt: list.updatedAt.toISOString(),
+        }))} 
+        initialProducts={products} 
+      />
     </div>
   );
 }

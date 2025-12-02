@@ -35,7 +35,13 @@ export default async function AlcoholStockPage() {
           Manage vessel alcohol inventory and stock levels
         </p>
       </div>
-      <AlcoholStockView initialStocks={stocks} />
+      <AlcoholStockView 
+        initialStocks={stocks.map(stock => ({
+          ...stock,
+          createdAt: stock.createdAt.toISOString(),
+          updatedAt: stock.updatedAt.toISOString(),
+        }))} 
+      />
     </div>
   );
 }

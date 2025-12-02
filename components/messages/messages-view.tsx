@@ -232,7 +232,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         // 2. It's from a different channel (not currently viewing)
         const shouldNotify = isMentioned 
           ? notificationPreferences.mentionEnabled 
-          : lastMessage.channelId !== selectedChannel?.id;
+          : lastMessage.channel?.id !== selectedChannel?.id;
         
         if (!shouldNotify) {
           lastMessageIdRef.current = lastMessage.id;
@@ -242,7 +242,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         lastMessageIdRef.current = lastMessage.id;
         
         // Get channel name for notification
-        const messageChannel = channels.find(ch => ch.id === lastMessage.channelId);
+        const messageChannel = lastMessage.channel || channels.find(ch => ch.id === lastMessage.channel?.id);
         const channelName = messageChannel?.name || "Unknown";
         
         // Show desktop notification
@@ -254,7 +254,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             body: `${senderName}: ${lastMessage.content || "Sent an attachment"}`,
             icon: "/favicon.ico",
             tag: lastMessage.id,
-            requireInteraction: isMentioned, // Require interaction for mentions
+            requireInteraction: !!isMentioned, // Require interaction for mentions
           });
         }
         
@@ -992,7 +992,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       </Sheet>
 
       {/* Messages - Right Side */}
-      <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
+        <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
         {/* Header - Fixed */}
         <div className="border-b p-4 bg-muted/30 flex-shrink-0">
           <div className="flex items-center gap-3 mb-2">
@@ -1329,6 +1329,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                             src={message.imageUrl}
                             alt="Message attachment"
                             className="max-w-full h-auto rounded-lg max-h-96 object-contain"
+                            loading="lazy"
+                            decoding="async"
                           />
                         </div>
                       )}

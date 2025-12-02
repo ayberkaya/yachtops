@@ -52,7 +52,7 @@ interface MaintenanceLog {
   mileage: number | null;
   mileageUnit: string | null;
   notes: string | null;
-  createdBy: { id: string; name: string | null; email: string };
+  createdBy: { id: string; name: string | null; email: string } | null;
 }
 
 interface MaintenanceListProps {
@@ -306,7 +306,7 @@ export function MaintenanceList({ initialLogs }: MaintenanceListProps) {
                         ? format(new Date(log.nextDueDate), "MMM d, yyyy")
                         : "-"}
                     </TableCell>
-                    <TableCell>{log.createdBy.name || log.createdBy.email}</TableCell>
+                    <TableCell>{log.createdBy?.name || log.createdBy?.email || "-"}</TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end gap-2">
                         <Button asChild variant="ghost" size="sm">

@@ -75,7 +75,13 @@ export default async function TasksPage() {
         </div>
       </div>
       <TaskList
-        initialTasks={tasks}
+        initialTasks={tasks.map(task => ({
+          ...task,
+          dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : null,
+          completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+          createdAt: task.createdAt.toISOString(),
+          updatedAt: task.updatedAt.toISOString(),
+        }))}
         users={users}
         trips={trips}
         currentUser={session.user}

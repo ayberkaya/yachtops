@@ -117,7 +117,6 @@ export async function GET(request: NextRequest) {
             messageId,
             userId: session.user.id,
           })),
-          skipDuplicates: true,
         });
       }
     }
@@ -231,7 +230,7 @@ export async function POST(request: NextRequest) {
         console.error("Error parsing FormData:", formError);
         if (formError instanceof z.ZodError) {
           return NextResponse.json(
-            { error: "Invalid form data", details: formError.errors },
+            { error: "Invalid form data", details: formError.issues },
             { status: 400 }
           );
         }
@@ -249,7 +248,7 @@ export async function POST(request: NextRequest) {
         console.error("Error parsing JSON:", jsonError);
         if (jsonError instanceof z.ZodError) {
           return NextResponse.json(
-            { error: "Invalid JSON data", details: jsonError.errors },
+            { error: "Invalid JSON data", details: jsonError.issues },
             { status: 400 }
           );
         }
@@ -355,7 +354,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       );
     }

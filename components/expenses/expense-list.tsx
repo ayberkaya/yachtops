@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -26,7 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ExpenseCategory, Trip, ExpenseStatus, PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
@@ -889,7 +889,9 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                             <TableCell>{expense.createdBy.name || expense.createdBy.email}</TableCell>
                             <TableCell className="text-right">
                               <Button asChild variant="ghost" size="sm">
-                                <Link href={`/dashboard/expenses/${expense.id}`}>View</Link>
+                                <Link href={`/dashboard/expenses/${expense.id}`}>
+                                  <Eye className="h-4 w-4" />
+                                </Link>
                               </Button>
                             </TableCell>
                           </TableRow>

@@ -59,7 +59,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   >([]);
 
   const form = useForm<ExpenseFormData>({
-    resolver: zodResolver(expenseSchema),
+    resolver: zodResolver(expenseSchema) as any,
     defaultValues: initialData || {
       date: new Date().toISOString().split("T")[0],
       currency: "EUR",

@@ -50,7 +50,7 @@ interface Trip {
   mainGuest: string | null;
   guestCount: number | null;
   notes: string | null;
-  createdBy: { id: string; name: string | null; email: string };
+  createdBy: { id: string; name: string | null; email: string } | null;
   _count?: {
     expenses: number;
     tasks: number;

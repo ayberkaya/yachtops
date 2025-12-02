@@ -41,7 +41,13 @@ export default async function MyDocumentsPage() {
         </p>
       </div>
 
-      <MyDocumentsView initialDocs={docs} />
+      <MyDocumentsView 
+        initialDocs={docs.map(doc => ({
+          ...doc,
+          expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
+          createdAt: doc.createdAt.toISOString(),
+        }))} 
+      />
     </div>
   );
 }

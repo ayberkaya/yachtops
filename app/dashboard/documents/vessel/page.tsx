@@ -36,7 +36,13 @@ export default async function VesselDocumentsPage() {
         </p>
       </div>
 
-      <VesselDocumentsView initialDocs={docs} />
+      <VesselDocumentsView 
+        initialDocs={docs.map(doc => ({
+          ...doc,
+          expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
+          createdAt: doc.createdAt.toISOString(),
+        }))} 
+      />
     </div>
   );
 }

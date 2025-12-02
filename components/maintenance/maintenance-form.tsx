@@ -46,7 +46,7 @@ export function MaintenanceForm({ initialData }: MaintenanceFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<MaintenanceFormData>({
-    resolver: zodResolver(maintenanceSchema),
+    resolver: zodResolver(maintenanceSchema) as any,
     defaultValues: initialData
       ? {
           type: initialData.type,

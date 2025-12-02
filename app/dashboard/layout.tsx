@@ -14,10 +14,10 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 flex flex-col md:flex-row transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 flex flex-col md:flex-row transition-colors">
       <Sidebar />
-      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 md:p-8 lg:p-10 transition-colors">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 via-white to-slate-50/50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-6 sm:p-8 md:p-10 lg:p-12 transition-colors">
+        <div className="max-w-7xl mx-auto w-full space-y-6">
           {children}
         </div>
       </main>

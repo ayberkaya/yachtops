@@ -36,7 +36,13 @@ export default async function MarinaPermissionsPage() {
         </p>
       </div>
 
-      <MarinaPermissionsView initialDocs={docs} />
+      <MarinaPermissionsView 
+        initialDocs={docs.map(doc => ({
+          ...doc,
+          expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
+          createdAt: doc.createdAt.toISOString(),
+        }))} 
+      />
     </div>
   );
 }

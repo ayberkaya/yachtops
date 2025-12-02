@@ -116,7 +116,7 @@ export async function PATCH(
             // Check cash balance
             const cashTransactions = await db.cashTransaction.findMany({
               where: {
-                yachtId: session.user.yachtId,
+                yachtId: session.user.yachtId || undefined,
               },
             });
 
@@ -140,6 +140,13 @@ export async function PATCH(
             }
 
             // Create cash withdrawal transaction
+            if (!session.user.yachtId) {
+              return NextResponse.json(
+                { error: "User must be assigned to a yacht" },
+                { status: 400 }
+              );
+            }
+
             await db.cashTransaction.create({
               data: {
                 yachtId: session.user.yachtId,
@@ -199,7 +206,7 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       );
     }

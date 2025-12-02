@@ -158,6 +158,7 @@ model Yacht {
   messageChannels           MessageChannel[]
   products                  Product[]
   shoppingLists             ShoppingList[]
+  shoppingStores            ShoppingStore[]
   marinaPermissionDocuments MarinaPermissionDocument[]
   vesselDocuments           VesselDocument[]
   crewDocuments             CrewDocument[]
@@ -504,10 +505,31 @@ model Product {
   @@map("products")
 }
 
+model ShoppingStore {
+  id        String    @id @default(cuid())
+  yachtId   String    @map("yacht_id")
+  yacht     Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  name      String
+  type      StoreType
+  address   String?
+  phone     String?
+  notes     String?
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  shoppingLists ShoppingList[]
+
+  @@unique([yachtId, name])
+  @@map("shopping_stores")
+}
+
 model ShoppingList {
   id              String             @id @default(cuid())
   yachtId         String             @map("yacht_id")
   yacht           Yacht              @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  storeId         String?            @map("store_id")
+  store           ShoppingStore?     @relation(fields: [storeId], references: [id], onDelete: SetNull)
   name            String
   description     String?
   status          ShoppingListStatus @default(DRAFT)

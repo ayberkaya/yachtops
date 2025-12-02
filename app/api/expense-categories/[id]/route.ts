@@ -10,7 +10,7 @@ const categorySchema = z.object({
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -22,12 +22,13 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const validated = categorySchema.parse(body);
 
     const category = await db.expenseCategory.update({
       where: {
-        id: params.id,
+        id,
         yachtId: session.user.yachtId || undefined,
       },
       data: {
@@ -39,7 +40,7 @@ export async function PUT(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid input", details: error.errors },
+        { error: "Invalid input", details: error.issues },
         { status: 400 }
       );
     }
@@ -54,7 +55,7 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -66,10 +67,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     // Check if category is used by any expenses
     const expensesCount = await db.expense.count({
       where: {
-        categoryId: params.id,
+        categoryId: id,
       },
     });
 
@@ -82,7 +85,7 @@ export async function DELETE(
 
     await db.expenseCategory.delete({
       where: {
-        id: params.id,
+        id,
         yachtId: session.user.yachtId || undefined,
       },
     });

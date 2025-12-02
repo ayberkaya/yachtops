@@ -431,7 +431,7 @@ export function CashView() {
                 <Select
                   value={formData.currency}
                   onValueChange={(value) =>
-                    setFormData({ ...formData, currency: value })
+                    setFormData({ ...formData, currency: value as "USD" | "EUR" | "TRY" })
                   }
                 >
                   <SelectTrigger>

@@ -45,7 +45,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
   const [error, setError] = useState<string | null>(null);
 
   const form = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema),
+    resolver: zodResolver(taskSchema) as any,
     defaultValues: task || {
       title: "",
       description: "",
@@ -74,7 +74,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
         ...data,
         tripId: data.tripId === "none" || !data.tripId ? null : data.tripId,
         assigneeId: data.assigneeId === "none" || !data.assigneeId ? null : data.assigneeId,
-        assigneeRole: data.assigneeRole === "none" || !data.assigneeRole ? null : data.assigneeRole,
+        assigneeRole: (!data.assigneeRole || (data.assigneeRole as any) === "none") ? null : data.assigneeRole,
         dueDate: data.dueDate || null,
         description: data.description || null,
         priority: data.priority || "MEDIUM", // Ensure priority is always set

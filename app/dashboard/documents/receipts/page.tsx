@@ -80,6 +80,8 @@ export default async function ReceiptsPage() {
                         src={receipt.fileUrl}
                         alt="Receipt"
                         className="h-full w-full object-cover"
+                        loading="lazy"
+                        decoding="async"
                       />
                     </div>
                     <div className="space-y-1">
