@@ -277,79 +277,119 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
             </div>
 
             <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="paymentMethod"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PaymentMethod.CASH}>Cash</SelectItem>
-                        <SelectItem value={PaymentMethod.CARD}>Card</SelectItem>
-                        <SelectItem value={PaymentMethod.BANK_TRANSFER}>Bank Transfer</SelectItem>
-                        <SelectItem value={PaymentMethod.OWNER_ACCOUNT}>Owner Account</SelectItem>
-                        <SelectItem value={PaymentMethod.OTHER}>Other</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              {/* Left column: Payment Method and Card Owner */}
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="paymentMethod"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Payment Method *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={PaymentMethod.CASH}>Cash</SelectItem>
+                          <SelectItem value={PaymentMethod.CARD}>Card</SelectItem>
+                          <SelectItem value={PaymentMethod.BANK_TRANSFER}>Bank Transfer</SelectItem>
+                          <SelectItem value={PaymentMethod.OWNER_ACCOUNT}>Owner Account</SelectItem>
+                          <SelectItem value={PaymentMethod.OTHER}>Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
 
-              <FormField
-                control={form.control}
-                name="paidBy"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Paid By *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value={PaidBy.VESSEL}>Vessel</SelectItem>
-                        <SelectItem value={PaidBy.OWNER}>Owner</SelectItem>
-                        <SelectItem value={PaidBy.CHARTERER}>Charterer</SelectItem>
-                        <SelectItem value={PaidBy.CREW_PERSONAL}>Crew Personal</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
+                {/* When payment method is card, show an input to specify whose card */}
+                {paymentMethod === PaymentMethod.CARD && (
+                  <FormField
+                    control={form.control}
+                    name="cardOwner"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Card Owner</FormLabel>
+                        <FormControl>
+                          <Input
+                            placeholder="Whose card was used?"
+                            {...field}
+                            value={field.value || ""}
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Enter the name or description of whose card was used for this payment.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 )}
-              />
+              </div>
+
+              {/* Right column: Paid By and Crew Personal */}
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="paidBy"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Paid By *</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value={PaidBy.VESSEL}>Vessel</SelectItem>
+                          <SelectItem value={PaidBy.OWNER}>Owner</SelectItem>
+                          <SelectItem value={PaidBy.CHARTERER}>Charterer</SelectItem>
+                          <SelectItem value={PaidBy.CREW_PERSONAL}>Crew Personal</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* When Paid By is Crew Personal, show crew member selection */}
+                {paidBy === PaidBy.CREW_PERSONAL && crewUsers.length > 0 && (
+                  <FormField
+                    control={form.control}
+                    name="crewPersonalId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Crew Personal</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || undefined}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select crew member" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {crewUsers.map((user) => (
+                              <SelectItem key={user.id} value={user.id}>
+                                {user.name || user.email}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Select which crew member paid this expense.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                )}
+              </div>
             </div>
-
-            {/* When payment method is card, show an input to specify whose card */}
-            {paymentMethod === PaymentMethod.CARD && (
-              <FormField
-                control={form.control}
-                name="cardOwner"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Card Owner</FormLabel>
-                    <FormControl>
-                      <Input
-                        placeholder="Whose card was used?"
-                        {...field}
-                        value={field.value || ""}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      Enter the name or description of whose card was used for this payment.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             {/* Optional receipt photo upload */}
             <div className="space-y-2">
@@ -367,40 +407,6 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 You can attach a photo of the receipt for this expense.
               </p>
             </div>
-
-            {/* When paid by crew personal, show a dropdown to select which crew member */}
-            {paidBy === PaidBy.CREW_PERSONAL && crewUsers.length > 0 && (
-              <FormField
-                control={form.control}
-                name="crewPersonalId"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Crew Personal</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value || ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select crew member" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {crewUsers.map((crew) => (
-                          <SelectItem key={crew.id} value={crew.id}>
-                            {crew.name || crew.email}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Select which crew member paid this expense.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            )}
 
             <div className="grid gap-4 md:grid-cols-2">
               <FormField

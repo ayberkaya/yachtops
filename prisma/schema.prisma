@@ -119,6 +119,7 @@ model User {
   createdChannels MessageChannel[] @relation("ChannelCreator")
   createdShoppingLists ShoppingList[] @relation("ShoppingListCreator")
   createdMaintenanceLogs MaintenanceLog[] @relation("MaintenanceCreator")
+  crewDocuments CrewDocument[] @relation("CrewDocumentOwner")
 
   @@map("users")
 }
@@ -143,7 +144,8 @@ model Yacht {
   products         Product[]
   shoppingLists    ShoppingList[]
   marinaPermissionDocuments MarinaPermissionDocument[]
-  vesselCrewDocuments      VesselCrewDocument[]
+  vesselDocuments          VesselDocument[]
+  crewDocuments            CrewDocument[]
   alcoholStocks    AlcoholStock[]
   maintenanceLogs  MaintenanceLog[]
 
@@ -289,7 +291,7 @@ model MarinaPermissionDocument {
   @@map("marina_permission_documents")
 }
 
-model VesselCrewDocument {
+model VesselDocument {
   id        String    @id @default(cuid())
   yachtId   String    @map("yacht_id")
   yacht     Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
@@ -299,7 +301,22 @@ model VesselCrewDocument {
   expiryDate DateTime? @map("expiry_date")
   createdAt DateTime  @default(now()) @map("created_at")
 
-  @@map("vessel_crew_documents")
+  @@map("vessel_documents")
+}
+
+model CrewDocument {
+  id        String    @id @default(cuid())
+  yachtId   String    @map("yacht_id")
+  yacht     Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  userId    String?   @map("user_id")
+  user      User?     @relation("CrewDocumentOwner", fields: [userId], references: [id], onDelete: SetNull)
+  title     String
+  fileUrl   String    @map("file_url")
+  notes     String?
+  expiryDate DateTime? @map("expiry_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  @@map("crew_documents")
 }
 
 model MessageChannel {

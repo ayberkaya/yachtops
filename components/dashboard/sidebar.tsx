@@ -127,9 +127,14 @@ export function Sidebar() {
           permission: "documents.marina.view",
         },
         {
-          href: "/dashboard/documents/vessel-crew",
-          label: "Vessel & Crew Documents",
-          permission: "documents.vesselcrew.view",
+          href: "/dashboard/documents/vessel",
+          label: "Vessel Documents",
+          permission: "documents.vessel.view",
+        },
+        {
+          href: "/dashboard/documents/crew",
+          label: "Crew Documents",
+          permission: "documents.crew.view",
         },
       ],
     },
