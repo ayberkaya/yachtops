@@ -5,6 +5,7 @@ import { z } from "zod";
 
 const alcoholStockSchema = z.object({
   name: z.string().min(1, "Name is required"),
+  category: z.enum(["WINE", "SPIRITS", "BEER"]).optional().nullable(),
   quantity: z.number().min(0).default(0),
   unit: z.string().default("bottle"),
   lowStockThreshold: z.number().min(0).optional().nullable(),
@@ -73,12 +74,28 @@ export async function POST(request: NextRequest) {
       data: {
         yachtId: session.user.yachtId,
         name: validated.name,
+        category: validated.category || null,
         quantity: validated.quantity,
         unit: validated.unit,
         lowStockThreshold: validated.lowStockThreshold || null,
         notes: validated.notes || null,
       },
     });
+
+    // Create initial history entry if quantity > 0
+    if (validated.quantity > 0) {
+      await db.alcoholStockHistory.create({
+        data: {
+          stockId: stock.id,
+          userId: session.user.id,
+          changeType: "SET",
+          quantityBefore: 0,
+          quantityAfter: validated.quantity,
+          quantityChange: validated.quantity,
+          notes: "Initial stock",
+        },
+      });
+    }
 
     return NextResponse.json(stock, { status: 201 });
   } catch (error) {

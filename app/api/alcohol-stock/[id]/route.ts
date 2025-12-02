@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 
 const updateStockSchema = z.object({
+  category: z.enum(["WINE", "SPIRITS", "BEER"]).optional().nullable(),
   quantity: z.number().min(0).optional(),
   lowStockThreshold: z.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -35,6 +36,9 @@ export async function PATCH(
     }
 
     const updateData: any = {};
+    if (validated.category !== undefined) {
+      updateData.category = validated.category;
+    }
     if (validated.quantity !== undefined) {
       updateData.quantity = validated.quantity;
     }
@@ -43,6 +47,24 @@ export async function PATCH(
     }
     if (validated.notes !== undefined) {
       updateData.notes = validated.notes;
+    }
+
+    // Track quantity changes in history
+    if (validated.quantity !== undefined && validated.quantity !== existing.quantity) {
+      const quantityChange = validated.quantity - existing.quantity;
+      const changeType = quantityChange > 0 ? "ADD" : quantityChange < 0 ? "REMOVE" : "SET";
+      
+      await db.alcoholStockHistory.create({
+        data: {
+          stockId: id,
+          userId: session.user.id,
+          changeType,
+          quantityBefore: existing.quantity,
+          quantityAfter: validated.quantity,
+          quantityChange,
+          notes: `Stock ${changeType.toLowerCase()}ed`,
+        },
+      });
     }
 
     const stock = await db.alcoholStock.update({

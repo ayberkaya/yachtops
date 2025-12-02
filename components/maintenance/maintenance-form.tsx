@@ -276,7 +276,7 @@ export function MaintenanceForm({ initialData }: MaintenanceFormProps) {
               />
             </div>
 
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 grid-cols-1 sm:grid-cols-3">
               <FormField
                 control={form.control}
                 name="nextDueDate"
@@ -291,56 +291,53 @@ export function MaintenanceForm({ initialData }: MaintenanceFormProps) {
                         onChange={(e) => field.onChange(e.target.value || null)}
                       />
                     </FormControl>
-                    <FormDescription>For preventive maintenance - when is the next service due?</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
 
-              <div className="grid gap-4 grid-cols-2">
-                <FormField
-                  control={form.control}
-                  name="mileage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Mileage/Engine Hours</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0"
-                          {...field}
-                          value={field.value ?? ""}
-                          onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+              <FormField
+                control={form.control}
+                name="mileage"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mileage/Engine Hours</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0"
+                        {...field}
+                        value={field.value ?? ""}
+                        onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : null)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-                <FormField
-                  control={form.control}
-                  name="mileageUnit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Unit</FormLabel>
-                      <FormControl>
-                        <Select onValueChange={field.onChange} value={field.value || "hours"}>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="hours">Hours</SelectItem>
-                            <SelectItem value="nm">Nautical Miles</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
+              <FormField
+                control={form.control}
+                name="mileageUnit"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit</FormLabel>
+                    <FormControl>
+                      <Select onValueChange={field.onChange} value={field.value || "hours"}>
+                        <SelectTrigger className="w-full">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="hours">Hours</SelectItem>
+                          <SelectItem value="nm">Nautical Miles</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
 
             <FormField

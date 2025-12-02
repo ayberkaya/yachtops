@@ -133,6 +133,7 @@ model User {
   taskAttachments         TaskAttachment[]  @relation("TaskAttachmentUploader")
   notifications           Notification[]
   crewDocuments           CrewDocument[]    @relation("CrewDocumentOwner")
+  alcoholStockHistory     AlcoholStockHistory[]
   createdCashTransactions CashTransaction[] @relation("CashTransactionCreator")
 
   @@map("users")
@@ -540,20 +541,44 @@ model ShoppingItem {
   @@map("shopping_items")
 }
 
+enum AlcoholCategory {
+  WINE
+  SPIRITS
+  BEER
+}
+
 model AlcoholStock {
-  id                String   @id @default(cuid())
-  yachtId           String   @map("yacht_id")
-  yacht             Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  id                String           @id @default(cuid())
+  yachtId           String           @map("yacht_id")
+  yacht             Yacht            @relation(fields: [yachtId], references: [id], onDelete: Cascade)
   name              String // Alcohol name (from template or custom)
-  quantity          Float    @default(0) // Current stock quantity
-  unit              String   @default("bottle") // bottle, liter, etc.
-  lowStockThreshold Float?   @map("low_stock_threshold") // Alert when stock falls below this
+  category          AlcoholCategory? // Wine, Spirits, or Beer
+  quantity          Float            @default(0) // Current stock quantity
+  unit              String           @default("bottle") // bottle, liter, etc.
+  lowStockThreshold Float?           @map("low_stock_threshold") // Alert when stock falls below this
   notes             String?
-  createdAt         DateTime @default(now()) @map("created_at")
-  updatedAt         DateTime @updatedAt @map("updated_at")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  history           AlcoholStockHistory[]
 
   @@unique([yachtId, name])
   @@map("alcohol_stocks")
+}
+
+model AlcoholStockHistory {
+  id          String        @id @default(cuid())
+  stockId     String        @map("stock_id")
+  stock       AlcoholStock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  userId      String?       @map("user_id") // User who made the change
+  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  changeType  String        @map("change_type") // "ADD", "REMOVE", "SET", "ADJUST"
+  quantityBefore Float      @map("quantity_before")
+  quantityAfter  Float      @map("quantity_after")
+  quantityChange Float      @map("quantity_change") // Positive for add, negative for remove
+  notes       String?
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  @@map("alcohol_stock_history")
 }
 
 model MaintenanceLog {
