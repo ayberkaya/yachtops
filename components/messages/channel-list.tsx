@@ -68,7 +68,7 @@ export function ChannelList({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className="p-4 border-b border-border/50 bg-background/60 dark:bg-background/70 backdrop-blur-xl backdrop-saturate-150">
+      <div className="p-4 border-b border-border/50 bg-background/95 dark:bg-background/70 backdrop-blur-xl backdrop-saturate-150">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold">Channels</h3>
           {canManage && (
@@ -99,15 +99,15 @@ export function ChannelList({
       </div>
 
       {/* Channel List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-border/30 bg-background/30 dark:bg-background/40 backdrop-blur-sm">
+      <div className="flex-1 overflow-y-auto divide-y divide-border/30 bg-background/95 dark:bg-background/40 backdrop-blur-sm">
           {channels.map((channel) => {
             const unreadCount = unreadCounts[channel.id] || 0;
             return (
               <div
                 key={channel.id}
                 onClick={() => onSelectChannel(channel)}
-                className={`p-3 cursor-pointer hover:bg-background/50 dark:hover:bg-background/60 transition-all duration-200 relative backdrop-blur-sm ${
-                  selectedChannelId === channel.id ? "bg-background/60 dark:bg-background/70 backdrop-blur-md" : "bg-background/20 dark:bg-background/30"
+                className={`p-3 cursor-pointer hover:bg-background/80 dark:hover:bg-background/60 transition-all duration-200 relative backdrop-blur-sm ${
+                  selectedChannelId === channel.id ? "bg-background/95 dark:bg-background/70 backdrop-blur-md" : "bg-background/90 dark:bg-background/30"
                 }`}
               >
                 <div className="flex items-start justify-between gap-2">
