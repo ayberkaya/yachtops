@@ -313,7 +313,7 @@ export function Sidebar() {
               }}
               className={`relative flex items-center ${isExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                 isActive
-                  ? "bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-lg shadow-teal-500/25"
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
                   : "text-slate-700 dark:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white"
               }`}
               title={isExpanded ? undefined : item.label}
@@ -323,7 +323,7 @@ export function Sidebar() {
                 className={
                   isActive
                     ? "text-white"
-                    : "text-slate-600 dark:text-slate-400 group-hover:text-teal-600 dark:group-hover:text-teal-400"
+                    : "text-slate-600 dark:text-slate-400 group-hover:text-primary dark:group-hover:text-primary"
                 }
               />
               {isExpanded && (
@@ -373,8 +373,8 @@ export function Sidebar() {
                         onClick={() => setMobileMenuOpen(false)}
                         className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out ${
                           childActive
-                            ? "text-teal-600 dark:text-teal-200 font-medium"
-                            : "text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-100"
+                            ? "text-primary dark:text-primary font-medium"
+                            : "text-slate-600 dark:text-slate-300 hover:text-primary dark:hover:text-primary"
                         }`}
                         style={{
                           animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
@@ -424,7 +424,7 @@ export function Sidebar() {
         <div className="border-b border-slate-200 dark:border-slate-700/50 bg-slate-100/50 dark:bg-slate-900/50 p-6 h-[88px] flex items-center">
           {isExpanded ? (
             <div className="flex items-center space-x-3 w-full">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                 <Anchor className="text-white w-6 h-6" />
               </div>
               <div>
@@ -438,7 +438,7 @@ export function Sidebar() {
             </div>
           ) : (
             <div className="flex items-center justify-center w-full">
-              <div className="w-10 h-10 bg-gradient-to-br from-teal-400 to-teal-600 rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                 <Anchor className="text-white w-6 h-6" />
               </div>
             </div>
@@ -453,8 +453,8 @@ export function Sidebar() {
           {isExpanded ? (
             <>
               <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-200/50 dark:bg-slate-800/50">
-                <Avatar className="h-10 w-10 border-2 border-teal-500/50">
-                  <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
+                <Avatar className="h-10 w-10 border-2 border-primary/50">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -475,7 +475,7 @@ export function Sidebar() {
                       setIsCollapsed(true);
                     }
                   }}
-                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
                 >
                   <Users size={16} />
                   <span>Users</span>
@@ -489,7 +489,7 @@ export function Sidebar() {
                       setIsCollapsed(true);
                     }
                   }}
-                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
                 >
                   <TrendingUp size={16} />
                   <span>Performance</span>
@@ -541,7 +541,7 @@ export function Sidebar() {
                   className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
                   title="Users"
                 >
-                  <Users size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                  <Users size={16} className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary" />
                 </Link>
               )}
               {hasPermission(user, "performance.view", user.permissions) && (
@@ -551,7 +551,7 @@ export function Sidebar() {
                   className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
                   title="Performance"
                 >
-                  <TrendingUp size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                  <TrendingUp size={16} className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary" />
                 </Link>
               )}
               <Link
@@ -560,7 +560,7 @@ export function Sidebar() {
                 className="p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors"
                 title="My Documents"
               >
-                <FileCheck size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                <FileCheck size={16} className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary" />
               </Link>
               <button
                 onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
@@ -568,9 +568,9 @@ export function Sidebar() {
                 title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
               >
                 {mounted && theme === "dark" ? (
-                  <Sun size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                  <Sun size={16} className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary" />
                 ) : (
-                  <Moon size={16} className="text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400" />
+                  <Moon size={16} className="text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary" />
                 )}
               </button>
               <button
@@ -615,8 +615,8 @@ export function Sidebar() {
             <NavContent />
             <div className="p-4 border-t border-slate-200 dark:border-slate-700/50">
               <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-slate-200/50 dark:bg-slate-800/50">
-                <Avatar className="h-10 w-10 border-2 border-teal-500/50">
-                  <AvatarFallback className="bg-gradient-to-br from-teal-400 to-teal-600 text-white font-semibold">
+                <Avatar className="h-10 w-10 border-2 border-primary/50">
+                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
@@ -633,7 +633,7 @@ export function Sidebar() {
                 <Link
                   href="/dashboard/users"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
                 >
                   <Users size={16} />
                   <span>Users</span>
@@ -643,7 +643,7 @@ export function Sidebar() {
                 <Link
                   href="/dashboard/performance"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-teal-600 dark:hover:text-teal-400 w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
+                  className="flex items-center space-x-2 text-slate-600 dark:text-slate-400 hover:text-primary dark:hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors mb-2"
                 >
                   <TrendingUp size={16} />
                   <span>Performance</span>

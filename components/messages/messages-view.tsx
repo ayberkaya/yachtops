@@ -903,7 +903,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     return (
       <div className="flex h-full border rounded-lg overflow-hidden bg-background">
         {/* Channel List - Left Sidebar (Desktop) */}
-        <div className="hidden md:flex w-80 border-r flex-col bg-muted/30">
+        <div className="hidden md:flex w-80 border-r border-border/50 flex-col bg-background/40 dark:bg-background/50 backdrop-blur-sm">
           <ChannelList
             channels={channels}
             selectedChannelId=""
@@ -957,7 +957,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   return (
     <div className="flex h-full border rounded-lg overflow-hidden bg-background">
       {/* Channel List - Left Sidebar (Desktop) */}
-      <div className="hidden md:flex w-80 border-r flex-col bg-muted/30">
+      <div className="hidden md:flex w-80 border-r border-border/50 flex-col bg-background/40 dark:bg-background/50 backdrop-blur-sm">
         <ChannelList
           channels={channels}
           selectedChannelId={selectedChannel.id}
@@ -994,7 +994,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       {/* Messages - Right Side */}
         <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
         {/* Header - Fixed */}
-        <div className="border-b p-4 bg-muted/30 flex-shrink-0">
+        <div className="border-b border-border/50 p-4 bg-background/60 dark:bg-background/70 backdrop-blur-xl backdrop-saturate-150 flex-shrink-0">
           <div className="flex items-center gap-3 mb-2">
             {/* Mobile: Show channel list button */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -1109,7 +1109,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         {/* Messages Area - Scrollable, grows to fill space */}
         <div 
           ref={messagesContainerRef}
-          className="flex-1 overflow-y-auto p-4 min-h-0"
+          className="flex-1 overflow-y-auto p-4 min-h-0 bg-background/40 dark:bg-background/50 backdrop-blur-sm"
         >
           {isLoading && messages.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
@@ -1121,7 +1121,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                 Search results ({searchResults.length})
               </div>
               {searchResults.map((message) => (
-                <div key={message.id} className="border rounded-lg p-3 bg-muted/50">
+                <div key={message.id} className="border border-border/50 rounded-lg p-3 bg-background/50 dark:bg-background/60 backdrop-blur-sm">
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-xs font-medium">
                       {message.user.name || message.user.email}
@@ -1164,7 +1164,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                       className={`max-w-[70%] rounded-lg p-3 relative ${
                         isOwnMessage
                           ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                          : "bg-background/40 dark:bg-background/50 backdrop-blur-sm"
                       } ${message.isPinned ? "ring-2 ring-yellow-400" : ""}`}
                       onTouchStart={(e) => {
                         // Mobile long press
@@ -1495,9 +1495,9 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         </div>
 
         {/* Input Area - Fixed at bottom */}
-        <div className="border-t p-4 bg-muted/30 flex-shrink-0">
+        <div className="border-t border-border/50 p-4 bg-background/60 dark:bg-background/70 backdrop-blur-xl backdrop-saturate-150 flex-shrink-0">
           {replyingToMessageId && (
-            <div className="mb-2 p-2 bg-muted rounded-lg flex items-center justify-between">
+            <div className="mb-2 p-2 bg-background/50 dark:bg-background/60 backdrop-blur-sm rounded-lg flex items-center justify-between border border-border/30">
               <span className="text-sm text-muted-foreground">
                 Replying to message...
               </span>
