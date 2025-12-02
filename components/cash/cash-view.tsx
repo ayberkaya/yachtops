@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, ArrowDownCircle, ArrowUpCircle } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft } from "lucide-react";
 import { CashTransactionType } from "@prisma/client";
 import { formatDistanceToNow } from "date-fns";
 
@@ -50,21 +50,113 @@ interface CashData {
   balance: number;
 }
 
+interface ExchangeRates {
+  base: string;
+  rates: Record<string, number>;
+  date: string;
+}
+
+const SUPPORTED_CURRENCIES = ["USD", "EUR", "TRY"];
+
 export function CashView() {
   const router = useRouter();
   const [data, setData] = useState<CashData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
+  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "EUR" | "TRY">("EUR");
+  const [converterFrom, setConverterFrom] = useState<"USD" | "EUR" | "TRY">("EUR");
+  const [converterTo, setConverterTo] = useState<"USD" | "EUR" | "TRY">("USD");
+  const [converterAmount, setConverterAmount] = useState<string>("");
   const [formData, setFormData] = useState({
     type: CashTransactionType.DEPOSIT,
     amount: "",
-    currency: "EUR",
+    currency: "EUR" as "USD" | "EUR" | "TRY",
     description: "",
   });
 
+  const fetchExchangeRates = async () => {
+    try {
+      const response = await fetch("/api/exchange-rates");
+      if (response.ok) {
+        const rates = await response.json();
+        setExchangeRates(rates);
+      }
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+    }
+  };
+
+  // Calculate balance in selected display currency
+  // We need to sum all transactions converted to the display currency
+  const getBalanceInCurrency = (): number => {
+    if (!data || !exchangeRates) {
+      // If no exchange rates, return original balance
+      return data?.balance || 0;
+    }
+    
+    // If no transactions, return 0
+    if (data.transactions.length === 0) {
+      return 0;
+    }
+    
+    // Calculate balance by converting each transaction to display currency
+    let totalBalance = 0;
+    
+    for (const transaction of data.transactions) {
+      let amountInDisplayCurrency = transaction.amount;
+      
+      // If transaction currency is not the display currency, convert it
+      if (transaction.currency !== displayCurrency) {
+        // Convert to EUR first
+        let amountInEUR = transaction.amount;
+        if (transaction.currency !== "EUR" && exchangeRates.rates[transaction.currency]) {
+          amountInEUR = transaction.amount / exchangeRates.rates[transaction.currency];
+        }
+        
+        // Convert from EUR to display currency
+        if (displayCurrency === "EUR") {
+          amountInDisplayCurrency = amountInEUR;
+        } else {
+          amountInDisplayCurrency = amountInEUR * (exchangeRates.rates[displayCurrency] || 1);
+        }
+      }
+      
+      // Add or subtract based on transaction type
+      if (transaction.type === CashTransactionType.DEPOSIT) {
+        totalBalance += amountInDisplayCurrency;
+      } else {
+        totalBalance -= amountInDisplayCurrency;
+      }
+    }
+    
+    return totalBalance;
+  };
+
+  // Calculate converted amount
+  const getConvertedAmount = (): number => {
+    if (!converterAmount || !exchangeRates) return 0;
+    const amount = parseFloat(converterAmount);
+    if (isNaN(amount) || amount <= 0) return 0;
+    
+    // Convert from converterFrom to EUR first
+    let amountInEUR = amount;
+    if (converterFrom !== "EUR" && exchangeRates.rates[converterFrom]) {
+      amountInEUR = amount / exchangeRates.rates[converterFrom];
+    }
+    
+    // Convert from EUR to converterTo
+    if (converterTo === "EUR") {
+      return amountInEUR;
+    }
+    
+    return amountInEUR * (exchangeRates.rates[converterTo] || 1);
+  };
+
   useEffect(() => {
     fetchData();
+    fetchExchangeRates();
   }, []);
 
   const fetchData = async () => {
@@ -188,12 +280,124 @@ export function CashView() {
       {/* Balance Card */}
       <Card>
         <CardHeader>
-          <CardTitle>Cash Balance</CardTitle>
-          <CardDescription>Current cash balance</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Cash Balance</CardTitle>
+              <CardDescription>Current cash balance</CardDescription>
+            </div>
+            <Select
+              value={displayCurrency}
+              onValueChange={(value) => setDisplayCurrency(value as "USD" | "EUR" | "TRY")}
+            >
+              <SelectTrigger className="w-[120px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="USD">USD</SelectItem>
+                <SelectItem value="EUR">EUR</SelectItem>
+                <SelectItem value="TRY">TRY</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="text-4xl font-bold">
-            {data.balance.toFixed(2)} {data.transactions.length > 0 ? data.transactions[0].currency : formData.currency}
+            {getBalanceInCurrency().toFixed(2)} {displayCurrency}
+          </div>
+          {exchangeRates && (
+            <p className="text-sm text-muted-foreground mt-2">
+              Exchange rates updated: {new Date(exchangeRates.date).toLocaleDateString()}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Currency Converter */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Currency Converter</CardTitle>
+              <CardDescription>Convert between USD, EUR, and TRY</CardDescription>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchExchangeRates}
+              disabled={!exchangeRates}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh Rates
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-3 items-end">
+              <div className="space-y-2">
+                <Label htmlFor="converter-amount">Amount</Label>
+                <Input
+                  id="converter-amount"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={converterAmount}
+                  onChange={(e) => setConverterAmount(e.target.value)}
+                  placeholder="0.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="converter-from">From</Label>
+                <Select
+                  value={converterFrom}
+                  onValueChange={(value) => setConverterFrom(value as "USD" | "EUR" | "TRY")}
+                >
+                  <SelectTrigger id="converter-from">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="TRY">TRY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="converter-to">To</Label>
+                <Select
+                  value={converterTo}
+                  onValueChange={(value) => setConverterTo(value as "USD" | "EUR" | "TRY")}
+                >
+                  <SelectTrigger id="converter-to">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USD">USD</SelectItem>
+                    <SelectItem value="EUR">EUR</SelectItem>
+                    <SelectItem value="TRY">TRY</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            {converterAmount && parseFloat(converterAmount) > 0 && (
+              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
+                <div className="flex-1 text-center">
+                  <p className="text-sm text-muted-foreground">Result</p>
+                  <p className="text-2xl font-bold">
+                    {getConvertedAmount().toFixed(2)} {converterTo}
+                  </p>
+                </div>
+                <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />
+                <div className="flex-1 text-center">
+                  <p className="text-sm text-muted-foreground">Rate</p>
+                  <p className="text-sm font-medium">
+                    {exchangeRates && exchangeRates.rates[converterFrom] && exchangeRates.rates[converterTo]
+                      ? `1 ${converterFrom} = ${(exchangeRates.rates[converterTo] / exchangeRates.rates[converterFrom]).toFixed(4)} ${converterTo}`
+                      : "N/A"}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -236,7 +440,6 @@ export function CashView() {
                   <SelectContent>
                     <SelectItem value="EUR">EUR</SelectItem>
                     <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="GBP">GBP</SelectItem>
                     <SelectItem value="TRY">TRY</SelectItem>
                   </SelectContent>
                 </Select>

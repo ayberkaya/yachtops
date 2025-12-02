@@ -39,6 +39,7 @@ export function Sidebar() {
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
+  const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
 
   useEffect(() => {
@@ -74,6 +75,33 @@ export function Sidebar() {
     fetchPendingTasksCount();
     // Refresh every 30 seconds
     const interval = setInterval(fetchPendingTasksCount, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
+  // Fetch pending expenses count
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchPendingExpensesCount = async () => {
+      try {
+        // Only fetch if user has permission to approve expenses
+        if (!hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+          return;
+        }
+
+        const response = await fetch("/api/expenses?status=SUBMITTED");
+        if (response.ok) {
+          const expenses = await response.json();
+          setPendingExpensesCount(expenses.length);
+        }
+      } catch (error) {
+        console.error("Error fetching pending expenses count:", error);
+      }
+    };
+
+    fetchPendingExpensesCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingExpensesCount, 30000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -330,12 +358,13 @@ export function Sidebar() {
                       return null;
                     }
                     const childActive = pathname === child.href;
+                    const isPendingApproval = child.href === "/dashboard/expenses/pending";
                     return (
                       <Link
                         key={child.href}
                         href={child.href}
                         onClick={() => setMobileMenuOpen(false)}
-                        className={`ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out ${
+                        className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out ${
                           childActive
                             ? "text-teal-600 dark:text-teal-200 font-medium"
                             : "text-slate-600 dark:text-slate-300 hover:text-teal-600 dark:hover:text-teal-100"
@@ -344,7 +373,14 @@ export function Sidebar() {
                           animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
                         }}
                       >
-                        {child.label}
+                        <span className="flex items-center justify-between">
+                          <span>{child.label}</span>
+                          {isPendingApproval && pendingExpensesCount > 0 && (
+                            <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                              {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
+                            </span>
+                          )}
+                        </span>
                       </Link>
                     );
                   })}
