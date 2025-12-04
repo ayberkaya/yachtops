@@ -18,9 +18,11 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 
-  // Turbopack configuration (Next.js 16+)
-  // Temporarily disabled due to cache issues
-  // turbopack: {},
+  // Disable Turbopack to use Webpack (more stable for development)
+  // Turbopack can cause chunk loading issues in some cases
+  webpack: (config, { isServer }) => {
+    return config;
+  },
 };
 
 export default nextConfig;
