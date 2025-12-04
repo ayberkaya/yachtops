@@ -415,7 +415,7 @@ export function Sidebar() {
 
             {/* Children (e.g. Pending Approval) rendered as smaller indented links.
                 Show when parent item is active or hovered, and sidebar is expanded. */}
-            {showChildren && (
+            {showChildren && item.children && (
               <div className="overflow-hidden">
                 <div className="space-y-1">
                   {item.children.map((child, index) => {
