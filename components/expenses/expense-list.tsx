@@ -550,7 +550,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
           {canCreate && (
             <Button 
               asChild
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
             >
               <Link href="/dashboard/expenses/new">
                 <Plus className="mr-2 h-4 w-4" />
