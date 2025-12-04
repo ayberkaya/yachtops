@@ -159,7 +159,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                       selectedList === list.id ? "bg-muted" : ""
                     } ${
                       isCompleted 
-                        ? "border-green-500 bg-green-50/50 dark:bg-green-950/20" 
+                        ? "border-green-600 bg-green-600 text-white" 
                         : ""
                     }`}
                     onClick={() => setSelectedList(list.id === selectedList ? null : list.id)}
@@ -168,21 +168,21 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           {isCompleted && (
-                            <CheckCircle2 className="h-5 w-5 text-green-600 flex-shrink-0" />
+                            <CheckCircle2 className="h-5 w-5 text-green-200 flex-shrink-0" />
                           )}
-                          <span className={`font-medium ${isCompleted ? "text-green-700 dark:text-green-400" : ""}`}>
+                          <span className={`${isCompleted ? "text-white font-bold" : "font-medium"}`}>
                             {list.name}
                           </span>
                           {getStatusBadge(list.status)}
                         </div>
-                        <div className="text-sm text-muted-foreground">
+                        <div className={`text-sm ${isCompleted ? "text-white" : "text-muted-foreground"}`}>
                           {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
                           {list.createdBy && (
                             <> • Created by {list.createdBy.name || list.createdBy.email}</>
                           )}
                         </div>
                         {list.description && (
-                          <div className="text-xs text-muted-foreground mt-1">{list.description}</div>
+                          <div className={`text-xs mt-1 ${isCompleted ? "text-white/90" : "text-muted-foreground"}`}>{list.description}</div>
                         )}
                       </div>
                       <Button

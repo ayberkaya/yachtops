@@ -262,21 +262,21 @@ export function ShoppingListDetail({
   const isListCompleted = list.status === ShoppingListStatus.COMPLETED;
 
   return (
-    <Card className={isListCompleted ? "border-green-500 bg-green-50/50 dark:bg-green-950/20" : ""}>
+    <Card className={isListCompleted ? "border-green-600 bg-green-600 text-white" : ""}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             {isListCompleted && (
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+              <CheckCircle2 className="h-6 w-6 text-green-200" />
             )}
             <div>
-              <CardTitle className={isListCompleted ? "text-green-700 dark:text-green-400" : ""}>
+              <CardTitle className={isListCompleted ? "text-white font-bold" : ""}>
                 {list.name}
               </CardTitle>
               {list.description && (
-                <p className="text-sm text-muted-foreground mt-1">{list.description}</p>
+                <p className={`text-sm mt-1 ${isListCompleted ? "text-white/90" : "text-muted-foreground"}`}>{list.description}</p>
               )}
-              <p className="text-sm text-muted-foreground mt-1">
+              <p className={`text-sm mt-1 ${isListCompleted ? "text-white" : "text-muted-foreground"}`}>
                 {completedCount}/{totalCount} completed
               </p>
             </div>
