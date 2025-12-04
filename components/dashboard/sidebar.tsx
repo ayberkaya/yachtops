@@ -505,6 +505,7 @@ export function Sidebar() {
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
+  const [desktopExpandedItems, setDesktopExpandedItems] = useState<Set<string>>(new Set());
 
   // Define base navItems structure (static, no user dependency)
   const baseNavItems = [
@@ -695,9 +696,9 @@ export function Sidebar() {
     }
   }, [pathname]);
 
-  // Auto-expand active parent items on mobile
+  // Auto-expand active parent items on both mobile and desktop
   useEffect(() => {
-    if (isMobile && navItems.length > 0) {
+    if (navItems.length > 0) {
       const activeParent = navItems.find((item) => {
         if (item.href === "/dashboard") {
           return pathname === "/dashboard";
@@ -711,14 +712,22 @@ export function Sidebar() {
       });
       
       if (activeParent && activeParent.children) {
-        setMobileExpandedItems((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(activeParent.href);
-          return newSet;
-        });
+        if (isMobile) {
+          setMobileExpandedItems((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(activeParent.href);
+            return newSet;
+          });
+        } else {
+          setDesktopExpandedItems((prev) => {
+            const newSet = new Set(prev);
+            newSet.add(activeParent.href);
+            return newSet;
+          });
+        }
       }
     }
-  }, [pathname, isMobile, session?.user]);
+  }, [pathname, isMobile, navItems]);
 
   // Determine if sidebar should appear expanded (either not collapsed or hovered)
   const isExpanded = !isCollapsed || isHovered;
@@ -791,35 +800,44 @@ export function Sidebar() {
         }
         const Icon = item.icon;
 
-        const isItemHovered = hoveredItemId === item.href;
         // For mobile: show children if item is active or manually expanded
-        // For desktop: show children if sidebar is expanded and item is active or hovered
+        // For desktop: show children if sidebar is expanded and item is active or manually expanded (clicked)
         const showChildren = isMobile
           ? (isActive || mobileExpandedItems.has(item.href)) && item.children
-          : mobileExpanded && (isActive || isItemHovered) && item.children;
+          : mobileExpanded && (isActive || desktopExpandedItems.has(item.href)) && item.children;
 
         return (
           <div 
             key={item.href}
-            onMouseEnter={() => !isMobile && setHoveredItemId(item.href)}
-            onMouseLeave={() => !isMobile && setHoveredItemId(null)}
           >
             <Link
               href={item.href}
               onClick={(e) => {
                 if (item.href === "#") {
                   e.preventDefault();
-                  // On mobile, toggle children visibility
-                  if (isMobile && item.children) {
-                    setMobileExpandedItems((prev) => {
-                      const newSet = new Set(prev);
-                      if (newSet.has(item.href)) {
-                        newSet.delete(item.href);
-                      } else {
-                        newSet.add(item.href);
-                      }
-                      return newSet;
-                    });
+                  // Toggle children visibility on both mobile and desktop
+                  if (item.children) {
+                    if (isMobile) {
+                      setMobileExpandedItems((prev) => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(item.href)) {
+                          newSet.delete(item.href);
+                        } else {
+                          newSet.add(item.href);
+                        }
+                        return newSet;
+                      });
+                    } else {
+                      setDesktopExpandedItems((prev) => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(item.href)) {
+                          newSet.delete(item.href);
+                        } else {
+                          newSet.add(item.href);
+                        }
+                        return newSet;
+                      });
+                    }
                   }
                 } else {
                   // Navigate to page and close mobile menu
@@ -871,8 +889,13 @@ export function Sidebar() {
                           } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
                         />
                       ) : (
-                        (isActive || isItemHovered) && (
-                          <ChevronRight size={16} className={isActive ? "text-primary-foreground" : "text-muted-foreground"} />
+                        (isActive || desktopExpandedItems.has(item.href)) && (
+                          <ChevronRight 
+                            size={16} 
+                            className={`transition-transform duration-200 ${
+                              isActive ? "text-primary-foreground" : "text-muted-foreground"
+                            } ${desktopExpandedItems.has(item.href) ? "rotate-90" : ""}`}
+                          />
                         )
                       )}
                     </>
