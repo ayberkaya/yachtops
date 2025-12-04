@@ -807,10 +807,11 @@ export function Sidebar() {
         const Icon = item.icon;
 
         // For mobile: show children if item is active or manually expanded
-        // For desktop: show children if sidebar is expanded and item is active or manually expanded (clicked)
+        // For desktop: show children if sidebar is expanded and manually expanded (clicked)
+        // Note: For items with href !== "#", we don't auto-expand based on isActive to allow manual toggle
         const showChildren = isMobile
           ? (isActive || mobileExpandedItems.has(item.href)) && item.children
-          : mobileExpanded && (isActive || desktopExpandedItems.has(item.href)) && item.children;
+          : mobileExpanded && desktopExpandedItems.has(item.href) && item.children;
 
         return (
           <div 
@@ -886,16 +887,47 @@ export function Sidebar() {
                     </span>
                   )}
                   {item.children && (
-                    <ChevronRight 
-                      size={16} 
-                      className={`transition-transform duration-200 ${
-                        isActive ? "text-primary-foreground" : "text-muted-foreground"
-                      } ${
-                        isMobile 
-                          ? (mobileExpandedItems.has(item.href) ? "rotate-90" : "")
-                          : (desktopExpandedItems.has(item.href) ? "rotate-90" : "")
-                      }`}
-                    />
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // Toggle children visibility
+                        if (isMobile) {
+                          setMobileExpandedItems((prev) => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(item.href)) {
+                              newSet.delete(item.href);
+                            } else {
+                              newSet.add(item.href);
+                            }
+                            return newSet;
+                          });
+                        } else {
+                          setDesktopExpandedItems((prev) => {
+                            const newSet = new Set(prev);
+                            if (newSet.has(item.href)) {
+                              newSet.delete(item.href);
+                            } else {
+                              newSet.add(item.href);
+                            }
+                            return newSet;
+                          });
+                        }
+                      }}
+                      className="p-1 -mr-1 hover:bg-white/10 rounded transition-colors"
+                      aria-label="Toggle submenu"
+                    >
+                      <ChevronRight 
+                        size={16} 
+                        className={`transition-transform duration-200 ${
+                          isActive ? "text-primary-foreground" : "text-muted-foreground"
+                        } ${
+                          isMobile 
+                            ? (mobileExpandedItems.has(item.href) ? "rotate-90" : "")
+                            : (desktopExpandedItems.has(item.href) ? "rotate-90" : "")
+                        }`}
+                      />
+                    </button>
                   )}
                 </>
               )}
