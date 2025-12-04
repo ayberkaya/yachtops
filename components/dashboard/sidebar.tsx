@@ -886,25 +886,16 @@ export function Sidebar() {
                     </span>
                   )}
                   {item.children && (
-                    <>
-                      {isMobile ? (
-                        <ChevronRight 
-                          size={16} 
-                          className={`transition-transform duration-200 ${
-                            isActive ? "text-primary-foreground" : "text-muted-foreground"
-                          } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
-                        />
-                      ) : (
-                        (isActive || desktopExpandedItems.has(item.href)) && (
-                          <ChevronRight 
-                            size={16} 
-                            className={`transition-transform duration-200 ${
-                              isActive ? "text-primary-foreground" : "text-muted-foreground"
-                            } ${desktopExpandedItems.has(item.href) ? "rotate-90" : ""}`}
-                          />
-                        )
-                      )}
-                    </>
+                    <ChevronRight 
+                      size={16} 
+                      className={`transition-transform duration-200 ${
+                        isActive ? "text-primary-foreground" : "text-muted-foreground"
+                      } ${
+                        isMobile 
+                          ? (mobileExpandedItems.has(item.href) ? "rotate-90" : "")
+                          : (desktopExpandedItems.has(item.href) ? "rotate-90" : "")
+                      }`}
+                    />
                   )}
                 </>
               )}
