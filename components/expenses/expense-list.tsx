@@ -513,6 +513,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
             variant="outline"
             size="sm"
             onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
+            className={viewMode === "table" ? "" : "bg-primary text-primary-foreground border-primary shadow-sm"}
           >
             {viewMode === "table" ? <LayoutGrid className="mr-2 h-4 w-4" /> : <List className="mr-2 h-4 w-4" />}
             {viewMode === "table" ? "Card View" : "Table View"}

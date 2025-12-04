@@ -223,6 +223,7 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
             variant="outline"
             size="sm"
             onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
+            className={viewMode === "table" ? "" : "bg-primary text-primary-foreground border-primary shadow-sm"}
           >
             {viewMode === "table" ? "Card View" : "Table View"}
           </Button>
