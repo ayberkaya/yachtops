@@ -234,8 +234,12 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetContent
         side="left"
-        className="w-[280px] p-0 border-slate-200 z-[100]"
-        style={{ backgroundColor: '#ffffff', backdropFilter: 'none' }}
+        className="w-[280px] p-0 border-slate-200 z-[100] !bg-white !backdrop-blur-none"
+        style={{ 
+          backgroundColor: '#ffffff',
+          backdropFilter: 'none',
+          background: '#ffffff'
+        }}
       >
         <div className="h-full w-full bg-white flex flex-col">
           <div className="p-6 border-b border-slate-200 bg-white">
@@ -309,7 +313,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                           : "text-slate-700"
                       }`}
                     />
-                    <span className="text-sm font-semibold flex-1 text-left text-slate-900" style={{ color: '#0f172a' }}>
+                    <span className="text-sm font-semibold flex-1 text-left" style={{ color: '#0f172a', fontWeight: 600 }}>
                       {item.label}
                     </span>
                     {item.children && (

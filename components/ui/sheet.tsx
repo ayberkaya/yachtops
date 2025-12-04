@@ -69,6 +69,11 @@ function SheetContent({
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
           className
         )}
+        style={{
+          ...(props.style || {}),
+          ...(className?.includes('!bg-white') ? { backgroundColor: '#ffffff', background: '#ffffff' } : {}),
+          ...(className?.includes('!backdrop-blur-none') ? { backdropFilter: 'none' } : {}),
+        }}
         {...props}
       >
         {children}
