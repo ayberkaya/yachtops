@@ -24,27 +24,6 @@
   --radius: 0.75rem;
 }
 
-.dark {
-  --background: 222.2 47.4% 11.2%;
-  --foreground: 210 40% 98%;
-  --card: 222.2 47.4% 11.2%;
-  --card-foreground: 210 40% 98%;
-  --popover: 222.2 47.4% 11.2%;
-  --popover-foreground: 210 40% 98%;
-  --primary: 217.2 91.2% 59.8%;
-  --primary-foreground: 222.2 47.4% 11.2%;
-  --secondary: 217.2 32.6% 17.5%;
-  --secondary-foreground: 210 40% 98%;
-  --muted: 217.2 32.6% 17.5%;
-  --muted-foreground: 215 20.2% 65.1%;
-  --accent: 217.2 32.6% 17.5%;
-  --accent-foreground: 210 40% 98%;
-  --destructive: 0 62.8% 30.6%;
-  --destructive-foreground: 210 40% 98%;
-  --border: 217.2 32.6% 17.5%;
-  --input: 217.2 32.6% 17.5%;
-  --ring: 217.2 91.2% 59.8%;
-}
 
 @layer base {
   * {
@@ -69,17 +48,17 @@
 }
 
 /* Force light mode to be bright */
-:root:not(.dark) {
+:root {
   --background: 0 0% 100% !important;
 }
 
-:root:not(.dark) body {
+body {
   background-color: hsl(0 0% 100%) !important;
   color: hsl(220 15% 20%) !important;
 }
 
-/* Improve text contrast in light mode */
-:root:not(.dark) {
+/* Improve text contrast */
+:root {
   --muted-foreground: 220 15% 30%;
 }
 
@@ -95,9 +74,9 @@ section[class*="relative"] > * {
 }
 
 /* Remove backdrop blur effects that make text look faded */
-:root:not(.dark) .backdrop-blur-sm,
-:root:not(.dark) .backdrop-blur-md,
-:root:not(.dark) .backdrop-blur-xl {
+.backdrop-blur-sm,
+.backdrop-blur-md,
+.backdrop-blur-xl {
   backdrop-filter: none;
   -webkit-backdrop-filter: none;
 }

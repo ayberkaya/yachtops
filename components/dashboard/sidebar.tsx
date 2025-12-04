@@ -21,13 +21,10 @@ import {
   FileText,
   Package,
   Wrench,
-  Moon,
-  Sun,
   FileCheck,
 } from "lucide-react";
 import { canManageUsers } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
-import { useTheme } from "next-themes";
 
 export function Sidebar() {
   const { data: session } = useSession();
@@ -36,15 +33,12 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -313,8 +307,8 @@ export function Sidebar() {
               }}
               className={`relative flex items-center ${isExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                 isActive
-                  ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20 dark:shadow-primary/10"
-                  : "sidebar-hover text-foreground dark:hover:bg-accent dark:hover:text-accent-foreground"
+                  ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
               title={isExpanded ? undefined : item.label}
             >
@@ -373,8 +367,8 @@ export function Sidebar() {
                         onClick={() => setMobileMenuOpen(false)}
                         className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
                           childActive
-                            ? "sidebar-child-active text-primary dark:bg-accent"
-                            : "sidebar-child-hover text-muted-foreground dark:hover:text-primary dark:hover:bg-accent"
+                            ? "sidebar-child-active text-primary bg-accent"
+                            : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
                         }`}
                         style={{
                           animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
@@ -508,18 +502,6 @@ export function Sidebar() {
                 <span>My Documents</span>
               </Link>
               <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
-                title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {mounted && theme === "dark" ? (
-                  <Sun size={16} />
-                ) : (
-                  <Moon size={16} />
-                )}
-                <span>Toggle Theme</span>
-              </button>
-              <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="flex items-center space-x-2 text-muted-foreground hover:text-destructive w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors"
               >
@@ -562,17 +544,6 @@ export function Sidebar() {
               >
                 <FileCheck size={16} className="text-muted-foreground hover:text-primary" />
               </Link>
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {mounted && theme === "dark" ? (
-                  <Sun size={16} className="text-muted-foreground hover:text-primary" />
-                ) : (
-                  <Moon size={16} className="text-muted-foreground hover:text-primary" />
-                )}
-              </button>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="p-2 rounded-lg hover:bg-accent transition-colors"
@@ -649,18 +620,6 @@ export function Sidebar() {
                   <span>Performance</span>
                 </Link>
               )}
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
-                title={mounted && theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-              >
-                {mounted && theme === "dark" ? (
-                  <Sun size={16} />
-                ) : (
-                  <Moon size={16} />
-                )}
-                <span>Toggle Theme</span>
-              </button>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
