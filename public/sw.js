@@ -44,8 +44,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const requestUrl = new URL(event.request.url);
+
+  // Skip non-HTTP/HTTPS requests (chrome-extension, data:, blob:, etc.)
+  if (!['http:', 'https:'].includes(requestUrl.protocol)) {
+    return;
+  }
+
   // Skip API requests
   if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // Skip chrome-extension URLs
+  if (requestUrl.protocol === 'chrome-extension:' || requestUrl.href.startsWith('chrome-extension://')) {
     return;
   }
 
@@ -60,12 +72,27 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
 
+            // Don't cache chrome-extension or other unsupported schemes
+            const responseUrl = new URL(response.url);
+            if (!['http:', 'https:'].includes(responseUrl.protocol)) {
+              return response;
+            }
+
             // Clone the response
             const responseToCache = response.clone();
 
             caches.open(CACHE_NAME)
               .then((cache) => {
-                cache.put(event.request, responseToCache);
+                try {
+                  cache.put(event.request, responseToCache);
+                } catch (error) {
+                  // Silently fail if caching is not supported for this request
+                  console.warn('Failed to cache request:', event.request.url, error);
+                }
+              })
+              .catch((error) => {
+                // Silently fail if cache operation fails
+                console.warn('Cache operation failed:', error);
               });
 
             return response;
