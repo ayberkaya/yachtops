@@ -1,25 +1,26 @@
 @import "tailwindcss";
 
 :root {
+  /* Light Theme - Modern & Bright Color Palette */
   --background: 0 0% 100%;
-  --foreground: 222.2 84% 4.9%;
+  --foreground: 220 15% 20%;
   --card: 0 0% 100%;
-  --card-foreground: 222.2 84% 4.9%;
+  --card-foreground: 220 15% 20%;
   --popover: 0 0% 100%;
-  --popover-foreground: 222.2 84% 4.9%;
-  --primary: 173 80% 40%;
+  --popover-foreground: 220 15% 20%;
+  --primary: 217 91% 60%;
   --primary-foreground: 0 0% 100%;
-  --secondary: 210 40% 96.1%;
-  --secondary-foreground: 222.2 47.4% 11.2%;
-  --muted: 210 40% 96.1%;
-  --muted-foreground: 222.2 47.4% 11.2%;
-  --accent: 173 80% 40%;
-  --accent-foreground: 0 0% 100%;
-  --destructive: 0 84.2% 60.2%;
+  --secondary: 220 15% 98%;
+  --secondary-foreground: 220 15% 20%;
+  --muted: 220 10% 98%;
+  --muted-foreground: 220 10% 45%;
+  --accent: 220 15% 97%;
+  --accent-foreground: 220 15% 20%;
+  --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
-  --border: 214.3 31.8% 91.4%;
-  --input: 214.3 31.8% 91.4%;
-  --ring: 173 80% 40%;
+  --border: 220 15% 90%;
+  --input: 220 15% 98%;
+  --ring: 217 91% 60%;
   --radius: 0.75rem;
 }
 
@@ -30,19 +31,19 @@
   --card-foreground: 210 40% 98%;
   --popover: 222.2 47.4% 11.2%;
   --popover-foreground: 210 40% 98%;
-  --primary: 173 80% 50%;
+  --primary: 217.2 91.2% 59.8%;
   --primary-foreground: 222.2 47.4% 11.2%;
   --secondary: 217.2 32.6% 17.5%;
   --secondary-foreground: 210 40% 98%;
   --muted: 217.2 32.6% 17.5%;
   --muted-foreground: 215 20.2% 65.1%;
-  --accent: 173 80% 50%;
+  --accent: 217.2 32.6% 17.5%;
   --accent-foreground: 210 40% 98%;
   --destructive: 0 62.8% 30.6%;
   --destructive-foreground: 210 40% 98%;
   --border: 217.2 32.6% 17.5%;
   --input: 217.2 32.6% 17.5%;
-  --ring: 173 80% 50%;
+  --ring: 217.2 91.2% 59.8%;
 }
 
 @layer base {
@@ -55,4 +56,97 @@
     color: hsl(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
   }
+}
+
+/* Light mode specific enhancements */
+:root {
+  --light-accent-blue: 217 100% 97%;
+  --light-accent-indigo: 217 100% 96%;
+  --light-text-primary: 217 91% 50%;
+  --sidebar-hover: 217 91% 96%;
+  --sidebar-active: 217 91% 60%;
+  --sidebar-active-foreground: 0 0% 100%;
+}
+
+/* Force light mode to be bright */
+:root:not(.dark) {
+  --background: 0 0% 100% !important;
+}
+
+:root:not(.dark) body {
+  background-color: hsl(0 0% 100%) !important;
+  color: hsl(220 15% 20%) !important;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Sidebar hover effects for light mode */
+:root:not(.dark) .sidebar-hover {
+  background-color: transparent;
+}
+
+:root:not(.dark) .sidebar-hover:hover {
+  background-color: hsl(217 91% 96%);
+  color: hsl(var(--primary));
+}
+
+:root:not(.dark) .sidebar-active {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  box-shadow: 0 4px 6px -1px hsl(var(--primary) / 0.2);
+}
+
+:root:not(.dark) .sidebar-child-hover {
+  background-color: transparent;
+}
+
+:root:not(.dark) .sidebar-child-hover:hover {
+  background-color: hsl(217 91% 97%);
+  color: hsl(var(--primary));
+}
+
+:root:not(.dark) .sidebar-child-active {
+  background-color: hsl(217 91% 96%);
+  color: hsl(var(--primary));
+  font-weight: 500;
 }

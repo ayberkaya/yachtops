@@ -66,7 +66,7 @@ export function MonthlyReportDownload() {
     <Card>
       <CardHeader>
         <div className="flex items-center gap-2">
-          <FileText className="h-5 w-5 text-primary" />
+          <FileText className="h-5 w-5 text-teal-600 dark:text-teal-400" />
           <CardTitle>Monthly Report</CardTitle>
         </div>
         <CardDescription>
@@ -110,7 +110,7 @@ export function MonthlyReportDownload() {
           <Button
             onClick={handleDownload}
             disabled={isGenerating}
-            className="bg-primary hover:bg-primary/90 text-primary-foreground"
+            className="bg-gradient-to-r from-teal-600 to-teal-500 hover:from-teal-700 hover:to-teal-600"
           >
             {isGenerating ? (
               <>
