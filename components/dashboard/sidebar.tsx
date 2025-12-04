@@ -703,6 +703,8 @@ export function Sidebar() {
   }, [pathname]);
 
   // Auto-expand active parent items on both mobile and desktop
+  // Only auto-expand if the parent item has href === "#" (placeholder, not a real page)
+  // For real pages like "/dashboard/documents", don't auto-expand (user must click chevron)
   useEffect(() => {
     if (navItems.length > 0) {
       const activeParent = navItems.find((item) => {
@@ -717,7 +719,9 @@ export function Sidebar() {
         }
       });
       
-      if (activeParent && activeParent.children) {
+      // Only auto-expand if parent has children and href is "#" (placeholder)
+      // For real pages like "/dashboard/documents", don't auto-expand
+      if (activeParent && activeParent.children && activeParent.href === "#") {
         if (isMobile) {
           setMobileExpandedItems((prev) => {
             const newSet = new Set(prev);
