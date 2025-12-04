@@ -37,24 +37,25 @@ Kullanım:
 
 ## 🗄️ Ücretsiz Veritabanı Seçenekleri
 
-### Seçenek 1: Vercel Postgres (En Kolay - Önerilen)
+### Seçenek 1: Railway (En Kolay - Önerilen) ⭐
 
-1. Vercel dashboard → Projeniz → "Storage" sekmesi
-2. "Create Database" → "Postgres" seçin
-3. "Create" → 1-2 dakika bekleyin
-4. Settings → Connection string kopyalayın
-5. Environment Variables'a `DATABASE_URL` olarak ekleyin
+1. [railway.app](https://railway.app) → GitHub ile giriş
+2. "New Project" → "Empty Project"
+3. "+ New" → "Database" → "Add PostgreSQL"
+4. 30 saniye içinde hazır!
+5. PostgreSQL servisine tıklayın → "Variables" → `DATABASE_URL` kopyalayın
+6. Vercel'e Environment Variable olarak ekleyin
 
-**Avantajlar:** Vercel ekosisteminde, otomatik yedekleme, kolay kurulum
+**Avantajlar:** Çok kolay (2 dakika), ücretsiz, otomatik connection string
 
-### Seçenek 2: Supabase (Alternatif)
+### Seçenek 2: Supabase
 
 1. [supabase.com](https://supabase.com) → "Start your project"
 2. Yeni proje oluşturun
 3. Settings → Database → Connection string kopyalayın
 4. Vercel'e `DATABASE_URL` olarak ekleyin
 
-### Seçenek 3: Neon (Alternatif)
+### Seçenek 3: Neon
 
 1. [neon.tech](https://neon.tech) → "Sign Up"
 2. Yeni proje oluşturun
