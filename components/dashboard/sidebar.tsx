@@ -29,11 +29,16 @@ import { hasPermission, getUserPermissions } from "@/lib/permissions";
 
 // Mobile Sheet Component (separated for better organization)
 function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void }) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
+
+  // Wait for session to load
+  if (status === "loading") {
+    return null;
+  }
 
   if (!session?.user) return null;
 
@@ -486,7 +491,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   }
 
 export function Sidebar() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -497,6 +502,11 @@ export function Sidebar() {
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
+
+  // Wait for session to load before rendering
+  if (status === "loading") {
+    return null;
+  }
 
   useEffect(() => {
     const checkMobile = () => {

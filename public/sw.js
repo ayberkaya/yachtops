@@ -51,8 +51,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API requests
-  if (event.request.url.includes('/api/')) {
+  // Skip API requests and NextAuth routes
+  if (requestUrl.pathname.startsWith('/api/') || requestUrl.pathname.startsWith('/_next/')) {
     return;
   }
 
@@ -65,7 +65,11 @@ self.addEventListener('fetch', (event) => {
     caches.match(event.request)
       .then((response) => {
         // Return cached version or fetch from network
-        return response || fetch(event.request)
+        if (response) {
+          return response;
+        }
+        
+        return fetch(event.request)
           .then((response) => {
             // Don't cache non-successful responses
             if (!response || response.status !== 200 || response.type !== 'basic') {
@@ -78,31 +82,45 @@ self.addEventListener('fetch', (event) => {
               return response;
             }
 
-            // Clone the response
+            // Clone the response for caching
             const responseToCache = response.clone();
 
+            // Cache in background (don't block response)
             caches.open(CACHE_NAME)
               .then((cache) => {
                 try {
-                  cache.put(event.request, responseToCache);
+                  cache.put(event.request, responseToCache).catch((err) => {
+                    console.warn('Cache put failed:', event.request.url, err);
+                  });
                 } catch (error) {
-                  // Silently fail if caching is not supported for this request
-                  console.warn('Failed to cache request:', event.request.url, error);
+                  console.warn('Cache operation error:', event.request.url, error);
                 }
               })
               .catch((error) => {
-                // Silently fail if cache operation fails
-                console.warn('Cache operation failed:', error);
+                console.warn('Cache open failed:', error);
               });
 
             return response;
           })
-          .catch(() => {
-            // Return offline page if available
+          .catch((error) => {
+            console.warn('Fetch failed:', event.request.url, error);
+            // Return offline page if available for document requests
             if (event.request.destination === 'document') {
               return caches.match('/offline');
             }
+            // For other requests, let the error propagate
+            throw error;
           });
+      })
+      .catch((error) => {
+        console.warn('Cache match failed:', event.request.url, error);
+        // Try to fetch directly if cache fails
+        return fetch(event.request).catch(() => {
+          if (event.request.destination === 'document') {
+            return caches.match('/offline');
+          }
+          throw error;
+        });
       })
   );
 });
