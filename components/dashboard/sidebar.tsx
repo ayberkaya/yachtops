@@ -35,24 +35,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
 
-  // Wait for session to load
-  if (status === "loading") {
-    return null;
-  }
-
-  if (!session?.user) return null;
-
-  const user = session.user;
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email[0].toUpperCase();
-
-  const navItems = [
+  // Define base navItems structure (static, no user dependency)
+  const baseNavItems = [
     {
       href: "/dashboard",
       label: "Dashboard",
@@ -194,6 +178,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
   // Fetch pending expenses count
   useEffect(() => {
+    if (!session?.user) return;
+    
     const fetchPendingExpensesCount = async () => {
       try {
         if (!hasPermission(session.user, "expenses.approve", session.user.permissions)) {
@@ -217,26 +203,43 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
   // Auto-expand active parent items
   useEffect(() => {
-    const activeParent = filteredNavItems.find((item) => {
-      if (item.href === "/dashboard") {
-        return pathname === "/dashboard";
-      } else if (item.href === "/dashboard/expenses") {
-        return pathname === "/dashboard/expenses" || pathname.startsWith("/dashboard/expenses/");
-      } else if (item.href === "/dashboard/inventory") {
-        return pathname === "/dashboard/inventory" || pathname.startsWith("/dashboard/inventory/");
-      } else {
-        return pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
-      }
-    });
-    
-    if (activeParent && activeParent.children) {
-      setMobileExpandedItems((prev) => {
-        const newSet = new Set(prev);
-        newSet.add(activeParent.href);
-        return newSet;
+    if (filteredNavItems.length > 0) {
+      const activeParent = filteredNavItems.find((item) => {
+        if (item.href === "/dashboard") {
+          return pathname === "/dashboard";
+        } else if (item.href === "/dashboard/expenses") {
+          return pathname === "/dashboard/expenses" || pathname.startsWith("/dashboard/expenses/");
+        } else if (item.href === "/dashboard/inventory") {
+          return pathname === "/dashboard/inventory" || pathname.startsWith("/dashboard/inventory/");
+        } else {
+          return pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+        }
       });
+      
+      if (activeParent && activeParent.children) {
+        setMobileExpandedItems((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(activeParent.href);
+          return newSet;
+        });
+      }
     }
   }, [pathname, filteredNavItems]);
+
+  // Early return after all hooks (to maintain hook order)
+  if (status === "loading" || !session?.user) {
+    return null;
+  }
+
+  const user = session.user;
+  const initials = user.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : user.email[0].toUpperCase();
 
   return (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
