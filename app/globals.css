@@ -13,7 +13,7 @@
   --secondary: 220 15% 98%;
   --secondary-foreground: 220 15% 20%;
   --muted: 220 10% 98%;
-  --muted-foreground: 220 10% 45%;
+  --muted-foreground: 220 15% 35%;
   --accent: 220 15% 97%;
   --accent-foreground: 220 15% 20%;
   --destructive: 0 84% 60%;
@@ -78,6 +78,30 @@
   color: hsl(220 15% 20%) !important;
 }
 
+/* Improve text contrast in light mode */
+:root:not(.dark) {
+  --muted-foreground: 220 15% 30%;
+}
+
+/* Ensure text is always visible and not behind backgrounds */
+section[class*="relative"] {
+  position: relative;
+  z-index: 10;
+}
+
+section[class*="relative"] > * {
+  position: relative;
+  z-index: 10;
+}
+
+/* Remove backdrop blur effects that make text look faded */
+:root:not(.dark) .backdrop-blur-sm,
+:root:not(.dark) .backdrop-blur-md,
+:root:not(.dark) .backdrop-blur-xl {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -118,6 +142,65 @@
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes zoomIn {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Light mode specific enhancements for homepage */
+:root:not(.dark) {
+  --home-gradient-start: #ffffff;
+  --home-gradient-end: #f0f9ff;
+}
+
+/* Smooth gradient text rendering */
+.bg-clip-text {
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Enhanced card shadows for light mode */
+:root:not(.dark) .shadow-lg {
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.04);
+}
+
+:root:not(.dark) .shadow-xl {
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+:root:not(.dark) .shadow-2xl {
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.15);
 }
 
 /* Sidebar hover effects for light mode */
@@ -170,4 +253,45 @@ button[data-slot="button"][class*="bg-destructive"] svg,
 button[data-slot="button"][class*="variant-destructive"] svg {
   color: white !important;
   fill: white !important;
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  /* Ensure minimum touch target sizes */
+  button, a[role="button"], [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* Improve tap highlight */
+  button, a, [role="button"] {
+    -webkit-tap-highlight-color: rgba(0, 0, 0, 0.1);
+    touch-action: manipulation;
+  }
+  
+  /* Prevent text size adjustment on iOS */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+  
+  /* Better spacing for mobile */
+  .container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+  
+  /* Optimize table scrolling on mobile */
+  [data-slot="table-container"] {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+  
+  /* Reduce motion for better performance */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }

@@ -5,21 +5,22 @@ import { Button } from "@/components/ui/button";
 import { 
   Anchor, 
   Ship, 
-  Navigation, 
   Activity, 
   DollarSign, 
   CheckSquare, 
   Users, 
   MessageSquare,
   TrendingUp,
-  ShoppingCart,
   FileText,
   Package,
   Wrench,
   ArrowRight,
   Shield,
   Zap,
-  BarChart3
+  BarChart3,
+  Clock,
+  Globe,
+  Sparkles
 } from "lucide-react";
 
 export default function Home() {
@@ -27,115 +28,131 @@ export default function Home() {
     {
       icon: DollarSign,
       title: "Expense Management",
-      description: "Track and manage all yacht expenses with detailed categorization and approval workflows."
+      description: "Track and manage all yacht expenses with detailed categorization and approval workflows.",
+      color: "from-blue-500 to-cyan-500"
     },
     {
       icon: CheckSquare,
       title: "Task Management",
-      description: "Organize crew tasks, maintenance schedules, and operational checklists efficiently."
+      description: "Organize crew tasks, maintenance schedules, and operational checklists efficiently.",
+      color: "from-purple-500 to-pink-500"
     },
     {
       icon: Users,
       title: "Crew Management",
-      description: "Manage crew documents, schedules, and communications in one centralized platform."
+      description: "Manage crew documents, schedules, and communications in one centralized platform.",
+      color: "from-green-500 to-emerald-500"
     },
     {
       icon: MessageSquare,
       title: "Team Communication",
-      description: "Real-time messaging and channel-based communication for seamless coordination."
+      description: "Real-time messaging and channel-based communication for seamless coordination.",
+      color: "from-orange-500 to-red-500"
     },
     {
       icon: Package,
       title: "Inventory Control",
-      description: "Track supplies, alcohol stock, and shopping lists with automated alerts."
+      description: "Track supplies, alcohol stock, and shopping lists with automated alerts.",
+      color: "from-indigo-500 to-purple-500"
     },
     {
       icon: Wrench,
       title: "Maintenance Logs",
-      description: "Comprehensive maintenance tracking with schedules, history, and documentation."
+      description: "Comprehensive maintenance tracking with schedules, history, and documentation.",
+      color: "from-teal-500 to-cyan-500"
     },
     {
       icon: FileText,
       title: "Document Management",
-      description: "Secure storage and organization of vessel documents, permits, and certifications."
+      description: "Secure storage and organization of vessel documents, permits, and certifications.",
+      color: "from-amber-500 to-orange-500"
     },
     {
       icon: BarChart3,
       title: "Performance Analytics",
-      description: "Monitor vessel performance metrics and generate detailed monthly reports."
+      description: "Monitor vessel performance metrics and generate detailed monthly reports.",
+      color: "from-rose-500 to-pink-500"
+    }
+  ];
+
+  const benefits = [
+    {
+      icon: Shield,
+      title: "Enterprise Security",
+      description: "Bank-level encryption and security protocols"
+    },
+    {
+      icon: Clock,
+      title: "Real-time Sync",
+      description: "Instant updates across all devices and team members"
+    },
+    {
+      icon: Globe,
+      title: "Cloud-Based",
+      description: "Access from anywhere, anytime with cloud infrastructure"
+    },
+    {
+      icon: Sparkles,
+      title: "Intuitive Design",
+      description: "Beautiful, modern interface that's easy to use"
     }
   ];
 
   return (
-    <div className="min-h-screen bg-background dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden transition-colors">
-      {/* Animated Background Elements */}
-      <div className="fixed inset-0 -z-10">
-        {/* Light mode - Soft pastel gradients */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-accent/30 dark:bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-accent/20 dark:bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-0 w-72 h-72 bg-accent/15 dark:bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        <div className="absolute top-1/3 right-1/3 w-[500px] h-[500px] bg-accent/20 dark:hidden rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] bg-accent/15 dark:hidden rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50/30 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
+      {/* Light Mode Background - Subtle geometric patterns */}
+      <div className="fixed inset-0 -z-10 dark:hidden">
+        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/40 via-transparent to-transparent rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/40 via-transparent to-transparent rounded-full blur-3xl" />
+        <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-purple-100/30 via-transparent to-transparent rounded-full blur-3xl" />
       </div>
 
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 border-b border-border bg-background/95 backdrop-blur-xl shadow-sm">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-accent rounded-lg border border-border shadow-sm">
-                <Anchor className="h-5 w-5 text-primary" />
-              </div>
-              <span className="text-xl font-semibold text-foreground">
-                YachtOps
-              </span>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" asChild className="text-foreground hover:bg-accent">
-                <Link href="/auth/signin">Sign In</Link>
-              </Button>
-              <Button asChild className="shadow-md hover:shadow-lg">
-                <Link href="/auth/signin">Get Started</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* Dark Mode Background */}
+      <div className="fixed inset-0 -z-10 hidden dark:block">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+      </div>
 
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative pt-24 pb-24 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-6xl">
           <div className="text-center space-y-8">
+            {/* Badge */}
+            <div 
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-primary/15 dark:to-primary/10 border border-blue-200/50 dark:border-primary/30 text-sm font-semibold text-blue-700 dark:text-primary shadow-sm backdrop-blur-sm"
+              style={{ animation: 'fadeInUp 0.6s ease-out forwards', opacity: 0 }}
+            >
+              <Zap className="h-4 w-4" />
+              <span>Professional Yacht Management Platform</span>
+            </div>
+            
             {/* Main Heading */}
             <div 
               className="space-y-6"
-              style={{ animation: 'fadeInUp 0.8s ease-out forwards', opacity: 0 }}
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.1s forwards', opacity: 0 }}
             >
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-accent border border-border text-sm text-accent-foreground font-medium shadow-sm">
-                <Zap className="h-4 w-4" />
-                <span>Professional Yacht Management Platform</span>
-              </div>
-              
-              <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-tight text-foreground">
+              <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white bg-clip-text text-transparent">
                 YachtOps
               </h1>
               
-              <p className="text-xl sm:text-2xl md:text-3xl text-muted-foreground font-light max-w-3xl mx-auto leading-relaxed">
+              <p className="text-2xl sm:text-3xl md:text-4xl text-slate-700 dark:text-slate-300 font-medium max-w-4xl mx-auto leading-tight">
                 Complete Operations Management Platform
                 <br />
-                <span className="text-lg sm:text-xl md:text-2xl">for Modern Yacht Operations</span>
+                <span className="text-xl sm:text-2xl md:text-3xl text-slate-600 dark:text-slate-400 font-normal">
+                  for Modern Yacht Operations
+                </span>
               </p>
             </div>
 
             {/* CTA Buttons */}
             <div 
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4"
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
             >
               <Button 
                 asChild 
                 size="lg" 
-                className="group px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                className="group px-10 py-7 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0"
               >
                 <Link href="/auth/signin">
                   Access Platform
@@ -146,7 +163,7 @@ export default function Home() {
                 asChild 
                 variant="outline" 
                 size="lg" 
-                className="px-8 py-6 text-base font-semibold transition-all duration-300 shadow-md hover:shadow-lg"
+                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100"
               >
                 <Link href="/auth/signin">
                   Learn More
@@ -156,34 +173,56 @@ export default function Home() {
 
             {/* Trust Indicators */}
             <div 
-              className="flex flex-wrap items-center justify-center gap-8 pt-12 text-sm"
+              className="flex flex-wrap items-center justify-center gap-6 pt-16"
               style={{ animation: 'fadeIn 1s ease-out 0.4s forwards', opacity: 0 }}
             >
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border shadow-md text-foreground font-medium backdrop-blur-sm">
-                <Shield className="h-4 w-4 text-primary" />
-                <span>Secure & Encrypted</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border shadow-md text-foreground font-medium backdrop-blur-sm">
-                <Activity className="h-4 w-4 text-primary" />
-                <span>Real-time Updates</span>
-              </div>
-              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-card border border-border shadow-md text-foreground font-medium backdrop-blur-sm">
-                <TrendingUp className="h-4 w-4 text-primary" />
-                <span>Performance Analytics</span>
-              </div>
+              {benefits.map((benefit, index) => {
+                const Icon = benefit.icon;
+                return (
+                  <div 
+                    key={benefit.title}
+                    className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                    style={{ animation: `fadeIn 0.6s ease-out ${0.5 + index * 0.1}s forwards`, opacity: 0 }}
+                  >
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-primary/20 dark:to-primary/10">
+                      <Icon className="h-5 w-5 text-blue-600 dark:text-primary" />
+                    </div>
+                    <div className="text-left">
+                      <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                        {benefit.title}
+                      </div>
+                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                        {benefit.description}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
         <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold mb-4 text-foreground">
+          <div className="text-center mb-20">
+            <div 
+              className="inline-block px-4 py-1.5 rounded-full bg-blue-100 dark:bg-primary/20 text-blue-700 dark:text-primary text-sm font-semibold mb-6"
+              style={{ animation: 'fadeInUp 0.6s ease-out forwards', opacity: 0 }}
+            >
+              Features
+            </div>
+            <h2 
+              className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent"
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.1s forwards', opacity: 0 }}
+            >
               Comprehensive Management Solutions
             </h2>
-            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            <p 
+              className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto font-medium"
+              style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
+            >
               Everything you need to manage your yacht operations efficiently and professionally
             </p>
           </div>
@@ -194,19 +233,24 @@ export default function Home() {
               return (
                 <div
                   key={feature.title}
-                  className="group relative p-6 rounded-2xl border border-border bg-card hover:border-primary/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-1 shadow-md backdrop-blur-sm"
+                  className="group relative p-8 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-primary/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl shadow-lg"
                   style={{ 
-                    animation: `fadeInUp 0.6s ease-out ${0.1 * index}s forwards`,
+                    animation: `fadeInUp 0.6s ease-out ${0.3 + index * 0.1}s forwards`,
                     opacity: 0 
                   }}
                 >
-                  <div className="flex flex-col gap-4">
-                    <div className="p-3 bg-accent rounded-lg w-fit group-hover:bg-accent/80 transition-all border border-border shadow-sm">
-                      <Icon className="h-6 w-6 text-primary" />
+                  {/* Gradient accent */}
+                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.color} rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  
+                  <div className="flex flex-col gap-5">
+                    <div className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} w-fit shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                      <Icon className="h-7 w-7 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold mb-2 text-card-foreground">{feature.title}</h3>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
+                      <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-primary transition-colors">
+                        {feature.title}
+                      </h3>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                         {feature.description}
                       </p>
                     </div>
@@ -219,28 +263,31 @@ export default function Home() {
       </section>
 
       {/* CTA Section */}
-      <section className="relative py-20 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-4xl">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8">
+        <div className="container mx-auto max-w-5xl">
           <div 
-            className="relative p-12 rounded-3xl border border-border bg-card overflow-hidden shadow-xl backdrop-blur-sm"
+            className="relative p-16 rounded-3xl bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-700 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 overflow-hidden shadow-2xl"
             style={{ animation: 'fadeIn 1s ease-out forwards', opacity: 0 }}
           >
-            <div className="absolute inset-0 bg-accent/30 dark:from-primary/10 dark:via-primary/5 dark:to-primary/10" />
-            <div className="relative text-center space-y-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-accent rounded-2xl mb-4 border border-border shadow-md">
-                <Ship className="h-8 w-8 text-primary" />
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
+            
+            <div className="relative text-center space-y-8 z-10">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 dark:bg-primary/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30 dark:border-primary/30 shadow-xl">
+                <Ship className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-3xl sm:text-4xl font-bold text-card-foreground">
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white">
                 Ready to Streamline Your Operations?
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              <p className="text-xl text-blue-100 dark:text-slate-300 max-w-3xl mx-auto font-medium">
                 Join professional yacht management teams who trust YachtOps for their daily operations
               </p>
               <div className="pt-4">
                 <Button 
                   asChild 
                   size="lg" 
-                  className="group px-8 py-6 text-base font-semibold shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                  className="group px-10 py-7 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 bg-white text-blue-600 hover:bg-blue-50 border-0"
                 >
                   <Link href="/auth/signin">
                     Get Started Now
@@ -254,18 +301,18 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t border-border bg-background/95 backdrop-blur-sm py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="relative border-t-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-accent rounded-lg border border-border shadow-sm">
-                <Anchor className="h-5 w-5 text-primary" />
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center gap-3">
+              <div className="p-2.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
+                <Anchor className="h-6 w-6 text-white" />
               </div>
-              <span className="text-lg font-semibold text-foreground">
+              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
                 YachtOps
               </span>
             </div>
-            <p className="text-sm text-muted-foreground text-center md:text-right">
+            <p className="text-sm text-slate-600 dark:text-slate-400 text-center md:text-right font-medium">
               © {new Date().getFullYear()} YachtOps. Professional yacht operations management.
             </p>
           </div>
