@@ -1101,7 +1101,7 @@ export function Sidebar() {
 }
 
 // Mobile Menu Button Component (exported for use in layout)
-function MobileMenuButton() {
+export function MobileMenuButton() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
@@ -1117,8 +1117,5 @@ function MobileMenuButton() {
     </>
   );
 }
-
-// Export MobileMenuButton as a sub-component
-Sidebar.MobileMenuButton = MobileMenuButton;
 
 
