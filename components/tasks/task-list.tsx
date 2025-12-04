@@ -182,17 +182,19 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
           )}
           <div className="flex items-center gap-2">
             <Button
-              variant={viewMode === "table" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => setViewMode("table")}
+              className={viewMode === "table" ? "bg-primary text-primary-foreground border-primary shadow-sm" : ""}
             >
               <List className="mr-2 h-4 w-4" />
               Table
             </Button>
             <Button
-              variant={viewMode === "cards" ? "default" : "outline"}
+              variant="outline"
               size="sm"
               onClick={() => setViewMode("cards")}
+              className={viewMode === "cards" ? "bg-primary text-primary-foreground border-primary shadow-sm" : ""}
             >
               <LayoutGrid className="mr-2 h-4 w-4" />
               Cards
