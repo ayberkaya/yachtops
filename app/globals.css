@@ -150,3 +150,24 @@
   color: hsl(var(--primary));
   font-weight: 500;
 }
+
+/* Button hover effects for light mode */
+:root:not(.dark) button[data-slot="button"]:not(:disabled):hover {
+  transform: translateY(-1px);
+}
+
+:root:not(.dark) button[data-slot="button"][class*="bg-primary"]:not(:disabled):hover {
+  box-shadow: 0 4px 12px hsl(var(--primary) / 0.3);
+}
+
+:root:not(.dark) button[data-slot="button"][class*="variant-outline"]:not(:disabled):hover {
+  border-color: hsl(var(--primary) / 0.5);
+  box-shadow: 0 2px 8px hsl(var(--primary) / 0.15);
+}
+
+/* Ensure SVG icons in destructive buttons are white */
+button[data-slot="button"][class*="bg-destructive"] svg,
+button[data-slot="button"][class*="variant-destructive"] svg {
+  color: white !important;
+  fill: white !important;
+}
