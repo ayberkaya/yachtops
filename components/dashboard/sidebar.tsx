@@ -745,114 +745,21 @@ export function Sidebar() {
     };
   }, [isCollapsed, isHovered]);
 
-  // Define navItems structure (will be filtered based on permissions)
-  const baseNavItems = [
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: Activity,
-      permission: null,
-    },
-    {
-      href: "#",
-      label: "Income & Expenses",
-      icon: DollarSign,
-      permission: "expenses.view",
-      children: [
-        {
-          href: "/dashboard/expenses",
-          label: "Expenses",
-          permission: "expenses.view",
-        },
-        {
-          href: "/dashboard/expenses/pending",
-          label: "Pending Approval",
-          permission: "expenses.approve",
-        },
-        {
-          href: "/dashboard/cash",
-          label: "Cash",
-          permission: "expenses.view",
-        },
-      ],
-    },
-    {
-      href: "/dashboard/documents",
-      label: "Documents",
-      icon: FileText,
-      permission: "documents.view",
-      // Child sections for expense-related documents
-      children: [
-        {
-          href: "/dashboard/documents/receipts",
-          label: "Receipts & Invoices",
-          permission: "documents.receipts.view",
-        },
-        {
-          href: "/dashboard/documents/marina-permissions",
-          label: "Marina / Port Permissions",
-          permission: "documents.marina.view",
-        },
-        {
-          href: "/dashboard/documents/vessel",
-          label: "Vessel Documents",
-          permission: "documents.vessel.view",
-        },
-        {
-          href: "/dashboard/documents/crew",
-          label: "Crew Documents",
-          permission: "documents.crew.view",
-        },
-      ],
-    },
-    {
-      href: "/dashboard/tasks",
-      label: "Tasks",
-      icon: CheckSquare,
-      permission: "tasks.view",
-    },
-    {
-      href: "/dashboard/shopping",
-      label: "Shopping",
-      icon: ShoppingCart,
-      permission: "shopping.view",
-    },
-    {
-      href: "/dashboard/messages",
-      label: "Messages",
-      icon: MessageSquare,
-      permission: "messages.view",
-    },
-    {
-      href: "/dashboard/trips",
-      label: "Trips",
-      icon: Anchor,
-      permission: "trips.view",
-    },
-    {
-      href: "/dashboard/inventory",
-      label: "Inventory",
-      icon: Package,
-      permission: "inventory.view",
-      children: [
-        {
-          href: "/dashboard/inventory/alcohol-stock",
-          label: "Alcohol Stock",
-          permission: "inventory.alcohol.view",
-        },
-      ],
-    },
-    {
-      href: "/dashboard/maintenance",
-      label: "Maintenance",
-      icon: Wrench,
-      permission: "maintenance.view",
-    },
-  ].filter(
-    (item) =>
-      !item.permission ||
-      hasPermission(user, item.permission as any, user.permissions)
-  );
+  // Early return after all hooks (to maintain hook order)
+  if (status === "loading" || !session?.user) {
+    return null;
+  }
+
+  const user = session.user;
+  const userPermissions = getUserPermissions(user, user.permissions);
+  const initials = user.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : user.email[0].toUpperCase();
 
   const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
     // For mobile, always show expanded
