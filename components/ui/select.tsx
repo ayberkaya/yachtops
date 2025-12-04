@@ -25,7 +25,7 @@ function SelectValue({
   return (
     <SelectPrimitive.Value 
       data-slot="select-value" 
-      className={cn("text-slate-900 font-medium", className)} 
+      className={cn("text-slate-900 font-medium placeholder:text-slate-400", className)} 
       {...props} 
     />
   )
@@ -45,7 +45,7 @@ function SelectTrigger({
       data-size={size}
       className={cn(
         "border-input [&_svg:not([class*='text-'])]:text-slate-500 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/20 aria-invalid:ring-destructive/20 aria-invalid:border-destructive flex w-fit items-center justify-between gap-2 rounded-xl border border-border/50 bg-white px-4 py-2.5 text-sm whitespace-nowrap shadow-sm transition-all duration-200 outline-none disabled:cursor-not-allowed disabled:opacity-50 data-[size=default]:h-11 data-[size=sm]:h-9 hover:border-border focus-visible:shadow-md text-slate-900 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
-        "data-[placeholder]:text-slate-400 [&_*[data-slot='select-value']]:text-slate-900 [&_*[data-slot='select-value']]:line-clamp-1 [&_*[data-slot='select-value']]:flex [&_*[data-slot='select-value']]:items-center [&_*[data-slot='select-value']]:gap-2 [&_*[data-slot='select-value']]:font-medium",
+        "[&_*[data-slot='select-value']]:text-slate-900 [&_*[data-slot='select-value']]:line-clamp-1 [&_*[data-slot='select-value']]:flex [&_*[data-slot='select-value']]:items-center [&_*[data-slot='select-value']]:gap-2 [&_*[data-slot='select-value']]:font-medium",
         className
       )}
       {...props}
