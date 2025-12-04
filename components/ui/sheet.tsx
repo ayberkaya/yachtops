@@ -53,17 +53,16 @@ function SheetContent({
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
-  const mergedStyle = React.useMemo(() => {
-    const baseStyle = style || {};
-    const hasWhiteBg = className?.includes('!bg-white');
-    const hasNoBlur = className?.includes('!backdrop-blur-none');
-    
-    return {
-      ...baseStyle,
-      ...(hasWhiteBg ? { backgroundColor: '#ffffff', background: '#ffffff' } : {}),
-      ...(hasNoBlur ? { backdropFilter: 'none' } : {}),
-    };
-  }, [style, className]);
+  // Merge styles safely
+  const baseStyle = style || {};
+  const hasWhiteBg = typeof className === 'string' && className.includes('!bg-white');
+  const hasNoBlur = typeof className === 'string' && className.includes('!backdrop-blur-none');
+  
+  const mergedStyle: React.CSSProperties = {
+    ...baseStyle,
+    ...(hasWhiteBg ? { backgroundColor: '#ffffff', background: '#ffffff' } : {}),
+    ...(hasNoBlur ? { backdropFilter: 'none' } : {}),
+  };
 
   return (
     <SheetPortal>
