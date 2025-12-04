@@ -640,18 +640,18 @@ export function Sidebar() {
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetContent
             side="left"
-            className="w-[280px] p-0 bg-card border-border z-[100]"
+            className="w-[280px] p-0 bg-white border-border z-[100] backdrop-blur-none"
           >
-            <div className="p-6 border-b border-border">
+            <div className="p-6 border-b border-slate-200 bg-slate-50">
               <div className="flex items-center space-x-3">
                 <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
                   <Anchor className="text-primary-foreground w-6 h-6" />
                 </div>
                 <div>
-                  <span className="font-bold text-lg tracking-wider block text-foreground">
+                  <span className="font-bold text-lg tracking-wider block text-slate-900">
                     YACHT
                   </span>
-                  <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                  <span className="text-xs text-slate-600 uppercase tracking-widest">
                     Operations
                   </span>
                 </div>
@@ -704,19 +704,19 @@ export function Sidebar() {
                       }}
                       className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 ${
                         isActive
-                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                          ? "bg-primary text-white shadow-lg shadow-primary/20"
+                          : "text-slate-900 hover:bg-slate-100"
                       }`}
                     >
                       <Icon
                         size={20}
                         className={`transition-colors duration-200 ${
                           isActive
-                            ? "text-primary-foreground"
-                            : "text-muted-foreground"
+                            ? "text-white"
+                            : "text-slate-700"
                         }`}
                       />
-                      <span className="text-sm font-medium flex-1">
+                      <span className="text-sm font-semibold flex-1 text-slate-900">
                         {item.label}
                       </span>
                       {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
@@ -732,7 +732,7 @@ export function Sidebar() {
                         <ChevronRight 
                           size={16} 
                           className={`transition-transform duration-200 ${
-                            isActive ? "text-primary-foreground" : "text-muted-foreground"
+                            isActive ? "text-white" : "text-slate-600"
                           } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
                         />
                       )}
@@ -758,8 +758,8 @@ export function Sidebar() {
                                 onClick={() => setMobileMenuOpen(false)}
                                 className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
                                   childActive
-                                    ? "text-primary bg-accent"
-                                    : "text-muted-foreground hover:text-primary hover:bg-accent"
+                                    ? "text-primary bg-blue-50 font-medium"
+                                    : "text-slate-700 hover:text-primary hover:bg-slate-50"
                                 }`}
                               >
                                 <span className="flex items-center justify-between">
@@ -780,18 +780,18 @@ export function Sidebar() {
                 );
               })}
             </nav>
-            <div className="p-4 border-t border-border">
-              <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-accent">
+            <div className="p-4 border-t border-slate-200 bg-slate-50">
+              <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-white border border-slate-200">
                 <Avatar className="h-10 w-10 border-2 border-primary/50">
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                  <AvatarFallback className="bg-primary text-white font-semibold">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
+                  <p className="text-sm font-semibold text-slate-900 truncate">
                     {user.name || "User"}
                   </p>
-                  <p className="text-xs text-muted-foreground truncate capitalize">
+                  <p className="text-xs text-slate-600 truncate capitalize">
                     {user.role.toLowerCase()}
                   </p>
                 </div>
@@ -800,39 +800,39 @@ export function Sidebar() {
                 <Link
                   href="/dashboard/users"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 mb-2 group"
+                  className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
                 >
-                  <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                  <span className="transition-colors duration-200">Users</span>
+                  <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900">Users</span>
                 </Link>
               )}
               {hasPermission(user, "performance.view", user.permissions) && (
                 <Link
                   href="/dashboard/performance"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 mb-2 group"
+                  className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
                 >
-                  <TrendingUp size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                  <span className="transition-colors duration-200">Performance</span>
+                  <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900">Performance</span>
                 </Link>
               )}
               <Link
                 href="/dashboard/my-documents"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 mb-2 group"
+                className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
               >
-                <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                <span className="transition-colors duration-200">My Documents</span>
+                <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                <span className="transition-colors duration-200 font-medium text-slate-900">My Documents</span>
               </Link>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   signOut({ callbackUrl: "/" });
                 }}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-destructive w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 group"
+                className="flex items-center space-x-2 text-slate-700 hover:text-red-600 w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
               >
-                <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
-                <span className="transition-colors duration-200">Sign Out</span>
+                <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
+                <span className="transition-colors duration-200 font-medium text-slate-900">Sign Out</span>
               </button>
             </div>
           </SheetContent>
