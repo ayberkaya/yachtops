@@ -2,6 +2,15 @@
 
 Production-ready yacht operations management system for private and charter yachts.
 
+## 🔗 Hızlı Link Paylaşımı
+
+Karşı tarafa link göndermek için: **[SIMPLE-DEPLOY.md](./SIMPLE-DEPLOY.md)** dosyasına bakın.
+
+**3 Adımda Link Hazır:**
+1. GitHub'a push edin
+2. Vercel'e deploy edin (2 dakika)
+3. Link'i paylaşın ✅
+
 ## 🚀 Quick Start
 
 ### 1. Environment Setup
@@ -139,11 +148,34 @@ yachtops/
 - **CAPTAIN**: Can manage users, approve expenses, create trips/tasks
 - **CREW**: Can create expenses, view assigned tasks, update task status
 
+## 📱 PWA (Progressive Web App)
+
+YachtOps bir PWA olarak çalışır ve cihazlara yüklenebilir.
+
+### PWA Özellikleri
+
+- ✅ Offline Support
+- ✅ Install Prompt
+- ✅ App Icons
+- ✅ Standalone Mode
+- ✅ Service Worker
+
+### PWA Kurulumu
+
+Detaylı kurulum için [PWA-SETUP.md](./PWA-SETUP.md) dosyasına bakın.
+
+**Hızlı Başlangıç:**
+1. Icon dosyalarını oluşturun (`public/icon-192.png`, `public/icon-512.png`)
+2. `npm run build` ile production build oluşturun
+3. HTTPS üzerinden deploy edin (Vercel/Netlify önerilir)
+4. Tarayıcıdan "Install" butonuna tıklayın
+
 ## 📝 Notes
 
 - The application is mobile-responsive and works as a PWA
 - Expense module is the core feature and is fully functional
 - Receipt upload functionality requires additional file storage setup (e.g., AWS S3, Cloudinary)
+- PWA için icon dosyaları gereklidir (detaylar için PWA-SETUP.md)
 
 ## 🐛 Troubleshooting
 

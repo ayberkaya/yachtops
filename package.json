@@ -8,7 +8,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "create-icons": "./scripts/create-icons.sh",
+    "deploy": "./scripts/deploy.sh",
+    "postinstall": "npm run create-icons || echo 'Icon creation skipped (ImageMagick not found)'"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
