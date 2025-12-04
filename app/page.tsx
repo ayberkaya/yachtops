@@ -99,18 +99,12 @@ export default function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50/30 to-white dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 relative overflow-hidden">
-      {/* Light Mode Background - Subtle geometric patterns */}
-      <div className="fixed inset-0 -z-10 dark:hidden">
+    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
+      {/* Background - Subtle geometric patterns */}
+      <div className="fixed inset-0 -z-10">
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/40 via-transparent to-transparent rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/40 via-transparent to-transparent rounded-full blur-3xl" />
         <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-purple-100/30 via-transparent to-transparent rounded-full blur-3xl" />
-      </div>
-
-      {/* Dark Mode Background */}
-      <div className="fixed inset-0 -z-10 hidden dark:block">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
       </div>
 
       {/* Hero Section */}
@@ -119,7 +113,7 @@ export default function Home() {
           <div className="text-center space-y-8">
             {/* Badge */}
             <div 
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-primary/15 dark:to-primary/10 border border-blue-200/50 dark:border-primary/30 text-sm font-semibold text-blue-700 dark:text-primary shadow-sm backdrop-blur-sm"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200/50 text-sm font-semibold text-blue-700 shadow-sm backdrop-blur-sm"
               style={{ animation: 'fadeInUp 0.6s ease-out forwards', opacity: 0 }}
             >
               <Zap className="h-4 w-4" />
@@ -131,14 +125,14 @@ export default function Home() {
               className="space-y-6"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.1s forwards', opacity: 0 }}
             >
-              <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white bg-clip-text text-transparent">
+              <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">
                 YachtOps
               </h1>
               
-              <p className="text-2xl sm:text-3xl md:text-4xl text-slate-700 dark:text-slate-300 font-medium max-w-4xl mx-auto leading-tight">
+              <p className="text-2xl sm:text-3xl md:text-4xl text-slate-700 font-medium max-w-4xl mx-auto leading-tight">
                 Complete Operations Management Platform
                 <br />
-                <span className="text-xl sm:text-2xl md:text-3xl text-slate-600 dark:text-slate-400 font-normal">
+                <span className="text-xl sm:text-2xl md:text-3xl text-slate-600 font-normal">
                   for Modern Yacht Operations
                 </span>
               </p>
@@ -181,17 +175,17 @@ export default function Home() {
                 return (
                   <div 
                     key={benefit.title}
-                    className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
+                    className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
                     style={{ animation: `fadeIn 0.6s ease-out ${0.5 + index * 0.1}s forwards`, opacity: 0 }}
                   >
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-primary/20 dark:to-primary/10">
-                      <Icon className="h-5 w-5 text-blue-600 dark:text-primary" />
+                    <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50">
+                      <Icon className="h-5 w-5 text-blue-600" />
                     </div>
                     <div className="text-left">
-                      <div className="text-xs font-semibold text-slate-900 dark:text-slate-100 uppercase tracking-wide">
+                      <div className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
                         {benefit.title}
                       </div>
-                      <div className="text-xs text-slate-600 dark:text-slate-400">
+                      <div className="text-xs text-slate-600">
                         {benefit.description}
                       </div>
                     </div>
@@ -204,23 +198,23 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
+      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white/50 backdrop-blur-sm">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-20">
             <div 
-              className="inline-block px-4 py-1.5 rounded-full bg-blue-100 dark:bg-primary/20 text-blue-700 dark:text-primary text-sm font-semibold mb-6"
+              className="inline-block px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mb-6"
               style={{ animation: 'fadeInUp 0.6s ease-out forwards', opacity: 0 }}
             >
               Features
             </div>
             <h2 
-              className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent"
+              className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.1s forwards', opacity: 0 }}
             >
               Comprehensive Management Solutions
             </h2>
             <p 
-              className="text-xl text-slate-600 dark:text-slate-400 max-w-3xl mx-auto font-medium"
+              className="text-xl text-slate-600 max-w-3xl mx-auto font-medium"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
             >
               Everything you need to manage your yacht operations efficiently and professionally
@@ -233,7 +227,7 @@ export default function Home() {
               return (
                 <div
                   key={feature.title}
-                  className="group relative p-8 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 hover:border-blue-300 dark:hover:border-primary/50 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl shadow-lg"
+                  className="group relative p-8 rounded-2xl bg-white border-2 border-slate-200 hover:border-blue-300 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl shadow-lg"
                   style={{ 
                     animation: `fadeInUp 0.6s ease-out ${0.3 + index * 0.1}s forwards`,
                     opacity: 0 
@@ -247,10 +241,10 @@ export default function Home() {
                       <Icon className="h-7 w-7 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold mb-3 text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-primary transition-colors">
+                      <h3 className="text-xl font-bold mb-3 text-slate-900 group-hover:text-blue-600 transition-colors">
                         {feature.title}
                       </h3>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                      <p className="text-sm text-slate-600 leading-relaxed">
                         {feature.description}
                       </p>
                     </div>
@@ -266,7 +260,7 @@ export default function Home() {
       <section className="relative py-24 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-5xl">
           <div 
-            className="relative p-16 rounded-3xl bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-700 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800 overflow-hidden shadow-2xl"
+            className="relative p-16 rounded-3xl bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-700 overflow-hidden shadow-2xl"
             style={{ animation: 'fadeIn 1s ease-out forwards', opacity: 0 }}
           >
             {/* Decorative elements */}
@@ -274,13 +268,13 @@ export default function Home() {
             <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
             
             <div className="relative text-center space-y-8 z-10">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 dark:bg-primary/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30 dark:border-primary/30 shadow-xl">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30 shadow-xl">
                 <Ship className="h-10 w-10 text-white" />
               </div>
               <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white">
                 Ready to Streamline Your Operations?
               </h2>
-              <p className="text-xl text-blue-100 dark:text-slate-300 max-w-3xl mx-auto font-medium">
+              <p className="text-xl text-blue-100 max-w-3xl mx-auto font-medium">
                 Join professional yacht management teams who trust YachtOps for their daily operations
               </p>
               <div className="pt-4">
@@ -301,18 +295,18 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="relative border-t-2 border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="relative border-t-2 border-slate-200 bg-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-6xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-3">
               <div className="p-2.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
                 <Anchor className="h-6 w-6 text-white" />
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-300 bg-clip-text text-transparent">
+              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
                 YachtOps
               </span>
             </div>
-            <p className="text-sm text-slate-600 dark:text-slate-400 text-center md:text-right font-medium">
+            <p className="text-sm text-slate-600 text-center md:text-right font-medium">
               © {new Date().getFullYear()} YachtOps. Professional yacht operations management.
             </p>
           </div>
