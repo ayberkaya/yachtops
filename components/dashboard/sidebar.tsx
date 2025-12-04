@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -153,11 +153,16 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       icon: Wrench,
       permission: "maintenance.view",
     },
-  ].filter(
-    (item) =>
-      !item.permission ||
-      hasPermission(user, item.permission as any, user.permissions)
-  );
+  ];
+
+  // Memoize filtered nav items to prevent infinite loops
+  const filteredNavItems = useMemo(() => {
+    return navItems.filter(
+      (item) =>
+        !item.permission ||
+        hasPermission(user, item.permission as any, user.permissions)
+    );
+  }, [user, user.permissions]);
 
   // Fetch pending tasks count
   useEffect(() => {
@@ -212,12 +217,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
   // Auto-expand active parent items
   useEffect(() => {
-    const filteredNavItems = navItems.filter(
-      (item) =>
-        !item.permission ||
-        hasPermission(user, item.permission as any, user.permissions)
-    );
-    
     const activeParent = filteredNavItems.find((item) => {
       if (item.href === "/dashboard") {
         return pathname === "/dashboard";
@@ -231,9 +230,13 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     });
     
     if (activeParent && activeParent.children) {
-      setMobileExpandedItems((prev) => new Set([...prev, activeParent.href]));
+      setMobileExpandedItems((prev) => {
+        const newSet = new Set(prev);
+        newSet.add(activeParent.href);
+        return newSet;
+      });
     }
-  }, [pathname, user, navItems]);
+  }, [pathname, filteredNavItems]);
 
   return (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -264,7 +267,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           </div>
           {/* Mobile Navigation - Always expanded */}
           <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 bg-white">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             let isActive = false;
             if (item.href === "/dashboard") {
               isActive = pathname === "/dashboard";
