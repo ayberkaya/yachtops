@@ -271,7 +271,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         {task.title}
                       </Link>
                     </CardTitle>
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col items-end gap-2">
                       {getPriorityBadge(task.priority)}
                       {getStatusBadge(task.status)}
                     </div>

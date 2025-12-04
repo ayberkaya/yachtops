@@ -231,9 +231,10 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
         <div className="flex-1">
           <h1 className="text-3xl font-bold">{task.title}</h1>
           <div className="flex items-center gap-2 mt-2">
-            {getPriorityBadge(task.priority)}
-            {getStatusBadge(task.status)}
-          </div>
+            <div className="flex flex-col items-end gap-2">
+              {getPriorityBadge(task.priority)}
+              {getStatusBadge(task.status)}
+            </div>
         </div>
         {canManage && (
           <Dialog open={isEditing} onOpenChange={setIsEditing}>
