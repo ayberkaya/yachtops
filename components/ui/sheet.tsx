@@ -48,10 +48,23 @@ function SheetContent({
   className,
   children,
   side = "right",
+  style,
   ...props
 }: React.ComponentProps<typeof SheetPrimitive.Content> & {
   side?: "top" | "right" | "bottom" | "left"
 }) {
+  const mergedStyle = React.useMemo(() => {
+    const baseStyle = style || {};
+    const hasWhiteBg = className?.includes('!bg-white');
+    const hasNoBlur = className?.includes('!backdrop-blur-none');
+    
+    return {
+      ...baseStyle,
+      ...(hasWhiteBg ? { backgroundColor: '#ffffff', background: '#ffffff' } : {}),
+      ...(hasNoBlur ? { backdropFilter: 'none' } : {}),
+    };
+  }, [style, className]);
+
   return (
     <SheetPortal>
       <SheetOverlay />
@@ -69,11 +82,7 @@ function SheetContent({
             "data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom inset-x-0 bottom-0 h-auto border-t",
           className
         )}
-        style={{
-          ...(props.style || {}),
-          ...(className?.includes('!bg-white') ? { backgroundColor: '#ffffff', background: '#ffffff' } : {}),
-          ...(className?.includes('!backdrop-blur-none') ? { backdropFilter: 'none' } : {}),
-        }}
+        style={mergedStyle}
         {...props}
       >
         {children}
