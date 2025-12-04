@@ -48,6 +48,8 @@ interface Expense {
   status: ExpenseStatus;
   paymentMethod: PaymentMethod;
   isReimbursable: boolean;
+  isReimbursed: boolean;
+  reimbursedAt: string | null;
   vendorName: string | null;
   invoiceNumber: string | null;
   createdBy: { id: string; name: string | null; email: string };
@@ -863,6 +865,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                           <TableHead>Trip</TableHead>
                           <TableHead>Amount</TableHead>
                           <TableHead>Status</TableHead>
+                          <TableHead>Reimbursable</TableHead>
                           <TableHead>Created By</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
@@ -890,6 +893,20 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                               )}
                             </TableCell>
                             <TableCell>{getStatusBadge(expense.status)}</TableCell>
+                            <TableCell>
+                              {expense.isReimbursable ? (
+                                <div className="flex flex-col gap-1">
+                                  <Badge variant="outline" className="text-xs w-fit">Reimbursable</Badge>
+                                  {expense.isReimbursed ? (
+                                    <Badge variant="default" className="text-xs w-fit bg-green-600">Reimbursed</Badge>
+                                  ) : (
+                                    <Badge variant="secondary" className="text-xs w-fit">Pending</Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>{expense.createdBy.name || expense.createdBy.email}</TableCell>
                             <TableCell className="text-right">
                               <Button asChild variant="ghost" size="sm">
@@ -910,12 +927,11 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                     <Card key={expense.id} className="flex flex-col">
                       <CardHeader className="pb-3">
                         <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg line-clamp-2">{expense.description}</CardTitle>
+                          <CardTitle className="text-lg">
+                            {format(new Date(expense.date), "MMM d, yyyy")}
+                          </CardTitle>
                           {getStatusBadge(expense.status)}
                         </div>
-                        <CardDescription className="mt-2">
-                          {format(new Date(expense.date), "MMM d, yyyy")}
-                        </CardDescription>
                       </CardHeader>
                       <CardContent className="flex-1 space-y-2 text-sm">
                         <div className="flex items-center justify-between">
@@ -949,8 +965,13 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                           <span className="font-medium">{expense.paymentMethod.replace("_", " ")}</span>
                         </div>
                         {expense.isReimbursable && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             <Badge variant="outline" className="text-xs">Reimbursable</Badge>
+                            {expense.isReimbursed ? (
+                              <Badge variant="default" className="text-xs bg-green-600">Reimbursed</Badge>
+                            ) : (
+                              <Badge variant="secondary" className="text-xs">Pending Reimbursement</Badge>
+                            )}
                           </div>
                         )}
                         <div className="flex items-center justify-between pt-2 border-t">

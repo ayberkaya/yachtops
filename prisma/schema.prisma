@@ -334,6 +334,8 @@ model Expense {
   vatAmount          Float?          @map("vat_amount")
   totalAmountWithVat Float?          @map("total_amount_with_vat")
   isReimbursable     Boolean         @default(false) @map("is_reimbursable")
+  isReimbursed       Boolean         @default(false) @map("is_reimbursed")
+  reimbursedAt       DateTime?       @map("reimbursed_at")
   notes              String?
   createdAt          DateTime        @default(now()) @map("created_at")
   updatedAt          DateTime        @updatedAt @map("updated_at")

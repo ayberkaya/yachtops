@@ -8,6 +8,8 @@ import { z } from "zod";
 const updateExpenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).optional(),
   rejectReason: z.string().optional().nullable(),
+  isReimbursed: z.boolean().optional(),
+  reimbursedAt: z.string().optional().nullable(),
   // Add other fields that can be updated
 });
 

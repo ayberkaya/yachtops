@@ -21,6 +21,8 @@ const expenseSchema = z.object({
   vatAmount: z.number().optional().nullable(),
   totalAmountWithVat: z.number().optional().nullable(),
   isReimbursable: z.boolean().default(false),
+  isReimbursed: z.boolean().optional().default(false),
+  reimbursedAt: z.string().optional().nullable(),
   notes: z.string().optional().nullable(),
   status: z.nativeEnum(ExpenseStatus).default(ExpenseStatus.DRAFT),
 });
@@ -163,6 +165,8 @@ export async function POST(request: NextRequest) {
         vatAmount: validated.vatAmount || null,
         totalAmountWithVat: validated.totalAmountWithVat || null,
         isReimbursable: validated.isReimbursable,
+        isReimbursed: validated.isReimbursed ?? false,
+        reimbursedAt: validated.reimbursedAt ? new Date(validated.reimbursedAt) : null,
         notes: validated.notes || null,
         status: validated.status,
       },
