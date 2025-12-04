@@ -234,9 +234,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetContent
         side="left"
-        className="w-[280px] p-0 bg-white border-border z-[100] backdrop-blur-none"
+        className="w-[280px] p-0 !bg-white !backdrop-blur-none border-slate-200 z-[100]"
+        style={{ backgroundColor: '#ffffff', backdropFilter: 'none' }}
       >
-        <div className="p-6 border-b border-slate-200 bg-slate-50">
+        <div className="p-6 border-b border-slate-200 bg-white">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
               <Anchor className="text-primary-foreground w-6 h-6" />
@@ -245,7 +246,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               <span className="font-bold text-lg tracking-wider block text-slate-900">
                 YACHT
               </span>
-              <span className="text-xs text-slate-600 uppercase tracking-widest">
+              <span className="text-xs text-slate-700 uppercase tracking-widest font-medium">
                 Operations
               </span>
             </div>
@@ -307,7 +308,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                           : "text-slate-700"
                       }`}
                     />
-                    <span className="text-sm font-semibold flex-1 text-left text-slate-900">
+                    <span className="text-sm font-semibold flex-1 text-left text-slate-900 !text-slate-900">
                       {item.label}
                     </span>
                     {item.children && (
@@ -340,7 +341,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                           : "text-slate-700"
                       }`}
                     />
-                    <span className="text-sm font-semibold flex-1 text-slate-900">
+                    <span className="text-sm font-semibold flex-1 text-slate-900 !text-slate-900">
                       {item.label}
                     </span>
                     {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
@@ -408,7 +409,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             );
           })}
         </nav>
-        <div className="p-4 border-t border-slate-200 bg-slate-50">
+        <div className="p-4 border-t border-slate-200 bg-white">
           <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-white border border-slate-200">
             <Avatar className="h-10 w-10 border-2 border-primary/50">
               <AvatarFallback className="bg-primary text-white font-semibold">
@@ -416,10 +417,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               </AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-slate-900 truncate">
+              <p className="text-sm font-semibold text-slate-900 !text-slate-900 truncate">
                 {user.name || "User"}
               </p>
-              <p className="text-xs text-slate-600 truncate capitalize">
+              <p className="text-xs text-slate-700 !text-slate-700 truncate capitalize font-medium">
                 {user.role.toLowerCase()}
               </p>
             </div>
@@ -434,7 +435,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
             >
               <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-              <span className="transition-colors duration-200 font-medium text-slate-900">Users</span>
+              <span className="transition-colors duration-200 font-medium text-slate-900 !text-slate-900">Users</span>
             </Link>
           )}
           {hasPermission(user, "performance.view", user.permissions) && (
@@ -447,7 +448,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
             >
               <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-              <span className="transition-colors duration-200 font-medium text-slate-900">Performance</span>
+              <span className="transition-colors duration-200 font-medium text-slate-900 !text-slate-900">Performance</span>
             </Link>
           )}
           <Link
@@ -459,7 +460,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
           >
             <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-            <span className="transition-colors duration-200 font-medium text-slate-900">My Documents</span>
+            <span className="transition-colors duration-200 font-medium text-slate-900 !text-slate-900">My Documents</span>
           </Link>
           <button
             onClick={(e) => {
@@ -470,7 +471,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             className="flex items-center space-x-2 text-slate-700 hover:text-red-600 w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
           >
             <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
-            <span className="transition-colors duration-200 font-medium text-slate-900">Sign Out</span>
+            <span className="transition-colors duration-200 font-medium text-slate-900 !text-slate-900">Sign Out</span>
           </button>
         </div>
       </SheetContent>
