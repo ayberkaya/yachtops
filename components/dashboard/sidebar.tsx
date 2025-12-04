@@ -506,11 +506,6 @@ export function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
 
-  // Wait for session to load before rendering
-  if (status === "loading") {
-    return null;
-  }
-
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -589,6 +584,7 @@ export function Sidebar() {
   // Auto-expand active parent items on mobile
   useEffect(() => {
     if (isMobile && session?.user) {
+      const user = session.user;
       const filteredNavItems = navItems.filter(
         (item) =>
           !item.permission ||
@@ -608,7 +604,11 @@ export function Sidebar() {
       });
       
       if (activeParent && activeParent.children) {
-        setMobileExpandedItems((prev) => new Set([...prev, activeParent.href]));
+        setMobileExpandedItems((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(activeParent.href);
+          return newSet;
+        });
       }
     }
   }, [pathname, isMobile, session?.user]);
@@ -638,7 +638,10 @@ export function Sidebar() {
     };
   }, [isCollapsed, isHovered]);
 
-  if (!session?.user) return null;
+  // Early return after all hooks (to maintain hook order)
+  if (status === "loading" || !session?.user) {
+    return null;
+  }
 
   const user = session.user;
   const userPermissions = getUserPermissions(user, user.permissions);
