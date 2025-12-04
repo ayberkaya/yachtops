@@ -119,7 +119,8 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
-        className={isUrgent ? "animate-[blinkRed_1s_ease-in-out_infinite]" : ""}
+        className={isUrgent ? "urgent-blink" : ""}
+        style={isUrgent ? { animation: "blinkRed 1s ease-in-out infinite" } : undefined}
       >
         {priorityStr}
       </Badge>
