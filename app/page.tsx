@@ -198,7 +198,7 @@ export default function Home() {
       </section>
 
       {/* Features Section */}
-      <section className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white/50 backdrop-blur-sm">
+      <section id="features" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white/50 backdrop-blur-sm">
         <div className="container mx-auto max-w-7xl">
           <div className="text-center mb-20">
             <div 
