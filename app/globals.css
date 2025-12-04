@@ -156,6 +156,17 @@ section[class*="relative"] > * {
   }
 }
 
+@keyframes blinkRed {
+  0%, 100% {
+    opacity: 1;
+    background-color: hsl(0 84% 60%);
+  }
+  50% {
+    opacity: 0.5;
+    background-color: hsl(0 84% 50%);
+  }
+}
+
 /* Light mode specific enhancements for homepage */
 :root:not(.dark) {
   --home-gradient-start: #ffffff;
