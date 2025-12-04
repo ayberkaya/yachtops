@@ -1,6 +1,8 @@
 import { auth } from "@/lib/auth-config";
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs"; // Use Node.js runtime instead of Edge to avoid size limit
+
 export default auth((req) => {
   const session = req.auth;
   const path = req.nextUrl.pathname;
