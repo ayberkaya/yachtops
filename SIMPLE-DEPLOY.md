@@ -35,16 +35,26 @@ Kullanım:
 - Mobil: Linki açın, "Add to Home Screen" seçin
 ```
 
-## 🗄️ Ücretsiz Veritabanı (2 Dakika)
+## 🗄️ Ücretsiz Veritabanı Seçenekleri
 
-### Supabase (Önerilen)
+### Seçenek 1: Vercel Postgres (En Kolay - Önerilen)
+
+1. Vercel dashboard → Projeniz → "Storage" sekmesi
+2. "Create Database" → "Postgres" seçin
+3. "Create" → 1-2 dakika bekleyin
+4. Settings → Connection string kopyalayın
+5. Environment Variables'a `DATABASE_URL` olarak ekleyin
+
+**Avantajlar:** Vercel ekosisteminde, otomatik yedekleme, kolay kurulum
+
+### Seçenek 2: Supabase (Alternatif)
 
 1. [supabase.com](https://supabase.com) → "Start your project"
 2. Yeni proje oluşturun
 3. Settings → Database → Connection string kopyalayın
 4. Vercel'e `DATABASE_URL` olarak ekleyin
 
-### Neon (Alternatif)
+### Seçenek 3: Neon (Alternatif)
 
 1. [neon.tech](https://neon.tech) → "Sign Up"
 2. Yeni proje oluşturun
