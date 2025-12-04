@@ -632,7 +632,7 @@ export function Sidebar() {
       <div className="md:hidden">
         <button
           onClick={() => setMobileMenuOpen(true)}
-          className="fixed top-4 left-4 z-50 p-3 bg-primary text-primary-foreground rounded-xl shadow-2xl hover:shadow-primary/20 transition-all duration-200"
+          className="fixed top-4 left-4 z-[100] p-3 bg-primary text-primary-foreground rounded-xl shadow-2xl hover:shadow-primary/20 transition-all duration-200"
           aria-label="Open menu"
         >
           <Menu className="h-6 w-6" />
@@ -640,7 +640,7 @@ export function Sidebar() {
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
           <SheetContent
             side="left"
-            className="w-[280px] p-0 bg-card border-border"
+            className="w-[280px] p-0 bg-card border-border z-[100]"
           >
             <div className="p-6 border-b border-border">
               <div className="flex items-center space-x-3">
@@ -657,7 +657,129 @@ export function Sidebar() {
                 </div>
               </div>
             </div>
-            <NavContent isMobile={true} />
+            {/* Mobile Navigation - Always expanded */}
+            <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+              {navItems.map((item) => {
+                let isActive = false;
+                if (item.href === "/dashboard") {
+                  isActive = pathname === "/dashboard";
+                } else if (item.href === "/dashboard/expenses") {
+                  isActive =
+                    pathname === "/dashboard/expenses" ||
+                    pathname.startsWith("/dashboard/expenses/");
+                } else if (item.href === "/dashboard/inventory") {
+                  isActive =
+                    pathname === "/dashboard/inventory" ||
+                    pathname.startsWith("/dashboard/inventory/");
+                } else {
+                  isActive =
+                    pathname === item.href ||
+                    (item.href !== "/dashboard" &&
+                      pathname.startsWith(item.href + "/"));
+                }
+                const Icon = item.icon;
+                const showChildren = (isActive || mobileExpandedItems.has(item.href)) && item.children;
+
+                return (
+                  <div key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={(e) => {
+                        if (item.href === "#") {
+                          e.preventDefault();
+                          if (item.children) {
+                            setMobileExpandedItems((prev) => {
+                              const newSet = new Set(prev);
+                              if (newSet.has(item.href)) {
+                                newSet.delete(item.href);
+                              } else {
+                                newSet.add(item.href);
+                              }
+                              return newSet;
+                            });
+                          }
+                        } else {
+                          setMobileMenuOpen(false);
+                        }
+                      }}
+                      className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 ${
+                        isActive
+                          ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <Icon
+                        size={20}
+                        className={`transition-colors duration-200 ${
+                          isActive
+                            ? "text-primary-foreground"
+                            : "text-muted-foreground"
+                        }`}
+                      />
+                      <span className="text-sm font-medium flex-1">
+                        {item.label}
+                      </span>
+                      {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
+                        <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
+                          isActive 
+                            ? "bg-white/20 text-white" 
+                            : "bg-red-500 text-white"
+                        }`}>
+                          {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                        </span>
+                      )}
+                      {item.children && (
+                        <ChevronRight 
+                          size={16} 
+                          className={`transition-transform duration-200 ${
+                            isActive ? "text-primary-foreground" : "text-muted-foreground"
+                          } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
+                        />
+                      )}
+                    </Link>
+
+                    {/* Children */}
+                    {showChildren && item.children && (
+                      <div className="overflow-hidden">
+                        <div className="space-y-1">
+                          {item.children.map((child, index) => {
+                            if (
+                              child.permission &&
+                              !hasPermission(user, child.permission as any, user.permissions)
+                            ) {
+                              return null;
+                            }
+                            const childActive = pathname === child.href;
+                            const isPendingApproval = child.href === "/dashboard/expenses/pending";
+                            return (
+                              <Link
+                                key={child.href}
+                                href={child.href}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
+                                  childActive
+                                    ? "text-primary bg-accent"
+                                    : "text-muted-foreground hover:text-primary hover:bg-accent"
+                                }`}
+                              >
+                                <span className="flex items-center justify-between">
+                                  <span>{child.label}</span>
+                                  {isPendingApproval && pendingExpensesCount > 0 && (
+                                    <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                      {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
+                                    </span>
+                                  )}
+                                </span>
+                              </Link>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </nav>
             <div className="p-4 border-t border-border">
               <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-accent">
                 <Avatar className="h-10 w-10 border-2 border-primary/50">
@@ -678,31 +800,39 @@ export function Sidebar() {
                 <Link
                   href="/dashboard/users"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2 group"
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 mb-2 group"
                 >
-                  <Users size={16} />
-                  <span>Users</span>
+                  <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                  <span className="transition-colors duration-200">Users</span>
                 </Link>
               )}
               {hasPermission(user, "performance.view", user.permissions) && (
                 <Link
                   href="/dashboard/performance"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2 group"
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 mb-2 group"
                 >
-                  <TrendingUp size={16} />
-                  <span>Performance</span>
+                  <TrendingUp size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                  <span className="transition-colors duration-200">Performance</span>
                 </Link>
               )}
+              <Link
+                href="/dashboard/my-documents"
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 mb-2 group"
+              >
+                <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                <span className="transition-colors duration-200">My Documents</span>
+              </Link>
               <button
                 onClick={() => {
                   setMobileMenuOpen(false);
                   signOut({ callbackUrl: "/" });
                 }}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-destructive w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors"
+                className="flex items-center space-x-2 text-muted-foreground hover:text-destructive w-full text-sm p-3.5 rounded-xl hover:bg-accent transition-all duration-200 group"
               >
-                <LogOut size={16} />
-                <span>Sign Out</span>
+                <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
+                <span className="transition-colors duration-200">Sign Out</span>
               </button>
             </div>
           </SheetContent>
