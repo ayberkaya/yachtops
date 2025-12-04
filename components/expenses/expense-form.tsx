@@ -60,13 +60,38 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
   const form = useForm<ExpenseFormData>({
     resolver: zodResolver(expenseSchema) as any,
-    defaultValues: initialData || {
+    defaultValues: initialData ? {
+      tripId: initialData.tripId || null,
+      date: initialData.date || new Date().toISOString().split("T")[0],
+      categoryId: initialData.categoryId || "",
+      description: initialData.description || "",
+      amount: initialData.amount || 0,
+      currency: initialData.currency || "EUR",
+      paymentMethod: initialData.paymentMethod || PaymentMethod.CASH,
+      paidBy: initialData.paidBy || PaidBy.VESSEL,
+      vendorName: initialData.vendorName || null,
+      invoiceNumber: initialData.invoiceNumber || null,
+      isReimbursable: initialData.isReimbursable ?? false,
+      notes: initialData.notes || null,
+      status: initialData.status || ExpenseStatus.SUBMITTED,
+      crewPersonalId: initialData.crewPersonalId || null,
+      cardOwner: initialData.cardOwner || null,
+    } : {
+      tripId: null,
       date: new Date().toISOString().split("T")[0],
+      categoryId: "",
+      description: "",
+      amount: 0,
       currency: "EUR",
       paymentMethod: PaymentMethod.CASH,
       paidBy: PaidBy.VESSEL,
+      vendorName: null,
+      invoiceNumber: null,
       isReimbursable: false,
+      notes: null,
       status: ExpenseStatus.SUBMITTED,
+      crewPersonalId: null,
+      cardOwner: null,
     },
   });
 
@@ -192,7 +217,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Category *</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ""}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -256,7 +281,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Currency</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || "EUR"}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
@@ -422,7 +447,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                     <FormLabel>Trip (Optional)</FormLabel>
                     <Select
                       onValueChange={(value) => field.onChange(value === "none" ? null : value)}
-                      defaultValue={field.value || "none"}
+                      value={field.value || "none"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -449,7 +474,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                    <Select onValueChange={field.onChange} value={field.value || ExpenseStatus.SUBMITTED}>
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue />
