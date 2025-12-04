@@ -105,9 +105,11 @@ export default function SignInPage() {
       <div className="w-full max-w-md relative z-10" style={{ animation: 'fadeInUp 0.6s ease-out 0.2s forwards', opacity: 0 }}>
         {/* Logo Section */}
         <div className="text-center mb-10" style={{ animation: 'fadeInDown 0.8s ease-out 0.4s forwards', opacity: 0 }}>
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl shadow-xl mb-6" style={{ animation: 'zoomIn 0.6s ease-out 0.6s forwards', opacity: 0 }}>
-            <Anchor className="text-white w-10 h-10" />
-          </div>
+          <Link href="/" className="inline-block cursor-pointer hover:scale-105 transition-transform duration-300">
+            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl shadow-xl mb-6 hover:shadow-2xl transition-all duration-300" style={{ animation: 'zoomIn 0.6s ease-out 0.6s forwards', opacity: 0 }}>
+              <Anchor className="text-white w-10 h-10" />
+            </div>
+          </Link>
           <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 dark:from-white dark:via-slate-100 dark:to-white bg-clip-text text-transparent mb-3">
             YachtOps
           </h1>
@@ -141,7 +143,7 @@ export default function SignInPage() {
                         <Input
                           type="email"
                           placeholder="you@example.com"
-                          className="h-12 text-base border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white dark:bg-slate-900"
+                          className="h-12 text-base border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                           {...field}
                         />
                       </FormControl>
@@ -159,7 +161,7 @@ export default function SignInPage() {
                         <Input
                           type="password"
                           placeholder="Enter your password"
-                          className="h-12 text-base border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white dark:bg-slate-900"
+                          className="h-12 text-base border-2 border-slate-200 dark:border-slate-700 focus:border-blue-500 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500"
                           {...field}
                         />
                       </FormControl>
