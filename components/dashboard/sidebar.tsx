@@ -23,6 +23,7 @@ import {
   Wrench,
   FileCheck,
 } from "lucide-react";
+// Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
 
@@ -37,6 +38,7 @@ export function Sidebar() {
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const checkMobile = () => {
@@ -112,6 +114,33 @@ export function Sidebar() {
       setIsCollapsed(true);
     }
   }, [pathname]);
+
+  // Auto-expand active parent items on mobile
+  useEffect(() => {
+    if (isMobile && session?.user) {
+      const filteredNavItems = navItems.filter(
+        (item) =>
+          !item.permission ||
+          hasPermission(user, item.permission as any, user.permissions)
+      );
+      
+      const activeParent = filteredNavItems.find((item) => {
+        if (item.href === "/dashboard") {
+          return pathname === "/dashboard";
+        } else if (item.href === "/dashboard/expenses") {
+          return pathname === "/dashboard/expenses" || pathname.startsWith("/dashboard/expenses/");
+        } else if (item.href === "/dashboard/inventory") {
+          return pathname === "/dashboard/inventory" || pathname.startsWith("/dashboard/inventory/");
+        } else {
+          return pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+        }
+      });
+      
+      if (activeParent && activeParent.children) {
+        setMobileExpandedItems((prev) => new Set([...prev, activeParent.href]));
+      }
+    }
+  }, [pathname, isMobile, session?.user]);
 
   // Determine if sidebar should appear expanded (either not collapsed or hovered)
   const isExpanded = !isCollapsed || isHovered;
@@ -259,7 +288,11 @@ export function Sidebar() {
       hasPermission(user, item.permission as any, user.permissions)
   );
 
-  const NavContent = () => (
+  const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
+    // For mobile, always show expanded
+    const mobileExpanded = isMobile ? true : isExpanded;
+    
+    return (
     <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
       {navItems.map((item) => {
         // Highlight logic:
@@ -286,31 +319,52 @@ export function Sidebar() {
         const Icon = item.icon;
 
         const isItemHovered = hoveredItemId === item.href;
-        const showChildren = isExpanded && (isActive || isItemHovered) && item.children;
+        // For mobile: show children if item is active or manually expanded
+        // For desktop: show children if sidebar is expanded and item is active or hovered
+        const showChildren = isMobile
+          ? (isActive || mobileExpandedItems.has(item.href)) && item.children
+          : mobileExpanded && (isActive || isItemHovered) && item.children;
 
         return (
           <div 
             key={item.href}
-            onMouseEnter={() => setHoveredItemId(item.href)}
-            onMouseLeave={() => setHoveredItemId(null)}
+            onMouseEnter={() => !isMobile && setHoveredItemId(item.href)}
+            onMouseLeave={() => !isMobile && setHoveredItemId(null)}
           >
             <Link
               href={item.href}
               onClick={(e) => {
                 if (item.href === "#") {
                   e.preventDefault();
-                }
-                setMobileMenuOpen(false);
-                if (!isCollapsed) {
-                  setIsCollapsed(true);
+                  // On mobile, toggle children visibility
+                  if (isMobile && item.children) {
+                    setMobileExpandedItems((prev) => {
+                      const newSet = new Set(prev);
+                      if (newSet.has(item.href)) {
+                        newSet.delete(item.href);
+                      } else {
+                        newSet.add(item.href);
+                      }
+                      return newSet;
+                    });
+                  }
+                } else {
+                  // Navigate to page and close mobile menu
+                  if (isMobile) {
+                    setMobileMenuOpen(false);
+                  } else {
+                    if (!isCollapsed) {
+                      setIsCollapsed(true);
+                    }
+                  }
                 }
               }}
-              className={`relative flex items-center ${isExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
+              className={`relative flex items-center ${mobileExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                 isActive
                   ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                   : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
               }`}
-              title={isExpanded ? undefined : item.label}
+              title={mobileExpanded ? undefined : item.label}
             >
               <Icon
                 size={20}
@@ -320,7 +374,7 @@ export function Sidebar() {
                     : "text-muted-foreground group-hover:text-primary"
                 }`}
               />
-              {isExpanded && (
+              {mobileExpanded && (
                 <>
                   <span className="text-sm font-medium flex-1">
                     {item.label}
@@ -334,12 +388,25 @@ export function Sidebar() {
                       {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
                     </span>
                   )}
-                  {(isActive || isItemHovered) && item.children && (
-                    <ChevronRight size={16} className={isActive ? "text-primary-foreground" : "text-muted-foreground"} />
+                  {item.children && (
+                    <>
+                      {isMobile ? (
+                        <ChevronRight 
+                          size={16} 
+                          className={`transition-transform duration-200 ${
+                            isActive ? "text-primary-foreground" : "text-muted-foreground"
+                          } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
+                        />
+                      ) : (
+                        (isActive || isItemHovered) && (
+                          <ChevronRight size={16} className={isActive ? "text-primary-foreground" : "text-muted-foreground"} />
+                        )
+                      )}
+                    </>
                   )}
                 </>
               )}
-              {!isExpanded && item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
+              {!mobileExpanded && item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
                 <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
                   {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
                 </span>
@@ -364,7 +431,11 @@ export function Sidebar() {
                       <Link
                         key={child.href}
                         href={child.href}
-                        onClick={() => setMobileMenuOpen(false)}
+                        onClick={() => {
+                          if (isMobile) {
+                            setMobileMenuOpen(false);
+                          }
+                        }}
                         className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
                           childActive
                             ? "sidebar-child-active text-primary bg-accent"
@@ -392,7 +463,8 @@ export function Sidebar() {
         );
       })}
     </nav>
-  );
+    );
+  };
 
   return (
     <>
@@ -440,7 +512,7 @@ export function Sidebar() {
         </div>
 
         {/* Navigation */}
-        <NavContent />
+        <NavContent isMobile={false} />
 
         {/* User Profile Section */}
         <div className={`p-4 border-t border-border bg-secondary ${isExpanded ? "" : "px-2"}`}>
@@ -469,10 +541,10 @@ export function Sidebar() {
                       setIsCollapsed(true);
                     }
                   }}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 mb-2 group"
                 >
-                  <Users size={16} />
-                  <span>Users</span>
+                  <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                  <span className="transition-colors duration-200">Users</span>
                 </Link>
               )}
               {hasPermission(user, "performance.view", user.permissions) && (
@@ -483,10 +555,10 @@ export function Sidebar() {
                       setIsCollapsed(true);
                     }
                   }}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 mb-2 group"
                 >
-                  <TrendingUp size={16} />
-                  <span>Performance</span>
+                  <TrendingUp size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                  <span className="transition-colors duration-200">Performance</span>
                 </Link>
               )}
               <Link
@@ -496,17 +568,17 @@ export function Sidebar() {
                     setIsCollapsed(true);
                   }
                 }}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
+                className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 mb-2 group"
               >
-                <FileCheck size={16} />
-                <span>My Documents</span>
+                <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                <span className="transition-colors duration-200">My Documents</span>
               </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="flex items-center space-x-2 text-muted-foreground hover:text-destructive w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors"
+                className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
               >
-                <LogOut size={16} />
-                <span>Sign Out</span>
+                <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
+                <span className="transition-colors duration-200">Sign Out</span>
               </button>
             </>
           ) : (
@@ -558,12 +630,14 @@ export function Sidebar() {
 
       {/* Mobile Menu */}
       <div className="md:hidden">
+        <button
+          onClick={() => setMobileMenuOpen(true)}
+          className="fixed top-4 left-4 z-50 p-3 bg-primary text-primary-foreground rounded-xl shadow-2xl hover:shadow-primary/20 transition-all duration-200"
+          aria-label="Open menu"
+        >
+          <Menu className="h-6 w-6" />
+        </button>
         <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetTrigger asChild>
-            <button className="fixed top-4 left-4 z-30 p-2 bg-primary text-primary-foreground rounded-lg shadow-lg">
-              <Menu className="h-5 w-5" />
-            </button>
-          </SheetTrigger>
           <SheetContent
             side="left"
             className="w-[280px] p-0 bg-card border-border"
@@ -583,7 +657,7 @@ export function Sidebar() {
                 </div>
               </div>
             </div>
-            <NavContent />
+            <NavContent isMobile={true} />
             <div className="p-4 border-t border-border">
               <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-accent">
                 <Avatar className="h-10 w-10 border-2 border-primary/50">
@@ -604,7 +678,7 @@ export function Sidebar() {
                 <Link
                   href="/dashboard/users"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2 group"
                 >
                   <Users size={16} />
                   <span>Users</span>
@@ -614,7 +688,7 @@ export function Sidebar() {
                 <Link
                   href="/dashboard/performance"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2"
+                  className="flex items-center space-x-2 text-muted-foreground hover:text-primary w-full text-sm p-2 rounded-lg hover:bg-accent transition-colors mb-2 group"
                 >
                   <TrendingUp size={16} />
                   <span>Performance</span>

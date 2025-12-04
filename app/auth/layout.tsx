@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
+import { db } from "@/lib/db";
 
 export default async function AuthLayout({
   children,

@@ -19,7 +19,8 @@ const nextConfig: NextConfig = {
   },
 
   // Turbopack configuration (Next.js 16+)
-  turbopack: {},
+  // Temporarily disabled due to cache issues
+  // turbopack: {},
 };
 
 export default nextConfig;

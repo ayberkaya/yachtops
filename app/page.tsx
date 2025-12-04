@@ -154,8 +154,8 @@ export default function Home() {
                 size="lg" 
                 className="group px-10 py-7 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0"
               >
-                <Link href="/auth/signin">
-                  Access Platform
+                <Link href="/auth/signup">
+                  Get Started
                   <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </Link>
               </Button>
@@ -163,10 +163,10 @@ export default function Home() {
                 asChild 
                 variant="outline" 
                 size="lg" 
-                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-900 dark:text-slate-100"
+                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
               >
                 <Link href="/auth/signin">
-                  Learn More
+                  Sign In
                 </Link>
               </Button>
             </div>

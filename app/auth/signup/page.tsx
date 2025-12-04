@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,58 +9,81 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Anchor, Loader2 } from "lucide-react";
 
-const signInSchema = z.object({
+const signUpSchema = z.object({
   email: z.string().email("Invalid email address"),
-  password: z.string().min(1, "Password is required"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  name: z.string().min(1, "Name is required"),
+  yachtName: z.string().min(1, "Yacht name is required"),
 });
 
-type SignInForm = z.infer<typeof signInSchema>;
+type SignUpForm = z.infer<typeof signUpSchema>;
 
-export default function SignInPage() {
+export default function SignUpPage() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [checkingRegistration, setCheckingRegistration] = useState(true);
+  const [registrationOpen, setRegistrationOpen] = useState(false);
 
-  const form = useForm<SignInForm>({
-    resolver: zodResolver(signInSchema),
+  useEffect(() => {
+    // Registration is always open - everyone can create their own yacht
+    setRegistrationOpen(true);
+    setCheckingRegistration(false);
+  }, []);
+
+  const form = useForm<SignUpForm>({
+    resolver: zodResolver(signUpSchema),
     defaultValues: {
       email: "",
       password: "",
+      name: "",
+      yachtName: "",
     },
   });
 
-  const onSubmit = async (data: SignInForm) => {
+  const onSubmit = async (data: SignUpForm) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const result = await signIn("credentials", {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        setError(result.error || "Failed to create account");
+        setIsLoading(false);
+        return;
+      }
+
+      // Auto sign in after successful registration
+      const signInResult = await signIn("credentials", {
         email: data.email,
         password: data.password,
         redirect: false,
       });
 
-      if (result?.error) {
-        console.error("Sign in error:", result.error);
-        setError("Invalid email or password");
+      if (signInResult?.error) {
+        setError("Account created but sign in failed. Please try signing in manually.");
         setIsLoading(false);
-      } else if (result?.ok) {
+      } else if (signInResult?.ok) {
         router.push("/dashboard");
         router.refresh();
-      } else {
-        setError("An error occurred. Please try again.");
-        setIsLoading(false);
       }
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
   };
+
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-b from-white via-blue-50/30 to-white p-4 relative overflow-hidden">
@@ -83,15 +106,15 @@ export default function SignInPage() {
             YachtOps
           </h1>
           <p className="text-lg text-slate-600 font-medium">
-            Complete yacht operations management system
+            Create your account to get started
           </p>
         </div>
 
         <Card className="border-2 border-slate-200 shadow-2xl bg-white" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s forwards', opacity: 0 }}>
           <CardHeader className="space-y-2 pb-6">
-            <CardTitle className="text-3xl font-bold text-slate-900">Welcome back</CardTitle>
+            <CardTitle className="text-3xl font-bold text-slate-900">Create Account</CardTitle>
             <CardDescription className="text-base text-slate-600">
-              Sign in to your account to continue
+              Set up your yacht operations management system
             </CardDescription>
           </CardHeader>
           <Form {...form}>
@@ -104,10 +127,27 @@ export default function SignInPage() {
                 )}
                 <FormField
                   control={form.control}
-                  name="email"
+                  name="name"
                   render={({ field }) => (
                     <FormItem style={{ animation: 'fadeInLeft 0.6s ease-out 0.5s forwards', opacity: 0 }}>
-                      <FormLabel className="text-sm font-semibold text-slate-900">Email</FormLabel>
+                      <FormLabel className="text-sm font-semibold text-slate-900">Your Name *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="John Doe"
+                          className="h-12 text-base border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white text-slate-900 placeholder:text-slate-400"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem style={{ animation: 'fadeInLeft 0.6s ease-out 0.6s forwards', opacity: 0 }}>
+                      <FormLabel className="text-sm font-semibold text-slate-900">Email *</FormLabel>
                       <FormControl>
                         <Input
                           type="email"
@@ -125,11 +165,28 @@ export default function SignInPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem style={{ animation: 'fadeInLeft 0.6s ease-out 0.7s forwards', opacity: 0 }}>
-                      <FormLabel className="text-sm font-semibold text-slate-900">Password</FormLabel>
+                      <FormLabel className="text-sm font-semibold text-slate-900">Password *</FormLabel>
                       <FormControl>
                         <Input
                           type="password"
-                          placeholder="Enter your password"
+                          placeholder="At least 8 characters"
+                          className="h-12 text-base border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white text-slate-900 placeholder:text-slate-400"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="yachtName"
+                  render={({ field }) => (
+                    <FormItem style={{ animation: 'fadeInLeft 0.6s ease-out 0.8s forwards', opacity: 0 }}>
+                      <FormLabel className="text-sm font-semibold text-slate-900">Yacht Name *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="Sea Breeze"
                           className="h-12 text-base border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white text-slate-900 placeholder:text-slate-400"
                           {...field}
                         />
@@ -148,30 +205,29 @@ export default function SignInPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Signing in...
+                      Creating Account...
                     </>
                   ) : (
-                    "Sign In"
+                    "Create Account"
                   )}
                 </Button>
+                <p className="text-center text-sm text-slate-600">
+                  Already have an account?{" "}
+                  <Link href="/auth/signin" className="text-blue-600 hover:text-blue-700 font-medium">
+                    Sign In
+                  </Link>
+                </p>
               </CardFooter>
             </form>
           </Form>
         </Card>
 
         {/* Footer */}
-        <div className="text-center mt-8 space-y-2" style={{ animation: 'fadeIn 1s ease-out 1s forwards', opacity: 0 }}>
-          <p className="text-sm text-slate-600 font-medium">
-            For private and charter yachts
-          </p>
-          <p className="text-sm text-slate-600">
-            Don't have an account?{" "}
-            <Link href="/auth/signup" className="text-blue-600 hover:text-blue-700 font-medium">
-              Create Account
-            </Link>
-          </p>
-        </div>
+        <p className="text-center text-sm text-slate-600 mt-8 font-medium" style={{ animation: 'fadeIn 1s ease-out 1s forwards', opacity: 0 }}>
+          For private and charter yachts
+        </p>
       </div>
     </div>
   );
 }
+
