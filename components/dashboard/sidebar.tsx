@@ -141,15 +141,18 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
   // Memoize filtered nav items to prevent infinite loops
   const filteredNavItems = useMemo(() => {
-    return navItems.filter(
+    if (!session?.user) return [];
+    return baseNavItems.filter(
       (item) =>
         !item.permission ||
-        hasPermission(user, item.permission as any, user.permissions)
+        hasPermission(session.user, item.permission as any, session.user.permissions)
     );
-  }, [user, user.permissions]);
+  }, [session?.user, session?.user?.permissions]);
 
   // Fetch pending tasks count
   useEffect(() => {
+    if (!session?.user) return;
+    
     const fetchPendingTasksCount = async () => {
       try {
         const response = await fetch("/api/tasks");
