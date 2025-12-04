@@ -121,6 +121,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                     setEditingList(null);
                     setIsListDialogOpen(true);
                   }}
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   New List

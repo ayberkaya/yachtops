@@ -80,15 +80,15 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
   const [showFilters, setShowFilters] = useState(false);
 
   const getStatusBadge = (status: TripStatus) => {
-    const variants: Record<TripStatus, "default" | "secondary" | "destructive" | "outline"> = {
-      [TripStatus.PLANNED]: "outline",
-      [TripStatus.ONGOING]: "secondary",
-      [TripStatus.COMPLETED]: "default",
-      [TripStatus.CANCELLED]: "destructive",
+    const statusStyles: Record<TripStatus, string> = {
+      [TripStatus.PLANNED]: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      [TripStatus.ONGOING]: "bg-blue-100 text-blue-800 border-blue-200",
+      [TripStatus.COMPLETED]: "bg-green-100 text-green-800 border-green-200",
+      [TripStatus.CANCELLED]: "bg-red-100 text-red-800 border-red-200",
     };
 
     return (
-      <Badge variant={variants[status]}>
+      <Badge className={statusStyles[status]}>
         {status.replace("_", " ")}
       </Badge>
     );
@@ -184,7 +184,10 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
         {canManage && (
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button onClick={() => setEditingTrip(null)}>
+              <Button 
+                onClick={() => setEditingTrip(null)}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 New Trip
               </Button>

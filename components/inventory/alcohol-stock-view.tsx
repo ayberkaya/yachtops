@@ -301,7 +301,11 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                   <SelectItem value="BEER">Beer</SelectItem>
                 </SelectContent>
               </Select>
-              <Button onClick={handleAddStock} disabled={isAdding}>
+              <Button 
+                onClick={handleAddStock} 
+                disabled={isAdding}
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add to Stock
               </Button>
