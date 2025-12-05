@@ -299,6 +299,10 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
               </Button>
               <Button
                 onClick={async () => {
+                    if (!expense.id || expense.id === "undefined" || expense.id === "null") {
+                      alert("Missing expense id");
+                      return;
+                    }
                   setIsProcessing(true);
                   try {
                     const response = await fetch(`/api/expenses/${expense.id}`, {

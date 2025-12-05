@@ -15,7 +15,7 @@ const updateExpenseSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getSession();
@@ -23,7 +23,13 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
+    const { id } = params || {};
+    if (!id || id === "undefined") {
+      return NextResponse.json(
+        { error: "Expense id is required" },
+        { status: 400 }
+      );
+    }
     const expense = await db.expense.findUnique({
       where: {
         id,
@@ -64,7 +70,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: { id: string } }
 ) {
   try {
     const session = await getSession();
@@ -72,9 +78,43 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
-    const body = await request.json();
-    const validated = updateExpenseSchema.parse(body);
+    // Defensive: if params.id missing, derive from URL path as a fallback
+    const pathParts = new URL(request.url).pathname.split("/");
+    const fallbackId = pathParts[pathParts.length - 1] || undefined;
+    const id = params?.id ?? fallbackId;
+    if (!id || id === "undefined" || id === "null") {
+      return NextResponse.json(
+        { error: "Expense id is required" },
+        { status: 400 }
+      );
+    }
+    console.log("Expense ID:", id);
+    let body;
+    try {
+      body = await request.json();
+      console.log("Received request body:", body);
+    } catch (error) {
+      console.error("Error parsing request body:", error);
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+    
+    let validated;
+    try {
+      validated = updateExpenseSchema.parse(body);
+      console.log("Validated data:", validated);
+    } catch (error) {
+      console.error("Validation error:", error);
+      if (error instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: "Invalid input", details: error.issues },
+          { status: 400 }
+        );
+      }
+      throw error;
+    }
 
     // Check if expense exists and user has access
     const existingExpense = await db.expense.findUnique({
@@ -88,7 +128,10 @@ export async function PATCH(
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
-    // Only allow status updates for approval/rejection
+    // Prepare update data
+    const updateData: any = {};
+
+    // Handle status updates for approval/rejection
     if (validated.status) {
       if (!canApproveExpenses(session.user)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -163,14 +206,11 @@ export async function PATCH(
           }
         }
 
-        // Prepare update data
-        const updateData: any = {
-          status: validated.status,
-          approvedByUserId:
-            validated.status === ExpenseStatus.APPROVED
-              ? session.user.id
-              : null,
-        };
+        updateData.status = validated.status;
+        updateData.approvedByUserId =
+          validated.status === ExpenseStatus.APPROVED
+            ? session.user.id
+            : null;
 
         // If rejecting, add reject reason to notes
         if (validated.status === ExpenseStatus.REJECTED && validated.rejectReason) {
@@ -180,44 +220,96 @@ export async function PATCH(
             ? `${existingNotes}\n\n${rejectNote}`
             : rejectNote;
         }
-
-        const expense = await db.expense.update({
-          where: { id },
-          data: updateData,
-          include: {
-            createdBy: {
-              select: { id: true, name: true, email: true },
-            },
-            approvedBy: {
-              select: { id: true, name: true, email: true },
-            },
-            category: {
-              select: { id: true, name: true },
-            },
-            trip: {
-              select: { id: true, name: true },
-            },
-          },
-        });
-
-        return NextResponse.json(expense);
       }
     }
 
-    return NextResponse.json(existingExpense);
+    // Handle reimbursed status updates
+    if (validated.isReimbursed !== undefined) {
+      updateData.isReimbursed = validated.isReimbursed;
+      updateData.reimbursedAt = validated.isReimbursed 
+        ? (validated.reimbursedAt ? new Date(validated.reimbursedAt) : new Date())
+        : null;
+    }
+
+    // Only update if there's something to update
+    if (Object.keys(updateData).length === 0) {
+      console.log("No update data, returning existing expense");
+      return NextResponse.json({
+        ...existingExpense,
+        date: existingExpense.date.toISOString(),
+        createdAt: existingExpense.createdAt.toISOString(),
+        updatedAt: existingExpense.updatedAt.toISOString(),
+        reimbursedAt: existingExpense.reimbursedAt ? existingExpense.reimbursedAt.toISOString() : null,
+      });
+    }
+
+    console.log("Updating expense with data:", JSON.stringify(updateData, null, 2));
+
+    let expense;
+    try {
+      expense = await db.expense.update({
+        where: { id },
+        data: updateData,
+        include: {
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+          approvedBy: {
+            select: { id: true, name: true, email: true },
+          },
+          category: {
+            select: { id: true, name: true },
+          },
+          trip: {
+            select: { id: true, name: true },
+          },
+        },
+      });
+      console.log("Expense updated successfully");
+    } catch (dbError) {
+      console.error("Database error:", dbError);
+      throw dbError;
+    }
+
+    // Serialize dates properly for JSON response
+    try {
+      const response = {
+        ...expense,
+        date: expense.date.toISOString(),
+        createdAt: expense.createdAt.toISOString(),
+        updatedAt: expense.updatedAt.toISOString(),
+        reimbursedAt: expense.reimbursedAt ? expense.reimbursedAt.toISOString() : null,
+      };
+      console.log("Returning response");
+      return NextResponse.json(response);
+    } catch (serializeError) {
+      console.error("Error serializing response:", serializeError);
+      throw serializeError;
+    }
   } catch (error) {
+    console.error("=== ERROR IN PATCH EXPENSE ===");
+    console.error("Error type:", error?.constructor?.name);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
+    console.error("Full error object:", JSON.stringify(error, Object.getOwnPropertyNames(error)));
+    
     if (error instanceof z.ZodError) {
+      console.error("Zod validation error:", error.issues);
       return NextResponse.json(
         { error: "Invalid input", details: error.issues },
         { status: 400 }
       );
     }
 
-    console.error("Error updating expense:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    const errorResponse = {
+      error: "Internal server error",
+      details: errorMessage,
+      timestamp: new Date().toISOString(),
+    };
+    
+    console.error("Returning error response:", errorResponse);
+    return NextResponse.json(errorResponse, { status: 500 });
   }
 }
 

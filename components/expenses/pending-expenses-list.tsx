@@ -47,6 +47,10 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
   const [rejectReason, setRejectReason] = useState("");
 
   const handleApprove = async (id: string) => {
+    if (!id || id === "undefined" || id === "null") {
+      alert("Missing expense id");
+      return;
+    }
     setProcessingId(id);
     try {
       const response = await fetch(`/api/expenses/${id}`, {
@@ -80,6 +84,10 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
 
     if (!rejectReason.trim()) {
       alert("Please provide a reason for rejection");
+      return;
+    }
+    if (!rejectingExpenseId || rejectingExpenseId === "undefined" || rejectingExpenseId === "null") {
+      alert("Missing expense id");
       return;
     }
 

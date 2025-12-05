@@ -53,6 +53,9 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       where.status = status;
+    } else {
+      // Hide submitted expenses from general listings until they are approved/rejected
+      where.status = { not: ExpenseStatus.SUBMITTED };
     }
     if (categoryId) {
       where.categoryId = categoryId;

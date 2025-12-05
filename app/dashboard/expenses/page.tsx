@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { hasPermission } from "@/lib/permissions";
+import { ExpenseStatus } from "@prisma/client";
 
 export default async function ExpensesPage() {
   const session = await getSession();
@@ -20,6 +21,7 @@ export default async function ExpensesPage() {
   const expenses = await db.expense.findMany({
     where: {
       yachtId: session.user.yachtId || undefined,
+      status: { not: ExpenseStatus.SUBMITTED },
     },
     include: {
       createdBy: {
