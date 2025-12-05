@@ -24,9 +24,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { ExpenseCategory, Trip, ExpenseStatus, PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye, CheckCircle2 } from "lucide-react";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
@@ -821,6 +822,8 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Reimbursable Expenses Section removed per request */}
 
       {isLoading ? (
         <Card>

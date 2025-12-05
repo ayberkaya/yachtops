@@ -34,6 +34,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
+  const [reimbursableCount, setReimbursableCount] = useState(0);
 
   // Define base navItems structure (static, no user dependency)
   const baseNavItems = [
@@ -58,6 +59,11 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           href: "/dashboard/expenses/pending",
           label: "Pending Approval",
           permission: "expenses.approve",
+        },
+        {
+          href: "/dashboard/expenses/reimbursable",
+          label: "Reimbursable",
+          permission: "expenses.view",
         },
         {
           href: "/dashboard/cash",
@@ -204,6 +210,31 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     return () => clearInterval(interval);
   }, [session?.user]);
 
+  // Fetch reimbursable expenses count
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchReimbursableCount = async () => {
+      try {
+        if (!hasPermission(session.user, "expenses.view", session.user.permissions)) {
+          return;
+        }
+
+        const response = await fetch("/api/expenses?isReimbursable=true&status=APPROVED");
+        if (response.ok) {
+          const expenses = await response.json();
+          setReimbursableCount(expenses.length);
+        }
+      } catch (error) {
+        console.error("Error fetching reimbursable expenses count:", error);
+      }
+    };
+
+    fetchReimbursableCount();
+    const interval = setInterval(fetchReimbursableCount, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
   // Auto-expand active parent items
   useEffect(() => {
     if (filteredNavItems.length > 0) {
@@ -293,6 +324,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             }
             const Icon = item.icon;
             const showChildren = (isActive || mobileExpandedItems.has(item.href)) && item.children;
+            const incomeBadge =
+              item.label === "Income & Expenses"
+                ? pendingExpensesCount + reimbursableCount
+                : 0;
 
             return (
               <div key={item.href}>
@@ -330,6 +365,11 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     <span className="text-sm font-semibold flex-1 text-left" style={{ color: '#0f172a', fontWeight: 600 }}>
                       {item.label}
                     </span>
+                    {incomeBadge > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold">
+                        {incomeBadge > 99 ? "99+" : incomeBadge}
+                      </span>
+                    )}
                     {item.children && (
                       <ChevronRight 
                         size={16} 
@@ -396,6 +436,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                         }
                         const childActive = pathname === child.href;
                         const isPendingApproval = child.href === "/dashboard/expenses/pending";
+                        const isReimbursablePage = child.href === "/dashboard/expenses/reimbursable";
                         return (
                           <Link
                             key={child.href}
@@ -415,6 +456,11 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                               {isPendingApproval && pendingExpensesCount > 0 && (
                                 <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                                   {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
+                                </span>
+                              )}
+                              {isReimbursablePage && reimbursableCount > 0 && (
+                                <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500 text-white text-xs font-semibold">
+                                  {reimbursableCount > 99 ? "99+" : reimbursableCount}
                                 </span>
                               )}
                             </span>
@@ -508,6 +554,7 @@ export function Sidebar() {
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
+  const [reimbursableCount, setReimbursableCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
@@ -536,6 +583,11 @@ export function Sidebar() {
           href: "/dashboard/expenses/pending",
           label: "Pending Approval",
           permission: "expenses.approve",
+        },
+        {
+          href: "/dashboard/expenses/reimbursable",
+          label: "Reimbursable",
+          permission: "expenses.view",
         },
         {
           href: "/dashboard/cash",
@@ -695,6 +747,31 @@ export function Sidebar() {
     return () => clearInterval(interval);
   }, [session?.user]);
 
+  // Fetch reimbursable expenses count
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchReimbursableCount = async () => {
+      try {
+        if (!hasPermission(session.user, "expenses.view", session.user.permissions)) {
+          return;
+        }
+
+        const response = await fetch("/api/expenses?isReimbursable=true&status=APPROVED");
+        if (response.ok) {
+          const expenses = await response.json();
+          setReimbursableCount(expenses.length);
+        }
+      } catch (error) {
+        console.error("Error fetching reimbursable expenses count:", error);
+      }
+    };
+
+    fetchReimbursableCount();
+    const interval = setInterval(fetchReimbursableCount, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
   // Auto-collapse when a menu item is selected
   useEffect(() => {
     if (pathname && pathname !== "/dashboard") {
@@ -815,6 +892,10 @@ export function Sidebar() {
         const showChildren = isMobile
           ? (isActive || mobileExpandedItems.has(item.href)) && item.children
           : mobileExpanded && desktopExpandedItems.has(item.href) && item.children;
+        const incomeBadge =
+          item.label === "Income & Expenses"
+            ? pendingExpensesCount + reimbursableCount
+            : 0;
 
         return (
           <div 
@@ -904,6 +985,15 @@ export function Sidebar() {
                   <span className="text-sm font-medium flex-1">
                     {item.label}
                   </span>
+                  {incomeBadge > 0 && (
+                    <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
+                      isActive
+                        ? "bg-white/20 text-white"
+                        : "bg-red-500 text-white"
+                    }`}>
+                      {incomeBadge > 99 ? "99+" : incomeBadge}
+                    </span>
+                  )}
                   {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
                     <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
                       isActive 
@@ -930,6 +1020,11 @@ export function Sidebar() {
               {!mobileExpanded && item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
                 <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
                   {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                </span>
+              )}
+              {!mobileExpanded && incomeBadge > 0 && item.label === "Income & Expenses" && (
+                <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
+                  {incomeBadge > 99 ? "99+" : incomeBadge}
                 </span>
               )}
             </Link>
