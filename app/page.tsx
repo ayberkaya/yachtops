@@ -261,7 +261,7 @@ export default function Home() {
                   }}
                 >
                   {/* Gradient accent */}
-                  <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${feature.color} rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
+                  <div className={`absolute -top-[2px] -left-[2px] -right-[2px] h-1.5 bg-gradient-to-r ${feature.color} rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
                   
                   <div className="flex flex-col gap-5">
                     <div className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} w-fit shadow-lg group-hover:scale-110 transition-transform duration-300`}>
