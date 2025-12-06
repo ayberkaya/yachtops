@@ -3,7 +3,8 @@ import "./globals.css";
 import { Providers } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
-import { SpeedInsights } from "@vercel/speed-insights/next";
+// Vercel SpeedInsights disabled for local development
+// import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   title: "YachtOps - Yacht Operations Management",
@@ -48,10 +49,15 @@ export default function RootLayout({
       <body className="antialiased">
         <Providers>
           {children}
-          <ServiceWorkerRegister />
-          <InstallPrompt />
+          {/* Temporarily disabled for local development */}
+          {/* {typeof window !== 'undefined' && (
+            <>
+              <ServiceWorkerRegister />
+              <InstallPrompt />
+            </>
+          )} */}
         </Providers>
-        <SpeedInsights />
+        {/* <SpeedInsights /> */}
       </body>
     </html>
   );

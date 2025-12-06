@@ -18,9 +18,18 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 
-  // Disable Turbopack to use Webpack (more stable for development)
-  // Turbopack can cause chunk loading issues in some cases
-  webpack: (config, { isServer }) => {
+  // Use Turbopack (default in Next.js 16)
+  // Empty config to silence the warning
+  turbopack: {},
+
+  // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/yachtops-next locally to avoid iCloud path issues.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
+
+  // In dev with webpack, disable filesystem cache to avoid ENOENT on iCloud paths
+  webpack: (config, { dev }) => {
+    if (dev) {
+      config.cache = false;
+    }
     return config;
   },
 };
