@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/dialog";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, List, LayoutGrid, Calendar, User, Ship, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2 } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -168,26 +168,24 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               </DialogTrigger>
             </Dialog>
           )}
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setViewMode("table")}
-              className={viewMode === "table" ? "bg-primary text-primary-foreground border-primary shadow-sm" : ""}
-            >
-              <List className="mr-2 h-4 w-4" />
-              Table
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setViewMode("cards")}
-              className={viewMode === "cards" ? "bg-primary text-primary-foreground border-primary shadow-sm" : ""}
-            >
-              <LayoutGrid className="mr-2 h-4 w-4" />
-              Cards
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
+            className={viewMode === "cards" ? "bg-primary text-primary-foreground border-primary shadow-sm" : ""}
+          >
+            {viewMode === "table" ? (
+              <>
+                <LayoutGrid className="mr-2 h-4 w-4" />
+                Cards
+              </>
+            ) : (
+              <>
+                <Check className="mr-2 h-4 w-4" />
+                Table
+              </>
+            )}
+          </Button>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Select value={statusFilter} onValueChange={setStatusFilter}>
