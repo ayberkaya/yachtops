@@ -252,7 +252,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               </div>
               <Button
                 size="sm"
-                className="ml-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white h-11"
                 onClick={() => {
                   setFiltersOpen(false);
                   router.refresh();
