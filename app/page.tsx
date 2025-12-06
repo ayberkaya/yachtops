@@ -140,7 +140,7 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div 
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6"
+              className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-center pt-6"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
             >
               <Button 
@@ -159,8 +159,28 @@ export default function Home() {
                 size="lg" 
                 className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
               >
-                <Link href="#features">
-                  Learn More
+                <Link href="/demo-request">
+                  Request a Demo
+                </Link>
+              </Button>
+              <Button 
+                asChild 
+                variant="outline" 
+                size="lg" 
+                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
+              >
+                <Link href="/contact">
+                  Contact Sales
+                </Link>
+              </Button>
+              <Button 
+                asChild 
+                variant="outline" 
+                size="lg" 
+                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
+              >
+                <Link href="/fleet-solutions">
+                  Fleet Solutions
                 </Link>
               </Button>
             </div>
