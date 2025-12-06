@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
@@ -68,6 +69,9 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [groupBy, setGroupBy] = useState<GroupBy>("none");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
 
   const canManage = currentUser.role !== "CREW";
 
@@ -127,9 +131,23 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     }
   };
 
-  const filteredTasks = statusFilter === "all" 
-    ? tasks 
-    : tasks.filter(t => t.status === statusFilter);
+  const filteredTasks = useMemo(() => {
+    return tasks.filter((t) => {
+      if (statusFilter !== "all" && t.status !== statusFilter) return false;
+      if (assigneeFilter === "unassigned" && t.assignee) return false;
+      if (assigneeFilter !== "all" && assigneeFilter !== "unassigned" && t.assignee?.id !== assigneeFilter) return false;
+
+      if (dateFrom) {
+        const d = t.dueDate ? new Date(t.dueDate) : null;
+        if (!d || d < new Date(dateFrom)) return false;
+      }
+      if (dateTo) {
+        const d = t.dueDate ? new Date(t.dueDate) : null;
+        if (!d || d > new Date(dateTo)) return false;
+      }
+      return true;
+    });
+  }, [tasks, statusFilter, assigneeFilter, dateFrom, dateTo]);
 
   // Group tasks
   const groupedTasks = useMemo(() => {
@@ -201,7 +219,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             </Button>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupBy)}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Group by" />
@@ -224,6 +242,34 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
             </SelectContent>
           </Select>
+          <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Filter by assignee" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All assignees</SelectItem>
+              <SelectItem value="unassigned">Unassigned</SelectItem>
+              {users.map((u) => (
+                <SelectItem key={u.id} value={u.id}>
+                  {u.name || u.email}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => setDateFrom(e.target.value)}
+            className="w-[160px]"
+            placeholder="From"
+          />
+          <Input
+            type="date"
+            value={dateTo}
+            onChange={(e) => setDateTo(e.target.value)}
+            className="w-[160px]"
+            placeholder="To"
+          />
         </div>
       </div>
 

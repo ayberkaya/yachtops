@@ -43,6 +43,7 @@ interface TaskFormProps {
 export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema) as any,
@@ -136,6 +137,37 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
         return;
       }
 
+      // If photo selected, upload as attachment
+      if (photoFile && result?.id) {
+        try {
+          const toDataUrl = (file: File) =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = (err) => reject(err);
+              reader.readAsDataURL(file);
+            });
+
+          const fileUrl = await toDataUrl(photoFile);
+          await fetch(`/api/tasks/${result.id}/attachments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: photoFile.name,
+              fileUrl,
+              fileSize: photoFile.size,
+              mimeType: photoFile.type || "image/*",
+            }),
+          });
+        } catch (uploadErr) {
+          console.error("Attachment upload failed", uploadErr);
+          setError("Task saved but photo upload failed.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      setPhotoFile(null);
       onSuccess();
     } catch (err) {
       console.error("Task form submission error:", err);
@@ -348,6 +380,15 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                 <FormMessage />
               </FormItem>
             )}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <FormLabel>Photo (optional)</FormLabel>
+          <Input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
           />
         </div>
 
