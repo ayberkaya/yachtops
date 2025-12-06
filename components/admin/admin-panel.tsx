@@ -31,7 +31,7 @@ export default function AdminPanel() {
   const handleCreate = async () => {
     setMessage(null);
     if (!form.name || !form.email || !form.username || !form.password || !form.vesselName || !form.vesselFlag) {
-      setMessage("Lütfen tüm alanları doldurun.");
+      setMessage("Please fill in all fields.");
       return;
     }
     setSubmitting(true);
@@ -43,9 +43,9 @@ export default function AdminPanel() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setMessage(data?.error || "Kullanıcı oluşturulamadı");
+        setMessage(data?.error || "User creation failed");
       } else {
-        setMessage("Kullanıcı ve vessel oluşturuldu.");
+        setMessage("User and vessel created.");
         setForm({
           name: "",
           email: "",
@@ -56,7 +56,7 @@ export default function AdminPanel() {
         });
       }
     } catch (e) {
-      setMessage("Hata oluştu, lütfen tekrar deneyin.");
+      setMessage("An error occurred, please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -66,12 +66,12 @@ export default function AdminPanel() {
     <div className="p-6 space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Yeni Kullanıcı + Vessel Oluştur</CardTitle>
+          <CardTitle>Create New User + Vessel</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label>Ad Soyad</Label>
+              <Label>Full Name</Label>
               <Input
                 value={form.name}
                 onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
@@ -86,14 +86,14 @@ export default function AdminPanel() {
               />
             </div>
             <div>
-              <Label>Kullanıcı adı (giriş)</Label>
+              <Label>Username (login)</Label>
               <Input
                 value={form.username}
                 onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
               />
             </div>
             <div>
-              <Label>Şifre</Label>
+              <Label>Password</Label>
               <Input
                 type="password"
                 value={form.password}
@@ -101,14 +101,14 @@ export default function AdminPanel() {
               />
             </div>
             <div>
-              <Label>Vessel adı</Label>
+              <Label>Vessel Name</Label>
               <Input
                 value={form.vesselName}
                 onChange={(e) => setForm((f) => ({ ...f, vesselName: e.target.value }))}
               />
             </div>
             <div>
-              <Label>Vessel flag</Label>
+              <Label>Vessel Flag</Label>
               <Input
                 value={form.vesselFlag}
                 onChange={(e) => setForm((f) => ({ ...f, vesselFlag: e.target.value }))}
@@ -116,7 +116,7 @@ export default function AdminPanel() {
             </div>
           </div>
           <Button onClick={handleCreate} disabled={submitting}>
-            {submitting ? "Oluşturuluyor..." : "Kullanıcı Oluştur"}
+            {submitting ? "Creating..." : "Create User"}
           </Button>
           {message && <p className="text-sm text-muted-foreground">{message}</p>}
         </CardContent>
@@ -124,10 +124,10 @@ export default function AdminPanel() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Uygulama Ayarları</CardTitle>
+          <CardTitle>Application Settings</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Buraya uygulama genel ayarları ve yönetim araçları eklenebilir.
+          Add global app settings and admin tools here.
         </CardContent>
       </Card>
     </div>
