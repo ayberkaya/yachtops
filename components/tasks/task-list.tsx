@@ -230,15 +230,15 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 type="date"
                 value={dateFrom}
                 onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[160px]"
-                placeholder="From"
+              className="w-[160px]"
+              placeholder="Start date"
               />
               <Input
                 type="date"
                 value={dateTo}
                 onChange={(e) => setDateTo(e.target.value)}
-                className="w-[160px]"
-                placeholder="To"
+              className="w-[160px]"
+              placeholder="End date"
               />
             </CollapsibleContent>
           </Collapsible>
