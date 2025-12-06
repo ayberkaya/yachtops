@@ -4,7 +4,7 @@ import { config } from "dotenv";
 import { resolve } from "path";
 import { defineConfig } from "prisma/config";
 
-// Load .env.local if it exists (for Vercel env pull)
+// Load .env.local if it exists
 config({ path: resolve(process.cwd(), ".env.local") });
 // Also load .env as fallback
 config({ path: resolve(process.cwd(), ".env") });
