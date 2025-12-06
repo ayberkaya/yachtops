@@ -831,7 +831,7 @@ export function Sidebar() {
           };
 
           return (
-            <div key={item.href}>
+            <div key={`${item.href}-${item.label}`}>
               <Link
                 href={item.href}
                 onClick={handleToggle}
