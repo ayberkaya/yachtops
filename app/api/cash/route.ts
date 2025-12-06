@@ -39,8 +39,7 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Get all cash transactions
-      const tenantId = getTenantId(session);
+      // Get all cash transactions (tenant resolved above)
       const transactions = await db.cashTransaction.findMany({
         where: {
           yachtId: tenantId || undefined,
