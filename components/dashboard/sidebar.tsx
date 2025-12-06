@@ -314,25 +314,23 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                         return next;
                       });
                     }}
-                    className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 ${
+                    className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
                       isActive
-                        ? "bg-primary text-white shadow-lg shadow-primary/20"
-                        : "text-slate-900 hover:bg-slate-100"
+                        ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                        : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     <Icon
                       size={20}
                       className={`transition-colors duration-200 ${
-                        isActive
-                          ? "text-white"
-                          : "text-slate-700"
+                        isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                       }`}
                     />
-                    <span className="text-sm font-semibold flex-1 text-left" style={{ color: '#0f172a', fontWeight: 600 }}>
+                    <span className="text-sm font-medium flex-1 text-left">
                       {item.label}
                     </span>
                     {incomeBadge > 0 && (
-                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-600 text-white text-xs font-semibold">
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                         {incomeBadge > 99 ? "99+" : incomeBadge}
                       </span>
                     )}
@@ -340,7 +338,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       <ChevronRight 
                         size={16} 
                         className={`transition-transform duration-200 ${
-                          isActive ? "text-white" : "text-slate-600"
+                          isActive ? "text-primary-foreground" : "text-muted-foreground"
                         } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
                       />
                     )}
@@ -352,21 +350,19 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       e.stopPropagation();
                       setMobileMenuOpen(false);
                     }}
-                    className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 ${
+                    className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
                       isActive
-                        ? "bg-primary text-white shadow-lg shadow-primary/20"
-                        : "text-slate-900 hover:bg-slate-100"
+                        ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                        : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
                     <Icon
                       size={20}
                       className={`transition-colors duration-200 ${
-                        isActive
-                          ? "text-white"
-                          : "text-slate-700"
+                        isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                       }`}
                     />
-                    <span className="text-sm font-semibold flex-1 text-slate-900" style={{ color: '#0f172a' }}>
+                    <span className="text-sm font-medium flex-1">
                       {item.label}
                     </span>
                     {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
@@ -382,7 +378,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       <ChevronRight 
                         size={16} 
                         className={`transition-transform duration-200 ${
-                          isActive ? "text-white" : "text-slate-600"
+                          isActive ? "text-primary-foreground" : "text-muted-foreground"
                         } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
                       />
                     )}
@@ -413,8 +409,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                             }}
                             className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
                               childActive
-                                ? "text-primary bg-blue-50 font-medium"
-                                : "text-slate-700 hover:text-primary hover:bg-slate-50"
+                                ? "sidebar-child-active text-primary bg-accent"
+                                : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
                             }`}
                           >
                             <span className="flex items-center justify-between">
