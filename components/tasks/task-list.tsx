@@ -196,7 +196,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen} className="w-full">
           <CollapsibleTrigger asChild>
             <Button variant="outline" size="sm">
-              Filter
+              Filters
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="mt-3 flex flex-wrap items-center gap-2">
