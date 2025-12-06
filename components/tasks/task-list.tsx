@@ -232,7 +232,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   type="date"
                   value={dateFrom}
                   onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[170px]"
+                  className="h-11 w-[170px]"
                 />
               </div>
               <div className="flex flex-col gap-1">
@@ -241,7 +241,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   type="date"
                   value={dateTo}
                   onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[170px]"
+                  className="h-11 w-[170px]"
                 />
               </div>
               <Button
