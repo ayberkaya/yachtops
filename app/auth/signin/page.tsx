@@ -49,13 +49,27 @@ export default function SignInPage() {
         console.error("Sign in error:", result.error);
         setError("Invalid email or password");
         setIsLoading(false);
-      } else if (result?.ok) {
-        router.push("/dashboard");
-        router.refresh();
-      } else {
-        setError("An error occurred. Please try again.");
-        setIsLoading(false);
+        return;
       }
+
+      if (result?.ok) {
+        // Fetch session to determine role-based landing page
+        try {
+          const sessionRes = await fetch("/api/auth/session", { cache: "no-store" });
+          const sessionData = await sessionRes.json();
+          const role = sessionData?.user?.role;
+          const target = role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
+          router.push(target);
+          router.refresh();
+        } catch (e) {
+          router.push("/dashboard");
+          router.refresh();
+        }
+        return;
+      }
+
+      setError("An error occurred. Please try again.");
+      setIsLoading(false);
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
