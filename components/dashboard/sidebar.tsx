@@ -1152,34 +1152,6 @@ export function Sidebar() {
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              {hasPermission(user, "users.view", user.permissions) && (
-                <Link
-                  href="/dashboard/users"
-                  onClick={() => setIsCollapsed(true)}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors"
-                  title="Users"
-                >
-                  <Users size={16} className="text-muted-foreground hover:text-primary" />
-                </Link>
-              )}
-              {hasPermission(user, "performance.view", user.permissions) && (
-                <Link
-                  href="/dashboard/performance"
-                  onClick={() => setIsCollapsed(true)}
-                  className="p-2 rounded-lg hover:bg-accent transition-colors"
-                  title="Performance"
-                >
-                  <TrendingUp size={16} className="text-muted-foreground hover:text-primary" />
-                </Link>
-              )}
-              <Link
-                href="/dashboard/my-documents"
-                onClick={() => setIsCollapsed(true)}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title="My Documents"
-              >
-                <FileCheck size={16} className="text-muted-foreground hover:text-primary" />
-              </Link>
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
                 className="p-2 rounded-lg hover:bg-accent transition-colors"
