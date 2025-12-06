@@ -200,7 +200,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 Filters
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="absolute right-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-end gap-3 z-20">
+            <CollapsibleContent className="absolute right-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-center gap-3 z-20">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by status" />
