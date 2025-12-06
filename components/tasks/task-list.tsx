@@ -226,30 +226,34 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   ))}
                 </SelectContent>
               </Select>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-                className="w-[170px]"
-                placeholder="Start date"
-              />
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-                className="w-[170px]"
-                placeholder="End date"
-              />
-            <Button
-              size="sm"
-              className="ml-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-              onClick={() => {
-                setFiltersOpen(false);
-                router.refresh();
-              }}
-            >
-              Apply
-            </Button>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">Start date</span>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-[170px]"
+                />
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs text-muted-foreground">End date</span>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  className="w-[170px]"
+                />
+              </div>
+              <Button
+                size="sm"
+                className="ml-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
+                onClick={() => {
+                  setFiltersOpen(false);
+                  router.refresh();
+                }}
+              >
+                Apply
+              </Button>
             </CollapsibleContent>
           </Collapsible>
         </div>
