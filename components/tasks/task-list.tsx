@@ -200,7 +200,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 Filters
               </Button>
             </CollapsibleTrigger>
-            <CollapsibleContent className="absolute right-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-center gap-3 z-20">
+            <CollapsibleContent className="absolute right-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-end gap-3 z-20">
               <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-[180px]">
                   <SelectValue placeholder="Filter by status" />
@@ -226,24 +226,20 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   ))}
                 </SelectContent>
               </Select>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Start date</span>
-                <Input
-                  type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
-                  className="w-[170px]"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">End date</span>
-                <Input
-                  type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
-                  className="w-[170px]"
-                />
-              </div>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[170px]"
+                placeholder="Start date"
+              />
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[170px]"
+                placeholder="End date"
+              />
             </CollapsibleContent>
           </Collapsible>
         </div>
