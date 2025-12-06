@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ItemUnit } from "@prisma/client";
 import { z } from "zod";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const updateItemSchema = z.object({
   name: z.string().min(1).optional(),
@@ -22,6 +23,15 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const item = await db.shoppingItem.findUnique({
       where: { id },
@@ -35,7 +45,7 @@ export async function GET(
       },
     });
 
-    if (!item || item.list.yachtId !== session.user.yachtId) {
+    if (!item || item.list.yachtId !== tenantId) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
@@ -59,6 +69,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const validated = updateItemSchema.parse(body);
@@ -75,7 +91,7 @@ export async function PATCH(
       },
     });
 
-    if (!existingItem || existingItem.list.yachtId !== session.user.yachtId) {
+    if (!existingItem || existingItem.list.yachtId !== tenantId) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
@@ -118,6 +134,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const item = await db.shoppingItem.findUnique({
       where: { id },
@@ -131,7 +153,7 @@ export async function DELETE(
       },
     });
 
-    if (!item || item.list.yachtId !== session.user.yachtId) {
+    if (!item || item.list.yachtId !== tenantId) {
       return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
