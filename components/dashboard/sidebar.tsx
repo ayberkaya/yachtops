@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Menu,
@@ -269,6 +269,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           background: '#ffffff'
         }}
       >
+        <SheetTitle className="sr-only">Navigation menu</SheetTitle>
         <div className="h-full w-full bg-white flex flex-col">
           <div className="p-6 border-b border-slate-200 bg-white">
             <div className="flex items-center space-x-3">
