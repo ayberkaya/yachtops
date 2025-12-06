@@ -66,10 +66,6 @@ export function CashView() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
   const [displayCurrency, setDisplayCurrency] = useState<"USD" | "EUR" | "TRY">("EUR");
-  const [converterFrom, setConverterFrom] = useState<"USD" | "EUR" | "TRY">("EUR");
-  const [converterTo, setConverterTo] = useState<"USD" | "EUR" | "TRY">("USD");
-  const [converterAmount, setConverterAmount] = useState<string>("");
-  const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: CashTransactionType.DEPOSIT,
     amount: "",
@@ -133,26 +129,6 @@ export function CashView() {
     }
     
     return totalBalance;
-  };
-
-  // Calculate converted amount
-  const getConvertedAmount = (): number => {
-    if (!converterAmount || !exchangeRates) return 0;
-    const amount = parseFloat(converterAmount);
-    if (isNaN(amount) || amount <= 0) return 0;
-    
-    // Convert from converterFrom to EUR first
-    let amountInEUR = amount;
-    if (converterFrom !== "EUR" && exchangeRates.rates[converterFrom]) {
-      amountInEUR = amount / exchangeRates.rates[converterFrom];
-    }
-    
-    // Convert from EUR to converterTo
-    if (converterTo === "EUR") {
-      return amountInEUR;
-    }
-    
-    return amountInEUR * (exchangeRates.rates[converterTo] || 1);
   };
 
   useEffect(() => {
@@ -311,111 +287,6 @@ export function CashView() {
             </p>
           )}
         </CardContent>
-      </Card>
-
-      {/* Currency Converter */}
-      <Card>
-        <CardHeader 
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setIsConverterOpen(!isConverterOpen)}
-        >
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {isConverterOpen ? (
-                <ChevronUp className="h-4 w-4 text-muted-foreground" />
-              ) : (
-                <ChevronDown className="h-4 w-4 text-muted-foreground" />
-              )}
-              <div>
-                <CardTitle>Currency Converter</CardTitle>
-                <CardDescription>Convert between USD, EUR, and TRY</CardDescription>
-              </div>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                fetchExchangeRates();
-              }}
-              disabled={!exchangeRates}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Rates
-            </Button>
-          </div>
-        </CardHeader>
-        {isConverterOpen && (
-        <CardContent>
-          <div className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-3 items-end">
-              <div className="space-y-2">
-                <Label htmlFor="converter-amount">Amount</Label>
-                <Input
-                  id="converter-amount"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={converterAmount}
-                  onChange={(e) => setConverterAmount(e.target.value)}
-                  placeholder="0.00"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="converter-from">From</Label>
-                <Select
-                  value={converterFrom}
-                  onValueChange={(value) => setConverterFrom(value as "USD" | "EUR" | "TRY")}
-                >
-                  <SelectTrigger id="converter-from">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="TRY">TRY</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="converter-to">To</Label>
-                <Select
-                  value={converterTo}
-                  onValueChange={(value) => setConverterTo(value as "USD" | "EUR" | "TRY")}
-                >
-                  <SelectTrigger id="converter-to">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USD">USD</SelectItem>
-                    <SelectItem value="EUR">EUR</SelectItem>
-                    <SelectItem value="TRY">TRY</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            {converterAmount && parseFloat(converterAmount) > 0 && (
-              <div className="flex items-center gap-4 p-4 bg-slate-50 dark:bg-slate-900 rounded-lg">
-                <div className="flex-1 text-center">
-                  <p className="text-sm text-muted-foreground">Result</p>
-                  <p className="text-2xl font-bold">
-                    {getConvertedAmount().toFixed(2)} {converterTo}
-                  </p>
-                </div>
-                <ArrowRightLeft className="h-5 w-5 text-muted-foreground" />
-                <div className="flex-1 text-center">
-                  <p className="text-sm text-muted-foreground">Rate</p>
-                  <p className="text-sm font-medium">
-                    {exchangeRates && exchangeRates.rates[converterFrom] && exchangeRates.rates[converterTo]
-                      ? `1 ${converterFrom} = ${(exchangeRates.rates[converterTo] / exchangeRates.rates[converterFrom]).toFixed(4)} ${converterTo}`
-                      : "N/A"}
-                  </p>
-                </div>
-              </div>
-            )}
-          </div>
-        </CardContent>
-        )}
       </Card>
 
       {/* Add Transaction */}
