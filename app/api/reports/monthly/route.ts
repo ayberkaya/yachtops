@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { ExpenseStatus, TripStatus, TaskStatus, ShoppingListStatus } from "@prisma/client";
 import { jsPDF } from "jspdf";
 import { format } from "date-fns";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,9 +13,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -28,13 +31,13 @@ export async function GET(request: NextRequest) {
 
     // Get yacht info
     const yacht = await db.yacht.findUnique({
-      where: { id: session.user.yachtId },
+      where: { id: tenantId || undefined },
     });
 
     // Get approved expenses for the month
     const expenses = await db.expense.findMany({
       where: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         status: ExpenseStatus.APPROVED,
         date: {
           gte: startDate,
@@ -52,7 +55,7 @@ export async function GET(request: NextRequest) {
     // Get trips for the month
     const trips = await db.trip.findMany({
       where: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         OR: [
           {
             startDate: {
@@ -77,7 +80,7 @@ export async function GET(request: NextRequest) {
     // Get completed tasks for the month
     const completedTasks = await db.task.findMany({
       where: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         status: TaskStatus.DONE,
         completedAt: {
           gte: startDate,
@@ -95,7 +98,7 @@ export async function GET(request: NextRequest) {
     // Get completed shopping lists
     const completedShoppingLists = await db.shoppingList.findMany({
       where: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         status: ShoppingListStatus.COMPLETED,
         updatedAt: {
           gte: startDate,

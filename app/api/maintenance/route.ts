@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { MaintenanceType } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const maintenanceSchema = z.object({
   type: z.nativeEnum(MaintenanceType),
@@ -32,6 +33,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
     const type = searchParams.get("type");
     const component = searchParams.get("component");
     const startDate = searchParams.get("startDate");
@@ -39,7 +47,7 @@ export async function GET(request: NextRequest) {
     const upcoming = searchParams.get("upcoming"); // Filter for upcoming maintenance (nextDueDate)
 
     const where: any = {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: tenantId || undefined,
     };
 
     if (type) {
@@ -98,9 +106,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -110,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     const maintenanceLog = await db.maintenanceLog.create({
       data: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         type: validated.type,
         title: validated.title,
         description: validated.description || null,

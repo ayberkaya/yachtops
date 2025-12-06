@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { MaintenanceType } from "@prisma/client";
 import { z } from "zod";
 import { hasPermission } from "@/lib/permissions";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const updateMaintenanceSchema = z.object({
   type: z.nativeEnum(MaintenanceType).optional(),
@@ -34,11 +35,20 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const maintenanceLog = await db.maintenanceLog.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
       include: {
         createdBy: {
@@ -82,10 +92,15 @@ export async function PATCH(
     const body = await request.json();
     const validated = updateMaintenanceSchema.parse(body);
 
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const existingLog = await db.maintenanceLog.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 
@@ -154,10 +169,15 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const existingLog = await db.maintenanceLog.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 
