@@ -285,7 +285,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetContent
         side="left"
-        className="w-[280px] p-0 border-slate-200 z-[100] !bg-white !backdrop-blur-none"
+        className="w-[280px] h-screen max-h-screen p-0 border-slate-200 z-[100] !bg-white !backdrop-blur-none"
         style={{ 
           backgroundColor: '#ffffff',
           backdropFilter: 'none',
@@ -310,7 +310,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </div>
           </div>
           {/* Mobile Navigation - Always expanded */}
-          <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 bg-white">
+          <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 bg-white pb-24">
           {filteredNavItems.map((item) => {
             const isActive = mobileExpandedItems.has(item.href);
             const Icon = item.icon;
@@ -453,7 +453,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             );
           })}
         </nav>
-          <div className="p-4 border-t border-slate-200 bg-white">
+          <div className="p-4 border-t border-slate-200 bg-white mt-auto">
             <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-white border border-slate-200">
               <Avatar className="h-10 w-10 border-2 border-primary/50">
                 <AvatarFallback className="bg-primary text-white font-semibold">
