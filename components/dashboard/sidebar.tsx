@@ -297,7 +297,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                 : 0;
 
             return (
-              <div key={item.href}>
+              <div key={`${item.href}-${item.label}`}>
                 {item.href === "#" ? (
                   <button
                     onClick={(e) => {
