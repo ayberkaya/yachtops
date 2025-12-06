@@ -196,13 +196,16 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           return;
         }
 
-        const response = await fetch("/api/expenses?status=SUBMITTED");
-        if (response.ok) {
-          const expenses = await response.json();
-          setPendingExpensesCount(expenses.length);
+        const response = await fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" });
+        if (!response.ok) {
+          setPendingExpensesCount(0);
+          return;
         }
+        const expenses = await response.json();
+        setPendingExpensesCount(expenses.length);
       } catch (error) {
         console.error("Error fetching pending expenses count:", error);
+        setPendingExpensesCount(0);
       }
     };
 
@@ -222,13 +225,16 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           return;
         }
 
-        const response = await fetch("/api/expenses?isReimbursable=true&isReimbursed=false&status=APPROVED");
-        if (response.ok) {
-          const expenses = await response.json();
-          setReimbursableCount(expenses.length);
+        const response = await fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" });
+        if (!response.ok) {
+          setReimbursableCount(0);
+          return;
         }
+        const expenses = await response.json();
+        setReimbursableCount(expenses.length);
       } catch (error) {
         console.error("Error fetching reimbursable expenses count:", error);
+        setReimbursableCount(0);
       }
     };
 
@@ -461,9 +467,9 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                                 </span>
                               )}
                               {isReimbursablePage && reimbursableCount > 0 && (
-                                <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-blue-500 text-white text-xs font-semibold">
-                                  {reimbursableCount > 99 ? "99+" : reimbursableCount}
-                                </span>
+                              <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                {reimbursableCount > 99 ? "99+" : reimbursableCount}
+                              </span>
                               )}
                             </span>
                           </Link>
@@ -730,16 +736,20 @@ export function Sidebar() {
       try {
         // Only fetch if user has permission to approve expenses
         if (!hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+          setPendingExpensesCount(0);
           return;
         }
 
-        const response = await fetch("/api/expenses?status=SUBMITTED");
-        if (response.ok) {
-          const expenses = await response.json();
-          setPendingExpensesCount(expenses.length);
+        const response = await fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" });
+        if (!response.ok) {
+          setPendingExpensesCount(0);
+          return;
         }
+        const expenses = await response.json();
+        setPendingExpensesCount(expenses.length);
       } catch (error) {
         console.error("Error fetching pending expenses count:", error);
+        setPendingExpensesCount(0);
       }
     };
 
@@ -756,16 +766,20 @@ export function Sidebar() {
     const fetchReimbursableCount = async () => {
       try {
         if (!hasPermission(session.user, "expenses.view", session.user.permissions)) {
+          setReimbursableCount(0);
           return;
         }
 
-        const response = await fetch("/api/expenses?isReimbursable=true&status=APPROVED");
-        if (response.ok) {
-          const expenses = await response.json();
-          setReimbursableCount(expenses.length);
+        const response = await fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" });
+        if (!response.ok) {
+          setReimbursableCount(0);
+          return;
         }
+        const expenses = await response.json();
+        setReimbursableCount(expenses.length);
       } catch (error) {
         console.error("Error fetching reimbursable expenses count:", error);
+        setReimbursableCount(0);
       }
     };
 
@@ -1045,6 +1059,7 @@ export function Sidebar() {
                     }
                     const childActive = pathname === child.href;
                     const isPendingApproval = child.href === "/dashboard/expenses/pending";
+                    const isReimbursablePage = child.href === "/dashboard/expenses/reimbursable";
                     return (
                       <Link
                         key={child.href}
@@ -1070,6 +1085,11 @@ export function Sidebar() {
                               {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
                             </span>
                           )}
+                            {isReimbursablePage && reimbursableCount > 0 && (
+                              <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                {reimbursableCount > 99 ? "99+" : reimbursableCount}
+                              </span>
+                            )}
                         </span>
                       </Link>
                     );
