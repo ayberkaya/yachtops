@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -36,6 +37,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const [reimbursableCount, setReimbursableCount] = useState(0);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Define base navItems structure (static, no user dependency)
   const baseNavItems =
@@ -310,215 +312,235 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </div>
           </div>
           {/* Mobile Navigation - Always expanded */}
-          <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1 bg-white pb-24">
-          {filteredNavItems.map((item) => {
-            const isActive = mobileExpandedItems.has(item.href);
-            const Icon = item.icon;
-            const showChildren = mobileExpandedItems.has(item.href) && item.children;
-            const incomeBadge =
-              item.label === "Income & Expenses"
-                ? pendingExpensesCount + reimbursableCount
-                : 0;
+          <div className="flex-1 overflow-y-auto">
+            <nav className="px-3 pt-4 pb-0 space-y-1 bg-white">
+            {filteredNavItems.map((item) => {
+              const isActive = mobileExpandedItems.has(item.href);
+              const Icon = item.icon;
+              const showChildren = mobileExpandedItems.has(item.href) && item.children;
+              const incomeBadge =
+                item.label === "Income & Expenses"
+                  ? pendingExpensesCount + reimbursableCount
+                  : 0;
 
-            return (
-              <div key={`${item.href}-${item.label}`}>
-                {item.children ? (
-                  <button
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setMobileExpandedItems((prev) =>
-                        prev.has(item.href) ? new Set() : new Set([item.href])
-                      );
-                    }}
-                    className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
-                      isActive
-                        ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    <Icon
-                      size={20}
-                      className={`transition-colors duration-200 ${
-                        isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+              return (
+                <div key={`${item.href}-${item.label}`}>
+                  {item.children ? (
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setMobileExpandedItems((prev) =>
+                          prev.has(item.href) ? new Set() : new Set([item.href])
+                        );
+                      }}
+                      className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
+                        isActive
+                          ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                          : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
                       }`}
-                    />
-                    <span className="text-sm font-medium flex-1 text-left">
-                      {item.label}
-                    </span>
-                    {incomeBadge > 0 && (
-                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                        {incomeBadge > 99 ? "99+" : incomeBadge}
-                      </span>
-                    )}
-                    {item.children && (
-                      <ChevronRight 
-                        size={16} 
-                        className={`transition-transform duration-200 ${
-                          isActive ? "text-primary-foreground" : "text-muted-foreground"
-                        } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
+                    >
+                      <Icon
+                        size={20}
+                        className={`transition-colors duration-200 ${
+                          isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+                        }`}
                       />
-                    )}
-                  </button>
-                ) : (
+                      <span className="text-sm font-medium flex-1 text-left">
+                        {item.label}
+                      </span>
+                      {incomeBadge > 0 && (
+                        <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                          {incomeBadge > 99 ? "99+" : incomeBadge}
+                        </span>
+                      )}
+                      {item.children && (
+                        <ChevronRight 
+                          size={16} 
+                          className={`transition-transform duration-200 ${
+                            isActive ? "text-primary-foreground" : "text-muted-foreground"
+                          } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
+                        />
+                      )}
+                    </button>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
+                        isActive
+                          ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                          : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <Icon
+                        size={20}
+                        className={`transition-colors duration-200 ${
+                          isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+                        }`}
+                      />
+                      <span className="text-sm font-medium flex-1">
+                        {item.label}
+                      </span>
+                      {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
+                        <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
+                          isActive 
+                            ? "bg-white/20 text-white" 
+                            : "bg-red-500 text-white"
+                        }`}>
+                          {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                        </span>
+                      )}
+                      {item.children && (
+                        <ChevronRight 
+                          size={16} 
+                          className={`transition-transform duration-200 ${
+                            isActive ? "text-primary-foreground" : "text-muted-foreground"
+                          } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
+                        />
+                      )}
+                    </Link>
+                  )}
+
+                  {/* Children */}
+                  {showChildren && item.children && (
+                    <div className="overflow-hidden">
+                      <div className="space-y-1">
+                        {item.children.map((child, index) => {
+                          if (
+                            child.permission &&
+                            !hasPermission(user, child.permission as any, user.permissions)
+                          ) {
+                            return null;
+                          }
+                          const childActive = pathname === child.href;
+                          const isPendingApproval = child.href === "/dashboard/expenses/pending";
+                          const isReimbursablePage = child.href === "/dashboard/expenses/reimbursable";
+                          return (
+                            <Link
+                              key={child.href}
+                              href={child.href}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setMobileMenuOpen(false);
+                              }}
+                              className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
+                                childActive
+                                  ? "sidebar-child-active text-primary bg-accent"
+                                  : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
+                              }`}
+                            >
+                              <span className="flex items-center justify-between">
+                                <span>{child.label}</span>
+                                {isPendingApproval && pendingExpensesCount > 0 && (
+                                  <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                    {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
+                                  </span>
+                                )}
+                                {isReimbursablePage && reimbursableCount > 0 && (
+                                <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                  {reimbursableCount > 99 ? "99+" : reimbursableCount}
+                                </span>
+                                )}
+                              </span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
+            <div className="p-4 border-t border-slate-200 bg-white">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSettingsOpen((prev) => !prev);
+                }}
+                className="w-full flex items-center justify-between space-x-3 mb-2 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
+              >
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10 border-2 border-primary/50">
+                    <AvatarFallback className="bg-primary text-white font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-slate-900 truncate" style={{ color: '#0f172a' }}>
+                      {user.name || "User"}
+                    </p>
+                    <p className="text-xs text-slate-700 truncate capitalize font-medium" style={{ color: '#334155' }}>
+                      {user.role.toLowerCase()}
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight
+                  size={16}
+                  className={`transition-transform duration-200 ${settingsOpen ? "rotate-90" : "rotate-0"} text-slate-700`}
+                />
+              </button>
+
+              {settingsOpen && (
+                <div className="space-y-2">
+                  {hasPermission(user, "users.view", user.permissions) && (
+                    <Link
+                      href="/dashboard/users"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                      <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Users</span>
+                    </Link>
+                  )}
+                  {hasPermission(user, "performance.view", user.permissions) && (
+                    <Link
+                      href="/dashboard/performance"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setMobileMenuOpen(false);
+                      }}
+                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                      <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Performance</span>
+                    </Link>
+                  )}
                   <Link
-                    href={item.href}
+                    href="/dashboard/my-documents"
                     onClick={(e) => {
                       e.stopPropagation();
                       setMobileMenuOpen(false);
                     }}
-                    className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
-                      isActive
-                        ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                        : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                   >
-                    <Icon
-                      size={20}
-                      className={`transition-colors duration-200 ${
-                        isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-                      }`}
-                    />
-                    <span className="text-sm font-medium flex-1">
-                      {item.label}
-                    </span>
-                    {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
-                      <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
-                        isActive 
-                          ? "bg-white/20 text-white" 
-                          : "bg-red-500 text-white"
-                      }`}>
-                        {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
-                      </span>
-                    )}
-                    {item.children && (
-                      <ChevronRight 
-                        size={16} 
-                        className={`transition-transform duration-200 ${
-                          isActive ? "text-primary-foreground" : "text-muted-foreground"
-                        } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
-                      />
-                    )}
+                    <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
                   </Link>
-                )}
+                </div>
+              )}
 
-                {/* Children */}
-                {showChildren && item.children && (
-                  <div className="overflow-hidden">
-                    <div className="space-y-1">
-                      {item.children.map((child, index) => {
-                        if (
-                          child.permission &&
-                          !hasPermission(user, child.permission as any, user.permissions)
-                        ) {
-                          return null;
-                        }
-                        const childActive = pathname === child.href;
-                        const isPendingApproval = child.href === "/dashboard/expenses/pending";
-                        const isReimbursablePage = child.href === "/dashboard/expenses/reimbursable";
-                        return (
-                          <Link
-                            key={child.href}
-                            href={child.href}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMobileMenuOpen(false);
-                            }}
-                            className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
-                              childActive
-                                ? "sidebar-child-active text-primary bg-accent"
-                                : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
-                            }`}
-                          >
-                            <span className="flex items-center justify-between">
-                              <span>{child.label}</span>
-                              {isPendingApproval && pendingExpensesCount > 0 && (
-                                <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                  {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
-                                </span>
-                              )}
-                              {isReimbursablePage && reimbursableCount > 0 && (
-                              <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                {reimbursableCount > 99 ? "99+" : reimbursableCount}
-                              </span>
-                              )}
-                            </span>
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </nav>
-          <div className="p-4 border-t border-slate-200 bg-white mt-auto">
-            <div className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-white border border-slate-200">
-              <Avatar className="h-10 w-10 border-2 border-primary/50">
-                <AvatarFallback className="bg-primary text-white font-semibold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-slate-900 truncate" style={{ color: '#0f172a' }}>
-                  {user.name || "User"}
-                </p>
-                <p className="text-xs text-slate-700 truncate capitalize font-medium" style={{ color: '#334155' }}>
-                  {user.role.toLowerCase()}
-                </p>
-              </div>
-            </div>
-          {hasPermission(user, "users.view", user.permissions) && (
-            <Link
-              href="/dashboard/users"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
-            >
-              <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-              <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Users</span>
-            </Link>
-          )}
-          {hasPermission(user, "performance.view", user.permissions) && (
-            <Link
-              href="/dashboard/performance"
-              onClick={(e) => {
-                e.stopPropagation();
-                setMobileMenuOpen(false);
-              }}
-              className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
-            >
-              <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-              <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Performance</span>
-            </Link>
-          )}
-          <Link
-            href="/dashboard/my-documents"
-            onClick={(e) => {
-              e.stopPropagation();
-              setMobileMenuOpen(false);
-            }}
-            className="flex items-center space-x-2 text-slate-700 hover:text-primary w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 mb-2 group"
-          >
-            <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
-          </Link>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setMobileMenuOpen(false);
-              signOut({ callbackUrl: "/" });
-            }}
-            className="flex items-center space-x-2 text-slate-700 hover:text-red-600 w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
-          >
-            <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
-            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setMobileMenuOpen(false);
+                  signOut({ callbackUrl: "/" });
+                }}
+                className="mt-3 flex items-center space-x-2 text-slate-700 hover:text-red-600 w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
+              >
+                <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
+                <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
               </button>
             </div>
           </div>
+        </div>
         </SheetContent>
       </Sheet>
     );
@@ -536,6 +558,8 @@ export function Sidebar() {
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsOpenDesktop, setSettingsOpenDesktop] = useState(false);
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
   const [desktopExpandedItems, setDesktopExpandedItems] = useState<Set<string>>(new Set());
   const prevCollapsed = useRef<boolean>(false);
@@ -1041,70 +1065,74 @@ export function Sidebar() {
         <div className={`p-4 border-t border-border bg-secondary ${isExpanded ? "" : "px-2"}`}>
           {isExpanded ? (
             <>
-              <Link
-                href="/dashboard/settings"
-                onClick={() => {
-                  if (!isCollapsed) setIsCollapsed(true);
-                }}
-                className="flex items-center space-x-3 mb-3 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
+              <button
+                onClick={() => setSettingsOpenDesktop((prev) => !prev)}
+                className="flex items-center justify-between space-x-3 mb-2 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors w-full"
               >
-                <Avatar className="h-10 w-10 border-2 border-primary/50">
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-foreground truncate">
-                    {user.name || "User"}
-                  </p>
-                  <p className="text-xs text-muted-foreground truncate capitalize">
-                    {user.role.toLowerCase()}
-                  </p>
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10 border-2 border-primary/50">
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {user.name || "User"}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate capitalize">
+                      {user.role.toLowerCase()}
+                    </p>
+                  </div>
                 </div>
-              </Link>
-              {hasPermission(user, "users.view", user.permissions) && (
-                <Link
-                  href="/dashboard/users"
-                  onClick={() => {
-                    if (!isCollapsed) {
-                      setIsCollapsed(true);
-                    }
-                  }}
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 mb-2 group"
-                >
-                  <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                  <span className="transition-colors duration-200">Users</span>
-                </Link>
+                <ChevronRight
+                  size={16}
+                  className={cn(
+                    "transition-transform duration-200 text-slate-700",
+                    settingsOpenDesktop ? "rotate-90" : "rotate-0"
+                  )}
+                />
+              </button>
+
+              {settingsOpenDesktop && (
+                <div className="space-y-2">
+                  <Link
+                    href="/dashboard/settings"
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <Settings size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">Settings</span>
+                  </Link>
+                  {hasPermission(user, "users.view", user.permissions) && (
+                    <Link
+                      href="/dashboard/users"
+                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                      <span className="transition-colors duration-200">Users</span>
+                    </Link>
+                  )}
+                  {hasPermission(user, "performance.view", user.permissions) && (
+                    <Link
+                      href="/dashboard/performance"
+                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <TrendingUp size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                      <span className="transition-colors duration-200">Performance</span>
+                    </Link>
+                  )}
+                  <Link
+                    href="/dashboard/my-documents"
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">My Documents</span>
+                  </Link>
+                </div>
               )}
-              {hasPermission(user, "performance.view", user.permissions) && (
-                <Link
-                  href="/dashboard/performance"
-                  onClick={() => {
-                    if (!isCollapsed) {
-                      setIsCollapsed(true);
-                    }
-                  }}
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 mb-2 group"
-                >
-                  <TrendingUp size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                  <span className="transition-colors duration-200">Performance</span>
-                </Link>
-              )}
-              <Link
-                href="/dashboard/my-documents"
-                onClick={() => {
-                  if (!isCollapsed) {
-                    setIsCollapsed(true);
-                  }
-                }}
-                className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 mb-2 group"
-              >
-                <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                <span className="transition-colors duration-200">My Documents</span>
-              </Link>
+
               <button
                 onClick={() => signOut({ callbackUrl: "/" })}
-                className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                className="mt-3 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
               >
                 <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
                 <span className="transition-colors duration-200">Sign Out</span>
