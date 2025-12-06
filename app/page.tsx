@@ -107,6 +107,33 @@ export default function Home() {
         <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-purple-100/30 via-transparent to-transparent rounded-full blur-3xl" />
       </div>
 
+      {/* Header with CTAs */}
+      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200/60">
+        <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 py-4">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-bold shadow-lg">
+              <Anchor className="h-5 w-5" />
+            </div>
+            <span className="text-xl font-bold text-slate-900">YachtOps</span>
+          </Link>
+          <div className="flex flex-wrap justify-center sm:justify-end gap-2">
+            <Button
+              asChild
+              size="sm"
+              className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700"
+            >
+              <Link href="/demo-request">Request a Demo</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="border-slate-300">
+              <Link href="/contact">Contact Sales</Link>
+            </Button>
+            <Button asChild size="sm" variant="outline" className="border-slate-300">
+              <Link href="/fleet-solutions">Fleet Solutions</Link>
+            </Button>
+          </div>
+        </div>
+      </header>
+
       {/* Hero Section */}
       <section className="relative pt-24 pb-24 px-4 sm:px-6 lg:px-8">
         <div className="container mx-auto max-w-6xl">
@@ -140,7 +167,7 @@ export default function Home() {
 
             {/* CTA Buttons */}
             <div 
-              className="grid gap-3 sm:flex sm:flex-wrap sm:items-center sm:justify-center pt-6"
+              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6"
               style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
             >
               <Button 
@@ -159,28 +186,8 @@ export default function Home() {
                 size="lg" 
                 className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
               >
-                <Link href="/demo-request">
-                  Request a Demo
-                </Link>
-              </Button>
-              <Button 
-                asChild 
-                variant="outline" 
-                size="lg" 
-                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
-              >
-                <Link href="/contact">
-                  Contact Sales
-                </Link>
-              </Button>
-              <Button 
-                asChild 
-                variant="outline" 
-                size="lg" 
-                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
-              >
-                <Link href="/fleet-solutions">
-                  Fleet Solutions
+                <Link href="#features">
+                  Learn More
                 </Link>
               </Button>
             </div>
