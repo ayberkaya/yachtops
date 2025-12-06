@@ -223,13 +223,19 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                           <SelectValue placeholder="Select category" />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
-                        {categories.map((cat) => (
+                    <SelectContent>
+                      {categories.length === 0 ? (
+                        <SelectItem value="__none" disabled>
+                          No categories available
+                        </SelectItem>
+                      ) : (
+                        categories.map((cat) => (
                           <SelectItem key={cat.id} value={cat.id}>
                             {cat.name}
                           </SelectItem>
-                        ))}
-                      </SelectContent>
+                        ))
+                      )}
+                    </SelectContent>
                     </Select>
                     <FormMessage />
                   </FormItem>
