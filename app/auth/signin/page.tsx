@@ -178,12 +178,7 @@ export default function SignInPage() {
           <p className="text-sm text-slate-600 font-medium">
             For private and charter yachts
           </p>
-          <p className="text-sm text-slate-600">
-            Don't have an account?{" "}
-            <Link href="/auth/signup" className="text-blue-600 hover:text-blue-700 font-medium">
-              Create Account
-            </Link>
-          </p>
+          <p className="text-sm text-slate-600">Don't have an account? Please contact your administrator.</p>
         </div>
       </div>
     </div>
