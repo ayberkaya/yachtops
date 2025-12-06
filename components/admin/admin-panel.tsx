@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 
 type Owner = {
@@ -99,13 +99,13 @@ export default function AdminPanel() {
                     tenantId: {owner.yachtId || "-"}
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm">Active</span>
-                  <Switch
+                <label className="flex items-center gap-2 text-sm">
+                  <Checkbox
                     checked={owner.active}
-                    onCheckedChange={(val) => toggleActive(owner.id, val)}
+                    onCheckedChange={(val) => toggleActive(owner.id, !!val)}
                   />
-                </div>
+                  Active
+                </label>
               </div>
             ))
           )}
