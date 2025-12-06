@@ -4,6 +4,7 @@ import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TaskStatus } from "@prisma/client";
 import { format } from "date-fns";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
     const userId = searchParams.get("userId");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
@@ -23,7 +31,7 @@ export async function GET(request: NextRequest) {
       : session.user.id;
 
     const where: any = {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: tenantId || undefined,
       status: TaskStatus.DONE,
       completedById: targetUserId,
     };
