@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft, ChevronDown, ChevronUp, Eye } from "lucide-react";
 import { CashTransactionType } from "@prisma/client";
 import { formatDistanceToNow } from "date-fns";
 
@@ -372,6 +373,7 @@ export function CashView() {
                   <TableHead>Amount</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Created By</TableHead>
+                <TableHead className="text-right">View Expense</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -418,6 +420,17 @@ export function CashView() {
                     <TableCell>
                       {transaction.createdBy.name || transaction.createdBy.email}
                     </TableCell>
+                <TableCell className="text-right">
+                  {transaction.type === CashTransactionType.WITHDRAWAL && transaction.expense ? (
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/dashboard/expenses/${transaction.expense.id}`}>
+                        <Eye className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  ) : (
+                    <span className="text-muted-foreground text-sm">-</span>
+                  )}
+                </TableCell>
                   </TableRow>
                 ))}
               </TableBody>

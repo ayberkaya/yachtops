@@ -16,22 +16,70 @@ export default async function NewExpensePage() {
     redirect("/dashboard");
   }
 
-  // Fetch categories and trips for the form
-  const [categories, trips] = await Promise.all([
-    db.expenseCategory.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
+  const yachtId = session.user.yachtId || undefined;
+
+  const defaultCategories = [
+    "Fuel",
+    "Marina & Port Fees",
+    "Provisions",
+    "Cleaning & Laundry",
+    "Maintenance & Repairs",
+    "Crew",
+    "Tender & Toys",
+    "Miscellaneous",
+    "Insurance",
+    "Communications & IT",
+    "Safety Equipment",
+    "Crew Training",
+    "Guest Services",
+    "Waste Disposal",
+    "Dockage & Utilities",
+    "Transport & Logistics",
+    "Permits & Customs",
+    "Fuel Additives",
+  ];
+
+  // Ensure tenant has categories; if none, seed defaults for this yachtId.
+  let categories = await db.expenseCategory.findMany({
+    where: {
+      yachtId,
+    },
+    orderBy: { name: "asc" },
+  });
+
+  if (categories.length === 0 && yachtId) {
+    await Promise.all(
+      defaultCategories.map((name) =>
+        db.expenseCategory.upsert({
+          where: {
+            yachtId_name: {
+              yachtId,
+              name,
+            },
+          },
+          update: {},
+          create: {
+            name,
+            yachtId,
+          },
+        })
+      )
+    );
+
+    categories = await db.expenseCategory.findMany({
+      where: { yachtId },
       orderBy: { name: "asc" },
-    }),
-    db.trip.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      orderBy: { startDate: "desc" },
-      take: 50,
-    }),
-  ]);
+    });
+  }
+
+  // Fetch trips for the form
+  const trips = await db.trip.findMany({
+    where: {
+      yachtId,
+    },
+    orderBy: { startDate: "desc" },
+    take: 50,
+  });
 
   return (
     <div className="space-y-6">

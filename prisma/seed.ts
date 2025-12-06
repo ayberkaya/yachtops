@@ -38,6 +38,7 @@ async function main() {
       name: "John Owner",
       role: UserRole.OWNER,
       yachtId: yacht.id,
+      username: "owner",
     },
     create: {
       email: "owner@yachtops.com",
@@ -45,6 +46,7 @@ async function main() {
       name: "John Owner",
       role: UserRole.OWNER,
       yachtId: yacht.id,
+      username: "owner",
     },
   });
 
@@ -59,6 +61,7 @@ async function main() {
       name: "Sarah Captain",
       role: UserRole.CAPTAIN,
       yachtId: yacht.id,
+      username: "captain",
     },
     create: {
       email: "captain@yachtops.com",
@@ -66,6 +69,7 @@ async function main() {
       name: "Sarah Captain",
       role: UserRole.CAPTAIN,
       yachtId: yacht.id,
+      username: "captain",
     },
   });
 
@@ -80,6 +84,7 @@ async function main() {
       name: "Mike Crew",
       role: UserRole.CREW,
       yachtId: yacht.id,
+      username: "crew",
     },
     create: {
       email: "crew@yachtops.com",
@@ -87,6 +92,7 @@ async function main() {
       name: "Mike Crew",
       role: UserRole.CREW,
       yachtId: yacht.id,
+      username: "crew",
     },
   });
 
@@ -102,6 +108,16 @@ async function main() {
     "Crew",
     "Tender & Toys",
     "Miscellaneous",
+    "Insurance",
+    "Communications & IT",
+    "Safety Equipment",
+    "Crew Training",
+    "Guest Services",
+    "Waste Disposal",
+    "Dockage & Utilities",
+    "Transport & Logistics",
+    "Permits & Customs",
+    "Fuel Additives",
   ];
 
   for (const categoryName of categories) {
