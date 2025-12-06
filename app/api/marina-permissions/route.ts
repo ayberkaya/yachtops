@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,16 +10,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
 
     const docs = await db.marinaPermissionDocument.findMany({
       where: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
       },
       orderBy: { createdAt: "desc" },
     });
@@ -40,9 +43,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -66,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const doc = await db.marinaPermissionDocument.create({
       data: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         title,
         fileUrl: dataUrl,
         notes,

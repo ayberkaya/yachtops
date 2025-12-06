@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,9 +11,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -23,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     const docs = await db.crewDocument.findMany({
       where: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
       },
       include: {
         user: {
@@ -54,9 +57,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -85,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     const doc = await db.crewDocument.create({
       data: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         userId: userId || null,
         title,
         fileUrl: dataUrl,

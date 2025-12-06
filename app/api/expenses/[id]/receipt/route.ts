@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 export async function POST(
   request: NextRequest,
@@ -14,10 +15,16 @@ export async function POST(
 
     const { id } = await params;
 
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const expense = await db.expense.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 
