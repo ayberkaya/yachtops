@@ -304,15 +304,9 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      setMobileExpandedItems((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(item.href)) {
-                          next.delete(item.href);
-                        } else {
-                          next.add(item.href);
-                        }
-                        return next;
-                      });
+                      setMobileExpandedItems((prev) =>
+                        prev.has(item.href) ? new Set() : new Set([item.href])
+                      );
                     }}
                     className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
                       isActive
