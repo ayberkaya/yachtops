@@ -815,8 +815,10 @@ export function Sidebar() {
               e.preventDefault();
               setExpanded((prev) => (prev.has(item.href) ? new Set() : new Set([item.href])));
             } else if (isMobile) {
+              setExpanded(new Set());
               setMobileMenuOpen(false);
             } else {
+              setExpanded(new Set());
               if (!isCollapsed) setIsCollapsed(true);
             }
           };
@@ -894,6 +896,7 @@ export function Sidebar() {
                           key={child.href}
                           href={child.href}
                           onClick={() => {
+                            setExpanded(new Set());
                             if (isMobile) {
                               setMobileMenuOpen(false);
                             }
