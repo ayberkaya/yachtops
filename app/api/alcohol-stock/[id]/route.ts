@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const updateStockSchema = z.object({
   category: z.enum(["WINE", "SPIRITS", "BEER"]).optional().nullable(),
@@ -20,6 +21,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const validated = updateStockSchema.parse(body);
@@ -27,7 +34,7 @@ export async function PATCH(
     const existing = await db.alcoholStock.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 
@@ -99,12 +106,18 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantId = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
 
     const existing = await db.alcoholStock.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 

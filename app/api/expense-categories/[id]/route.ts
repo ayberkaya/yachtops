@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
@@ -22,6 +23,11 @@ export async function PUT(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const body = await request.json();
     const validated = categorySchema.parse(body);
@@ -29,7 +35,7 @@ export async function PUT(
     const category = await db.expenseCategory.update({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
       data: {
         name: validated.name,
@@ -67,6 +73,11 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
 
     // Check if category is used by any expenses
@@ -86,7 +97,7 @@ export async function DELETE(
     await db.expenseCategory.delete({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 

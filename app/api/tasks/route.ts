@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { notifyTaskAssignment } from "@/lib/notifications";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -26,12 +27,20 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const status = searchParams.get("status");
     const assigneeId = searchParams.get("assigneeId");
     const tripId = searchParams.get("tripId");
 
     const where: any = {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: tenantId || undefined,
     };
 
     if (status) {
@@ -98,15 +107,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
     // Check if user has permission to create tasks
     if (!hasPermission(session.user, "tasks.create", session.user.permissions) && !canManageUsers(session.user)) {
       return NextResponse.json({ error: "Forbidden: You don't have permission to create tasks" }, { status: 403 });
     }
 
-    if (!session.user.yachtId) {
-      console.log("POST /api/tasks - Bad request: No yachtId");
+    if (!tenantIdFromSession && !isAdmin) {
+      console.log("POST /api/tasks - Bad request: No tenantId");
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -155,7 +166,7 @@ export async function POST(request: NextRequest) {
     console.log("POST /api/tasks - Creating task in database...");
     const task = await db.task.create({
       data: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantIdFromSession || undefined,
         tripId: validated.tripId || null,
         title: validated.title,
         description: validated.description || null,

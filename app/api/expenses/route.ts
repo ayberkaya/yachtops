@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { ExpenseStatus, PaymentMethod, PaidBy, CashTransactionType } from "@prisma/client";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const expenseSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -34,7 +35,16 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+
     const { searchParams } = new URL(request.url);
+    const requestedTenantId = searchParams.get("tenantId");
+    const effectiveTenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!effectiveTenantId) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const status = searchParams.get("status");
     const categoryId = searchParams.get("categoryId");
     const tripId = searchParams.get("tripId");
@@ -49,7 +59,7 @@ export async function GET(request: NextRequest) {
     const isReimbursed = searchParams.get("isReimbursed");
 
     const where: any = {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: effectiveTenantId,
     };
 
     if (status) {
@@ -141,9 +151,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const tenantId = tenantIdFromSession || (isAdmin ? null : null);
+
+    if (!tenantId && !isAdmin) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -154,7 +168,7 @@ export async function POST(request: NextRequest) {
     // Create expense (cash balance check and transaction creation will happen on approval)
     const expense = await db.expense.create({
       data: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         tripId: validated.tripId || null,
         createdByUserId: session.user.id,
         date: new Date(validated.date),

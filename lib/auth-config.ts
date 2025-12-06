@@ -64,6 +64,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             name: user.name,
             role: user.role,
             yachtId: user.yachtId,
+            tenantId: user.yachtId, // alias tenant to yacht for multi-tenant isolation
             permissions: user.permissions,
           };
           console.log("📤 [AUTH] Returning user object");
@@ -88,6 +89,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id;
         token.role = user.role;
         token.yachtId = user.yachtId;
+        token.tenantId = (user as any).tenantId ?? user.yachtId;
         token.permissions = user.permissions;
         console.log("✅ [AUTH] JWT token updated with user data");
       }
@@ -99,6 +101,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string;
         session.user.role = token.role as UserRole;
         session.user.yachtId = token.yachtId as string | null;
+        (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
         session.user.permissions = token.permissions as string | null | undefined;
         console.log("✅ [AUTH] Session updated with user data");
       }

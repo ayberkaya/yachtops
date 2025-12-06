@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { CashTransactionType } from "@prisma/client";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const cashTransactionSchema = z.object({
   type: z.nativeEnum(CashTransactionType),
@@ -20,8 +21,9 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      if (!session.user.yachtId) {
-        return NextResponse.json({ error: "No yacht assigned" }, { status: 400 });
+      const tenantId = getTenantId(session);
+      if (!tenantId && !isPlatformAdmin(session)) {
+        return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
       }
 
       // Check if CashTransaction model exists
@@ -38,9 +40,10 @@ export async function GET(request: NextRequest) {
       }
 
       // Get all cash transactions
+      const tenantId = getTenantId(session);
       const transactions = await db.cashTransaction.findMany({
         where: {
-          yachtId: session.user.yachtId,
+          yachtId: tenantId || undefined,
         },
         include: {
           createdBy: {
@@ -108,8 +111,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
 
-      if (!session.user.yachtId) {
-        return NextResponse.json({ error: "No yacht assigned" }, { status: 400 });
+      const tenantId = getTenantId(session);
+      if (!tenantId && !isPlatformAdmin(session)) {
+        return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
       }
 
       let body;
@@ -151,7 +155,7 @@ export async function POST(request: NextRequest) {
 
       const transaction = await db.cashTransaction.create({
         data: {
-          yachtId: session.user.yachtId,
+          yachtId: tenantId || undefined,
           type: validated.type,
           amount: validated.amount,
           currency: validated.currency,

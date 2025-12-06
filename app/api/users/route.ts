@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -25,9 +26,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const isAdmin = isPlatformAdmin(session);
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const users = await db.user.findMany({
       where: {
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
       select: {
         id: true,
@@ -61,6 +71,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const body = await request.json();
     const validated = userSchema.parse(body);
 
@@ -85,7 +100,7 @@ export async function POST(request: NextRequest) {
         name: validated.name || null,
         role: validated.role,
         permissions: validated.permissions ? JSON.stringify(validated.permissions) : null,
-        yachtId: session.user.yachtId!,
+        yachtId: tenantId || undefined,
       },
       select: {
         id: true,

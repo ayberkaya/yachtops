@@ -4,6 +4,7 @@ import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { TripStatus, TripType } from "@prisma/client";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const tripSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -27,10 +28,18 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const status = searchParams.get("status");
 
     const where: any = {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: tenantId || undefined,
     };
 
     if (status) {
@@ -74,9 +83,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    if (!session.user.yachtId) {
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
       return NextResponse.json(
-        { error: "User must be assigned to a yacht" },
+        { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
@@ -86,7 +96,7 @@ export async function POST(request: NextRequest) {
 
     const trip = await db.trip.create({
       data: {
-        yachtId: session.user.yachtId,
+        yachtId: tenantId || undefined,
         name: validated.name,
         code: validated.code || null,
         type: validated.type,

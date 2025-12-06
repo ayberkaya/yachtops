@@ -4,6 +4,7 @@ import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ExpenseStatus, PaidBy, CashTransactionType } from "@prisma/client";
 import { z } from "zod";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const updateExpenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).optional(),
@@ -23,6 +24,15 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = params || {};
     if (!id || id === "undefined") {
       return NextResponse.json(
@@ -33,7 +43,7 @@ export async function GET(
     const expense = await db.expense.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
       include: {
         createdBy: {
@@ -78,6 +88,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+
     // Defensive: if params.id missing, derive from URL path as a fallback
     const pathParts = new URL(request.url).pathname.split("/");
     const fallbackId = pathParts[pathParts.length - 1] || undefined;
@@ -116,11 +129,22 @@ export async function PATCH(
       throw error;
     }
 
+    // Determine tenant scope
+    const { searchParams } = new URL(request.url);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json(
+        { error: "User must be assigned to a tenant" },
+        { status: 400 }
+      );
+    }
+
     // Check if expense exists and user has access
     const existingExpense = await db.expense.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
     });
 
@@ -161,7 +185,7 @@ export async function PATCH(
             // Check cash balance
             const cashTransactions = await db.cashTransaction.findMany({
               where: {
-                yachtId: session.user.yachtId || undefined,
+                yachtId: tenantId || undefined,
               },
             });
 
@@ -185,16 +209,16 @@ export async function PATCH(
             }
 
             // Create cash withdrawal transaction
-            if (!session.user.yachtId) {
+            if (!tenantId) {
               return NextResponse.json(
-                { error: "User must be assigned to a yacht" },
+                { error: "User must be assigned to a tenant" },
                 { status: 400 }
               );
             }
 
             await db.cashTransaction.create({
               data: {
-                yachtId: session.user.yachtId,
+                yachtId: tenantId,
                 type: CashTransactionType.WITHDRAWAL,
                 amount: existingExpense.amount,
                 currency: existingExpense.currency,
