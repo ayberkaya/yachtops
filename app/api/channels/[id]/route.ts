@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 const updateChannelSchema = z.object({
   name: z.string().min(1).optional(),
@@ -20,11 +21,20 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
+
     const { id } = await params;
     const channel = await db.messageChannel.findUnique({
       where: {
         id,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
       include: {
         members: {
@@ -66,6 +76,11 @@ export async function PATCH(
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
     if (!canManageUsers(session.user)) {
@@ -136,6 +151,11 @@ export async function DELETE(
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantId = getTenantId(session);
+    if (!tenantId && !isPlatformAdmin(session)) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
     if (!canManageUsers(session.user)) {

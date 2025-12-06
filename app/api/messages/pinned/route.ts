@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
+import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   try {
@@ -10,6 +11,13 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+    const requestedTenantId = searchParams.get("tenantId");
+    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    }
     const channelId = searchParams.get("channelId");
 
     if (!channelId) {
@@ -23,7 +31,7 @@ export async function GET(request: NextRequest) {
     const channel = await db.messageChannel.findUnique({
       where: {
         id: channelId,
-        yachtId: session.user.yachtId || undefined,
+        yachtId: tenantId || undefined,
       },
       include: {
         members: {
