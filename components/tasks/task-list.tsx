@@ -193,54 +193,56 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             )}
           </Button>
         </div>
-        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen} className="w-full">
-          <CollapsibleTrigger asChild>
-            <Button variant="outline" size="sm">
-              Filters
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent className="mt-3 flex flex-wrap items-center gap-2">
-            <Select value={statusFilter} onValueChange={setStatusFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-                <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
-              <SelectTrigger className="w-[180px]">
-                <SelectValue placeholder="Filter by assignee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All assignees</SelectItem>
-                <SelectItem value="unassigned">Unassigned</SelectItem>
-                {users.map((u) => (
-                  <SelectItem key={u.id} value={u.id}>
-                    {u.name || u.email}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              className="w-[160px]"
-              placeholder="From"
-            />
-            <Input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              className="w-[160px]"
-              placeholder="To"
-            />
-          </CollapsibleContent>
-        </Collapsible>
+        <div className="relative">
+          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <CollapsibleTrigger asChild>
+              <Button variant="outline" size="sm">
+                Filters
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="absolute right-0 mt-2 w-[min(720px,100vw)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-center gap-2 z-20">
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
+                  <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
+                  <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filter by assignee" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All assignees</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
+                  {users.map((u) => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name || u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+                className="w-[160px]"
+                placeholder="From"
+              />
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+                className="w-[160px]"
+                placeholder="To"
+              />
+            </CollapsibleContent>
+          </Collapsible>
+        </div>
       </div>
 
       {filteredTasks.length === 0 ? (
