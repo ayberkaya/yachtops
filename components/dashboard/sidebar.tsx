@@ -299,20 +299,20 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
             return (
               <div key={`${item.href}-${item.label}`}>
-                {item.href === "#" ? (
+                {item.children ? (
                   <button
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      if (item.children) {
-                        setMobileExpandedItems((prev) => {
-                          const next = new Set<string>();
-                          if (!prev.has(item.href)) {
-                            next.add(item.href);
-                          }
-                          return next;
-                        });
-                      }
+                      setMobileExpandedItems((prev) => {
+                        const next = new Set(prev);
+                        if (next.has(item.href)) {
+                          next.delete(item.href);
+                        } else {
+                          next.add(item.href);
+                        }
+                        return next;
+                      });
                     }}
                     className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 ${
                       isActive
