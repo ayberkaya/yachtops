@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     const minAmount = searchParams.get("minAmount");
     const maxAmount = searchParams.get("maxAmount");
     const isReimbursable = searchParams.get("isReimbursable");
+    const isReimbursed = searchParams.get("isReimbursed");
 
     const where: any = {
       yachtId: session.user.yachtId || undefined,
@@ -83,6 +84,9 @@ export async function GET(request: NextRequest) {
     }
     if (isReimbursable !== null && isReimbursable !== undefined && isReimbursable !== "") {
       where.isReimbursable = isReimbursable === "true";
+    }
+    if (isReimbursed !== null && isReimbursed !== undefined && isReimbursed !== "") {
+      where.isReimbursed = isReimbursed === "true";
     }
     // Amount range filtering - filter by baseAmount if available, otherwise by amount
     if (minAmount || maxAmount) {

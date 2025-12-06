@@ -192,6 +192,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     const fetchPendingExpensesCount = async () => {
       try {
         if (!hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+          setPendingExpensesCount(0);
           return;
         }
 
@@ -217,10 +218,11 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     const fetchReimbursableCount = async () => {
       try {
         if (!hasPermission(session.user, "expenses.view", session.user.permissions)) {
+          setReimbursableCount(0);
           return;
         }
 
-        const response = await fetch("/api/expenses?isReimbursable=true&status=APPROVED");
+        const response = await fetch("/api/expenses?isReimbursable=true&isReimbursed=false&status=APPROVED");
         if (response.ok) {
           const expenses = await response.json();
           setReimbursableCount(expenses.length);
