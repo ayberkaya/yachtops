@@ -240,6 +240,16 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 className="w-[170px]"
                 placeholder="End date"
               />
+            <Button
+              size="sm"
+              onClick={() => {
+                // noop: filters are already bound; trigger refresh
+                setFiltersOpen(false);
+                router.refresh();
+              }}
+            >
+              Apply
+            </Button>
             </CollapsibleContent>
           </Collapsible>
         </div>
