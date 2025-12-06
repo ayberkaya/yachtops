@@ -22,6 +22,7 @@ import {
   Package,
   Wrench,
   FileCheck,
+  Settings,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth";
@@ -37,113 +38,123 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [reimbursableCount, setReimbursableCount] = useState(0);
 
   // Define base navItems structure (static, no user dependency)
-  const baseNavItems = [
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: Activity,
-      permission: null,
-    },
-    {
-      href: "#income-expenses",
-      label: "Income & Expenses",
-      icon: DollarSign,
-      permission: "expenses.view",
-      children: [
-        {
-          href: "/dashboard/expenses",
-          label: "Expenses",
-          permission: "expenses.view",
-        },
-        {
-          href: "/dashboard/expenses/pending",
-          label: "Pending Approval",
-          permission: "expenses.approve",
-        },
-        {
-          href: "/dashboard/expenses/reimbursable",
-          label: "Reimbursable",
-          permission: "expenses.view",
-        },
-        {
-          href: "/dashboard/cash",
-          label: "Cash",
-          permission: "expenses.view",
-        },
-      ],
-    },
-    {
-      href: "#documents",
-      label: "Documents",
-      icon: FileText,
-      permission: "documents.view",
-      children: [
-        {
-          href: "/dashboard/documents/receipts",
-          label: "Receipts & Invoices",
-          permission: "documents.receipts.view",
-        },
-        {
-          href: "/dashboard/documents/marina-permissions",
-          label: "Marina / Port Permissions",
-          permission: "documents.marina.view",
-        },
-        {
-          href: "/dashboard/documents/vessel",
-          label: "Vessel Documents",
-          permission: "documents.vessel.view",
-        },
-        {
-          href: "/dashboard/documents/crew",
-          label: "Crew Documents",
-          permission: "documents.crew.view",
-        },
-      ],
-    },
-    {
-      href: "/dashboard/tasks",
-      label: "Tasks",
-      icon: CheckSquare,
-      permission: "tasks.view",
-    },
-    {
-      href: "/dashboard/shopping",
-      label: "Shopping",
-      icon: ShoppingCart,
-      permission: "shopping.view",
-    },
-    {
-      href: "/dashboard/messages",
-      label: "Messages",
-      icon: MessageSquare,
-      permission: "messages.view",
-    },
-    {
-      href: "/dashboard/trips",
-      label: "Trips",
-      icon: Anchor,
-      permission: "trips.view",
-    },
-    {
-      href: "/dashboard/inventory",
-      label: "Inventory",
-      icon: Package,
-      permission: "inventory.view",
-      children: [
-        {
-          href: "/dashboard/inventory/alcohol-stock",
-          label: "Alcohol Stock",
-          permission: "inventory.alcohol.view",
-        },
-      ],
-    },
-    {
-      href: "/dashboard/maintenance",
-      label: "Maintenance",
-      icon: Wrench,
-      permission: "maintenance.view",
-    },
-  ];
+  const baseNavItems =
+    session?.user?.role === "SUPER_ADMIN"
+      ? [
+          {
+            href: "/admin",
+            label: "Admin",
+            icon: Settings,
+            permission: null,
+          },
+        ]
+      : [
+          {
+            href: "/dashboard",
+            label: "Dashboard",
+            icon: Activity,
+            permission: null,
+          },
+          {
+            href: "#income-expenses",
+            label: "Income & Expenses",
+            icon: DollarSign,
+            permission: "expenses.view",
+            children: [
+              {
+                href: "/dashboard/expenses",
+                label: "Expenses",
+                permission: "expenses.view",
+              },
+              {
+                href: "/dashboard/expenses/pending",
+                label: "Pending Approval",
+                permission: "expenses.approve",
+              },
+              {
+                href: "/dashboard/expenses/reimbursable",
+                label: "Reimbursable",
+                permission: "expenses.view",
+              },
+              {
+                href: "/dashboard/cash",
+                label: "Cash",
+                permission: "expenses.view",
+              },
+            ],
+          },
+          {
+            href: "#documents",
+            label: "Documents",
+            icon: FileText,
+            permission: "documents.view",
+            children: [
+              {
+                href: "/dashboard/documents/receipts",
+                label: "Receipts & Invoices",
+                permission: "documents.receipts.view",
+              },
+              {
+                href: "/dashboard/documents/marina-permissions",
+                label: "Marina / Port Permissions",
+                permission: "documents.marina.view",
+              },
+              {
+                href: "/dashboard/documents/vessel",
+                label: "Vessel Documents",
+                permission: "documents.vessel.view",
+              },
+              {
+                href: "/dashboard/documents/crew",
+                label: "Crew Documents",
+                permission: "documents.crew.view",
+              },
+            ],
+          },
+          {
+            href: "/dashboard/tasks",
+            label: "Tasks",
+            icon: CheckSquare,
+            permission: "tasks.view",
+          },
+          {
+            href: "/dashboard/shopping",
+            label: "Shopping",
+            icon: ShoppingCart,
+            permission: "shopping.view",
+          },
+          {
+            href: "/dashboard/messages",
+            label: "Messages",
+            icon: MessageSquare,
+            permission: "messages.view",
+          },
+          {
+            href: "/dashboard/trips",
+            label: "Trips",
+            icon: Anchor,
+            permission: "trips.view",
+          },
+          {
+            href: "/dashboard/inventory",
+            label: "Inventory",
+            icon: Package,
+            permission: "inventory.view",
+            children: [
+              {
+                href: "/dashboard/inventory/alcohol-stock",
+                label: "Alcohol Stock",
+                permission: "inventory.alcohol.view",
+              },
+            ],
+          },
+          {
+            href: "/dashboard/maintenance",
+            label: "Maintenance",
+            icon: Wrench,
+            permission: "maintenance.view",
+          },
+        ];
 
   // Memoize filtered nav items to prevent infinite loops
   const filteredNavItems = useMemo(() => {

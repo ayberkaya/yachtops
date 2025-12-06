@@ -10,24 +10,30 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       id: "credentials",
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "email" },
+        email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
         try {
-          console.log("🔍 [AUTH] Authorize called with email:", credentials?.email);
+          console.log("🔍 [AUTH] Authorize called with identifier:", credentials?.email);
           
           if (!credentials?.email || !credentials?.password) {
             console.log("❌ [AUTH] Missing credentials");
             return null;
           }
 
-          console.log("🔍 [AUTH] Looking up user:", credentials.email);
+          const identifier = credentials.email as string;
+          console.log("🔍 [AUTH] Looking up user by email or username:", identifier);
           const user = await db.user.findUnique({
-            where: { email: credentials.email as string },
+            where: {
+              // allow login with email or username
+              email: identifier,
+              // username handled below via fallback query
+            },
             select: {
               id: true,
               email: true,
+              username: true,
               name: true,
               role: true,
               yachtId: true,
@@ -37,15 +43,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             },
           });
 
-          if (!user) {
-            console.log("❌ [AUTH] User not found:", credentials.email);
+          const resolvedUser =
+            user ||
+            (await db.user.findUnique({
+              where: { username: identifier },
+              select: {
+                id: true,
+                email: true,
+                username: true,
+                name: true,
+                role: true,
+                yachtId: true,
+                passwordHash: true,
+                permissions: true,
+                active: true,
+              },
+            }));
+
+          if (!resolvedUser) {
+            console.log("❌ [AUTH] User not found:", identifier);
             return null; // NextAuth v5 will handle this
           }
 
-          console.log("✅ [AUTH] User found:", user.email, "Role:", user.role);
-          console.log("🔍 [AUTH] Password hash exists:", !!user.passwordHash);
+          console.log("✅ [AUTH] User found:", resolvedUser.email, "Role:", resolvedUser.role);
+          console.log("🔍 [AUTH] Password hash exists:", !!resolvedUser.passwordHash);
 
-          if (user.active === false) {
+          if (resolvedUser.active === false) {
             console.log("❌ [AUTH] User inactive");
             return null;
           }
@@ -53,25 +76,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           console.log("🔐 [AUTH] Verifying password...");
           const isValid = await verifyPassword(
             credentials.password as string,
-            user.passwordHash
+            resolvedUser.passwordHash
           );
 
           console.log("🔐 [AUTH] Password valid:", isValid);
 
           if (!isValid) {
-            console.log("❌ [AUTH] Invalid password for:", credentials.email);
+            console.log("❌ [AUTH] Invalid password for:", identifier);
             return null; // NextAuth v5 will handle this
           }
 
-          console.log("✅ [AUTH] Authorization successful for:", user.email);
+          console.log("✅ [AUTH] Authorization successful for:", resolvedUser.email);
           const userObject = {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-            yachtId: user.yachtId,
-            tenantId: user.yachtId, // alias tenant to yacht for multi-tenant isolation
-            permissions: user.permissions,
+            id: resolvedUser.id,
+            email: resolvedUser.email,
+            username: resolvedUser.username,
+            name: resolvedUser.name,
+            role: resolvedUser.role,
+            yachtId: resolvedUser.yachtId,
+            tenantId: resolvedUser.yachtId, // alias tenant to yacht for multi-tenant isolation
+            permissions: resolvedUser.permissions,
           };
           console.log("📤 [AUTH] Returning user object");
           return userObject;
