@@ -59,8 +59,6 @@ interface TaskListProps {
 }
 
 type ViewMode = "table" | "cards";
-type GroupBy = "none" | "assignee" | "trip" | "status";
-
 export function TaskList({ initialTasks, users, trips, currentUser }: TaskListProps) {
   const router = useRouter();
   const [tasks, setTasks] = useState(initialTasks);
@@ -68,7 +66,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
-  const [groupBy, setGroupBy] = useState<GroupBy>("none");
   const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
@@ -151,35 +148,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
 
   // Group tasks
   const groupedTasks = useMemo(() => {
-    if (groupBy === "none") {
-      return { "All": filteredTasks };
-    }
-
-    const groups: Record<string, Task[]> = {};
-    
-    filteredTasks.forEach((task) => {
-      let key = "Unassigned";
-      
-      switch (groupBy) {
-        case "assignee":
-          key = task.assignee ? (task.assignee.name || task.assignee.email) : (task.assigneeRole || "Unassigned");
-          break;
-        case "trip":
-          key = task.trip?.name || "No Trip";
-          break;
-        case "status":
-          key = task.status.replace("_", " ");
-          break;
-      }
-      
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(task);
-    });
-    
-    return groups;
-  }, [filteredTasks, groupBy]);
+    return { All: filteredTasks };
+  }, [filteredTasks]);
 
   return (
     <div className="space-y-4">
@@ -220,17 +190,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <Select value={groupBy} onValueChange={(value) => setGroupBy(value as GroupBy)}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Group by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Grouping</SelectItem>
-              <SelectItem value="assignee">By Assignee</SelectItem>
-              <SelectItem value="trip">By Trip</SelectItem>
-              <SelectItem value="status">By Status</SelectItem>
-            </SelectContent>
-          </Select>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filter by status" />
