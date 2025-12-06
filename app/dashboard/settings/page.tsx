@@ -29,7 +29,6 @@ export default async function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle>Account Information</CardTitle>
-            <CardDescription>Your account details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
@@ -56,7 +55,6 @@ export default async function SettingsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Yacht Information</CardTitle>
-              <CardDescription>Yacht details</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
