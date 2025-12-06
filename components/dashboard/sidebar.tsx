@@ -45,7 +45,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       permission: null,
     },
     {
-      href: "#",
+      href: "#income-expenses",
       label: "Income & Expenses",
       icon: DollarSign,
       permission: "expenses.view",
@@ -73,7 +73,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       ],
     },
     {
-      href: "#",
+      href: "#documents",
       label: "Documents",
       icon: FileText,
       permission: "documents.view",
@@ -535,7 +535,7 @@ export function Sidebar() {
       permission: null,
     },
     {
-      href: "#",
+      href: "#income-expenses",
       label: "Income & Expenses",
       icon: DollarSign,
       permission: "expenses.view",
@@ -563,7 +563,7 @@ export function Sidebar() {
       ],
     },
     {
-      href: "/dashboard/documents",
+      href: "#documents",
       label: "Documents",
       icon: FileText,
       permission: "documents.view",
