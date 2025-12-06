@@ -86,6 +86,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User already exists" }, { status: 400 });
   }
 
+  // derive username from email (left part before @)
+  const username = email.split("@")[0];
+
   // simple hash using bcryptjs
   const { hashPassword } = await import("@/lib/auth");
   const passwordHash = await hashPassword(password);
@@ -94,6 +97,7 @@ export async function POST(req: NextRequest) {
     data: {
       name,
       email,
+      username,
       yachtId: tenantId,
       role: UserRole.OWNER,
       passwordHash,
@@ -103,6 +107,7 @@ export async function POST(req: NextRequest) {
       id: true,
       name: true,
       email: true,
+      username: true,
       role: true,
       yachtId: true,
       active: true,

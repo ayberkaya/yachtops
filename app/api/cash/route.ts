@@ -22,9 +22,10 @@ export async function GET(request: NextRequest) {
       }
 
       const tenantId = getTenantId(session);
-      if (!tenantId && !isPlatformAdmin(session)) {
+      if (!tenantId) {
         return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
       }
+      const ensuredTenantId = tenantId as string;
 
       // Check if CashTransaction model exists
       if (!db.cashTransaction) {
@@ -111,9 +112,10 @@ export async function POST(request: NextRequest) {
       }
 
       const tenantId = getTenantId(session);
-      if (!tenantId && !isPlatformAdmin(session)) {
+      if (!tenantId) {
         return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
       }
+      const ensuredTenantId = tenantId as string;
 
       let body;
       try {
@@ -154,7 +156,7 @@ export async function POST(request: NextRequest) {
 
       const transaction = await db.cashTransaction.create({
         data: {
-          yachtId: tenantId || undefined,
+          yachtId: ensuredTenantId,
           type: validated.type,
           amount: validated.amount,
           currency: validated.currency,

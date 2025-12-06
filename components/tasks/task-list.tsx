@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, LayoutGrid, CheckCircle2 } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -75,6 +75,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const groupBy = "none";
 
   const canManage = currentUser.role !== "CREW";
 
@@ -195,7 +196,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         </div>
         <div className="relative">
           <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <CollapsibleTrigger asChild>
+            <CollapsibleTrigger>
               <Button variant="outline" size="sm">
                 Filters
               </Button>

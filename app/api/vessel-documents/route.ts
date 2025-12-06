@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     if (!hasPermission(session.user, "documents.vessel.view", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -49,13 +49,13 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     if (!hasPermission(session.user, "documents.upload", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
 
     const doc = await db.vesselDocument.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         title,
         fileUrl: dataUrl,
         notes,

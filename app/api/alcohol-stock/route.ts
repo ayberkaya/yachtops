@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
 
     const tenantId = getTenantId(session);
     const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    const effectiveTenantId = tenantId || "";
+    if (!effectiveTenantId && !isAdmin) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
     const existing = await db.alcoholStock.findUnique({
       where: {
         yachtId_name: {
-          yachtId: tenantId || undefined,
+          yachtId: effectiveTenantId,
           name: validated.name,
         },
       },
@@ -84,7 +85,7 @@ export async function POST(request: NextRequest) {
 
     const stock = await db.alcoholStock.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: effectiveTenantId,
         name: validated.name,
         category: validated.category || null,
         quantity: validated.quantity,

@@ -16,7 +16,7 @@ const updateExpenseSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -33,7 +33,7 @@ export async function GET(
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
-    const { id } = params || {};
+    const { id } = await params || {};
     if (!id || id === "undefined") {
       return NextResponse.json(
         { error: "Expense id is required" },
@@ -80,7 +80,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -94,7 +94,8 @@ export async function PATCH(
     // Defensive: if params.id missing, derive from URL path as a fallback
     const pathParts = new URL(request.url).pathname.split("/");
     const fallbackId = pathParts[pathParts.length - 1] || undefined;
-    const id = params?.id ?? fallbackId;
+    const resolvedParams = await params;
+    const id = resolvedParams?.id ?? fallbackId;
     if (!id || id === "undefined" || id === "null") {
       return NextResponse.json(
         { error: "Expense id is required" },

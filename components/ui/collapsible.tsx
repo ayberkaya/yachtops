@@ -59,17 +59,22 @@ export function CollapsibleTrigger({ children, className }: TriggerProps) {
   if (!ctx) throw new Error("CollapsibleTrigger must be used within Collapsible");
 
   const handleClick = (event: any) => {
-    children.props.onClick?.(event);
+    const childAny = children as any;
+    childAny?.props?.onClick?.(event);
     if (!event.defaultPrevented) {
       ctx.setOpen(!ctx.open);
     }
   };
 
-  return cloneElement(children, {
-    className: [children.props.className, className].filter(Boolean).join(" "),
-    onClick: handleClick,
-    "data-state": ctx.open ? "open" : "closed",
-  });
+  const childAny = children as ReactElement<any>;
+  return cloneElement(
+    childAny,
+    {
+      className: [childAny?.props?.className, className].filter(Boolean).join(" "),
+      onClick: handleClick,
+      "data-state": ctx.open ? "open" : "closed",
+    } as any
+  );
 }
 
 type ContentProps = {

@@ -84,19 +84,20 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     const body = await request.json();
     const validated = tripSchema.parse(body);
 
     const trip = await db.trip.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         name: validated.name,
         code: validated.code || null,
         type: validated.type,

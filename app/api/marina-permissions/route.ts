@@ -11,13 +11,13 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     const docs = await db.marinaPermissionDocument.findMany({
       where: {
@@ -44,13 +44,13 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
 
     const doc = await db.marinaPermissionDocument.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         title,
         fileUrl: dataUrl,
         notes,

@@ -54,10 +54,10 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
+    const ensuredTenantId = tenantId as string;
 
     const body = await request.json();
     const validated = categorySchema.parse(body);
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
     const existing = await db.expenseCategory.findUnique({
       where: {
         yachtId_name: {
-          yachtId: tenantId || undefined,
+          yachtId: ensuredTenantId,
           name: validated.name,
         },
       },
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     const category = await db.expenseCategory.create({
       data: {
         name: validated.name,
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
       },
     });
 

@@ -76,9 +76,10 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
+    if (!tenantId) {
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
+    const ensuredTenantId = tenantId as string;
 
     // Only OWNER/CAPTAIN can create channels
     if (!canManageUsers(session.user)) {
@@ -90,7 +91,7 @@ export async function POST(request: NextRequest) {
 
     const channel = await db.messageChannel.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         name: validated.name,
         description: validated.description || null,
         isGeneral: validated.isGeneral,

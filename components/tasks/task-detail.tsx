@@ -235,6 +235,7 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
               {getPriorityBadge(task.priority)}
               {getStatusBadge(task.status)}
             </div>
+          </div>
         </div>
         {canManage && (
           <Dialog open={isEditing} onOpenChange={setIsEditing}>

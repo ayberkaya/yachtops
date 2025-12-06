@@ -114,13 +114,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden: You don't have permission to create tasks" }, { status: 403 });
     }
 
-    if (!tenantIdFromSession && !isAdmin) {
+    if (!tenantIdFromSession) {
       console.log("POST /api/tasks - Bad request: No tenantId");
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantIdFromSession as string;
 
     // Parse request body with error handling
     console.log("POST /api/tasks - Parsing request body...");
@@ -166,7 +167,7 @@ export async function POST(request: NextRequest) {
     console.log("POST /api/tasks - Creating task in database...");
     const task = await db.task.create({
       data: {
-        yachtId: tenantIdFromSession || undefined,
+        yachtId: ensuredTenantId,
         tripId: validated.tripId || null,
         title: validated.title,
         description: validated.description || null,

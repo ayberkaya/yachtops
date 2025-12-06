@@ -72,19 +72,20 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     const body = await request.json();
     const validated = listSchema.parse(body);
 
     const list = await db.shoppingList.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         name: validated.name,
         description: validated.description || null,
         status: validated.status || ShoppingListStatus.DRAFT,

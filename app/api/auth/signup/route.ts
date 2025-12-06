@@ -41,11 +41,13 @@ export async function POST(request: NextRequest) {
 
     // Hash password
     const passwordHash = await hashPassword(validated.password);
+    const username = validated.email.split("@")[0];
 
     // Create owner user
     const user = await db.user.create({
       data: {
         email: validated.email,
+        username,
         passwordHash,
         name: validated.name,
         role: UserRole.OWNER,
@@ -94,6 +96,7 @@ export async function POST(request: NextRequest) {
       select: {
         id: true,
         email: true,
+        username: true,
         name: true,
         role: true,
         yachtId: true,

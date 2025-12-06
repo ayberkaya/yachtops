@@ -79,6 +79,7 @@ export default async function ExpensesPage() {
           date: exp.date.toISOString().split('T')[0],
           createdAt: exp.createdAt.toISOString(),
           updatedAt: exp.updatedAt.toISOString(),
+          reimbursedAt: exp.reimbursedAt ? exp.reimbursedAt.toISOString() : null,
         }))}
         categories={categories}
         trips={trips}

@@ -92,19 +92,23 @@ export async function POST(request: NextRequest) {
     }
 
     const passwordHash = await hashPassword(validated.password);
+    const username = validated.email.split("@")[0];
+    const ensuredTenantId = tenantId as string;
 
     const user = await db.user.create({
       data: {
         email: validated.email,
+        username,
         passwordHash,
         name: validated.name || null,
         role: validated.role,
         permissions: validated.permissions ? JSON.stringify(validated.permissions) : null,
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
       },
       select: {
         id: true,
         email: true,
+        username: true,
         name: true,
         role: true,
         permissions: true,

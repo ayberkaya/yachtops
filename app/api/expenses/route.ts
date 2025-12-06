@@ -151,16 +151,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const tenantId = tenantIdFromSession || (isAdmin ? null : null);
-
-    if (!tenantId && !isAdmin) {
+    const tenantId = getTenantId(session);
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     const body = await request.json();
     const validated = expenseSchema.parse(body);
@@ -168,7 +166,7 @@ export async function POST(request: NextRequest) {
     // Create expense (cash balance check and transaction creation will happen on approval)
     const expense = await db.expense.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         tripId: validated.tripId || null,
         createdByUserId: session.user.id,
         date: new Date(validated.date),

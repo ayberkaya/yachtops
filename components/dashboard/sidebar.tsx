@@ -356,7 +356,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                         size={16} 
                         className={`transition-transform duration-200 ${
                           isActive ? "text-primary-foreground" : "text-muted-foreground"
-                        } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
+                        } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
                       />
                     )}
                   </button>
@@ -396,7 +396,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                         size={16} 
                         className={`transition-transform duration-200 ${
                           isActive ? "text-primary-foreground" : "text-muted-foreground"
-                        } ${mobileExpandedItems.has(item.href) ? "rotate-90" : ""}`}
+                        } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
                       />
                     )}
                   </Link>

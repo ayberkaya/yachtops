@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { getTenantId } from "@/lib/tenant";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,13 +12,13 @@ export async function GET(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     if (!hasPermission(session.user, "documents.crew.view", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
 
     const docs = await db.crewDocument.findMany({
       where: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
       },
       include: {
         user: {
@@ -58,13 +58,13 @@ export async function POST(request: NextRequest) {
     }
 
     const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
+    const ensuredTenantId = tenantId as string;
 
     if (!hasPermission(session.user, "documents.upload", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -90,7 +90,7 @@ export async function POST(request: NextRequest) {
 
     const doc = await db.crewDocument.create({
       data: {
-        yachtId: tenantId || undefined,
+        yachtId: ensuredTenantId,
         userId: userId || null,
         title,
         fileUrl: dataUrl,
