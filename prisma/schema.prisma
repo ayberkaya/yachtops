@@ -11,6 +11,7 @@ datasource db {
 }
 
 enum UserRole {
+  SUPER_ADMIN
   ADMIN
   OWNER
   CAPTAIN
@@ -109,6 +110,7 @@ model User {
   passwordHash String   @map("password_hash")
   name         String?
   role         UserRole @default(CREW)
+  active       Boolean  @default(true)
   permissions  String? // JSON string of permissions array
   notificationPreferences String? @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences") // JSON string
   createdAt    DateTime @default(now()) @map("created_at")

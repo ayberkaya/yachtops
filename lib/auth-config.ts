@@ -33,6 +33,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               yachtId: true,
               passwordHash: true,
               permissions: true,
+              active: true,
             },
           });
 
@@ -43,6 +44,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
           console.log("✅ [AUTH] User found:", user.email, "Role:", user.role);
           console.log("🔍 [AUTH] Password hash exists:", !!user.passwordHash);
+
+          if (user.active === false) {
+            console.log("❌ [AUTH] User inactive");
+            return null;
+          }
 
           console.log("🔐 [AUTH] Verifying password...");
           const isValid = await verifyPassword(
