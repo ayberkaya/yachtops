@@ -31,6 +31,11 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
 import { Plus, Pencil, Check, LayoutGrid, CheckCircle2 } from "lucide-react";
@@ -248,14 +253,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         <div className="space-y-6">
           {Object.entries(groupedTasks).map(([groupKey, groupTasks]) => (
             <div key={groupKey}>
-              {groupBy !== "none" && (
-                <h3 className="text-lg font-semibold mb-3">
-                  {groupKey}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({groupTasks.length} {groupTasks.length === 1 ? "task" : "tasks"})
-                  </span>
-                </h3>
-              )}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {groupTasks.map((task) => {
             const canComplete = !canManage && 
