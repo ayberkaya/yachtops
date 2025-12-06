@@ -242,8 +242,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               />
             <Button
               size="sm"
+              className="ml-auto bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
               onClick={() => {
-                // noop: filters are already bound; trigger refresh
                 setFiltersOpen(false);
                 router.refresh();
               }}
