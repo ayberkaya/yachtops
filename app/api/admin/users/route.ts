@@ -8,7 +8,7 @@ import { hashPassword } from "@/lib/auth";
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),
   email: z.string().email("Valid email is required"),
-  username: z.string().min(3, "Username must be at least 3 characters"),
+  username: z.string().min(3, "Username must be at least 3 characters").optional(), // default to email
   password: z.string().min(8, "Password must be at least 8 characters"),
   vesselName: z.string().min(1, "Vessel name is required"),
   vesselFlag: z.string().min(1, "Vessel flag is required"),
@@ -36,7 +36,8 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { name, email, username, password, vesselName, vesselFlag } = parsed.data;
+    const { name, email, password, vesselName, vesselFlag } = parsed.data;
+    const username = (parsed.data.username || parsed.data.email).trim();
 
     const existingEmail = await db.user.findUnique({ where: { email } });
     if (existingEmail) {

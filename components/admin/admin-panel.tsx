@@ -1,9 +1,7 @@
 /* Admin Panel - super admin only */
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +11,6 @@ import { Users, UserPlus } from "lucide-react";
 type UserForm = {
   name: string;
   email: string;
-  username: string;
   password: string;
   vesselName: string;
   vesselFlag: string;
@@ -46,11 +43,9 @@ type AdminPanelProps = {
 };
 
 export default function AdminPanel({ view = "create" }: AdminPanelProps) {
-  const pathname = usePathname();
   const [form, setForm] = useState<UserForm>({
     name: "",
     email: "",
-    username: "",
     password: "",
     vesselName: "",
     vesselFlag: "",
@@ -66,7 +61,7 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
     const payload = {
       name: form.name.trim(),
       email: form.email.trim(),
-      username: form.username.trim(),
+      username: form.email.trim(), // use email as login
       password: form.password,
       vesselName: form.vesselName.trim(),
       vesselFlag: form.vesselFlag.trim(),
@@ -75,16 +70,11 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
     if (
       !payload.name ||
       !payload.email ||
-      !payload.username ||
       !payload.password ||
       !payload.vesselName ||
       !payload.vesselFlag
     ) {
       setMessage("Please fill in all fields.");
-      return;
-    }
-    if (payload.username.length < 3) {
-      setMessage("Username must be at least 3 characters.");
       return;
     }
     if (payload.password.length < 8) {
@@ -119,7 +109,6 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
         setForm({
           name: "",
           email: "",
-          username: "",
           password: "",
           vesselName: "",
           vesselFlag: "",
@@ -230,13 +219,6 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
-                  />
-                </div>
-                <div>
-                  <Label>Username (login)</Label>
-                  <Input
-                    value={form.username}
-                    onChange={(e) => setForm((f) => ({ ...f, username: e.target.value }))}
                   />
                 </div>
                 <div>
