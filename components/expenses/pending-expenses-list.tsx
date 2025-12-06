@@ -183,21 +183,23 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
                   <Link href={`/dashboard/expenses/${expense.id}`}>View Details</Link>
                 </Button>
                 <Button
-                  variant="default"
+                  variant="secondary"
                   size="sm"
                   onClick={() => handleApprove(expense.id)}
                   disabled={processingId === expense.id}
+                  className="bg-green-50 text-green-700 border border-green-200 hover:bg-green-100"
                 >
-                  <Check className="mr-2 h-4 w-4" />
+                  <Check className="mr-2 h-4 w-4 text-green-700" />
                   {processingId === expense.id ? "Processing..." : "Approve"}
                 </Button>
                 <Button
-                  variant="destructive"
+                  variant="secondary"
                   size="sm"
                   onClick={() => handleRejectClick(expense.id)}
                   disabled={processingId === expense.id}
+                  className="bg-red-50 text-red-700 border border-red-200 hover:bg-red-100"
                 >
-                  <X className="mr-2 h-4 w-4" />
+                  <X className="mr-2 h-4 w-4 text-red-700" />
                   {processingId === expense.id ? "Processing..." : "Reject"}
                 </Button>
               </div>

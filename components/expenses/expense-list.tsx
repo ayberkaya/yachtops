@@ -899,9 +899,11 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                             <TableCell>
                               {expense.isReimbursable ? (
                                 <div className="flex flex-col gap-1">
-                                  <Badge variant="outline" className="text-xs w-fit">Reimbursable</Badge>
+                                  {!expense.isReimbursed && (
+                                    <Badge variant="outline" className="text-xs w-fit">Reimbursable</Badge>
+                                  )}
                                   {expense.isReimbursed ? (
-                                    <Badge variant="default" className="text-xs w-fit bg-green-600">Reimbursed</Badge>
+                                    <Badge variant="default" className="text-xs w-fit bg-green-600 text-white">Reimbursed</Badge>
                                   ) : (
                                     <Badge variant="secondary" className="text-xs w-fit">Pending</Badge>
                                   )}

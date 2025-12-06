@@ -110,7 +110,7 @@ export function MonthlyReportDownload() {
           <Button
             onClick={handleDownload}
             disabled={isGenerating}
-            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700"
+            className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
           >
             {isGenerating ? (
               <>

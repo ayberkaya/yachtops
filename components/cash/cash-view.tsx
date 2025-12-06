@@ -22,7 +22,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft, ChevronDown, ChevronUp } from "lucide-react";
 import { CashTransactionType } from "@prisma/client";
 import { formatDistanceToNow } from "date-fns";
 
@@ -69,6 +69,7 @@ export function CashView() {
   const [converterFrom, setConverterFrom] = useState<"USD" | "EUR" | "TRY">("EUR");
   const [converterTo, setConverterTo] = useState<"USD" | "EUR" | "TRY">("USD");
   const [converterAmount, setConverterAmount] = useState<string>("");
+  const [isConverterOpen, setIsConverterOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: CashTransactionType.DEPOSIT,
     amount: "",
@@ -314,16 +315,29 @@ export function CashView() {
 
       {/* Currency Converter */}
       <Card>
-        <CardHeader>
+        <CardHeader 
+          className="cursor-pointer hover:bg-muted/50 transition-colors"
+          onClick={() => setIsConverterOpen(!isConverterOpen)}
+        >
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Currency Converter</CardTitle>
-              <CardDescription>Convert between USD, EUR, and TRY</CardDescription>
+            <div className="flex items-center gap-2">
+              {isConverterOpen ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+              <div>
+                <CardTitle>Currency Converter</CardTitle>
+                <CardDescription>Convert between USD, EUR, and TRY</CardDescription>
+              </div>
             </div>
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchExchangeRates}
+              onClick={(e) => {
+                e.stopPropagation();
+                fetchExchangeRates();
+              }}
               disabled={!exchangeRates}
             >
               <RefreshCw className="h-4 w-4 mr-2" />
@@ -331,6 +345,7 @@ export function CashView() {
             </Button>
           </div>
         </CardHeader>
+        {isConverterOpen && (
         <CardContent>
           <div className="space-y-4">
             <div className="grid gap-4 md:grid-cols-3 items-end">
@@ -400,6 +415,7 @@ export function CashView() {
             )}
           </div>
         </CardContent>
+        )}
       </Card>
 
       {/* Add Transaction */}
