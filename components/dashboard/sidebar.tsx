@@ -822,20 +822,13 @@ export function Sidebar() {
     }
   }, [pathname]);
 
-  // When transitioning to collapsed, close parent menus once
+  // Close expanded parents when collapsed (or when hover ends in collapsed state)
   useEffect(() => {
-    if (isCollapsed && !prevCollapsed.current && desktopExpandedItems.size > 0) {
+    if (isCollapsed && !isHovered && desktopExpandedItems.size > 0) {
       setDesktopExpandedItems(new Set());
     }
     prevCollapsed.current = isCollapsed;
-  }, [isCollapsed, desktopExpandedItems.size]);
-
-  // If sidebar is collapsed and hover ends (hover-expand closes), also close parents
-  useEffect(() => {
-    if (!isHovered && isCollapsed && desktopExpandedItems.size > 0) {
-      setDesktopExpandedItems(new Set());
-    }
-  }, [isHovered, isCollapsed, desktopExpandedItems.size]);
+  }, [isCollapsed, isHovered, desktopExpandedItems.size]);
 
   // Note: auto-expand on route change disabled to keep manual accordion behavior
 
@@ -896,8 +889,8 @@ export function Sidebar() {
               (item.label === "Documents" && pathname.startsWith("/dashboard/documents/")) ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
           const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
-          const parentOpen = expandedSet.has(item.href) || childActive;
-          const isActive = isParent ? parentOpen || childActive : leafActive;
+          const parentOpen = expandedSet.has(item.href);
+          const isActive = leafActive || childActive || parentOpen;
           const showChildren = parentOpen && item.children;
           const incomeBadge =
             item.label === "Income & Expenses"
