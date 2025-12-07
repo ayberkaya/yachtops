@@ -59,6 +59,17 @@ export async function PATCH(
     const updateData: any = {};
 
     if (validated.completed !== undefined) {
+      if (
+        checklist.completedById &&
+        checklist.completedById !== session.user.id &&
+        !validated.completed
+      ) {
+        return NextResponse.json(
+          { error: "Bu maddeyi sadece tamamlayan kullanıcı geri alabilir." },
+          { status: 403 }
+        );
+      }
+
       updateData.completed = validated.completed;
       updateData.completedAt = validated.completed ? new Date() : null;
       updateData.completedById = validated.completed ? session.user.id : null;

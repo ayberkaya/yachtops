@@ -29,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -313,7 +312,37 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     if (!selectedTripId || !canManageChecklist) return;
     const isFallback = item.id.startsWith("pre-fallback") || item.id.startsWith("post-fallback");
     if (isFallback) {
-      applyChecklistUpdate({ ...item, completed });
+      setChecklists((prev) => {
+        const typeKey =
+          item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
+        const template =
+          item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? FALLBACK_PRE : FALLBACK_POST;
+
+        const currentList =
+          prev[typeKey].length > 0 ? prev[typeKey] : template.map((fallback) => ({ ...fallback }));
+
+        const updatedList = currentList.map((entry) =>
+          entry.id === item.id
+            ? {
+                ...entry,
+                completed,
+                completedAt: completed ? new Date().toISOString() : null,
+                completedBy: completed
+                  ? {
+                      id: currentUser.id,
+                      name: currentUser.name,
+                      email: currentUser.email,
+                    }
+                  : null,
+              }
+            : entry
+        );
+
+        return {
+          ...prev,
+          [typeKey]: updatedList,
+        };
+      });
       return;
     }
 
@@ -503,9 +532,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                 <p className="text-xs text-muted-foreground">
                         {item.completed
                           ? `${who || "Completed by"} · ${completedAtLabel || "just now"}`
-                          : isFallbackList
-                            ? "Sample item (counts as completed when checked)"
-                            : "Pending"}
+                          : "Pending"}
                 </p>
                 {disableInteractions ? (
                   <p className="text-xs text-muted-foreground pt-2">
