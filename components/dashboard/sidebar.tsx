@@ -24,6 +24,7 @@ import {
   Wrench,
   FileCheck,
   Settings,
+  ListChecks,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth";
@@ -148,6 +149,14 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             label: "Trips",
             icon: Anchor,
             permission: "trips.view",
+            children: [
+              {
+                href: "/dashboard/trips/voyage-planning",
+                label: "Voyage plan & checklists",
+                permission: "trips.view",
+                icon: ListChecks,
+              },
+            ],
           },
           {
             href: "/dashboard/inventory",
@@ -665,6 +674,14 @@ export function Sidebar() {
             label: "Trips",
             icon: Anchor,
             permission: "trips.view",
+            children: [
+              {
+                href: "/dashboard/trips/voyage-planning",
+                label: "Voyage plan & checklists",
+                permission: "trips.view",
+                icon: ListChecks,
+              },
+            ],
           },
           {
             href: "/dashboard/inventory",
@@ -872,14 +889,15 @@ export function Sidebar() {
         {navItems.map((item) => {
           const Icon = item.icon;
           const isParent = !!item.children;
-          const parentOpen = expandedSet.has(item.href);
           const containerExpanded = isMobile ? true : isExpanded;
           const leafActive =
             item.href !== "#" &&
             (pathname === item.href ||
               (item.label === "Documents" && pathname.startsWith("/dashboard/documents/")) ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
-          const isActive = isParent ? parentOpen : leafActive;
+          const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
+          const parentOpen = expandedSet.has(item.href) || childActive;
+          const isActive = isParent ? parentOpen || childActive : leafActive;
           const showChildren = parentOpen && item.children;
           const incomeBadge =
             item.label === "Income & Expenses"
