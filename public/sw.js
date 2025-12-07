@@ -1,127 +1,111 @@
-// Service Worker for YachtOps PWA
-const CACHE_NAME = 'yachtops-v1';
-const urlsToCache = [
-  '/',
-  '/auth/signin',
-  '/dashboard',
-  '/manifest',
+// Service Worker for YachtOps PWA (offline-first with API caching)
+const CACHE_NAME = "yachtops-static-v2";
+const API_CACHE_NAME = "yachtops-api-v1";
+
+const PRECACHE_URLS = [
+  "/",
+  "/auth/signin",
+  "/dashboard",
+  "/offline",
+  "/manifest",
 ];
 
-// Install event - cache resources
-self.addEventListener('install', (event) => {
+const isHttp = (url) => ["http:", "https:"].includes(url.protocol);
+
+// Helper: cache-first with background revalidate for static assets
+async function staleWhileRevalidate(request, cacheName = CACHE_NAME) {
+  const cache = await caches.open(cacheName);
+  const cached = await cache.match(request);
+  const fetchPromise = fetch(request)
+    .then((response) => {
+      if (response && response.status === 200 && response.type === "basic") {
+        cache.put(request, response.clone()).catch(() => {});
+      }
+      return response;
+    })
+    .catch(() => cached);
+
+  return cached || fetchPromise;
+}
+
+// Helper: network-first with cache fallback (used for pages and API GET)
+async function networkFirst(request, cacheName = CACHE_NAME, fallbackToOffline = false) {
+  const cache = await caches.open(cacheName);
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch (error) {
+    const cached = await cache.match(request);
+    if (cached) return cached;
+    if (fallbackToOffline && request.destination === "document") {
+      const offline = await cache.match("/offline");
+      if (offline) return offline;
+    }
+    throw error;
+  }
+}
+
+// Install event - precache essential routes
+self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll(urlsToCache);
-      })
-      .catch((error) => {
-        console.error('Cache installation failed:', error);
-      })
+    caches
+      .open(CACHE_NAME)
+      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .catch((error) => console.error("Cache installation failed:", error))
   );
   self.skipWaiting();
 });
 
 // Activate event - clean up old caches
-self.addEventListener('activate', (event) => {
+self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
+    caches.keys().then((cacheNames) =>
+      Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
+          if (![CACHE_NAME, API_CACHE_NAME].includes(cacheName)) {
             return caches.delete(cacheName);
           }
+          return null;
         })
-      );
-    })
+      )
+    )
   );
   return self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', (event) => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
-  }
+// Fetch event - handle GET requests with strategies
+self.addEventListener("fetch", (event) => {
+  if (event.request.method !== "GET") return;
 
   const requestUrl = new URL(event.request.url);
+  if (!isHttp(requestUrl)) return;
 
-  // Skip non-HTTP/HTTPS requests (chrome-extension, data:, blob:, etc.)
-  if (!['http:', 'https:'].includes(requestUrl.protocol)) {
+  const isNextAsset = requestUrl.pathname.startsWith("/_next/");
+  const isAPI = requestUrl.pathname.startsWith("/api/");
+  const isNavigation = event.request.mode === "navigate";
+
+  // Static assets: stale-while-revalidate
+  if (isNextAsset) {
+    event.respondWith(staleWhileRevalidate(event.request));
     return;
   }
 
-  // Skip API requests and NextAuth routes
-  if (requestUrl.pathname.startsWith('/api/') || requestUrl.pathname.startsWith('/_next/')) {
+  // API GET: network-first, fallback to cache
+  if (isAPI) {
+    event.respondWith(networkFirst(event.request, API_CACHE_NAME));
     return;
   }
 
-  // Skip chrome-extension URLs
-  if (requestUrl.protocol === 'chrome-extension:' || requestUrl.href.startsWith('chrome-extension://')) {
+  // Navigation/page requests: network-first with offline fallback
+  if (isNavigation || event.request.destination === "document") {
+    event.respondWith(networkFirst(event.request, CACHE_NAME, true));
     return;
   }
 
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        // Return cached version or fetch from network
-        if (response) {
-          return response;
-        }
-        
-        return fetch(event.request)
-          .then((response) => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-
-            // Don't cache chrome-extension or other unsupported schemes
-            const responseUrl = new URL(response.url);
-            if (!['http:', 'https:'].includes(responseUrl.protocol)) {
-              return response;
-            }
-
-            // Clone the response for caching
-            const responseToCache = response.clone();
-
-            // Cache in background (don't block response)
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                try {
-                  cache.put(event.request, responseToCache).catch((err) => {
-                    console.warn('Cache put failed:', event.request.url, err);
-                  });
-                } catch (error) {
-                  console.warn('Cache operation error:', event.request.url, error);
-                }
-              })
-              .catch((error) => {
-                console.warn('Cache open failed:', error);
-              });
-
-            return response;
-          })
-          .catch((error) => {
-            console.warn('Fetch failed:', event.request.url, error);
-            // Return offline page if available for document requests
-            if (event.request.destination === 'document') {
-              return caches.match('/offline');
-            }
-            // For other requests, let the error propagate
-            throw error;
-          });
-      })
-      .catch((error) => {
-        console.warn('Cache match failed:', event.request.url, error);
-        // Try to fetch directly if cache fails
-        return fetch(event.request).catch(() => {
-          if (event.request.destination === 'document') {
-            return caches.match('/offline');
-          }
-          throw error;
-        });
-      })
-  );
+  // Other GET requests: stale-while-revalidate
+  event.respondWith(staleWhileRevalidate(event.request));
 });
 

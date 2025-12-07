@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -49,13 +50,9 @@ export default function RootLayout({
       <body className="antialiased">
         <Providers>
           {children}
-          {/* Temporarily disabled for local development */}
-          {/* {typeof window !== 'undefined' && (
-            <>
-              <ServiceWorkerRegister />
-              <InstallPrompt />
-            </>
-          )} */}
+          <ServiceWorkerRegister />
+          <InstallPrompt />
+          <OfflineIndicator />
         </Providers>
         {/* <SpeedInsights /> */}
       </body>
