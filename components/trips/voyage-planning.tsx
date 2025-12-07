@@ -34,6 +34,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
@@ -292,19 +293,14 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
         updated.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
       return {
         ...prev,
-        [targetKey]: prev[targetKey].map((item) =>
-          item.id === updated.id ? updated : item
-        ),
+        [targetKey]: prev[targetKey]
+          .map((item) => (item.id === updated.id ? updated : item))
+          .map((item) =>
+            item.id === updated.id && updated.completedBy
+              ? { ...item, completedBy: updated.completedBy }
+              : item
+          ),
       };
-    });
-    setRemarksDrafts((prev) => {
-      if (!(updated.id in prev)) return prev;
-      const incomingValue = updated.remarks ?? "";
-      if (prev[updated.id] === incomingValue) {
-        const { [updated.id]: _, ...rest } = prev;
-        return rest;
-      }
-      return prev;
     });
   };
 
@@ -484,7 +480,10 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     );
   };
 
-  const renderChecklistDetail = (items: ChecklistItem[], isFallbackList: boolean) => {
+  const renderChecklistDetail = (
+    items: ChecklistItem[],
+    isFallbackList: boolean
+  ) => {
     if (items.length === 0) {
       return <p className="text-sm text-muted-foreground">No items defined for this checklist.</p>;
     }
@@ -551,7 +550,16 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     );
   };
 
-  if (trips.length === 0) {
+  const hasTrips = trips.length > 0;
+
+  const activeChecklistData = activeChecklistType
+    ? getChecklistData(activeChecklistType)
+    : null;
+  const activeChecklistLabel = activeChecklistType
+    ? CHECKLIST_TITLES[activeChecklistType]
+    : "Checklist";
+
+  if (!hasTrips) {
     return (
       <Card>
         <CardContent className="py-10 text-center text-muted-foreground">
@@ -560,13 +568,6 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
       </Card>
     );
   }
-
-  const activeChecklistData = activeChecklistType
-    ? getChecklistData(activeChecklistType)
-    : null;
-  const activeChecklistLabel = activeChecklistType
-    ? CHECKLIST_TITLES[activeChecklistType]
-    : "Checklist";
 
   return (
     <div className="space-y-6">
@@ -660,9 +661,11 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
       <Dialog
         open={isChecklistDialogOpen}
         onOpenChange={(open) => {
-          setIsChecklistDialogOpen(open);
-          if (!open) {
+          if (!open && savingId === null) {
             setActiveChecklistType(null);
+            setIsChecklistDialogOpen(false);
+          } else if (open) {
+            setIsChecklistDialogOpen(true);
           }
         }}
       >
@@ -673,13 +676,26 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
               {selectedTrip ? selectedTrip.name : "Checklist details"}
             </DialogDescription>
           </DialogHeader>
-          {activeChecklistData
-            ? renderChecklistDetail(activeChecklistData.items, activeChecklistData.isFallback)
-            : (
-              <p className="text-sm text-muted-foreground">
-                Unable to load checklist details.
-              </p>
-            )}
+          {activeChecklistData ? (
+            <>
+              {renderChecklistDetail(
+                activeChecklistData.items,
+                activeChecklistData.isFallback
+              )}
+              <DialogFooter>
+                <Button
+                  onClick={() => setIsChecklistDialogOpen(false)}
+                  disabled={savingId !== null}
+                >
+                  Save
+                </Button>
+              </DialogFooter>
+            </>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Unable to load checklist details.
+            </p>
+          )}
         </DialogContent>
       </Dialog>
     </div>

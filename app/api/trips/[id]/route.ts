@@ -5,7 +5,10 @@ import { db } from "@/lib/db";
 import { TripStatus, TripType } from "@prisma/client";
 import { z } from "zod";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
-import { ensureTripChecklistSeeded } from "@/lib/trip-checklists";
+import {
+  ensureTripChecklistSeeded,
+  ensureTripChecklistTableReady,
+} from "@/lib/trip-checklists";
 
 const updateTripSchema = z.object({
   name: z.string().min(1).optional(),
@@ -124,6 +127,7 @@ export async function PATCH(
       }
 
       if (validated.status === TripStatus.COMPLETED) {
+        await ensureTripChecklistTableReady();
         const total = await db.tripChecklistItem.count({ where: { tripId: id } });
         if (total === 0) {
           return NextResponse.json(

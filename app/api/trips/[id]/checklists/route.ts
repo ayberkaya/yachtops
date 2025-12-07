@@ -6,7 +6,10 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
-import { ensureTripChecklistSeeded } from "@/lib/trip-checklists";
+import {
+  ensureTripChecklistSeeded,
+  ensureTripChecklistTableReady,
+} from "@/lib/trip-checklists";
 
 const createChecklistItemSchema = z.object({
   type: z.nativeEnum(TripChecklistType),
@@ -116,6 +119,8 @@ export async function POST(
 
     const body = await request.json();
     const validated = createChecklistItemSchema.parse(body);
+
+    await ensureTripChecklistTableReady();
 
     const item = await db.tripChecklistItem.create({
       data: {

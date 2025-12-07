@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { ensureTripChecklistTableReady } from "@/lib/trip-checklists";
 
 const updateChecklistSchema = z.object({
   completed: z.boolean().optional(),
@@ -41,6 +42,8 @@ export async function PATCH(
     const { id: tripId, checklistId } = await params;
     const body = await request.json();
     const validated = updateChecklistSchema.parse(body);
+
+    await ensureTripChecklistTableReady();
 
     const checklist = await db.tripChecklistItem.findFirst({
       where: {
