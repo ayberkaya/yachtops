@@ -233,63 +233,62 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
       {/* Filters */}
       {showFilters && (
         <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-lg">Filters</CardTitle>
-              <Button variant="ghost" size="sm" onClick={clearFilters}>
-                <X className="h-4 w-4 mr-2" />
-                Clear
-              </Button>
-            </div>
-          </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
-                <Label>Status</Label>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value={TripStatus.PLANNED}>Planned</SelectItem>
-                    <SelectItem value={TripStatus.ONGOING}>Ongoing</SelectItem>
-                    <SelectItem value={TripStatus.COMPLETED}>Completed</SelectItem>
-                    <SelectItem value={TripStatus.CANCELLED}>Cancelled</SelectItem>
-                  </SelectContent>
-                </Select>
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <Label>Status</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Status</SelectItem>
+                      <SelectItem value={TripStatus.PLANNED}>Planned</SelectItem>
+                      <SelectItem value={TripStatus.ONGOING}>Ongoing</SelectItem>
+                      <SelectItem value={TripStatus.COMPLETED}>Completed</SelectItem>
+                      <SelectItem value={TripStatus.CANCELLED}>Cancelled</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Type</Label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Types</SelectItem>
+                      <SelectItem value={TripType.CHARTER}>Charter</SelectItem>
+                      <SelectItem value={TripType.PRIVATE}>Private</SelectItem>
+                      <SelectItem value={TripType.DELIVERY}>Delivery</SelectItem>
+                      <SelectItem value={TripType.MAINTENANCE}>Maintenance</SelectItem>
+                      <SelectItem value={TripType.OTHER}>Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label>Start Date From</Label>
+                  <Input
+                    type="date"
+                    value={startDateFilter}
+                    onChange={(e) => setStartDateFilter(e.target.value)}
+                  />
+                </div>
+                <div>
+                  <Label>End Date To</Label>
+                  <Input
+                    type="date"
+                    value={endDateFilter}
+                    onChange={(e) => setEndDateFilter(e.target.value)}
+                  />
+                </div>
               </div>
-              <div>
-                <Label>Type</Label>
-                <Select value={typeFilter} onValueChange={setTypeFilter}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    <SelectItem value={TripType.CHARTER}>Charter</SelectItem>
-                    <SelectItem value={TripType.PRIVATE}>Private</SelectItem>
-                    <SelectItem value={TripType.DELIVERY}>Delivery</SelectItem>
-                    <SelectItem value={TripType.MAINTENANCE}>Maintenance</SelectItem>
-                    <SelectItem value={TripType.OTHER}>Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label>Start Date From</Label>
-                <Input
-                  type="date"
-                  value={startDateFilter}
-                  onChange={(e) => setStartDateFilter(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label>End Date To</Label>
-                <Input
-                  type="date"
-                  value={endDateFilter}
-                  onChange={(e) => setEndDateFilter(e.target.value)}
-                />
+              <div className="flex justify-end">
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  <X className="h-4 w-4 mr-2" />
+                  Clear
+                </Button>
               </div>
             </div>
           </CardContent>
