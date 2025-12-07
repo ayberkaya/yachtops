@@ -226,15 +226,17 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
                   {groupPermissions.map((permission) => (
                     <div key={permission} className="flex items-center space-x-2">
                       <Checkbox
-                        id={permission}
+                        id={`edit-${permission}`}
                         checked={permissions.includes(permission)}
                         onCheckedChange={() => togglePermission(permission)}
                       />
                       <label
-                        htmlFor={permission}
+                        htmlFor={`edit-${permission}`}
                         className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {permission.split(".")[1] || permission}
+                        {permission.includes(".")
+                          ? permission.split(".")[1]?.replace("-", " ") || permission
+                          : permission}
                       </label>
                     </div>
                   ))}

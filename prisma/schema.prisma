@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,6 +6,566 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                      String                @id @default(cuid())
+  email                   String                @unique
+  username                String                @unique
+  passwordHash            String                @map("password_hash")
+  name                    String?
+  role                    UserRole              @default(CREW)
+  active                  Boolean               @default(true)
+  permissions             String?
+  notificationPreferences String?               @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  yachtId                 String?               @map("yacht_id")
+  alcoholStockHistory     AlcoholStockHistory[]
+  createdCashTransactions CashTransaction[]     @relation("CashTransactionCreator")
+  crewDocuments           CrewDocument[]        @relation("CrewDocumentOwner")
+  approvedExpenses        Expense[]             @relation("ExpenseApprover")
+  createdExpenses         Expense[]             @relation("ExpenseCreator")
+  createdMaintenanceLogs  MaintenanceLog[]      @relation("MaintenanceCreator")
+  messageAttachments      MessageAttachment[]   @relation("MessageAttachmentUploader")
+  createdChannels         MessageChannel[]      @relation("ChannelCreator")
+  readMessages            MessageRead[]         @relation("MessageReader")
+  sentMessages            Message[]             @relation("MessageSender")
+  notifications           Notification[]
+  createdShoppingLists    ShoppingList[]        @relation("ShoppingListCreator")
+  taskAttachments         TaskAttachment[]      @relation("TaskAttachmentUploader")
+  taskComments            TaskComment[]         @relation("TaskCommentAuthor")
+  assignedTasks           Task[]                @relation("TaskAssignee")
+  completedTasks          Task[]                @relation("TaskCompleter")
+  createdTrips            Trip[]                @relation("TripCreator")
+  completedTripChecklists TripChecklistItem[]   @relation("TripChecklistCompleter")
+  recordedTankLogs        TripTankLog[]         @relation("TripTankLogger")
+  recordedMovementLogs    TripMovementLog[]     @relation("TripMovementLogger")
+  yacht                   Yacht?                @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  channels                MessageChannel[]      @relation("ChannelMembers")
+
+  @@map("users")
+}
+
+model Yacht {
+  id                        String                     @id @default(cuid())
+  name                      String
+  flag                      String?
+  length                    Float?
+  registrationNumber        String?                    @map("registration_number")
+  notes                     String?
+  createdAt                 DateTime                   @default(now()) @map("created_at")
+  updatedAt                 DateTime                   @updatedAt @map("updated_at")
+  alcoholStocks             AlcoholStock[]
+  cashTransactions          CashTransaction[]
+  crewDocuments             CrewDocument[]
+  expenseCategories         ExpenseCategory[]
+  expenses                  Expense[]
+  maintenanceLogs           MaintenanceLog[]
+  marinaPermissionDocuments MarinaPermissionDocument[]
+  messageChannels           MessageChannel[]
+  products                  Product[]
+  shoppingLists             ShoppingList[]
+  shoppingStores            ShoppingStore[]
+  tasks                     Task[]
+  trips                     Trip[]
+  users                     User[]
+  vesselDocuments           VesselDocument[]
+
+  @@map("yachts")
+}
+
+model Trip {
+  id              String              @id @default(cuid())
+  yachtId         String              @map("yacht_id")
+  name            String
+  code            String?
+  type            TripType            @default(CHARTER) @map("trip_type")
+  startDate       DateTime            @map("start_date")
+  endDate         DateTime?           @map("end_date")
+  departurePort   String?             @map("departure_port")
+  arrivalPort     String?             @map("arrival_port")
+  status          TripStatus          @default(PLANNED)
+  mainGuest       String?             @map("main_guest")
+  guestCount      Int?                @map("guest_count")
+  notes           String?
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  createdByUserId String?             @map("created_by_user_id")
+  expenses        Expense[]
+  tasks           Task[]
+  itineraryDays   TripItineraryDay[]
+  checklists      TripChecklistItem[]
+  tankLogs        TripTankLog[]
+  movementLogs    TripMovementLog[]
+  createdBy       User?               @relation("TripCreator", fields: [createdByUserId], references: [id])
+  yacht           Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("trips")
+}
+
+model TripItineraryDay {
+  id           String    @id @default(cuid())
+  tripId       String    @map("trip_id")
+  dayIndex     Int       @map("day_index")
+  date         DateTime?
+  fromLocation String?   @map("from_location")
+  toLocation   String?   @map("to_location")
+  activities   String?
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  trip         Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@map("trip_itinerary_days")
+}
+
+model TripChecklistItem {
+  id            String            @id @default(cuid())
+  tripId        String            @map("trip_id")
+  type          TripChecklistType @map("type")
+  title         String
+  remarks       String?
+  completed     Boolean           @default(false)
+  completedAt   DateTime?         @map("completed_at")
+  completedById String?           @map("completed_by_id")
+  orderIndex    Int               @default(0) @map("order_index")
+  createdAt     DateTime          @default(now()) @map("created_at")
+  updatedAt     DateTime          @updatedAt @map("updated_at")
+  completedBy   User?             @relation("TripChecklistCompleter", fields: [completedById], references: [id], onDelete: SetNull)
+  trip          Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+
+  @@index([tripId, type])
+  @@map("trip_checklist_items")
+}
+
+model TripTankLog {
+  id           String   @id @default(cuid())
+  tripId       String   @map("trip_id")
+  fuelLevel    Float?   @map("fuel_level")
+  freshWater   Float?   @map("fresh_water")
+  greyWater    Float?   @map("grey_water")
+  blackWater   Float?   @map("black_water")
+  notes        String?
+  recordedAt   DateTime @default(now()) @map("recorded_at")
+  recordedById String?  @map("recorded_by_id")
+  trip         Trip     @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  recordedBy   User?    @relation("TripTankLogger", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([tripId])
+  @@map("trip_tank_logs")
+}
+
+model TripMovementLog {
+  id           String            @id @default(cuid())
+  tripId       String            @map("trip_id")
+  eventType    TripMovementEvent @map("event_type")
+  port         String?
+  eta          DateTime?         @map("eta")
+  etd          DateTime?         @map("etd")
+  weather      String?
+  seaState     String?           @map("sea_state")
+  notes        String?
+  recordedAt   DateTime          @default(now()) @map("recorded_at")
+  recordedById String?           @map("recorded_by_id")
+  trip         Trip              @relation(fields: [tripId], references: [id], onDelete: Cascade)
+  recordedBy   User?             @relation("TripMovementLogger", fields: [recordedById], references: [id], onDelete: SetNull)
+
+  @@index([tripId])
+  @@map("trip_movement_logs")
+}
+
+model Task {
+  id            String           @id @default(cuid())
+  yachtId       String           @map("yacht_id")
+  tripId        String?          @map("trip_id")
+  title         String
+  description   String?
+  assigneeId    String?          @map("assignee_id")
+  assigneeRole  UserRole?        @map("assignee_role")
+  completedById String?          @map("completed_by_id")
+  completedAt   DateTime?        @map("completed_at")
+  dueDate       DateTime?        @map("due_date")
+  status        TaskStatus       @default(TODO)
+  priority      TaskPriority     @default(MEDIUM)
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+  notifications Notification[]
+  attachments   TaskAttachment[]
+  comments      TaskComment[]
+  assignee      User?            @relation("TaskAssignee", fields: [assigneeId], references: [id])
+  completedBy   User?            @relation("TaskCompleter", fields: [completedById], references: [id])
+  trip          Trip?            @relation(fields: [tripId], references: [id])
+  yacht         Yacht            @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("tasks")
+}
+
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation("TaskCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("task_comments")
+}
+
+model TaskAttachment {
+  id        String   @id @default(cuid())
+  taskId    String   @map("task_id")
+  userId    String   @map("user_id")
+  fileName  String   @map("file_name")
+  fileUrl   String   @map("file_url")
+  fileSize  Int?     @map("file_size")
+  mimeType  String?  @map("mime_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation("TaskAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("task_attachments")
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  taskId    String?          @map("task_id")
+  messageId String?          @map("message_id")
+  content   String
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now()) @map("created_at")
+  message   Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model ExpenseCategory {
+  id        String    @id @default(cuid())
+  yachtId   String    @map("yacht_id")
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  yacht     Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  expenses  Expense[]
+
+  @@unique([yachtId, name])
+  @@map("expense_categories")
+}
+
+model Expense {
+  id                 String            @id @default(cuid())
+  yachtId            String            @map("yacht_id")
+  tripId             String?           @map("trip_id")
+  createdByUserId    String            @map("created_by_user_id")
+  approvedByUserId   String?           @map("approved_by_user_id")
+  status             ExpenseStatus     @default(DRAFT)
+  date               DateTime
+  categoryId         String            @map("category_id")
+  description        String
+  amount             Float
+  currency           String            @default("EUR")
+  exchangeRateToBase Float?            @map("exchange_rate_to_base")
+  baseAmount         Float?            @map("base_amount")
+  paymentMethod      PaymentMethod     @map("payment_method")
+  paidBy             PaidBy            @map("paid_by")
+  vendorName         String?           @map("vendor_name")
+  invoiceNumber      String?           @map("invoice_number")
+  vatRate            Float?            @map("vat_rate")
+  vatAmount          Float?            @map("vat_amount")
+  totalAmountWithVat Float?            @map("total_amount_with_vat")
+  isReimbursable     Boolean           @default(false) @map("is_reimbursable")
+  isReimbursed       Boolean           @default(false) @map("is_reimbursed")
+  reimbursedAt       DateTime?         @map("reimbursed_at")
+  notes              String?
+  createdAt          DateTime          @default(now()) @map("created_at")
+  updatedAt          DateTime          @updatedAt @map("updated_at")
+  cashTransactions   CashTransaction[]
+  receipts           ExpenseReceipt[]
+  approvedBy         User?             @relation("ExpenseApprover", fields: [approvedByUserId], references: [id])
+  category           ExpenseCategory   @relation(fields: [categoryId], references: [id])
+  createdBy          User              @relation("ExpenseCreator", fields: [createdByUserId], references: [id])
+  trip               Trip?             @relation(fields: [tripId], references: [id])
+  yacht              Yacht             @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("expenses")
+}
+
+model ExpenseReceipt {
+  id         String   @id @default(cuid())
+  expenseId  String   @map("expense_id")
+  fileUrl    String   @map("file_url")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+
+  @@map("expense_receipts")
+}
+
+model CashTransaction {
+  id              String              @id @default(cuid())
+  yachtId         String              @map("yacht_id")
+  type            CashTransactionType
+  amount          Float
+  currency        String              @default("EUR")
+  description     String?
+  expenseId       String?             @map("expense_id")
+  createdByUserId String              @map("created_by_user_id")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  createdBy       User                @relation("CashTransactionCreator", fields: [createdByUserId], references: [id])
+  expense         Expense?            @relation(fields: [expenseId], references: [id])
+  yacht           Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("cash_transactions")
+}
+
+model MarinaPermissionDocument {
+  id         String    @id @default(cuid())
+  yachtId    String    @map("yacht_id")
+  title      String
+  fileUrl    String    @map("file_url")
+  notes      String?
+  expiryDate DateTime? @map("expiry_date")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("marina_permission_documents")
+}
+
+model VesselDocument {
+  id         String    @id @default(cuid())
+  yachtId    String    @map("yacht_id")
+  title      String
+  fileUrl    String    @map("file_url")
+  notes      String?
+  expiryDate DateTime? @map("expiry_date")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("vessel_documents")
+}
+
+model CrewDocument {
+  id         String    @id @default(cuid())
+  yachtId    String    @map("yacht_id")
+  userId     String?   @map("user_id")
+  title      String
+  fileUrl    String    @map("file_url")
+  notes      String?
+  expiryDate DateTime? @map("expiry_date")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  user       User?     @relation("CrewDocumentOwner", fields: [userId], references: [id])
+  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("crew_documents")
+}
+
+model MessageChannel {
+  id              String    @id @default(cuid())
+  yachtId         String    @map("yacht_id")
+  name            String
+  description     String?
+  isGeneral       Boolean   @default(false) @map("is_general")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  createdByUserId String?   @map("created_by_user_id")
+  createdBy       User?     @relation("ChannelCreator", fields: [createdByUserId], references: [id])
+  yacht           Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  messages        Message[]
+  members         User[]    @relation("ChannelMembers")
+
+  @@map("message_channels")
+}
+
+model Message {
+  id              String              @id @default(cuid())
+  channelId       String              @map("channel_id")
+  userId          String              @map("user_id")
+  content         String?
+  imageUrl        String?             @map("image_url")
+  parentMessageId String?             @map("parent_message_id")
+  isPinned        Boolean             @default(false) @map("is_pinned")
+  editedAt        DateTime?           @map("edited_at")
+  deletedAt       DateTime?           @map("deleted_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+  attachments     MessageAttachment[]
+  reads           MessageRead[]
+  channel         MessageChannel      @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  parentMessage   Message?            @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
+  replies         Message[]           @relation("MessageReplies")
+  user            User                @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
+  notifications   Notification[]
+
+  @@map("messages")
+}
+
+model MessageRead {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  readAt    DateTime @default(now()) @map("read_at")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation("MessageReader", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId])
+  @@map("message_reads")
+}
+
+model MessageAttachment {
+  id        String   @id @default(cuid())
+  messageId String   @map("message_id")
+  userId    String   @map("user_id")
+  fileName  String   @map("file_name")
+  fileUrl   String   @map("file_url")
+  fileSize  Int?     @map("file_size")
+  mimeType  String?  @map("mime_type")
+  createdAt DateTime @default(now()) @map("created_at")
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("message_attachments")
+}
+
+model Product {
+  id          String         @id @default(cuid())
+  yachtId     String         @map("yacht_id")
+  name        String
+  defaultUnit ItemUnit       @default(PIECE) @map("default_unit")
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+  yacht       Yacht          @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  items       ShoppingItem[]
+
+  @@unique([yachtId, name])
+  @@map("products")
+}
+
+model ShoppingStore {
+  id            String         @id @default(cuid())
+  yachtId       String         @map("yacht_id")
+  name          String
+  type          StoreType
+  address       String?
+  phone         String?
+  notes         String?
+  createdAt     DateTime       @default(now()) @map("created_at")
+  updatedAt     DateTime       @updatedAt @map("updated_at")
+  shoppingLists ShoppingList[]
+  yacht         Yacht          @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@unique([yachtId, name])
+  @@map("shopping_stores")
+}
+
+model ShoppingList {
+  id              String             @id @default(cuid())
+  yachtId         String             @map("yacht_id")
+  storeId         String?            @map("store_id")
+  name            String
+  description     String?
+  status          ShoppingListStatus @default(DRAFT)
+  createdByUserId String?            @map("created_by_user_id")
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  items           ShoppingItem[]
+  createdBy       User?              @relation("ShoppingListCreator", fields: [createdByUserId], references: [id])
+  store           ShoppingStore?     @relation(fields: [storeId], references: [id])
+  yacht           Yacht              @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("shopping_lists")
+}
+
+model ShoppingItem {
+  id          String       @id @default(cuid())
+  listId      String       @map("list_id")
+  productId   String?      @map("product_id")
+  name        String
+  quantity    Float
+  unit        ItemUnit
+  storeId     String?      @map("store_id")
+  storeName   String?      @map("store_name")
+  isCompleted Boolean      @default(false) @map("is_completed")
+  notes       String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+  list        ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  product     Product?     @relation(fields: [productId], references: [id])
+
+  @@map("shopping_items")
+}
+
+model AlcoholStock {
+  id                String                @id @default(cuid())
+  yachtId           String                @map("yacht_id")
+  name              String
+  category          AlcoholCategory?
+  quantity          Float                 @default(0)
+  unit              String                @default("bottle")
+  lowStockThreshold Float?                @map("low_stock_threshold")
+  notes             String?
+  createdAt         DateTime              @default(now()) @map("created_at")
+  updatedAt         DateTime              @updatedAt @map("updated_at")
+  history           AlcoholStockHistory[]
+  yacht             Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@unique([yachtId, name])
+  @@map("alcohol_stocks")
+}
+
+model AlcoholStockHistory {
+  id             String       @id @default(cuid())
+  stockId        String       @map("stock_id")
+  userId         String?      @map("user_id")
+  changeType     String       @map("change_type")
+  quantityBefore Float        @map("quantity_before")
+  quantityAfter  Float        @map("quantity_after")
+  quantityChange Float        @map("quantity_change")
+  notes          String?
+  createdAt      DateTime     @default(now()) @map("created_at")
+  stock          AlcoholStock @relation(fields: [stockId], references: [id], onDelete: Cascade)
+  user           User?        @relation(fields: [userId], references: [id])
+
+  @@map("alcohol_stock_history")
+}
+
+model MaintenanceLog {
+  id              String                @id @default(cuid())
+  yachtId         String                @map("yacht_id")
+  type            MaintenanceType
+  title           String
+  description     String?
+  component       String?
+  serviceProvider String?               @map("service_provider")
+  cost            Float?
+  currency        String                @default("EUR")
+  date            DateTime
+  nextDueDate     DateTime?             @map("next_due_date")
+  mileage         Float?
+  mileageUnit     String?               @map("mileage_unit")
+  notes           String?
+  createdByUserId String?               @map("created_by_user_id")
+  createdAt       DateTime              @default(now()) @map("created_at")
+  updatedAt       DateTime              @updatedAt @map("updated_at")
+  documents       MaintenanceDocument[]
+  createdBy       User?                 @relation("MaintenanceCreator", fields: [createdByUserId], references: [id])
+  yacht           Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_logs")
+}
+
+model MaintenanceDocument {
+  id            String         @id @default(cuid())
+  maintenanceId String         @map("maintenance_id")
+  fileUrl       String         @map("file_url")
+  title         String?
+  uploadedAt    DateTime       @default(now()) @map("uploaded_at")
+  maintenance   MaintenanceLog @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
+
+  @@map("maintenance_documents")
 }
 
 enum UserRole {
@@ -105,173 +662,6 @@ enum MaintenanceType {
   EMERGENCY
 }
 
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  username     String   @unique
-  passwordHash String   @map("password_hash")
-  name         String?
-  role         UserRole @default(CREW)
-  active       Boolean  @default(true)
-  permissions  String? // JSON string of permissions array
-  notificationPreferences String? @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences") // JSON string
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  yachtId String? @map("yacht_id")
-  yacht   Yacht?  @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-
-  createdTrips            Trip[]            @relation("TripCreator")
-  assignedTasks           Task[]            @relation("TaskAssignee")
-  completedTasks          Task[]            @relation("TaskCompleter")
-  createdExpenses         Expense[]         @relation("ExpenseCreator")
-  approvedExpenses        Expense[]         @relation("ExpenseApprover")
-  sentMessages            Message[]         @relation("MessageSender")
-  readMessages            MessageRead[]     @relation("MessageReader")
-  messageAttachments      MessageAttachment[] @relation("MessageAttachmentUploader")
-  channels                MessageChannel[]  @relation("ChannelMembers")
-  createdChannels         MessageChannel[]  @relation("ChannelCreator")
-  createdShoppingLists    ShoppingList[]    @relation("ShoppingListCreator")
-  createdMaintenanceLogs  MaintenanceLog[]  @relation("MaintenanceCreator")
-  taskComments            TaskComment[]     @relation("TaskCommentAuthor")
-  taskAttachments         TaskAttachment[]  @relation("TaskAttachmentUploader")
-  notifications           Notification[]
-  crewDocuments           CrewDocument[]    @relation("CrewDocumentOwner")
-  alcoholStockHistory     AlcoholStockHistory[]
-  createdCashTransactions CashTransaction[] @relation("CashTransactionCreator")
-
-  @@map("users")
-}
-
-model Yacht {
-  id                 String   @id @default(cuid())
-  name               String
-  flag               String?
-  length             Float? // in meters
-  registrationNumber String?  @map("registration_number")
-  notes              String?
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  users                     User[]
-  trips                     Trip[]
-  expenses                  Expense[]
-  expenseCategories         ExpenseCategory[]
-  tasks                     Task[]
-  messageChannels           MessageChannel[]
-  products                  Product[]
-  shoppingLists             ShoppingList[]
-  shoppingStores            ShoppingStore[]
-  marinaPermissionDocuments MarinaPermissionDocument[]
-  vesselDocuments           VesselDocument[]
-  crewDocuments             CrewDocument[]
-  alcoholStocks             AlcoholStock[]
-  maintenanceLogs           MaintenanceLog[]
-  cashTransactions          CashTransaction[]
-
-  @@map("yachts")
-}
-
-model Trip {
-  id            String     @id @default(cuid())
-  yachtId       String     @map("yacht_id")
-  yacht         Yacht      @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  name          String
-  code          String?
-  type          TripType   @default(CHARTER) @map("trip_type")
-  startDate     DateTime   @map("start_date")
-  endDate       DateTime?  @map("end_date")
-  departurePort String?    @map("departure_port")
-  arrivalPort   String?    @map("arrival_port")
-  status        TripStatus @default(PLANNED)
-  mainGuest     String?    @map("main_guest")
-  guestCount    Int?       @map("guest_count")
-  notes         String?
-  createdAt     DateTime   @default(now()) @map("created_at")
-  updatedAt     DateTime   @updatedAt @map("updated_at")
-
-  // Relations
-  createdByUserId String?            @map("created_by_user_id")
-  createdBy       User?              @relation("TripCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  tasks           Task[]
-  expenses        Expense[]
-  itineraryDays   TripItineraryDay[]
-
-  @@map("trips")
-}
-
-model TripItineraryDay {
-  id           String    @id @default(cuid())
-  tripId       String    @map("trip_id")
-  trip         Trip      @relation(fields: [tripId], references: [id], onDelete: Cascade)
-  dayIndex     Int       @map("day_index") // 1, 2, 3... or can use date
-  date         DateTime? // Optional specific date
-  fromLocation String?   @map("from_location")
-  toLocation   String?   @map("to_location")
-  activities   String? // Planned activities / notes
-  createdAt    DateTime  @default(now()) @map("created_at")
-  updatedAt    DateTime  @updatedAt @map("updated_at")
-
-  @@map("trip_itinerary_days")
-}
-
-model Task {
-  id            String       @id @default(cuid())
-  yachtId       String       @map("yacht_id")
-  yacht         Yacht        @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  tripId        String?      @map("trip_id")
-  trip          Trip?        @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  title         String
-  description   String?
-  assigneeId    String?      @map("assignee_id")
-  assignee      User?        @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  assigneeRole  UserRole?    @map("assignee_role")
-  completedById String?      @map("completed_by_id")
-  completedBy   User?        @relation("TaskCompleter", fields: [completedById], references: [id], onDelete: SetNull)
-  completedAt   DateTime?    @map("completed_at")
-  dueDate       DateTime?    @map("due_date")
-  status        TaskStatus   @default(TODO)
-  priority      TaskPriority @default(MEDIUM)
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
-
-  comments    TaskComment[]
-  attachments TaskAttachment[]
-  notifications Notification[]
-
-  @@map("tasks")
-}
-
-model TaskComment {
-  id        String   @id @default(cuid())
-  taskId    String   @map("task_id")
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String   @map("user_id")
-  user      User     @relation("TaskCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
-  content   String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  @@map("task_comments")
-}
-
-model TaskAttachment {
-  id        String   @id @default(cuid())
-  taskId    String   @map("task_id")
-  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  userId    String   @map("user_id")
-  user      User     @relation("TaskAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
-  fileName  String   @map("file_name")
-  fileUrl   String   @map("file_url")
-  fileSize  Int?     @map("file_size")
-  mimeType  String?  @map("mime_type")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("task_attachments")
-}
-
 enum NotificationType {
   TASK_ASSIGNED
   TASK_COMPLETED
@@ -281,293 +671,9 @@ enum NotificationType {
   MESSAGE_RECEIVED
 }
 
-model Notification {
-  id        String           @id @default(cuid())
-  userId    String           @map("user_id")
-  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      NotificationType
-  taskId    String?          @map("task_id")
-  task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  messageId String?          @map("message_id")
-  message   Message?         @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  content   String
-  read      Boolean          @default(false)
-  createdAt DateTime         @default(now()) @map("created_at")
-
-  @@map("notifications")
-}
-
-model ExpenseCategory {
-  id        String   @id @default(cuid())
-  yachtId   String   @map("yacht_id")
-  yacht     Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  name      String
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  expenses Expense[]
-
-  @@unique([yachtId, name])
-  @@map("expense_categories")
-}
-
-model Expense {
-  id                 String          @id @default(cuid())
-  yachtId            String          @map("yacht_id")
-  yacht              Yacht           @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  tripId             String?         @map("trip_id")
-  trip               Trip?           @relation(fields: [tripId], references: [id], onDelete: SetNull)
-  createdByUserId    String          @map("created_by_user_id")
-  createdBy          User            @relation("ExpenseCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  approvedByUserId   String?         @map("approved_by_user_id")
-  approvedBy         User?           @relation("ExpenseApprover", fields: [approvedByUserId], references: [id], onDelete: SetNull)
-  status             ExpenseStatus   @default(DRAFT)
-  date               DateTime
-  categoryId         String          @map("category_id")
-  category           ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-  description        String
-  amount             Float
-  currency           String          @default("EUR")
-  exchangeRateToBase Float?          @map("exchange_rate_to_base")
-  baseAmount         Float?          @map("base_amount")
-  paymentMethod      PaymentMethod   @map("payment_method")
-  paidBy             PaidBy          @map("paid_by")
-  vendorName         String?         @map("vendor_name")
-  invoiceNumber      String?         @map("invoice_number")
-  vatRate            Float?          @map("vat_rate")
-  vatAmount          Float?          @map("vat_amount")
-  totalAmountWithVat Float?          @map("total_amount_with_vat")
-  isReimbursable     Boolean         @default(false) @map("is_reimbursable")
-  isReimbursed       Boolean         @default(false) @map("is_reimbursed")
-  reimbursedAt       DateTime?       @map("reimbursed_at")
-  notes              String?
-  createdAt          DateTime        @default(now()) @map("created_at")
-  updatedAt          DateTime        @updatedAt @map("updated_at")
-
-  // Relations
-  receipts         ExpenseReceipt[]
-  cashTransactions CashTransaction[]
-
-  @@map("expenses")
-}
-
-model ExpenseReceipt {
-  id         String   @id @default(cuid())
-  expenseId  String   @map("expense_id")
-  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
-  fileUrl    String   @map("file_url")
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
-
-  @@map("expense_receipts")
-}
-
 enum CashTransactionType {
-  DEPOSIT // Para girişi
-  WITHDRAWAL // Para çıkışı (expense ile bağlantılı)
-}
-
-model CashTransaction {
-  id              String              @id @default(cuid())
-  yachtId         String              @map("yacht_id")
-  yacht           Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  type            CashTransactionType
-  amount          Float
-  currency        String              @default("EUR")
-  description     String?
-  expenseId       String?             @map("expense_id")
-  expense         Expense?            @relation(fields: [expenseId], references: [id], onDelete: SetNull)
-  createdByUserId String              @map("created_by_user_id")
-  createdBy       User                @relation("CashTransactionCreator", fields: [createdByUserId], references: [id], onDelete: Restrict)
-  createdAt       DateTime            @default(now()) @map("created_at")
-
-  @@map("cash_transactions")
-}
-
-model MarinaPermissionDocument {
-  id         String    @id @default(cuid())
-  yachtId    String    @map("yacht_id")
-  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  title      String
-  fileUrl    String    @map("file_url")
-  notes      String?
-  expiryDate DateTime? @map("expiry_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-
-  @@map("marina_permission_documents")
-}
-
-model VesselDocument {
-  id         String    @id @default(cuid())
-  yachtId    String    @map("yacht_id")
-  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  title      String
-  fileUrl    String    @map("file_url")
-  notes      String?
-  expiryDate DateTime? @map("expiry_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-
-  @@map("vessel_documents")
-}
-
-model CrewDocument {
-  id         String    @id @default(cuid())
-  yachtId    String    @map("yacht_id")
-  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  userId     String?   @map("user_id")
-  user       User?     @relation("CrewDocumentOwner", fields: [userId], references: [id], onDelete: SetNull)
-  title      String
-  fileUrl    String    @map("file_url")
-  notes      String?
-  expiryDate DateTime? @map("expiry_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-
-  @@map("crew_documents")
-}
-
-model MessageChannel {
-  id              String   @id @default(cuid())
-  yachtId         String   @map("yacht_id")
-  yacht           Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  name            String
-  description     String?
-  isGeneral       Boolean  @default(false) @map("is_general") // General channel - everyone can access
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
-  createdByUserId String?  @map("created_by_user_id")
-  createdBy       User?    @relation("ChannelCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-
-  // Relations
-  members  User[]    @relation("ChannelMembers")
-  messages Message[]
-
-  @@map("message_channels")
-}
-
-model Message {
-  id             String         @id @default(cuid())
-  channelId      String         @map("channel_id")
-  channel        MessageChannel @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  userId         String         @map("user_id")
-  user           User           @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
-  content        String?
-  imageUrl       String?        @map("image_url")
-  parentMessageId String?       @map("parent_message_id")
-  parentMessage  Message?       @relation("MessageReplies", fields: [parentMessageId], references: [id], onDelete: Cascade)
-  replies        Message[]      @relation("MessageReplies")
-  isPinned       Boolean        @default(false) @map("is_pinned")
-  editedAt       DateTime?      @map("edited_at")
-  deletedAt      DateTime?      @map("deleted_at")
-  createdAt      DateTime       @default(now()) @map("created_at")
-  updatedAt      DateTime       @updatedAt @map("updated_at")
-
-  // Relations
-  reads          MessageRead[]
-  attachments    MessageAttachment[]
-  notifications  Notification[]
-
-  @@map("messages")
-}
-
-model MessageRead {
-  id        String   @id @default(cuid())
-  messageId String   @map("message_id")
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  userId    String   @map("user_id")
-  user      User     @relation("MessageReader", fields: [userId], references: [id], onDelete: Cascade)
-  readAt    DateTime @default(now()) @map("read_at")
-
-  @@unique([messageId, userId])
-  @@map("message_reads")
-}
-
-model MessageAttachment {
-  id        String   @id @default(cuid())
-  messageId String   @map("message_id")
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  userId    String   @map("user_id")
-  user      User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
-  fileName  String   @map("file_name")
-  fileUrl   String   @map("file_url")
-  fileSize  Int?     @map("file_size")
-  mimeType  String?  @map("mime_type")
-  createdAt DateTime @default(now()) @map("created_at")
-
-  @@map("message_attachments")
-}
-
-model Product {
-  id          String   @id @default(cuid())
-  yachtId     String   @map("yacht_id")
-  yacht       Yacht    @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  name        String
-  defaultUnit ItemUnit @default(PIECE) @map("default_unit")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  // Relations
-  items ShoppingItem[]
-
-  @@unique([yachtId, name])
-  @@map("products")
-}
-
-model ShoppingStore {
-  id        String    @id @default(cuid())
-  yachtId   String    @map("yacht_id")
-  yacht     Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  name      String
-  type      StoreType
-  address   String?
-  phone     String?
-  notes     String?
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-
-  // Relations
-  shoppingLists ShoppingList[]
-
-  @@unique([yachtId, name])
-  @@map("shopping_stores")
-}
-
-model ShoppingList {
-  id              String             @id @default(cuid())
-  yachtId         String             @map("yacht_id")
-  yacht           Yacht              @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  storeId         String?            @map("store_id")
-  store           ShoppingStore?     @relation(fields: [storeId], references: [id], onDelete: SetNull)
-  name            String
-  description     String?
-  status          ShoppingListStatus @default(DRAFT)
-  createdByUserId String?            @map("created_by_user_id")
-  createdBy       User?              @relation("ShoppingListCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  createdAt       DateTime           @default(now()) @map("created_at")
-  updatedAt       DateTime           @updatedAt @map("updated_at")
-
-  // Relations
-  items ShoppingItem[]
-
-  @@map("shopping_lists")
-}
-
-model ShoppingItem {
-  id          String       @id @default(cuid())
-  listId      String       @map("list_id")
-  list        ShoppingList @relation(fields: [listId], references: [id], onDelete: Cascade)
-  productId   String?      @map("product_id")
-  product     Product?     @relation(fields: [productId], references: [id], onDelete: SetNull)
-  name        String // Product name (from catalog or manual entry)
-  quantity    Float
-  unit        ItemUnit
-  storeId     String?      @map("store_id") // Optional: assigned later
-  storeName   String?      @map("store_name") // Optional: store name if not in catalog
-  isCompleted Boolean      @default(false) @map("is_completed")
-  notes       String?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
-
-  @@map("shopping_items")
+  DEPOSIT
+  WITHDRAWAL
 }
 
 enum AlcoholCategory {
@@ -576,72 +682,12 @@ enum AlcoholCategory {
   BEER
 }
 
-model AlcoholStock {
-  id                String           @id @default(cuid())
-  yachtId           String           @map("yacht_id")
-  yacht             Yacht            @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  name              String // Alcohol name (from template or custom)
-  category          AlcoholCategory? // Wine, Spirits, or Beer
-  quantity          Float            @default(0) // Current stock quantity
-  unit              String           @default("bottle") // bottle, liter, etc.
-  lowStockThreshold Float?           @map("low_stock_threshold") // Alert when stock falls below this
-  notes             String?
-  createdAt         DateTime         @default(now()) @map("created_at")
-  updatedAt         DateTime         @updatedAt @map("updated_at")
-  history           AlcoholStockHistory[]
-
-  @@unique([yachtId, name])
-  @@map("alcohol_stocks")
+enum TripChecklistType {
+  PRE_DEPARTURE
+  POST_ARRIVAL
 }
 
-model AlcoholStockHistory {
-  id          String        @id @default(cuid())
-  stockId     String        @map("stock_id")
-  stock       AlcoholStock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
-  userId      String?       @map("user_id") // User who made the change
-  user        User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  changeType  String        @map("change_type") // "ADD", "REMOVE", "SET", "ADJUST"
-  quantityBefore Float      @map("quantity_before")
-  quantityAfter  Float      @map("quantity_after")
-  quantityChange Float      @map("quantity_change") // Positive for add, negative for remove
-  notes       String?
-  createdAt   DateTime      @default(now()) @map("created_at")
-
-  @@map("alcohol_stock_history")
-}
-
-model MaintenanceLog {
-  id              String                @id @default(cuid())
-  yachtId         String                @map("yacht_id")
-  yacht           Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
-  type            MaintenanceType
-  title           String
-  description     String?
-  component       String? // Engine, Hull, Electronics, etc.
-  serviceProvider String?               @map("service_provider") // Marina, technician name
-  cost            Float?
-  currency        String                @default("EUR")
-  date            DateTime
-  nextDueDate     DateTime?             @map("next_due_date") // For preventive maintenance
-  mileage         Float? // Engine hours or nautical miles
-  mileageUnit     String?               @map("mileage_unit") // hours, nm (nautical miles)
-  notes           String?
-  createdByUserId String?               @map("created_by_user_id")
-  createdBy       User?                 @relation("MaintenanceCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
-  documents       MaintenanceDocument[]
-  createdAt       DateTime              @default(now()) @map("created_at")
-  updatedAt       DateTime              @updatedAt @map("updated_at")
-
-  @@map("maintenance_logs")
-}
-
-model MaintenanceDocument {
-  id            String         @id @default(cuid())
-  maintenanceId String         @map("maintenance_id")
-  maintenance   MaintenanceLog @relation(fields: [maintenanceId], references: [id], onDelete: Cascade)
-  fileUrl       String         @map("file_url")
-  title         String?
-  uploadedAt    DateTime       @default(now()) @map("uploaded_at")
-
-  @@map("maintenance_documents")
+enum TripMovementEvent {
+  DEPARTURE
+  ARRIVAL
 }

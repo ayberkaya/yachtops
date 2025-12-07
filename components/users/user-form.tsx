@@ -230,7 +230,9 @@ export function UserForm({ onSuccess }: UserFormProps) {
                         htmlFor={permission}
                         className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                       >
-                        {permission.split(".")[1] || permission}
+                        {permission.includes(".")
+                          ? permission.split(".")[1]?.replace("-", " ") || permission
+                          : permission}
                       </label>
                     </div>
                   ))}

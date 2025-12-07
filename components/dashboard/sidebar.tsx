@@ -145,11 +145,17 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             permission: "messages.view",
           },
           {
-            href: "/dashboard/trips",
+            href: "#trips",
             label: "Trips",
             icon: Anchor,
             permission: "trips.view",
             children: [
+              {
+                href: "/dashboard/trips",
+                label: "Voyages",
+                permission: "trips.view",
+                icon: Anchor,
+              },
               {
                 href: "/dashboard/trips/voyage-planning",
                 label: "Voyage plan & checklists",
@@ -443,7 +449,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                               }`}
                             >
                               <span className="flex items-center justify-between">
-                                <span>{child.label}</span>
+                                <span className="capitalize">{child.label}</span>
                                 {isPendingApproval && pendingExpensesCount > 0 && (
                                   <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                                     {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
@@ -670,11 +676,17 @@ export function Sidebar() {
             permission: "messages.view",
           },
           {
-            href: "/dashboard/trips",
+            href: "#trips",
             label: "Trips",
             icon: Anchor,
             permission: "trips.view",
             children: [
+              {
+                href: "/dashboard/trips",
+                label: "Voyages",
+                permission: "trips.view",
+                icon: Anchor,
+              },
               {
                 href: "/dashboard/trips/voyage-planning",
                 label: "Voyage plan & checklists",
@@ -881,7 +893,6 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
-          const isParent = !!item.children;
           const containerExpanded = isMobile ? true : isExpanded;
           const leafActive =
             item.href !== "#" &&
@@ -999,7 +1010,7 @@ export function Sidebar() {
                           }}
                         >
                           <span className="flex items-center justify-between">
-                            <span>{child.label}</span>
+                            <span className="capitalize">{child.label}</span>
                             {isPendingApproval && pendingExpensesCount > 0 && (
                               <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                                 {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}

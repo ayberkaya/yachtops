@@ -5,6 +5,7 @@ import { db } from "@/lib/db";
 import { TripStatus, TripType } from "@prisma/client";
 import { z } from "zod";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { ensureTripChecklistSeeded } from "@/lib/trip-checklists";
 
 const updateTripSchema = z.object({
   name: z.string().min(1).optional(),
@@ -117,7 +118,34 @@ export async function PATCH(
     }
     if (validated.departurePort !== undefined) updateData.departurePort = validated.departurePort;
     if (validated.arrivalPort !== undefined) updateData.arrivalPort = validated.arrivalPort;
-    if (validated.status) updateData.status = validated.status;
+    if (validated.status && validated.status !== existingTrip.status) {
+      if (validated.status === TripStatus.PLANNED) {
+        await ensureTripChecklistSeeded(id);
+      }
+
+      if (validated.status === TripStatus.COMPLETED) {
+        const total = await db.tripChecklistItem.count({ where: { tripId: id } });
+        if (total === 0) {
+          return NextResponse.json(
+            { error: "Cannot complete a trip before its checklist template exists." },
+            { status: 400 }
+          );
+        }
+
+        const pending = await db.tripChecklistItem.count({
+          where: { tripId: id, completed: false },
+        });
+
+        if (pending > 0) {
+          return NextResponse.json(
+            { error: "Finish every checklist item before marking the trip as completed." },
+            { status: 400 }
+          );
+        }
+      }
+
+      updateData.status = validated.status;
+    }
     if (validated.mainGuest !== undefined) updateData.mainGuest = validated.mainGuest;
     if (validated.guestCount !== undefined) updateData.guestCount = validated.guestCount;
     if (validated.notes !== undefined) updateData.notes = validated.notes;
