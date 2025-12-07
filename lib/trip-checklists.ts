@@ -144,22 +144,49 @@ $$;
 `;
 
 let checklistTableEnsured = false;
+let checklistTableEnsuring: Promise<void> | null = null;
 
-export async function ensureTripChecklistTableReady() {
-  if (checklistTableEnsured) return;
+const isDuplicateDefinitionError = (error: unknown) =>
+  error instanceof Prisma.PrismaClientKnownRequestError &&
+  error.code === "P2010" &&
+  typeof error.meta?.message === "string" &&
+  error.meta.message.includes("already exists");
 
+const safeExecute = async (sql: string) => {
   try {
-    await db.tripChecklistItem.findFirst({ select: { id: true } });
-    checklistTableEnsured = true;
+    await db.$executeRawUnsafe(sql);
   } catch (error) {
-    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
-      await db.$executeRawUnsafe(CREATE_CHECKLIST_ENUM_SQL);
-      await db.$executeRawUnsafe(CREATE_CHECKLIST_TABLE_SQL);
-      checklistTableEnsured = true;
-    } else {
+    if (!isDuplicateDefinitionError(error)) {
       throw error;
     }
   }
+};
+
+export async function ensureTripChecklistTableReady() {
+  if (checklistTableEnsured) {
+    return;
+  }
+
+  if (!checklistTableEnsuring) {
+    checklistTableEnsuring = (async () => {
+      try {
+        await db.tripChecklistItem.findFirst({ select: { id: true } });
+        checklistTableEnsured = true;
+      } catch (error) {
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2021") {
+          await safeExecute(CREATE_CHECKLIST_ENUM_SQL);
+          await safeExecute(CREATE_CHECKLIST_TABLE_SQL);
+          checklistTableEnsured = true;
+        } else {
+          throw error;
+        }
+      } finally {
+        checklistTableEnsuring = null;
+      }
+    })();
+  }
+
+  await checklistTableEnsuring;
 }
 
 export async function ensureTripChecklistSeeded(tripId: string) {
