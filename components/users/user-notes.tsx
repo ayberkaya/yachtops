@@ -81,11 +81,11 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
   const [notes, setNotes] = useState<UserNote[]>(
     initialNotes.map((note) => ({ ...note, content: ensureBlocks(note.content) }))
   );
-  const [newNoteTitle, setNewNoteTitle] = useState("");
   const [creatingNote, setCreatingNote] = useState(false);
   const [activeNoteId, setActiveNoteId] = useState<string | null>(initialNotes[0]?.id ?? null);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
   const saveTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const titleTimers = useRef<Record<string, NodeJS.Timeout>>({});
 
   useEffect(() => {
     if (!activeNoteId && notes.length > 0) {
@@ -123,15 +123,13 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
     [notes]
   );
 
-  const handleCreateNote = async (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!newNoteTitle.trim()) return;
+  const handleCreateNote = async () => {
     setCreatingNote(true);
     try {
       const response = await fetch("/api/user-notes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: newNoteTitle.trim() }),
+        body: JSON.stringify({ title: "Untitled note" }),
       });
       if (!response.ok) {
         throw new Error("Failed to create note");
@@ -139,12 +137,32 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
       const note: UserNote = await response.json();
       setNotes((prev) => [{ ...note, content: ensureBlocks(note.content) }, ...prev]);
       setActiveNoteId(note.id);
-      setNewNoteTitle("");
     } catch (error) {
       console.error(error);
     } finally {
       setCreatingNote(false);
     }
+  };
+
+  const handleTitleChange = (noteId: string, nextTitle: string) => {
+    const normalized = nextTitle;
+    setNotes((prev) =>
+      prev.map((note) => (note.id === noteId ? { ...note, title: normalized } : note))
+    );
+    if (titleTimers.current[noteId]) {
+      clearTimeout(titleTimers.current[noteId]);
+    }
+    titleTimers.current[noteId] = setTimeout(async () => {
+      try {
+        await fetch(`/api/user-notes/${noteId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: normalized.trim() ? normalized : "Untitled note" }),
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }, 400);
   };
 
   const handleDeleteNote = async (noteId: string) => {
@@ -285,18 +303,13 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
           Capture quick voyage prep, crew reminders, or provisioning details. Only you
           can see them.
         </p>
-        <form onSubmit={handleCreateNote} className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Input
-            value={newNoteTitle}
-            onChange={(e) => setNewNoteTitle(e.target.value)}
-            placeholder="New note title"
-            className="sm:w-64"
-            required
-          />
-          <Button type="submit" disabled={creatingNote}>
-            {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create note"}
-          </Button>
-        </form>
+        <Button
+          className="mt-6"
+          onClick={handleCreateNote}
+          disabled={creatingNote}
+        >
+          {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create your first note"}
+        </Button>
       </div>
     );
   }
@@ -310,18 +323,15 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
               <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-500">Personal</p>
               <h2 className="text-lg font-bold text-slate-900">Notes</h2>
             </div>
-            <form onSubmit={handleCreateNote} className="flex items-center gap-2">
-              <Input
-                value={newNoteTitle}
-                onChange={(e) => setNewNoteTitle(e.target.value)}
-                placeholder="New note"
-                className="hidden h-9 w-32 text-sm md:block"
-                required
-              />
-              <Button type="submit" size="icon" className="h-9 w-9" disabled={creatingNote}>
-                {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-              </Button>
-            </form>
+            <Button
+              type="button"
+              size="icon"
+              className="h-9 w-9"
+              onClick={handleCreateNote}
+              disabled={creatingNote}
+            >
+              {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            </Button>
           </div>
           <div className="max-h-[70vh] overflow-y-auto px-3 py-4">
             {notes.map((note) => (
@@ -356,7 +366,12 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-xs uppercase tracking-[0.3em] text-blue-200">Private note</p>
-                    <h3 className="text-2xl font-bold">{activeNote.title}</h3>
+                    <Input
+                      value={activeNote.title}
+                      onChange={(e) => handleTitleChange(activeNote.id, e.target.value)}
+                      placeholder="Add a title"
+                      className="mt-1 w-full rounded-2xl border border-white/30 bg-white/10 text-xl font-semibold text-white placeholder:text-white/60 focus:border-white focus:bg-white/20"
+                    />
                   </div>
                   <Button
                     variant="ghost"
