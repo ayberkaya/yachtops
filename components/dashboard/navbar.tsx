@@ -133,9 +133,7 @@ export function Navbar() {
         
         {/* Mobile Menu */}
         <div className="flex items-center gap-2">
-          {hasPermission(user, "tasks.view", user.permissions) && (
-            <NotificationsView />
-          )}
+          <NotificationsView />
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild className="md:hidden">
               <Button variant="ghost" size="icon">

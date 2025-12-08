@@ -697,6 +697,7 @@ enum NotificationType {
   TASK_OVERDUE
   MESSAGE_MENTION
   MESSAGE_RECEIVED
+  SHOPPING_LIST_COMPLETED
 }
 
 enum CashTransactionType {

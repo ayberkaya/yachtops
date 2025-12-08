@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { ShoppingListStatus } from "@prisma/client";
+import { NotificationType, ShoppingListStatus } from "@prisma/client";
 import { z } from "zod";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { createNotification } from "@/lib/notifications";
 
 const updateListSchema = z.object({
   name: z.string().min(1).optional(),
@@ -108,6 +109,18 @@ export async function PATCH(
         },
       },
     });
+
+    if (
+      validated.status === ShoppingListStatus.COMPLETED &&
+      existingList.status !== ShoppingListStatus.COMPLETED &&
+      list.createdBy?.id
+    ) {
+      await createNotification(
+        list.createdBy.id,
+        NotificationType.SHOPPING_LIST_COMPLETED,
+        `Shopping list "${list.name}" has been marked as completed.`
+      );
+    }
 
     return NextResponse.json(list);
   } catch (error) {

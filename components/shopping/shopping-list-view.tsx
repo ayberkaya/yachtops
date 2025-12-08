@@ -54,17 +54,17 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
   const detailRef = useRef<HTMLDivElement>(null);
 
   const getStatusBadge = (status: ShoppingListStatus) => {
-    const variants: Record<ShoppingListStatus, "default" | "secondary" | "outline"> = {
-      [ShoppingListStatus.DRAFT]: "outline",
-      [ShoppingListStatus.ACTIVE]: "secondary",
-      [ShoppingListStatus.COMPLETED]: "default",
+    const display: Record<
+      ShoppingListStatus,
+      { variant: "default" | "secondary" | "outline"; label: string }
+    > = {
+      [ShoppingListStatus.DRAFT]: { variant: "secondary", label: "Active" },
+      [ShoppingListStatus.ACTIVE]: { variant: "secondary", label: "Active" },
+      [ShoppingListStatus.COMPLETED]: { variant: "default", label: "Completed" },
     };
-    const labels: Record<ShoppingListStatus, string> = {
-      [ShoppingListStatus.DRAFT]: "Taslak",
-      [ShoppingListStatus.ACTIVE]: "Aktif",
-      [ShoppingListStatus.COMPLETED]: "Tamamlandı",
-    };
-    return <Badge variant={variants[status]}>{labels[status]}</Badge>;
+
+    const { variant, label } = display[status];
+    return <Badge variant={variant}>{label}</Badge>;
   };
 
   const handleListCreated = async (list: ShoppingList) => {

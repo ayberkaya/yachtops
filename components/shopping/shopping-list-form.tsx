@@ -41,14 +41,28 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const sanitizedDefaults: ListFormData = list
+    ? {
+        ...list,
+        description: list.description ?? "",
+        status:
+          list.status === ShoppingListStatus.DRAFT ? ShoppingListStatus.ACTIVE : list.status,
+      }
+    : {
+        name: "",
+        description: "",
+        status: ShoppingListStatus.ACTIVE,
+      };
+
   const form = useForm<ListFormData>({
     resolver: zodResolver(listSchema),
-    defaultValues: list || {
-      name: "",
-      description: "",
-      status: ShoppingListStatus.DRAFT,
-    },
+    defaultValues: sanitizedDefaults,
   });
+
+  const statusOptions: { value: ShoppingListStatus; label: string }[] = [
+    { value: ShoppingListStatus.ACTIVE, label: "Active" },
+    { value: ShoppingListStatus.COMPLETED, label: "Completed" },
+  ];
 
   const onSubmit = async (data: ListFormData) => {
     setIsLoading(true);
@@ -104,12 +118,6 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
     }
   };
 
-  const statusLabels: Record<ShoppingListStatus, string> = {
-    [ShoppingListStatus.DRAFT]: "Taslak",
-    [ShoppingListStatus.ACTIVE]: "Aktif",
-    [ShoppingListStatus.COMPLETED]: "Tamamlandı",
-  };
-
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -147,14 +155,17 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                onValueChange={field.onChange}
+                value={field.value ?? ShoppingListStatus.ACTIVE}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  {Object.entries(statusLabels).map(([value, label]) => (
+                  {statusOptions.map(({ value, label }) => (
                     <SelectItem key={value} value={value}>
                       {label}
                     </SelectItem>

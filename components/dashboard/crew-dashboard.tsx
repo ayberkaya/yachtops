@@ -8,6 +8,7 @@ import { format, differenceInDays, isPast, isToday } from "date-fns";
 import { AlertTriangle, Package, FileText, Wrench, Clock, Bell } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import { QuickActions } from "./quick-actions";
+import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 
 export async function CrewDashboard() {
   const session = await getSession();
@@ -140,12 +141,17 @@ export async function CrewDashboard() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h1 className="text-3xl font-bold">My Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {session.user.name || session.user.email}</p>
+          <p className="text-muted-foreground">
+            Welcome back, {session.user.name || session.user.email}
+          </p>
         </div>
-        <QuickActions />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
+          <DashboardNotificationsPanel />
+          <QuickActions />
+        </div>
       </div>
 
       {/* Role-Assigned Tasks Alert - Dikkat çekici bildirim */}
