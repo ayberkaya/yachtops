@@ -27,6 +27,7 @@ import {
   ListChecks,
   Route,
   ClipboardCheck,
+  NotebookPen,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth";
@@ -43,35 +44,13 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Define base navItems structure (static, no user dependency)
-  const baseNavItems =
-    session?.user?.role === "SUPER_ADMIN"
-      ? [
-          {
-            href: "#admin",
-            label: "Admin",
-            icon: Settings,
-            permission: null,
-            children: [
-              {
-                href: "/admin",
-                label: "Create User",
-                permission: null,
-              },
-              {
-                href: "/admin/owners",
-                label: "Owners",
-                permission: null,
-              },
-            ],
-          },
-        ]
-      : [
-          {
-            href: "/dashboard",
-            label: "Dashboard",
-            icon: Activity,
-            permission: null,
-          },
+  const coreNavItems = [
+    {
+      href: "/dashboard",
+      label: "Dashboard",
+      icon: Activity,
+      permission: null,
+    },
           {
             href: "#income-expenses",
             label: "Finance",
@@ -147,6 +126,12 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             permission: "messages.view",
           },
           {
+            href: "/dashboard/users/notes",
+            label: "Personal Notes",
+            icon: NotebookPen,
+            permission: null,
+          },
+          {
             href: "#trips",
             label: "Voyages",
             icon: Anchor,
@@ -206,13 +191,44 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               },
             ],
           },
+    {
+      href: "/dashboard/users/notes",
+      label: "Personal Notes",
+      icon: NotebookPen,
+      permission: null,
+    },
+    {
+      href: "/dashboard/maintenance",
+      label: "Maintenance",
+      icon: Wrench,
+      permission: "maintenance.view",
+    },
+  ];
+
+  const baseNavItems =
+    session?.user?.role === "SUPER_ADMIN"
+      ? [
           {
-            href: "/dashboard/maintenance",
-            label: "Maintenance",
-            icon: Wrench,
-            permission: "maintenance.view",
+            href: "#admin",
+            label: "Admin",
+            icon: Settings,
+            permission: null,
+            children: [
+              {
+                href: "/admin",
+                label: "Create User",
+                permission: null,
+              },
+              {
+                href: "/admin/owners",
+                label: "Owners",
+                permission: null,
+              },
+            ],
           },
-        ];
+          ...coreNavItems,
+        ]
+      : coreNavItems;
 
   // Memoize filtered nav items to prevent infinite loops
   const filteredNavItems = useMemo(() => {
@@ -567,6 +583,17 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   >
                     <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
                     <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/users/notes"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMobileMenuOpen(false);
+                    }}
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
                   </Link>
                 </div>
               )}
@@ -1205,6 +1232,13 @@ export function Sidebar() {
                     <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">My Documents</span>
                   </Link>
+                <Link
+                  href="/dashboard/users/notes"
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                >
+                  <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                  <span className="transition-colors duration-200">Personal Notes</span>
+                </Link>
                 </div>
               )}
 
