@@ -1,344 +1,510 @@
 "use client";
 
+import Head from "next/head";
 import Link from "next/link";
+import { useMemo } from "react";
+import { Anchor, Shield, ShieldCheck, DollarSign, Users, ClipboardCheck, Package, FileText, Route, Briefcase, ShipWheel } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  Anchor, 
-  Ship, 
-  Activity, 
-  DollarSign, 
-  CheckSquare, 
-  Users, 
-  MessageSquare,
-  TrendingUp,
-  FileText,
-  Package,
-  Wrench,
-  ArrowRight,
-  Shield,
-  Zap,
-  BarChart3,
-  Clock,
-  Globe,
-  Sparkles
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
+
+type BenefitCard = {
+  title: string;
+  description: string;
+};
+
+type ModuleCard = {
+  icon: React.ElementType;
+  title: string;
+  outcome: string;
+};
+
+type SegmentProfile = {
+  title: string;
+  pains: string[];
+  wins: string[];
+  icon: React.ElementType;
+};
 
 export default function Home() {
-  const features = [
+  const benefitCards: BenefitCard[] = [
     {
-      icon: DollarSign,
-      title: "Expense Management",
-      description: "Track and manage all yacht expenses with detailed categorization and approval workflows.",
-      color: "from-blue-500 to-cyan-500"
+      title: "Real-time cost & fuel control",
+      description: "Live spend, bunkers, and burn-rate dashboards keep overruns visible before they happen.",
     },
     {
-      icon: CheckSquare,
-      title: "Task Management",
-      description: "Organize crew tasks, maintenance schedules, and operational checklists efficiently.",
-      color: "from-purple-500 to-pink-500"
+      title: "Owner approvals in minutes",
+      description: "Forward every line item to the owner’s phone for fast approvals without email chains.",
+    },
+    {
+      title: "Crew & payroll visibility",
+      description: "Know who is onboard, which certificates expire, and what payroll is due this week.",
+    },
+    {
+      title: "Stock & maintenance without chaos",
+      description: "Provisioning, tenders, spares, and work orders stay in one live system.",
+    },
+    {
+      title: "Post-voyage profitability",
+      description: "Automatic profit & loss per trip and route insights for the next charter.",
+    },
+  ];
+
+  const processSteps = [
+    "Create your yacht and invite the shore team",
+    "Capture daily expenses, crew actions, and stock updates",
+    "Owners approve on mobile while captains track progress",
+    "Instant reports show cash, fuel, and voyage insights",
+  ];
+
+  const modules: ModuleCard[] = [
+    {
+      icon: DollarSign,
+      title: "Budget & Costs",
+      outcome: "Live view of spend vs. budget with approval trails.",
     },
     {
       icon: Users,
-      title: "Crew Management",
-      description: "Manage crew documents, schedules, and communications in one centralized platform.",
-      color: "from-green-500 to-emerald-500"
-    },
-    {
-      icon: MessageSquare,
-      title: "Team Communication",
-      description: "Real-time messaging and channel-based communication for seamless coordination.",
-      color: "from-orange-500 to-red-500"
+      title: "Crew & Payroll",
+      outcome: "Schedules, documents, and payroll exports without spreadsheets.",
     },
     {
       icon: Package,
-      title: "Inventory Control",
-      description: "Track supplies, alcohol stock, and shopping lists with automated alerts.",
-      color: "from-indigo-500 to-purple-500"
+      title: "Stock Control",
+      outcome: "Provisioning, fuel, and spares in one replenishment board.",
     },
     {
-      icon: Wrench,
-      title: "Maintenance Logs",
-      description: "Comprehensive maintenance tracking with schedules, history, and documentation.",
-      color: "from-teal-500 to-cyan-500"
+      icon: Route,
+      title: "Voyages & Fuel",
+      outcome: "Track routes, bunkers, and post-voyage profitability per trip.",
+    },
+    {
+      icon: ClipboardCheck,
+      title: "Work Orders",
+      outcome: "Maintenance plans with checklist accountability and photos.",
     },
     {
       icon: FileText,
-      title: "Document Management",
-      description: "Secure storage and organization of vessel documents, permits, and certifications.",
-      color: "from-amber-500 to-orange-500"
+      title: "Compliance & Documents",
+      outcome: "Permits, crew certs, and vessel documents with expiry alerts.",
     },
-    {
-      icon: BarChart3,
-      title: "Performance Analytics",
-      description: "Monitor vessel performance metrics and generate detailed monthly reports.",
-      color: "from-rose-500 to-pink-500"
-    }
   ];
 
-  const benefits = [
+  const segments: SegmentProfile[] = [
     {
-      icon: Shield,
-      title: "Enterprise Security",
-      description: "Bank-level encryption and security protocols"
+      title: "Yacht Owners",
+      icon: ShieldCheck,
+      pains: ["No real-time spend insight", "Approval delays", "Limited accountability"],
+      wins: ["Single dashboard for cost & fuel", "Approve from any device", "Transparent audit trail"],
     },
     {
-      icon: Clock,
-      title: "Real-time Sync",
-      description: "Instant updates across all devices and team members"
+      title: "Captains",
+      icon: ShipWheel,
+      pains: ["Manual reporting", "Fragmented crew coordination", "No live inventory"],
+      wins: ["Daily ops in one platform", "Crew tasks and payroll visibility", "Instant provisioning status"],
     },
     {
-      icon: Globe,
-      title: "Cloud-Based",
-      description: "Access from anywhere, anytime with cloud infrastructure"
+      title: "Charter Operators",
+      icon: Briefcase,
+      pains: ["Profitability blind spots", "Non-standard compliance", "Slow client updates"],
+      wins: ["Trip P&L and reports in seconds", "Documented compliance workflow", "Owner-ready reporting"],
     },
-    {
-      icon: Sparkles,
-      title: "Intuitive Design",
-      description: "Beautiful, modern interface that's easy to use"
-    }
   ];
+
+  const testimonials = useMemo(
+    () => [
+      { quote: "We cut approval time from two days to two hours.", name: "Charter Captain, 46m" },
+      { quote: "Owners finally see the numbers in real time.", name: "Family Office Fleet Manager" },
+      { quote: "Provisioning chaos disappeared in the first month.", name: "Chief Stewardess, Med Season" },
+    ],
+    []
+  );
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50/30 to-white relative overflow-hidden">
-      {/* Background - Subtle geometric patterns */}
-      <div className="fixed inset-0 -z-10">
-        <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/40 via-transparent to-transparent rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/40 via-transparent to-transparent rounded-full blur-3xl" />
-        <div className="absolute top-1/2 right-1/4 w-[400px] h-[400px] bg-gradient-to-br from-purple-100/30 via-transparent to-transparent rounded-full blur-3xl" />
-      </div>
-
-      {/* Header with CTAs */}
-      <header className="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200/60">
-        <div className="container mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-3 py-4">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-600 flex items-center justify-center text-white font-bold shadow-lg">
-              <Anchor className="h-5 w-5" />
+    <>
+      <Head>
+        <title>YachtOps | Yacht Operations Software for Owners & Captains</title>
+        <meta
+          name="description"
+          content="YachtOps is the yacht operations software for real-time expense tracking, crew management, stock control, voyages, and compliance."
+        />
+        <meta name="keywords" content="yacht operations software, yacht expense tracking, charter yacht management system" />
+      </Head>
+      <div className="min-h-screen bg-slate-50 text-slate-900">
+        <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="rounded-xl bg-blue-600/90 p-2 text-white shadow-lg">
+                <Anchor className="h-6 w-6" />
+              </div>
+              <div>
+                <p className="text-lg font-bold">YachtOps</p>
+                <p className="text-xs text-slate-500">Yacht Operations Platform</p>
+              </div>
+            </Link>
+            <nav className="hidden gap-6 text-sm font-semibold text-slate-600 md:flex">
+              <a href="#benefits" className="hover:text-slate-900">
+                Benefits
+              </a>
+              <a href="#modules" className="hover:text-slate-900">
+                Platform
+              </a>
+              <a href="#segments" className="hover:text-slate-900">
+                Who it’s for
+              </a>
+              <a href="#demo" className="hover:text-slate-900">
+                Demo
+              </a>
+            </nav>
+            <div className="flex gap-2">
+              <Button asChild variant="outline" className="border-slate-300 text-sm font-semibold">
+                <Link href="/auth/signin">Log in</Link>
+              </Button>
+              <Button asChild className="bg-blue-600 px-6 font-semibold text-white hover:bg-blue-700">
+                <Link href="#demo">Request a Demo</Link>
+              </Button>
             </div>
-            <span className="text-xl font-bold text-slate-900">YachtOps</span>
-          </Link>
-          <div className="flex flex-wrap justify-center sm:justify-end gap-2">
-            <Button
-              asChild
-              size="sm"
-              className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white hover:from-blue-700 hover:to-cyan-700"
-            >
-              <Link href="/demo-request">Request a Demo</Link>
-            </Button>
-            <Button asChild size="sm" variant="outline" className="border-slate-300">
-              <Link href="/contact">Contact Sales</Link>
-            </Button>
-            <Button asChild size="sm" variant="outline" className="border-slate-300">
-              <Link href="/fleet-solutions">Fleet Solutions</Link>
-            </Button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-24 pb-24 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-6xl">
-          <div className="text-center space-y-8">
-            {/* Badge */}
-            <div 
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200/50 text-sm font-semibold text-blue-700 shadow-sm backdrop-blur-sm"
-              style={{ animation: 'fadeInUp 0.6s ease-out forwards', opacity: 0 }}
-            >
-              <Zap className="h-4 w-4" />
-              <span>Professional Yacht Management Platform</span>
-            </div>
-            
-            {/* Main Heading */}
-            <div 
-              className="space-y-6"
-              style={{ animation: 'fadeInUp 0.8s ease-out 0.1s forwards', opacity: 0 }}
-            >
-              <h1 className="text-6xl sm:text-7xl md:text-8xl lg:text-9xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent">
-                YachtOps
-              </h1>
-              
-              <p className="text-2xl sm:text-3xl md:text-4xl text-slate-700 font-medium max-w-4xl mx-auto leading-tight">
-                Complete Operations Management Platform
-                <br />
-                <span className="text-xl sm:text-2xl md:text-3xl text-slate-600 font-normal">
-                  for Modern Yacht Operations
-                </span>
-              </p>
-            </div>
-
-            {/* CTA Buttons */}
-            <div 
-              className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-6"
-              style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
-            >
-              <Button 
-                asChild 
-                variant="outline" 
-                size="lg" 
-                className="px-10 py-7 text-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl border-2 border-slate-300 bg-white hover:bg-slate-50 text-slate-900"
-              >
-                <Link href="#features">
-                  Learn More
-                </Link>
-              </Button>
-              <Button 
-                asChild 
-                size="lg" 
-                className="group px-10 py-7 text-lg font-semibold shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white border-0"
-              >
-                <Link href="/auth/signin">
-                  Access Platform
-                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-            </div>
-
-            {/* Trust Indicators */}
-            <div 
-              className="flex flex-wrap items-center justify-center gap-6 pt-16"
-              style={{ animation: 'fadeIn 1s ease-out 0.4s forwards', opacity: 0 }}
-            >
-              {benefits.map((benefit, index) => {
-                const Icon = benefit.icon;
-                return (
-                  <div 
-                    key={benefit.title}
-                    className="flex items-center gap-3 px-5 py-3 rounded-xl bg-white border border-slate-200 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1"
-                    style={{ animation: `fadeIn 0.6s ease-out ${0.5 + index * 0.1}s forwards`, opacity: 0 }}
+        <main className="pb-24">
+          {/* HERO */}
+          <section className="border-b border-slate-200 bg-white py-16" id="hero">
+            <div className="mx-auto grid max-w-6xl gap-12 px-4 md:grid-cols-2 md:items-center">
+              <div className="space-y-6">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Yacht operations software</p>
+                <h1 className="text-4xl font-extrabold tracking-tight sm:text-5xl">
+                  Real-time cost and operations control for modern yachts.
+                </h1>
+                <p className="text-lg text-slate-600">
+                  YachtOps unifies expenses, crew, stock, voyages, and compliance so owners, captains, and charter operators run
+                  every day with clarity—and approve decisions instantly.
+                </p>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button className="h-12 rounded-xl bg-blue-600 px-8 text-base font-semibold hover:bg-blue-700" asChild>
+                    <Link href="#demo">Request a Demo</Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="h-12 rounded-xl border-2 border-slate-300 px-8 text-base font-semibold text-slate-900 hover:bg-slate-100"
+                    asChild
                   >
-                    <div className="p-2 rounded-lg bg-gradient-to-br from-blue-50 to-cyan-50">
-                      <Icon className="h-5 w-5 text-blue-600" />
-                    </div>
-                    <div className="text-left">
-                      <div className="text-xs font-semibold text-slate-900 uppercase tracking-wide">
-                        {benefit.title}
+                    <Link href="#process">See How It Works</Link>
+                  </Button>
+                </div>
+                <ul className="space-y-2 text-sm text-slate-600">
+                  <li>• Built for yachts 24m–80m+, single vessel or fleet</li>
+                  <li>• Owners, captains, and offices see the same live truth</li>
+                  <li>• Replace spreadsheets, WhatsApp approvals, and scattered tools</li>
+                </ul>
+              </div>
+              <div className="relative rounded-3xl border border-slate-200 bg-slate-900/95 p-5 text-white shadow-2xl">
+                <div className="mb-4 flex items-center justify-between text-xs text-slate-300">
+                  <span>Live voyage snapshot</span>
+                  <span>Demo environment</span>
+                </div>
+                <div className="space-y-5">
+                  <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
+                    <p className="text-sm uppercase tracking-widest text-slate-300">Voyage status</p>
+                    <div className="mt-2 flex flex-wrap gap-6 text-lg font-semibold">
+                      <div>
+                        €124,500 <span className="block text-xs text-slate-400">Spend to date</span>
                       </div>
-                      <div className="text-xs text-slate-600">
-                        {benefit.description}
+                      <div>
+                        74% <span className="block text-xs text-green-300">Fuel plan achieved</span>
+                      </div>
+                      <div>
+                        12 <span className="block text-xs text-slate-400">Approvals cleared</span>
                       </div>
                     </div>
                   </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="relative py-24 px-4 sm:px-6 lg:px-8 bg-white/50 backdrop-blur-sm">
-        <div className="container mx-auto max-w-7xl">
-          <div className="text-center mb-20">
-            <div 
-              className="inline-block px-4 py-1.5 rounded-full bg-blue-100 text-blue-700 text-sm font-semibold mb-6"
-              style={{ animation: 'fadeInUp 0.6s ease-out forwards', opacity: 0 }}
-            >
-              Features
-            </div>
-            <h2 
-              className="text-4xl sm:text-5xl md:text-6xl font-extrabold mb-6 bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent"
-              style={{ animation: 'fadeInUp 0.8s ease-out 0.1s forwards', opacity: 0 }}
-            >
-              Comprehensive Management Solutions
-            </h2>
-            <p 
-              className="text-xl text-slate-600 max-w-3xl mx-auto font-medium"
-              style={{ animation: 'fadeInUp 0.8s ease-out 0.2s forwards', opacity: 0 }}
-            >
-              Everything you need to manage your yacht operations efficiently and professionally
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {features.map((feature, index) => {
-              const Icon = feature.icon;
-              return (
-                <div
-                  key={feature.title}
-                  className="group relative p-8 rounded-2xl overflow-hidden bg-white border-2 border-slate-200 hover:border-blue-300 transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl shadow-lg"
-                  style={{ 
-                    animation: `fadeInUp 0.6s ease-out ${0.3 + index * 0.1}s forwards`,
-                    opacity: 0 
-                  }}
-                >
-                  {/* Gradient accent */}
-                  <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${feature.color} rounded-t-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300`} />
-                  
-                  <div className="flex flex-col gap-5">
-                    <div className={`p-4 rounded-xl bg-gradient-to-br ${feature.color} w-fit shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                      <Icon className="h-7 w-7 text-white" />
-                    </div>
-                    <div>
-                      <h3 className="text-xl font-bold mb-3 text-slate-900 group-hover:text-blue-600 transition-colors">
-                        {feature.title}
-                      </h3>
-                      <p className="text-sm text-slate-600 leading-relaxed">
-                        {feature.description}
+                  <div className="rounded-2xl border border-white/15 bg-slate-800 p-4">
+                    <p className="text-sm font-semibold text-blue-100">Owner Approvals</p>
+                    <div className="mt-2 space-y-2 text-sm">
+                      <p className="flex items-center justify-between">
+                        <span>Bunkers—Nice</span>
+                        <span className="text-green-300">Approved 08:14</span>
+                      </p>
+                      <p className="flex items-center justify-between">
+                        <span>Provisioning—Porto Cervo</span>
+                        <span className="text-amber-200">Awaiting action</span>
+                      </p>
+                      <p className="flex items-center justify-between">
+                        <span>Customs—Dubrovnik</span>
+                        <span className="text-green-300">Approved 07:02</span>
                       </p>
                     </div>
                   </div>
+                  <div className="grid grid-cols-2 gap-4 text-center text-xs text-slate-300">
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      Crew & payroll synced
+                      <p className="mt-1 text-lg font-semibold text-white">100%</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
+                      Certificates valid
+                      <p className="mt-1 text-lg font-semibold text-white">32 / 32</p>
+                    </div>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="relative py-24 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-5xl">
-          <div 
-            className="relative p-16 rounded-3xl bg-gradient-to-br from-blue-600 via-cyan-600 to-blue-700 overflow-hidden shadow-2xl"
-            style={{ animation: 'fadeIn 1s ease-out forwards', opacity: 0 }}
-          >
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-white/10 rounded-full blur-3xl" />
-            
-            <div className="relative text-center space-y-8 z-10">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-sm rounded-2xl mb-4 border border-white/30 shadow-xl">
-                <Ship className="h-10 w-10 text-white" />
               </div>
-              <h2 className="text-4xl sm:text-5xl md:text-6xl font-extrabold text-white">
-                Ready to Streamline Your Operations?
-              </h2>
-              <p className="text-xl text-blue-100 max-w-3xl mx-auto font-medium">
-                Join professional yacht management teams who trust YachtOps for their daily operations
+            </div>
+          </section>
+
+          {/* TRUST */}
+          <section className="border-b border-slate-200 bg-slate-900 py-14 text-white" id="trust">
+            <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
+              <div className="text-center">
+                <p className="text-sm uppercase tracking-[0.3em] text-blue-300">Trusted onboard</p>
+                <h2 className="mt-2 text-2xl font-semibold">
+                  Used daily by captains, yacht owners, and charter operators in Med & Caribbean seasons
+                </h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-slate-200">
+                  <p className="text-xs uppercase tracking-[0.4em] text-blue-200">Fleet Clients</p>
+                  <div className="flex items-center justify-center gap-6 py-4 text-white/80">
+                    <span className="text-lg font-semibold">Aquila 68</span>
+                    <span className="text-lg font-semibold">Roma 52</span>
+                    <span className="text-lg font-semibold">Baltic 67</span>
+                  </div>
+                  <p className="text-xs text-slate-400">Logos available upon NDA</p>
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+                  {testimonials.map((item) => (
+                    <blockquote key={item.quote} className="text-sm text-slate-200">
+                      “{item.quote}”
+                      <footer className="mt-1 text-xs text-slate-400">{item.name}</footer>
+                    </blockquote>
+                  ))}
+                </div>
+                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
+                  <p className="text-sm font-semibold">Security & Compliance</p>
+                  <div className="flex flex-wrap gap-3">
+                    {["Data encrypted in transit & rest", "Secure role-based access", "Cloud backups & audit trails"].map(
+                      (badge) => (
+                        <span key={badge} className="rounded-full border border-white/20 px-3 py-1 text-xs text-slate-200">
+                          {badge}
+                        </span>
+                      )
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {/* BENEFITS */}
+          <section className="bg-white py-20" id="benefits">
+            <div className="mx-auto max-w-6xl space-y-12 px-4">
+              <div className="text-center">
+                <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Core benefits</p>
+                <h2 className="mt-3 text-3xl font-extrabold">Results captains can show and owners can trust.</h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-2">
+                {benefitCards.map((card) => (
+                  <div key={card.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-6 shadow-sm">
+                    <h3 className="text-lg font-semibold">{card.title}</h3>
+                    <p className="mt-2 text-sm text-slate-600">{card.description}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* HOW IT WORKS */}
+          <section className="border-y border-slate-200 bg-slate-900 py-20 text-white" id="process">
+            <div className="mx-auto max-w-6xl space-y-10 px-4">
+              <div className="text-center">
+                <p className="text-xs uppercase tracking-[0.3em] text-blue-200">How it works</p>
+                <h2 className="mt-3 text-3xl font-extrabold">A simple flow that removes operational noise.</h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-4">
+                {processSteps.map((step, index) => (
+                  <div key={step} className="rounded-3xl border border-white/20 bg-white/5 p-5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full border border-white/40 text-lg font-bold">
+                      {index + 1}
+                    </div>
+                    <p className="mt-4 text-sm text-slate-200">{step}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* MODULE OVERVIEW */}
+          <section className="bg-white py-20" id="modules">
+            <div className="mx-auto max-w-6xl space-y-12 px-4">
+              <div className="text-center">
+                <p className="text-xs uppercase tracking-[0.3em] text-blue-600">System capabilities</p>
+                <h2 className="mt-3 text-3xl font-extrabold">Every operational module stays in sync.</h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                {modules.map((module) => {
+                  const Icon = module.icon;
+                  return (
+                    <div key={module.title} className="rounded-3xl border border-slate-200 bg-slate-50 p-6">
+                      <div className="mb-4 inline-flex rounded-2xl bg-blue-50 p-3 text-blue-600">
+                        <Icon className="h-5 w-5" />
+                      </div>
+                      <h3 className="text-lg font-semibold">{module.title}</h3>
+                      <p className="mt-2 text-sm text-slate-600">{module.outcome}</p>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* TARGET USERS */}
+          <section className="border-y border-slate-200 bg-slate-50 py-20" id="segments">
+            <div className="mx-auto max-w-6xl space-y-12 px-4">
+              <div className="text-center">
+                <p className="text-xs uppercase tracking-[0.3em] text-blue-600">Who is this for?</p>
+                <h2 className="mt-3 text-3xl font-extrabold">Designed for every decision-maker onboard and ashore.</h2>
+              </div>
+              <div className="grid gap-6 md:grid-cols-3">
+                {segments.map((segment) => {
+                  const Icon = segment.icon;
+                  return (
+                    <div key={segment.title} className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                      <div className="flex items-center gap-3">
+                        <Icon className="text-blue-600" />
+                        <h3 className="text-lg font-semibold">{segment.title}</h3>
+                      </div>
+                      <div className="mt-4 space-y-3 text-sm">
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pain points</p>
+                          <ul className="mt-2 space-y-1 text-slate-600">
+                            {segment.pains.map((pain) => (
+                              <li key={pain}>• {pain}</li>
+                            ))}
+                          </ul>
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Benefits with YachtOps</p>
+                          <ul className="mt-2 space-y-1 text-slate-600">
+                            {segment.wins.map((win) => (
+                              <li key={win}>• {win}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
+
+          {/* DEMO FORM */}
+          <section className="bg-white py-20" id="demo">
+            <div className="mx-auto max-w-5xl space-y-10 px-4">
+              <div className="text-center">
+                <p className="text-xs uppercase tracking-[0.3em] text-blue-600">See YachtOps live</p>
+                <h2 className="mt-3 text-3xl font-extrabold">Request a walkthrough tailored to your vessel.</h2>
+                <p className="mt-2 text-slate-600">No credit card required. A platform specialist replies within 1 business day.</p>
+              </div>
+              <form className="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-sm">
+                <div className="grid gap-6 md:grid-cols-2">
+                  <div>
+                    <label htmlFor="fullName" className="text-sm font-semibold text-slate-700">
+                      Full Name
+                    </label>
+                    <Input id="fullName" name="fullName" placeholder="Jane Carter" className="mt-2" required />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className="text-sm font-semibold text-slate-700">
+                      Email
+                    </label>
+                    <Input id="email" name="email" type="email" placeholder="captain@yacht.com" className="mt-2" required />
+                  </div>
+                  <div>
+                    <label htmlFor="yachtName" className="text-sm font-semibold text-slate-700">
+                      Yacht Name
+                    </label>
+                    <Input id="yachtName" name="yachtName" placeholder="M/Y Horizon" className="mt-2" />
+                  </div>
+                  <div>
+                    <label htmlFor="yachtLength" className="text-sm font-semibold text-slate-700">
+                      Yacht Length (m)
+                    </label>
+                    <Input id="yachtLength" name="yachtLength" placeholder="52" className="mt-2" />
+                  </div>
+                  <div>
+                    <label htmlFor="role" className="text-sm font-semibold text-slate-700">
+                      Role
+                    </label>
+                    <select
+                      id="role"
+                      name="role"
+                      className="mt-2 h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    >
+                      <option>Owner</option>
+                      <option>Captain</option>
+                      <option>Office</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-slate-600">No credit card required. Free platform walkthrough.</p>
+                  <Button className="h-12 rounded-xl bg-blue-600 px-8 text-base font-semibold text-white hover:bg-blue-700">
+                    Request Demo
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </section>
+
+          {/* PRICING TEASER */}
+          <section className="border-y border-slate-200 bg-slate-900 py-16 text-white">
+            <div className="mx-auto flex max-w-5xl flex-col items-center gap-6 px-4 text-center">
+              <p className="text-xs uppercase tracking-[0.3em] text-blue-200">pricing</p>
+              <h2 className="text-3xl font-extrabold">Flexible pricing based on yacht size & fleet needs.</h2>
+              <p className="text-slate-300">
+                Single yachts, charter programs, and multi-vessel fleets receive tailored onboard + office access.
               </p>
-              <div className="pt-4">
-                <Button 
-                  asChild 
-                  size="lg" 
-                  className="group px-10 py-7 text-lg font-semibold shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 bg-white text-blue-600 hover:bg-blue-50 border-0"
-                >
-                  <Link href="/auth/signin">
-                    Get Started Now
-                    <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
-                  </Link>
-                </Button>
-              </div>
+              <Button className="rounded-xl bg-white px-8 font-semibold text-blue-600 hover:bg-blue-50" asChild>
+                <Link href="#demo">Get Your Custom Price</Link>
+              </Button>
             </div>
-          </div>
-        </div>
-      </section>
+          </section>
+        </main>
 
-      {/* Footer */}
-      <footer className="relative border-t-2 border-slate-200 bg-white py-12 px-4 sm:px-6 lg:px-8">
-        <div className="container mx-auto max-w-6xl">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl shadow-lg">
-                <Anchor className="h-6 w-6 text-white" />
+        <footer className="bg-slate-950 py-14 text-slate-300">
+          <div className="mx-auto grid max-w-6xl gap-8 px-4 md:grid-cols-3">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl bg-blue-600 p-2 text-white">
+                  <Anchor className="h-5 w-5" />
+                </div>
+                <p className="text-lg font-bold text-white">YachtOps</p>
               </div>
-              <span className="text-xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-                YachtOps
-              </span>
+              <p className="mt-3 text-sm text-slate-400">
+                Yacht operations software for owners, captains, and charter operators who need real-time control.
+              </p>
             </div>
-            <p className="text-sm text-slate-600 text-center md:text-right font-medium">
-              © {new Date().getFullYear()} YachtOps. Professional yacht operations management.
-            </p>
+            <div className="text-sm space-y-1">
+              <p className="font-semibold text-white">Contact</p>
+              <a href="mailto:hello@yachtops.com" className="text-slate-400 hover:text-white">
+                hello@yachtops.com
+              </a>
+              <p className="text-slate-500">Malta • Fort Lauderdale • Remote</p>
+              <Link href="#demo" className="text-blue-300 hover:text-white">
+                Request Demo
+              </Link>
+            </div>
+            <div className="text-sm space-y-1">
+              <p className="font-semibold text-white">Legal</p>
+              <Link href="/privacy" className="text-slate-400 hover:text-white">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="text-slate-400 hover:text-white">
+                Terms of Service
+              </Link>
+              <p className="text-slate-500">© {new Date().getFullYear()} YachtOps</p>
+            </div>
           </div>
-        </div>
-      </footer>
-    </div>
+        </footer>
+      </div>
+    </>
   );
 }
