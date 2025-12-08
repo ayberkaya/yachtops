@@ -15,10 +15,12 @@ export default async function UserNotesPage() {
     where: {
       userId: session.user.id,
     },
-    include: {
-      checklist: {
-        orderBy: { createdAt: "asc" },
-      },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      updatedAt: true,
+      content: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -34,13 +36,9 @@ export default async function UserNotesPage() {
       <UserNotes
         initialNotes={notes.map((note) => ({
           ...note,
+          content: Array.isArray(note.content) ? (note.content as any[]) : [],
           createdAt: note.createdAt.toISOString(),
           updatedAt: note.updatedAt.toISOString(),
-          checklist: note.checklist.map((item) => ({
-            ...item,
-            createdAt: item.createdAt.toISOString(),
-            updatedAt: item.updatedAt.toISOString(),
-          })),
         }))}
       />
     </div>

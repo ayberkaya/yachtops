@@ -1,3 +1,4 @@
+import { randomUUID } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
@@ -8,6 +9,25 @@ const createSchema = z.object({
   title: z.string().min(1, "Title is required").max(120, "Title is too long"),
 });
 
+const checklistItemSchema = z.object({
+  id: z.string(),
+  text: z.string(),
+  completed: z.boolean(),
+});
+
+export const noteBlockSchema = z.discriminatedUnion("type", [
+  z.object({
+    id: z.string(),
+    type: z.literal("text"),
+    text: z.string(),
+  }),
+  z.object({
+    id: z.string(),
+    type: z.literal("checklist"),
+    items: z.array(checklistItemSchema),
+  }),
+]);
+
 export async function GET() {
   const session = await getSession();
   if (!session?.user) {
@@ -16,10 +36,12 @@ export async function GET() {
 
   const notes = await db.userNote.findMany({
     where: { userId: session.user.id },
-    include: {
-      checklist: {
-        orderBy: { createdAt: "asc" },
-      },
+    select: {
+      id: true,
+      title: true,
+      createdAt: true,
+      updatedAt: true,
+      content: true,
     },
     orderBy: { createdAt: "desc" },
   });
@@ -37,12 +59,27 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title } = createSchema.parse(body);
 
+    const defaultContent = [
+      {
+        id: randomUUID(),
+        type: "text",
+        text: "",
+      },
+    ];
+
     const note = await db.userNote.create({
       data: {
         title,
         userId: session.user.id,
+        content: defaultContent,
       },
-      include: { checklist: true },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        updatedAt: true,
+        content: true,
+      },
     });
 
     return NextResponse.json(note, { status: 201 });

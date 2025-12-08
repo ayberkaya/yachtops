@@ -3,9 +3,11 @@ import { z } from "zod";
 
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
+import { noteBlockSchema } from "../route";
 
 const updateSchema = z.object({
   title: z.string().min(1).max(120).optional(),
+  content: z.array(noteBlockSchema).optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -27,10 +29,20 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Note not found" }, { status: 404 });
     }
 
+    const { title, content } = data;
     const updated = await db.userNote.update({
       where: { id },
-      data,
-      include: { checklist: { orderBy: { createdAt: "asc" } } },
+      data: {
+        ...(title !== undefined ? { title } : {}),
+        ...(content !== undefined ? { content } : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        createdAt: true,
+        updatedAt: true,
+        content: true,
+      },
     });
 
     return NextResponse.json(updated);
