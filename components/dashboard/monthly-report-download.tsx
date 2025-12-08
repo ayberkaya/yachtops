@@ -49,7 +49,7 @@ export function MonthlyReportDownload() {
     SECTION_OPTIONS.map((option) => option.id)
   );
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isPanelOpen, setIsPanelOpen] = useState(false);
 
   const isRangeValid = useMemo(() => {
     if (!dateRange.start || !dateRange.end) {
