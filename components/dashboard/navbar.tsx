@@ -83,7 +83,7 @@ export function Navbar() {
           className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setMobileMenuOpen(false)}
         >
-          Tasks
+          Operations
         </Link>
       )}
       {hasPermission(user, "users.view", user.permissions) && (
@@ -100,7 +100,7 @@ export function Navbar() {
         className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => setMobileMenuOpen(false)}
       >
-        Messages
+        Communication
       </Link>
       <Link
         href="/dashboard/performance"
@@ -114,7 +114,7 @@ export function Navbar() {
         className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         onClick={() => setMobileMenuOpen(false)}
       >
-        Shopping
+        Procurement
       </Link>
     </>
   );

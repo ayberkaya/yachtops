@@ -72,7 +72,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           },
           {
             href: "#income-expenses",
-            label: "Income & Expenses",
+            label: "Finance",
             icon: DollarSign,
             permission: "expenses.view",
             children: [
@@ -128,25 +128,25 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           },
           {
             href: "/dashboard/tasks",
-            label: "Tasks",
+            label: "Operations",
             icon: CheckSquare,
             permission: "tasks.view",
           },
           {
             href: "/dashboard/shopping",
-            label: "Shopping",
+            label: "Procurement",
             icon: ShoppingCart,
             permission: "shopping.view",
           },
           {
             href: "/dashboard/messages",
-            label: "Messages",
+            label: "Communication",
             icon: MessageSquare,
             permission: "messages.view",
           },
           {
             href: "#trips",
-            label: "Trips",
+            label: "Voyages",
             icon: Anchor,
             permission: "trips.view",
             children: [
@@ -334,7 +334,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               const Icon = item.icon;
               const showChildren = mobileExpandedItems.has(item.href) && item.children;
               const incomeBadge =
-                item.label === "Income & Expenses"
+                item.label === "Finance"
                   ? pendingExpensesCount + reimbursableCount
                   : 0;
 
@@ -603,7 +603,7 @@ export function Sidebar() {
           },
           {
             href: "#income-expenses",
-            label: "Income & Expenses",
+            label: "Finance",
             icon: DollarSign,
             permission: "expenses.view",
             children: [
@@ -659,25 +659,25 @@ export function Sidebar() {
           },
           {
             href: "/dashboard/tasks",
-            label: "Tasks",
+            label: "Operations",
             icon: CheckSquare,
             permission: "tasks.view",
           },
           {
             href: "/dashboard/shopping",
-            label: "Shopping",
+            label: "Procurement",
             icon: ShoppingCart,
             permission: "shopping.view",
           },
           {
             href: "/dashboard/messages",
-            label: "Messages",
+            label: "Communication",
             icon: MessageSquare,
             permission: "messages.view",
           },
           {
             href: "#trips",
-            label: "Trips",
+            label: "Voyages",
             icon: Anchor,
             permission: "trips.view",
             children: [
@@ -904,7 +904,7 @@ export function Sidebar() {
           const isActive = leafActive || childActive || parentOpen;
           const showChildren = parentOpen && item.children;
           const incomeBadge =
-            item.label === "Income & Expenses"
+            item.label === "Finance"
               ? pendingExpensesCount + reimbursableCount
               : 0;
 
@@ -945,7 +945,7 @@ export function Sidebar() {
                     <span className="text-sm font-medium flex-1">
                       {item.label}
                     </span>
-                    {incomeBadge > 0 && item.label === "Income & Expenses" && (
+                    {incomeBadge > 0 && item.label === "Finance" && (
                       <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                         {incomeBadge > 99 ? "99+" : incomeBadge}
                       </span>
@@ -970,7 +970,7 @@ export function Sidebar() {
                     {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
                   </span>
                 )}
-                {!containerExpanded && incomeBadge > 0 && item.label === "Income & Expenses" && (
+                {!containerExpanded && incomeBadge > 0 && item.label === "Finance" && (
                   <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
                     {incomeBadge > 99 ? "99+" : incomeBadge}
                   </span>
