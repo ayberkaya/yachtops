@@ -26,6 +26,14 @@ type SegmentProfile = {
 };
 
 export default function Home() {
+  const testimonialKeyframes = `
+    @keyframes testimonialFade {
+      0% { opacity: 0; transform: translateY(8px); }
+      10% { opacity: 1; transform: translateY(0); }
+      90% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-6px); }
+    }
+  `;
   const benefitCards: BenefitCard[] = [
     {
       title: "Real-time cost & fuel control",
@@ -137,6 +145,12 @@ export default function Home() {
         />
         <meta name="keywords" content="yacht operations software, yacht expense tracking, charter yacht management system" />
       </Head>
+      <style jsx global>{`
+        ${testimonialKeyframes}
+        .animate-testimonial {
+          animation: testimonialFade 5s ease-in-out;
+        }
+      `}</style>
       <div className="min-h-screen bg-slate-50 text-slate-900">
         <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4">
@@ -233,7 +247,10 @@ export default function Home() {
               </div>
               <div className="w-full max-w-3xl">
                 <div className="rounded-3xl border border-white/10 bg-white/5 px-10 py-12 text-center">
-                  <blockquote className="text-xl font-semibold text-white transition-all duration-500">
+                  <blockquote
+                    key={activeTestimonial}
+                    className="text-xl font-semibold text-white animate-testimonial"
+                  >
                     “{testimonials[activeTestimonial].quote}”
                     <footer className="mt-4 text-sm uppercase tracking-wide text-slate-300">
                       {testimonials[activeTestimonial].name}
