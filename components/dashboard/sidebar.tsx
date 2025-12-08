@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import {
   Menu,
   LogOut,
@@ -1138,27 +1139,31 @@ export function Sidebar() {
           </button>
         </div>
 
-        {/* Logo Section */}
-        <div className="border-b border-border bg-secondary p-6 h-[88px] flex items-center">
+        {/* Logo & Notification Section */}
+        <div className="border-b border-border bg-secondary p-6">
           {isExpanded ? (
-            <div className="flex items-center space-x-3 w-full">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <Anchor className="text-primary-foreground w-6 h-6" />
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                  <Anchor className="text-primary-foreground w-6 h-6" />
+                </div>
+                <div>
+                  <span className="font-bold text-lg tracking-wider block text-foreground">
+                    YACHT
+                  </span>
+                  <span className="text-xs text-muted-foreground uppercase tracking-widest">
+                    Operations
+                  </span>
+                </div>
               </div>
-              <div>
-                <span className="font-bold text-lg tracking-wider block text-foreground">
-                  YACHT
-                </span>
-                <span className="text-xs text-muted-foreground uppercase tracking-widest">
-                  Operations
-                </span>
-              </div>
+              <DashboardNotificationsPanel />
             </div>
           ) : (
-            <div className="flex items-center justify-center w-full">
+            <div className="flex flex-col items-center gap-3">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
                 <Anchor className="text-primary-foreground w-6 h-6" />
               </div>
+              <DashboardNotificationsPanel />
             </div>
           )}
         </div>

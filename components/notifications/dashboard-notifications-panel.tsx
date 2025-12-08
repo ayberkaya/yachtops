@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Bell, Check, CheckCheck, RefreshCcw } from "lucide-react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +16,81 @@ import { NOTIFICATION_BADGE_META } from "./notification-types";
 export function DashboardNotificationsPanel() {
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, refresh } =
     useNotifications();
+  const [pendingExpensesCount, setPendingExpensesCount] = useState<number | null>(null);
+  const [reimbursableCount, setReimbursableCount] = useState<number | null>(null);
+  const [isFinanceLoading, setIsFinanceLoading] = useState(true);
+
+  const fetchFinanceAlerts = useCallback(async () => {
+    setIsFinanceLoading(true);
+    try {
+      const [pendingRes, reimbRes] = await Promise.all([
+        fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" }),
+        fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" }),
+      ]);
+
+      if (pendingRes.ok) {
+        const pendingData = await pendingRes.json();
+        setPendingExpensesCount(Array.isArray(pendingData) ? pendingData.length : 0);
+      } else {
+        setPendingExpensesCount(0);
+      }
+
+      if (reimbRes.ok) {
+        const reimbData = await reimbRes.json();
+        setReimbursableCount(Array.isArray(reimbData) ? reimbData.length : 0);
+      } else {
+        setReimbursableCount(0);
+      }
+    } catch (error) {
+      console.error("Error fetching finance alerts:", error);
+      setPendingExpensesCount(0);
+      setReimbursableCount(0);
+    } finally {
+      setIsFinanceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchFinanceAlerts();
+    const interval = setInterval(fetchFinanceAlerts, 30000);
+    return () => clearInterval(interval);
+  }, [fetchFinanceAlerts]);
+
+  const financeAlerts = useMemo(() => {
+    const alerts: {
+      id: string;
+      label: string;
+      content: string;
+      href: string;
+      badge: string;
+    }[] = [];
+
+    if (pendingExpensesCount && pendingExpensesCount > 0) {
+      alerts.push({
+        id: "finance-pending",
+        label: "Finance",
+        content: `There ${
+          pendingExpensesCount === 1 ? "is" : "are"
+        } ${pendingExpensesCount} expense${pendingExpensesCount === 1 ? "" : "s"} awaiting approval.`,
+        href: "/dashboard/expenses/pending",
+        badge: `${pendingExpensesCount} approval${pendingExpensesCount === 1 ? "" : "s"}`,
+      });
+    }
+
+    if (reimbursableCount && reimbursableCount > 0) {
+      alerts.push({
+        id: "finance-reimbursable",
+        label: "Finance",
+        content: `You have ${reimbursableCount} reimbursable expense${
+          reimbursableCount === 1 ? "" : "s"
+        } pending payout.`,
+        href: "/dashboard/expenses/reimbursable",
+        badge: `${reimbursableCount} reimbursement${reimbursableCount === 1 ? "" : "s"}`,
+      });
+    }
+
+    return alerts;
+  }, [pendingExpensesCount, reimbursableCount]);
 
   const getBadge = (type: keyof typeof NOTIFICATION_BADGE_META) => {
     const meta = NOTIFICATION_BADGE_META[type] ?? { label: type, variant: "default" as const };
@@ -32,6 +108,9 @@ export function DashboardNotificationsPanel() {
       </span>
     );
   };
+
+  const showLoading = isLoading && isFinanceLoading && notifications.length === 0 && financeAlerts.length === 0;
+  const hasAlerts = notifications.length > 0 || financeAlerts.length > 0;
 
   return (
     <Popover>
@@ -84,23 +163,38 @@ export function DashboardNotificationsPanel() {
                 </Button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground leading-relaxed">
-              Stay on top of task updates, mentions, and procurement alerts without leaving the
-              dashboard.
-            </p>
           </CardHeader>
           <CardContent>
-            {isLoading ? (
+            {showLoading ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Loading notifications…
               </div>
-            ) : notifications.length === 0 ? (
+            ) : !hasAlerts ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 You're all caught up! No notifications yet.
               </div>
             ) : (
               <ScrollArea className="max-h-64 pr-3">
                 <div className="space-y-3">
+                  {financeAlerts.map((alert) => (
+                    <div
+                      key={alert.id}
+                      className="rounded-xl border px-3 py-2.5 text-sm transition-colors bg-amber-50/60 border-amber-200 shadow-sm"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
+                          {alert.badge}
+                        </span>
+                        <Link
+                          href={alert.href}
+                          className="text-xs text-blue-600 hover:underline"
+                        >
+                          Review →
+                        </Link>
+                      </div>
+                      <p className="mt-1 text-sm text-foreground">{alert.content}</p>
+                    </div>
+                  ))}
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}

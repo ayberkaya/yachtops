@@ -8,7 +8,6 @@ import { format, differenceInDays, isPast, isToday } from "date-fns";
 import { AlertTriangle, Package, FileText, Wrench, Clock, Bell } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import { QuickActions } from "./quick-actions";
-import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 
 export async function CrewDashboard() {
   const session = await getSession();
@@ -148,10 +147,7 @@ export async function CrewDashboard() {
             Welcome back, {session.user.name || session.user.email}
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <DashboardNotificationsPanel />
-          <QuickActions />
-        </div>
+        <QuickActions />
       </div>
 
       {/* Role-Assigned Tasks Alert - Dikkat çekici bildirim */}

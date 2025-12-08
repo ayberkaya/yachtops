@@ -10,7 +10,6 @@ import { DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Pa
 import { hasPermission } from "@/lib/permissions";
 import { MonthlyReportDownload } from "./monthly-report-download";
 import { QuickActions } from "./quick-actions";
-import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 
 export async function OwnerCaptainDashboard() {
   const session = await getSession();
@@ -177,10 +176,7 @@ export async function OwnerCaptainDashboard() {
             Welcome back, {session.user.name || session.user.email}
           </p>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-end">
-          <DashboardNotificationsPanel />
-          <QuickActions />
-        </div>
+        <QuickActions />
       </div>
 
       {/* Role-Assigned Tasks Alert - Dikkat çekici bildirim */}
