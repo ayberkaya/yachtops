@@ -67,7 +67,9 @@ export async function GET(request: NextRequest) {
       .map((section) => section.trim())
       .filter((section): section is SectionKey => section.length > 0 && isSectionKey(section));
     const selectedSections: SectionKey[] =
-      normalizedSections.length > 0 ? Array.from(new Set(normalizedSections)) : SECTION_KEYS;
+      normalizedSections.length > 0
+        ? Array.from(new Set(normalizedSections))
+        : [...SECTION_KEYS];
     const sectionSet = new Set<SectionKey>(selectedSections);
 
     const yacht = await db.yacht.findUnique({
