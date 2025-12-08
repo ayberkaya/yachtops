@@ -519,9 +519,14 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                 className="mt-0.5"
               />
               <div className="flex-1 space-y-1">
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{item.title}</span>
-                  {item.completed && <UserCheck className="h-4 w-4 text-emerald-600" />}
+                  {item.completed && (
+                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                      <UserCheck className="h-4 w-4 text-emerald-600" />
+                      <span>{who || "Completed by"}</span>
+                    </span>
+                  )}
                   {isCheckboxSaving && (
                     <Badge variant="secondary" className="text-[10px]">
                       Kaydediliyor...
@@ -529,9 +534,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                        {item.completed
-                          ? `${who || "Completed by"} · ${completedAtLabel || "just now"}`
-                          : "Pending"}
+                  {item.completed ? completedAtLabel || "just now" : "Pending"}
                 </p>
                 {disableInteractions ? (
                   <p className="text-xs text-muted-foreground pt-2">
