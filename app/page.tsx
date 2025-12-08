@@ -2,7 +2,7 @@
 
 import Head from "next/head";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useEffect, useState } from "react";
 import { Anchor, Shield, ShieldCheck, DollarSign, Users, ClipboardCheck, Package, FileText, Route, Briefcase, ShipWheel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -118,6 +118,14 @@ export default function Home() {
     ],
     []
   );
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [testimonials.length]);
 
   return (
     <>
@@ -180,7 +188,7 @@ export default function Home() {
                   every day with clarity—and approve decisions instantly.
                 </p>
                 <div className="flex flex-col gap-3 sm:flex-row">
-                  <Button className="h-12 rounded-xl bg-blue-600 px-8 text-base font-semibold hover:bg-blue-700" asChild>
+                  <Button className="h-12 rounded-xl bg-blue-600 px-8 text-base font-semibold text-white hover:bg-blue-700" asChild>
                     <Link href="#demo">Request a Demo</Link>
                   </Button>
                   <Button
@@ -192,101 +200,45 @@ export default function Home() {
                   </Button>
                 </div>
                 <ul className="space-y-2 text-sm text-slate-600">
-                  <li>• Built for yachts 24m–80m+, single vessel or fleet</li>
+                  <li>• Built for single vessels or multi-yacht fleets</li>
                   <li>• Owners, captains, and offices see the same live truth</li>
                   <li>• Replace spreadsheets, WhatsApp approvals, and scattered tools</li>
                 </ul>
               </div>
-              <div className="relative rounded-3xl border border-slate-200 bg-slate-900/95 p-5 text-white shadow-2xl">
-                <div className="mb-4 flex items-center justify-between text-xs text-slate-300">
-                  <span>Live voyage snapshot</span>
-                  <span>Demo environment</span>
+              <div className="rounded-3xl border border-slate-200 bg-slate-50 p-8 shadow-lg space-y-6">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">Client snapshot</p>
+                  <h3 className="mt-2 text-2xl font-bold text-slate-900">Control every voyage in one screen</h3>
+                  <p className="mt-2 text-sm text-slate-600">
+                    Live spend, fuel, approvals, and crew tasks update the second the captain logs them.
+                  </p>
                 </div>
-                <div className="space-y-5">
-                  <div className="rounded-2xl border border-white/15 bg-white/5 p-4">
-                    <p className="text-sm uppercase tracking-widest text-slate-300">Voyage status</p>
-                    <div className="mt-2 flex flex-wrap gap-6 text-lg font-semibold">
-                      <div>
-                        €124,500 <span className="block text-xs text-slate-400">Spend to date</span>
-                      </div>
-                      <div>
-                        74% <span className="block text-xs text-green-300">Fuel plan achieved</span>
-                      </div>
-                      <div>
-                        12 <span className="block text-xs text-slate-400">Approvals cleared</span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="rounded-2xl border border-white/15 bg-slate-800 p-4">
-                    <p className="text-sm font-semibold text-blue-100">Owner Approvals</p>
-                    <div className="mt-2 space-y-2 text-sm">
-                      <p className="flex items-center justify-between">
-                        <span>Bunkers—Nice</span>
-                        <span className="text-green-300">Approved 08:14</span>
-                      </p>
-                      <p className="flex items-center justify-between">
-                        <span>Provisioning—Porto Cervo</span>
-                        <span className="text-amber-200">Awaiting action</span>
-                      </p>
-                      <p className="flex items-center justify-between">
-                        <span>Customs—Dubrovnik</span>
-                        <span className="text-green-300">Approved 07:02</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4 text-center text-xs text-slate-300">
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      Crew & payroll synced
-                      <p className="mt-1 text-lg font-semibold text-white">100%</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/5 p-3">
-                      Certificates valid
-                      <p className="mt-1 text-lg font-semibold text-white">32 / 32</p>
-                    </div>
-                  </div>
-                </div>
+                <ul className="space-y-3 text-sm text-slate-700">
+                  <li>• Owners see fuel, spend, and voyage profitability before approving another euro.</li>
+                  <li>• Captains log expenses, crew activity, and stock in less than a minute per entry.</li>
+                  <li>• Offices run compliance, work orders, and documents without chasing email threads.</li>
+                </ul>
               </div>
             </div>
           </section>
 
           {/* TRUST */}
           <section className="border-b border-slate-200 bg-slate-900 py-14 text-white" id="trust">
-            <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4">
-              <div className="text-center">
+            <div className="mx-auto flex max-w-6xl flex-col items-center gap-8 px-4">
+              <div className="max-w-3xl text-center">
                 <p className="text-sm uppercase tracking-[0.3em] text-blue-300">Trusted onboard</p>
                 <h2 className="mt-2 text-2xl font-semibold">
                   Used daily by captains, yacht owners, and charter operators in Med & Caribbean seasons
                 </h2>
               </div>
-              <div className="grid gap-6 md:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-center text-slate-200">
-                  <p className="text-xs uppercase tracking-[0.4em] text-blue-200">Fleet Clients</p>
-                  <div className="flex items-center justify-center gap-6 py-4 text-white/80">
-                    <span className="text-lg font-semibold">Aquila 68</span>
-                    <span className="text-lg font-semibold">Roma 52</span>
-                    <span className="text-lg font-semibold">Baltic 67</span>
-                  </div>
-                  <p className="text-xs text-slate-400">Logos available upon NDA</p>
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
-                  {testimonials.map((item) => (
-                    <blockquote key={item.quote} className="text-sm text-slate-200">
-                      “{item.quote}”
-                      <footer className="mt-1 text-xs text-slate-400">{item.name}</footer>
-                    </blockquote>
-                  ))}
-                </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
-                  <p className="text-sm font-semibold">Security & Compliance</p>
-                  <div className="flex flex-wrap gap-3">
-                    {["Data encrypted in transit & rest", "Secure role-based access", "Cloud backups & audit trails"].map(
-                      (badge) => (
-                        <span key={badge} className="rounded-full border border-white/20 px-3 py-1 text-xs text-slate-200">
-                          {badge}
-                        </span>
-                      )
-                    )}
-                  </div>
+              <div className="w-full max-w-3xl">
+                <div className="rounded-3xl border border-white/10 bg-white/5 px-10 py-12 text-center">
+                  <blockquote className="text-xl font-semibold text-white transition-all duration-500">
+                    “{testimonials[activeTestimonial].quote}”
+                    <footer className="mt-4 text-sm uppercase tracking-wide text-slate-300">
+                      {testimonials[activeTestimonial].name}
+                    </footer>
+                  </blockquote>
                 </div>
               </div>
             </div>
