@@ -3,11 +3,11 @@ import { z } from "zod";
 
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { noteBlockSchema } from "../route";
+import { normalizeContent } from "../route";
 
 const updateSchema = z.object({
   title: z.string().min(1).max(120).optional(),
-  content: z.array(noteBlockSchema).optional(),
+  content: z.any().optional(),
 });
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -30,11 +30,12 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     const { title, content } = data;
+    const normalizedContent = content !== undefined ? normalizeContent(content) : undefined;
     const updated = await db.userNote.update({
       where: { id },
       data: {
         ...(title !== undefined ? { title } : {}),
-        ...(content !== undefined ? { content } : {}),
+        ...(normalizedContent !== undefined ? { content: normalizedContent } : {}),
       },
       select: {
         id: true,

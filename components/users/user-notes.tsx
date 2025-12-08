@@ -1,39 +1,41 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CheckSquare, Loader2, Plus, TextCursorInput, Trash2 } from "lucide-react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { CheckSquare, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-type TextBlock = {
+type TextLine = {
   id: string;
   type: "text";
   text: string;
 };
 
-type ChecklistItem = {
+type CheckLine = {
   id: string;
+  type: "checkItem";
   text: string;
   completed: boolean;
 };
 
-type ChecklistBlock = {
-  id: string;
-  type: "checklist";
-  items: ChecklistItem[];
-};
-
-type NoteBlock = TextBlock | ChecklistBlock;
+type NoteLine = TextLine | CheckLine;
 
 type UserNote = {
   id: string;
   title: string;
   createdAt: string;
   updatedAt: string;
-  content: NoteBlock[];
+  content: NoteLine[];
 };
 
 type UserNotesProps = {
@@ -42,46 +44,102 @@ type UserNotesProps = {
 
 const makeId = () => crypto.randomUUID();
 
-const ensureBlocks = (content?: NoteBlock[]): NoteBlock[] => {
-  if (!content || content.length === 0) {
-    return [
-      {
-        id: makeId(),
-        type: "text",
-        text: "",
-      },
-    ];
+const makeTextLine = (text = ""): TextLine => ({
+  id: makeId(),
+  type: "text",
+  text,
+});
+
+const makeCheckLine = (text = "", completed = false): CheckLine => ({
+  id: makeId(),
+  type: "checkItem",
+  text,
+  completed,
+});
+
+const normalizeContent = (content?: unknown): NoteLine[] => {
+  if (!Array.isArray(content)) {
+    return [makeTextLine()];
   }
-  return content.map((block) => {
-    if (block.type === "text") {
-      return { ...block, text: block.text ?? "" };
+
+  const lines: NoteLine[] = [];
+
+  content.forEach((entry) => {
+    if (!entry || typeof entry !== "object") return;
+    const record = entry as Record<string, unknown>;
+
+    switch (record.type) {
+      case "text":
+        lines.push({
+          id: typeof record.id === "string" ? record.id : makeId(),
+          type: "text",
+          text: typeof record.text === "string" ? record.text : "",
+        });
+        break;
+      case "checkItem":
+        lines.push({
+          id: typeof record.id === "string" ? record.id : makeId(),
+          type: "checkItem",
+          text: typeof record.text === "string" ? record.text : "",
+          completed: Boolean(record.completed),
+        });
+        break;
+      case "checklist":
+        if (Array.isArray(record.items)) {
+          (record.items as unknown[]).forEach((item) => {
+            if (!item || typeof item !== "object") return;
+            const checklistItem = item as Record<string, unknown>;
+            lines.push({
+              id: typeof checklistItem.id === "string" ? checklistItem.id : makeId(),
+              type: "checkItem",
+              text: typeof checklistItem.text === "string" ? checklistItem.text : "",
+              completed: Boolean(checklistItem.completed),
+            });
+          });
+        }
+        break;
+      default:
+        break;
     }
-    return {
-      ...block,
-      items:
-        block.items && block.items.length > 0
-          ? block.items.map((item) => ({
-              ...item,
-              text: item.text ?? "",
-              completed: Boolean(item.completed),
-            }))
-          : [{ id: makeId(), text: "", completed: false }],
-    };
   });
+
+  if (!lines.length) {
+    return [makeTextLine()];
+  }
+
+  if (lines[0].type !== "text") {
+    return [makeTextLine(), ...lines];
+  }
+
+  return lines;
 };
 
 export function UserNotes({ initialNotes }: UserNotesProps) {
   const [notes, setNotes] = useState<UserNote[]>(
-    initialNotes.map((note) => ({ ...note, content: ensureBlocks(note.content) }))
+    initialNotes.map((note) => ({
+      ...note,
+      content: normalizeContent(note.content),
+    }))
   );
   const [creatingNote, setCreatingNote] = useState(false);
-  const [activeNoteId, setActiveNoteId] = useState<string | null>(initialNotes[0]?.id ?? null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(notes[0]?.id ?? null);
   const [savingNoteId, setSavingNoteId] = useState<string | null>(null);
+  const [focusedLineId, setFocusedLineId] = useState<string | null>(null);
+  const [pendingFocusLineId, setPendingFocusLineId] = useState<string | null>(null);
+
   const saveTimers = useRef<Record<string, NodeJS.Timeout>>({});
   const titleTimers = useRef<Record<string, NodeJS.Timeout>>({});
+  const lineRefs = useRef<
+    Record<string, HTMLInputElement | HTMLTextAreaElement | null>
+  >({});
+  const notesRef = useRef(notes);
 
   useEffect(() => {
-    if (!activeNoteId && notes.length > 0) {
+    notesRef.current = notes;
+  }, [notes]);
+
+  useEffect(() => {
+    if (!activeNoteId && notes.length) {
       setActiveNoteId(notes[0].id);
     }
   }, [notes, activeNoteId]);
@@ -91,29 +149,88 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
     [activeNoteId, notes]
   );
 
-  const scheduleSave = useCallback(
-    (noteId: string) => {
-      if (saveTimers.current[noteId]) {
-        clearTimeout(saveTimers.current[noteId]);
+  useEffect(() => {
+    if (!activeNote) return;
+    const firstLineId = activeNote.content[0]?.id ?? null;
+    setFocusedLineId(firstLineId);
+    setPendingFocusLineId(firstLineId);
+  }, [activeNote?.id]);
+
+  useEffect(() => {
+    if (!pendingFocusLineId) return;
+    const element = lineRefs.current[pendingFocusLineId];
+    if (element) {
+      element.focus();
+      if ("value" in element) {
+        const value = element.value;
+        element.setSelectionRange(value.length, value.length);
       }
-      saveTimers.current[noteId] = setTimeout(async () => {
-        const note = notes.find((n) => n.id === noteId);
-        if (!note) return;
-        setSavingNoteId(noteId);
-        try {
-          await fetch(`/api/user-notes/${noteId}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ content: note.content }),
-          });
-        } catch (error) {
-          console.error(error);
-        } finally {
-          setSavingNoteId(null);
-        }
-      }, 500);
+    }
+    setPendingFocusLineId(null);
+  }, [pendingFocusLineId]);
+
+  useEffect(() => {
+    return () => {
+      Object.values(saveTimers.current).forEach(clearTimeout);
+      Object.values(titleTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  const scheduleContentSave = useCallback((noteId: string) => {
+    if (saveTimers.current[noteId]) {
+      clearTimeout(saveTimers.current[noteId]);
+    }
+
+    saveTimers.current[noteId] = setTimeout(async () => {
+      const note = notesRef.current.find((n) => n.id === noteId);
+      if (!note) return;
+      setSavingNoteId(noteId);
+      try {
+        await fetch(`/api/user-notes/${noteId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ content: note.content }),
+        });
+      } catch (error) {
+        console.error("Error saving note content:", error);
+      } finally {
+        setSavingNoteId((current) => (current === noteId ? null : current));
+      }
+    }, 500);
+  }, []);
+
+  const scheduleTitleSave = useCallback((noteId: string, title: string) => {
+    if (titleTimers.current[noteId]) {
+      clearTimeout(titleTimers.current[noteId]);
+    }
+
+    titleTimers.current[noteId] = setTimeout(async () => {
+      try {
+        await fetch(`/api/user-notes/${noteId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title }),
+        });
+      } catch (error) {
+        console.error("Error saving note title:", error);
+      }
+    }, 400);
+  }, []);
+
+  const mutateNote = useCallback(
+    (
+      noteId: string,
+      mutator: (note: UserNote) => UserNote,
+      options?: { skipSave?: boolean }
+    ) => {
+      setNotes((prev) =>
+        prev.map((note) => (note.id === noteId ? mutator(note) : note))
+      );
+      if (!options?.skipSave) {
+        scheduleContentSave(noteId);
+      }
     },
-    [notes]
+    [scheduleContentSave]
   );
 
   const handleCreateNote = async () => {
@@ -127,165 +244,112 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
       if (!response.ok) {
         throw new Error("Failed to create note");
       }
-      const note: UserNote = await response.json();
-      setNotes((prev) => [{ ...note, content: ensureBlocks(note.content) }, ...prev]);
-      setActiveNoteId(note.id);
+      const note = await response.json();
+      const normalized: UserNote = {
+        ...note,
+        content: normalizeContent(note.content),
+      };
+      setNotes((prev) => [normalized, ...prev]);
+      setActiveNoteId(normalized.id);
+      setFocusedLineId(normalized.content[0]?.id ?? null);
     } catch (error) {
-      console.error(error);
+      console.error("Error creating note:", error);
     } finally {
       setCreatingNote(false);
     }
   };
 
-  const handleTitleChange = (noteId: string, nextTitle: string) => {
-    const normalized = nextTitle;
-    setNotes((prev) =>
-      prev.map((note) => (note.id === noteId ? { ...note, title: normalized } : note))
-    );
-    if (titleTimers.current[noteId]) {
-      clearTimeout(titleTimers.current[noteId]);
-    }
-    titleTimers.current[noteId] = setTimeout(async () => {
-      try {
-        await fetch(`/api/user-notes/${noteId}`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title: normalized.trim() ? normalized : "Untitled note" }),
-        });
-      } catch (error) {
-        console.error(error);
-      }
-    }, 400);
-  };
-
   const handleDeleteNote = async (noteId: string) => {
-    if (!confirm("Delete this note?")) return;
+    const snapshot = notesRef.current;
+    setNotes((prev) => prev.filter((note) => note.id !== noteId));
+    if (activeNoteId === noteId) {
+      const next = snapshot.find((note) => note.id !== noteId);
+      setActiveNoteId(next?.id ?? null);
+    }
+
     try {
       const response = await fetch(`/api/user-notes/${noteId}`, { method: "DELETE" });
-      if (!response.ok) throw new Error("Failed to delete note");
-      setNotes((prev) => prev.filter((note) => note.id !== noteId));
-      if (activeNoteId === noteId) {
-        const remaining = notes.filter((note) => note.id !== noteId);
-        setActiveNoteId(remaining[0]?.id ?? null);
+      if (!response.ok) {
+        throw new Error("Failed to delete note");
       }
     } catch (error) {
-      console.error(error);
+      console.error("Error deleting note:", error);
+      setNotes(snapshot);
     }
   };
 
-  const updateActiveNote = (updater: (note: UserNote) => UserNote) => {
-    if (!activeNote) return;
+  const handleTitleChange = (noteId: string, title: string) => {
     setNotes((prev) =>
-      prev.map((note) => (note.id === activeNote.id ? updater(note) : note))
+      prev.map((note) => (note.id === noteId ? { ...note, title } : note))
     );
-    scheduleSave(activeNote.id);
+    scheduleTitleSave(noteId, title);
   };
 
-  const addBlock = (type: "text" | "checklist") => {
-    updateActiveNote((note) => ({
+  const updateLine = (lineId: string, updater: (line: NoteLine) => NoteLine) => {
+    if (!activeNote) return;
+    mutateNote(activeNote.id, (note) => ({
       ...note,
-      content: [
-        ...note.content,
-        type === "text"
-          ? { id: makeId(), type: "text", text: "" }
-          : {
-              id: makeId(),
-              type: "checklist",
-              items: [{ id: makeId(), text: "", completed: false }],
-            },
-      ],
+      content: note.content.map((line) => (line.id === lineId ? updater(line) : line)),
     }));
   };
 
-  const updateTextBlock = (blockId: string, text: string) => {
-    updateActiveNote((note) => ({
-      ...note,
-      content: note.content.map((block) =>
-        block.id === blockId && block.type === "text" ? { ...block, text } : block
-      ),
-    }));
-  };
-
-  const addChecklistItem = (blockId: string, afterId?: string) => {
-    updateActiveNote((note) => ({
-      ...note,
-      content: note.content.map((block) => {
-        if (block.id !== blockId || block.type !== "checklist") return block;
-        const newItem = { id: makeId(), text: "", completed: false };
-        if (!afterId) return { ...block, items: [...block.items, newItem] };
-        const idx = block.items.findIndex((item) => item.id === afterId);
-        if (idx === -1) return { ...block, items: [...block.items, newItem] };
-        const items = [...block.items];
-        items.splice(idx + 1, 0, newItem);
-        return { ...block, items };
-      }),
-    }));
-  };
-
-  const updateChecklistItem = (blockId: string, itemId: string, text: string) => {
-    updateActiveNote((note) => ({
-      ...note,
-      content: note.content.map((block) => {
-        if (block.id !== blockId || block.type !== "checklist") return block;
-        return {
-          ...block,
-          items: block.items.map((item) =>
-            item.id === itemId ? { ...item, text } : item
-          ),
-        };
-      }),
-    }));
-  };
-
-  const toggleChecklistItem = (blockId: string, itemId: string, completed: boolean) => {
-    updateActiveNote((note) => ({
-      ...note,
-      content: note.content.map((block) => {
-        if (block.id !== blockId || block.type !== "checklist") return block;
-        return {
-          ...block,
-          items: block.items.map((item) =>
-            item.id === itemId ? { ...item, completed } : item
-          ),
-        };
-      }),
-    }));
-  };
-
-  const removeChecklistItem = (blockId: string, itemId: string) => {
-    updateActiveNote((note) => ({
-      ...note,
-      content: note.content.map((block) => {
-        if (block.id !== blockId || block.type !== "checklist") return block;
-        const nextItems = block.items.filter((item) => item.id !== itemId);
-        return {
-          ...block,
-          items: nextItems.length ? nextItems : [{ id: makeId(), text: "", completed: false }],
-        };
-      }),
-    }));
-  };
-
-  const removeBlock = (blockId: string) => {
-    updateActiveNote((note) => {
-      const filtered = note.content.filter((block) => block.id !== blockId);
-      return { ...note, content: filtered.length ? filtered : ensureBlocks([]) };
+  const insertLineAfter = (lineId: string, newLine: NoteLine) => {
+    if (!activeNote) return;
+    mutateNote(activeNote.id, (note) => {
+      const idx = note.content.findIndex((line) => line.id === lineId);
+      if (idx === -1) {
+        return { ...note, content: [...note.content, newLine] };
+      }
+      const next = [...note.content];
+      next.splice(idx + 1, 0, newLine);
+      return { ...note, content: next };
     });
+    setPendingFocusLineId(newLine.id);
   };
 
-  const handleChecklistKeyDown = (
-    blockId: string,
-    item: ChecklistItem,
-    event: React.KeyboardEvent<HTMLInputElement>
+  const removeLine = (lineId: string) => {
+    if (!activeNote) return;
+    mutateNote(activeNote.id, (note) => ({
+      ...note,
+      content: note.content.filter((line) => line.id !== lineId),
+    }));
+  };
+
+  const handleToggleLine = (lineId: string, completed: boolean) => {
+    updateLine(lineId, (line) =>
+      line.type === "checkItem" ? { ...line, completed } : line
+    );
+  };
+
+  const handleCheckLineKeyDown = (
+    line: CheckLine,
+    event: KeyboardEvent<HTMLInputElement>
   ) => {
     if (event.key === "Enter") {
       event.preventDefault();
-      addChecklistItem(blockId, item.id);
+      const newLine = makeCheckLine();
+      insertLineAfter(line.id, newLine);
+      return;
     }
-    if (event.key === "Backspace" && !item.text) {
+
+    if (event.key === "Backspace" && !line.text) {
       event.preventDefault();
-      removeChecklistItem(blockId, item.id);
+      removeLine(line.id);
+      setPendingFocusLineId(focusedLineId === line.id ? activeNote?.content[0]?.id ?? null : focusedLineId);
     }
+  };
+
+  const handleAddChecklistInline = () => {
+    if (!activeNote) return;
+    const focusedCheckLine = activeNote.content.find(
+      (line) => line.type === "checkItem" && line.id === focusedLineId
+    ) as CheckLine | undefined;
+
+    const anchorId = focusedCheckLine?.id ?? activeNote.content[0]?.id ?? null;
+    if (!anchorId) return;
+
+    const newLine = makeCheckLine();
+    insertLineAfter(anchorId, newLine);
   };
 
   if (notes.length === 0) {
@@ -296,22 +360,12 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
           Capture quick voyage prep, crew reminders, or provisioning details. Only you
           can see them.
         </p>
-        <Button
-          className="mt-6"
-          onClick={handleCreateNote}
-          disabled={creatingNote}
-        >
+        <Button className="mt-6" onClick={handleCreateNote} disabled={creatingNote}>
           {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create your first note"}
         </Button>
       </div>
     );
   }
-
-  const firstTextBlock = activeNote?.content.find((block) => block.type === "text") as
-    | TextBlock
-    | undefined;
-  const remainingBlocks =
-    activeNote?.content.filter((block) => block.id !== firstTextBlock?.id) ?? [];
 
   return (
     <div className="rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-100 overflow-hidden">
@@ -359,193 +413,111 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
               Select a note to start writing.
             </div>
           ) : (
-            <>
-              <div className="relative rounded-3xl border border-slate-200 bg-slate-900 text-white p-6 shadow-inner space-y-4">
-                <div className="flex items-center gap-4">
-                  <div className="flex-1 space-y-2">
-                    <Input
-                      value={activeNote.title}
-                      onChange={(e) => handleTitleChange(activeNote.id, e.target.value)}
-                      placeholder="Add a title"
-                      className="rounded-2xl border border-white/20 bg-white/5 text-2xl font-semibold text-white placeholder:text-white/60 focus:border-white focus:bg-white/10"
-                    />
-                    {firstTextBlock && (
-                      <textarea
-                        value={firstTextBlock.text}
-                        onChange={(e) => updateTextBlock(firstTextBlock.id, e.target.value)}
-                        placeholder="Start writing..."
-                        className="min-h-[220px] w-full rounded-2xl border border-white/15 bg-white/5 p-4 text-base text-white placeholder:text-white/40 outline-none focus:border-white focus:bg-white/10"
-                      />
-                    )}
-                  </div>
-                </div>
-                {savingNoteId === activeNote.id && (
-                  <div className="flex items-center gap-2 text-xs text-blue-100">
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Saving…
-                  </div>
-                )}
-                <div className="flex flex-wrap gap-2 justify-between">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="gap-2"
-                    onClick={() => addBlock("checklist")}
-                  >
-                    <CheckSquare className="h-4 w-4" /> Add Checklist
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="text-white hover:text-red-200"
-                    onClick={() => handleDeleteNote(activeNote.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            <div className="rounded-3xl border border-slate-200 bg-slate-900 text-white p-6 shadow-inner space-y-4">
+              <div className="flex items-start justify-between gap-4">
+                <Input
+                  value={activeNote.title}
+                  onChange={(e) => handleTitleChange(activeNote.id, e.target.value)}
+                  placeholder="Add a title"
+                  className="rounded-2xl border border-white/20 bg-white/5 text-2xl font-semibold text-white placeholder:text-white/60 focus:border-white focus:bg-white/10"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="text-white hover:text-red-200"
+                  onClick={() => handleDeleteNote(activeNote.id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
               </div>
 
-              <div className="flex-1 space-y-4">
-                {remainingBlocks.map((block) =>
-                  block.type === "text" ? (
-                    <TextEditorBlock
-                      key={block.id}
-                      block={block}
-                      onChange={(text) => updateTextBlock(block.id, text)}
-                      onRemove={() => removeBlock(block.id)}
-                    />
-                  ) : (
-                    <ChecklistEditorBlock
-                      key={block.id}
-                      block={block}
-                      onToggle={(itemId, completed) => toggleChecklistItem(block.id, itemId, completed)}
-                      onChange={(itemId, text) => updateChecklistItem(block.id, itemId, text)}
-                      onAddItem={(afterId) => addChecklistItem(block.id, afterId)}
-                      onRemoveItem={(itemId) => removeChecklistItem(block.id, itemId)}
-                      onRemoveBlock={() => removeBlock(block.id)}
-                      onKeyDown={(itemId, event) => {
-                        const targetItem = block.items.find((item) => item.id === itemId);
-                        if (!targetItem) return;
-                        handleChecklistKeyDown(block.id, targetItem, event);
+              {(() => {
+                const textLine = activeNote.content.find(
+                  (line): line is TextLine => line.type === "text"
+                );
+                const checkLines = activeNote.content.filter(
+                  (line): line is CheckLine => line.type === "checkItem"
+                );
+
+                return (
+                  <>
+                    <textarea
+                      ref={(el) => {
+                        if (textLine) {
+                          lineRefs.current[textLine.id] = el;
+                        }
                       }}
+                      value={textLine?.text ?? ""}
+                      onChange={(event) =>
+                        textLine && updateLine(textLine.id, (line) =>
+                          line.type === "text" ? { ...line, text: event.target.value } : line
+                        )
+                      }
+                      onFocus={() => textLine && setFocusedLineId(textLine.id)}
+                      placeholder="Start writing..."
+                      className="min-h-[220px] w-full rounded-2xl border border-white/15 bg-white/5 p-4 text-base text-white placeholder:text-white/40 outline-none focus:border-white focus:bg-white/10"
                     />
-                  )
-                )}
+
+                    <div className="space-y-2">
+                      {checkLines.map((line) => (
+                        <div
+                          key={line.id}
+                          className="flex items-center gap-3 rounded-2xl border border-transparent px-3 py-2 hover:bg-white/5"
+                        >
+                          <Checkbox
+                            checked={line.completed}
+                            onCheckedChange={(checked) => handleToggleLine(line.id, Boolean(checked))}
+                            className="h-5 w-5 rounded-lg border-white/30 data-[state=checked]:bg-white data-[state=checked]:text-slate-900"
+                          />
+                          <Input
+                            ref={(el) => {
+                              lineRefs.current[line.id] = el;
+                            }}
+                            value={line.text}
+                            onChange={(event) =>
+                              updateLine(line.id, (current) =>
+                                current.type === "checkItem"
+                                  ? { ...current, text: event.target.value }
+                                  : current
+                              )
+                            }
+                            onKeyDown={(event) => handleCheckLineKeyDown(line, event)}
+                            onFocus={() => setFocusedLineId(line.id)}
+                            placeholder=""
+                            className={cn(
+                              "flex-1 border-none bg-transparent text-base text-white placeholder:text-white/50 focus-visible:ring-0",
+                              line.completed && "line-through text-white/50"
+                            )}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                );
+              })()}
+
+              {savingNoteId === activeNote.id && (
+                <div className="flex items-center gap-2 text-xs text-blue-100">
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                  Saving…
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-2 justify-between">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  className="gap-2"
+                  onClick={handleAddChecklistInline}
+                >
+                  <CheckSquare className="h-4 w-4" /> Add Checklist
+                </Button>
               </div>
-            </>
+            </div>
           )}
         </section>
       </div>
     </div>
   );
 }
-
-type TextBlockProps = {
-  block: TextBlock;
-  onChange: (text: string) => void;
-  onRemove: () => void;
-};
-
-function TextEditorBlock({ block, onChange, onRemove }: TextBlockProps) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Text</p>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="text-slate-400 hover:text-red-500"
-          onClick={onRemove}
-        >
-          <Trash2 className="h-4 w-4" />
-        </Button>
-      </div>
-      <textarea
-        value={block.text}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder="Write something..."
-        className="mt-3 w-full resize-none rounded-xl border border-transparent bg-white/80 p-3 text-sm text-slate-800 outline-none focus:border-slate-300 focus:bg-white"
-        rows={4}
-      />
-    </div>
-  );
-}
-
-type ChecklistBlockProps = {
-  block: ChecklistBlock;
-  onToggle: (itemId: string, completed: boolean) => void;
-  onChange: (itemId: string, text: string) => void;
-  onAddItem: (afterId?: string) => void;
-  onRemoveItem: (itemId: string) => void;
-  onRemoveBlock: () => void;
-  onKeyDown: (itemId: string, event: React.KeyboardEvent<HTMLInputElement>) => void;
-};
-
-function ChecklistEditorBlock({
-  block,
-  onToggle,
-  onChange,
-  onAddItem,
-  onRemoveItem,
-  onRemoveBlock,
-  onKeyDown,
-}: ChecklistBlockProps) {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="mb-3 flex items-center justify-between">
-        <p className="text-xs uppercase tracking-[0.3em] text-slate-400">Checklist</p>
-        <div className="flex gap-2">
-          <Button variant="ghost" size="sm" className="text-xs text-slate-500" onClick={() => onAddItem()}>
-            Add item
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-slate-400 hover:text-red-500"
-            onClick={onRemoveBlock}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-      <div className="space-y-2">
-        {block.items.map((item) => (
-          <div
-            key={item.id}
-            className={cn(
-              "flex items-center rounded-xl border px-3 py-2",
-              item.completed
-                ? "border-slate-200 bg-slate-50 text-slate-400"
-                : "border-transparent bg-slate-50/80 text-slate-800"
-            )}
-          >
-            <Checkbox
-              checked={item.completed}
-              onCheckedChange={(checked) => onToggle(item.id, Boolean(checked))}
-              className="mr-3 h-5 w-5 rounded-lg"
-            />
-            <input
-              value={item.text}
-              onChange={(e) => onChange(item.id, e.target.value)}
-              onKeyDown={(event) => onKeyDown(item.id, event)}
-              placeholder="Checklist item"
-              className={cn(
-                "flex-1 bg-transparent text-sm outline-none",
-                item.completed && "line-through"
-              )}
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-slate-400 hover:text-red-500"
-              onClick={() => onRemoveItem(item.id)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 
