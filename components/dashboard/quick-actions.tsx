@@ -99,13 +99,13 @@ export function QuickActions() {
       {/* Dropdown Menu */}
       <div
         className={cn(
-          "absolute top-full right-0 pt-1 w-48 z-20 transition-all duration-300 ease-out",
+          "absolute left-0 top-full pt-2 w-48 z-20 transition-all duration-300 ease-out",
           isHovered
             ? "opacity-100 translate-y-0 pointer-events-auto visible"
             : "opacity-0 -translate-y-2 pointer-events-none invisible"
         )}
       >
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-xl border border-slate-200 overflow-hidden">
           <div className="py-1">
           {actions.map((action, index) => {
             const Icon = action.icon;
@@ -114,7 +114,7 @@ export function QuickActions() {
                 key={action.href}
                 onClick={action.onClick}
                 className={cn(
-                  "w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-slate-100 dark:hover:bg-slate-700 transition-all duration-200 hover:translate-x-1",
+                  "w-full flex items-center gap-3 px-4 py-3 text-left text-slate-900 hover:bg-accent hover:text-accent-foreground transition-all duration-200 hover:translate-x-1",
                   isHovered && "animate-in fade-in slide-in-from-top-2"
                 )}
                 style={{
@@ -122,7 +122,7 @@ export function QuickActions() {
                 }}
               >
                 <Icon className={cn("h-5 w-5 flex-shrink-0", action.color)} />
-                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                <span className="text-sm font-medium">
                   {action.label}
                 </span>
               </button>
