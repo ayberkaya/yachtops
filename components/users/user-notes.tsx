@@ -1,14 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  CalendarIcon,
-  CheckSquare,
-  Loader2,
-  Plus,
-  TextCursorInput,
-  Trash2,
-} from "lucide-react";
+import { CheckSquare, Loader2, Plus, TextCursorInput, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -314,6 +307,12 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
     );
   }
 
+  const firstTextBlock = activeNote?.content.find((block) => block.type === "text") as
+    | TextBlock
+    | undefined;
+  const remainingBlocks =
+    activeNote?.content.filter((block) => block.id !== firstTextBlock?.id) ?? [];
+
   return (
     <div className="rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-100 overflow-hidden">
       <div className="grid min-h-[520px] md:grid-cols-[280px_1fr]">
@@ -339,16 +338,15 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
                 key={note.id}
                 onClick={() => setActiveNoteId(note.id)}
                 className={cn(
-                  "w-full rounded-2xl px-4 py-3 text-left transition-all",
-                  note.id === activeNote?.id ? "bg-white shadow-sm shadow-slate-200" : "hover:bg-white/70"
+                  "w-full rounded-2xl px-4 py-3 text-left transition-all border",
+                  note.id === activeNote?.id
+                    ? "bg-white shadow-xl shadow-blue-200 border-blue-200 ring-2 ring-blue-400/50"
+                    : "border-transparent hover:bg-white/70"
                 )}
               >
                 <p className="text-sm font-semibold text-slate-900 truncate">{note.title}</p>
                 <p className="text-xs text-slate-500">
-                  {new Date(note.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
-                </p>
-                <p className="text-xs text-slate-400 mt-1">
-                  {note.content.filter((block) => block.type === "checklist").length} checklist blocks
+                  {new Date(note.updatedAt).toLocaleDateString("en-GB")}
                 </p>
               </button>
             ))}
@@ -362,48 +360,32 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
             </div>
           ) : (
             <>
-              <div className="rounded-3xl border border-slate-200 bg-slate-900 text-white p-6 shadow-inner">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.3em] text-blue-200">Private note</p>
+              <div className="relative rounded-3xl border border-slate-200 bg-slate-900 text-white p-6 shadow-inner space-y-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 space-y-2">
                     <Input
                       value={activeNote.title}
                       onChange={(e) => handleTitleChange(activeNote.id, e.target.value)}
                       placeholder="Add a title"
-                      className="mt-1 w-full rounded-2xl border border-white/30 bg-white/10 text-xl font-semibold text-white placeholder:text-white/60 focus:border-white focus:bg-white/20"
+                      className="rounded-2xl border border-white/20 bg-white/5 text-2xl font-semibold text-white placeholder:text-white/60 focus:border-white focus:bg-white/10"
                     />
+                    {firstTextBlock && (
+                      <textarea
+                        value={firstTextBlock.text}
+                        onChange={(e) => updateTextBlock(firstTextBlock.id, e.target.value)}
+                        placeholder="Start writing..."
+                        className="min-h-[220px] w-full rounded-2xl border border-white/15 bg-white/5 p-4 text-base text-white placeholder:text-white/40 outline-none focus:border-white focus:bg-white/10"
+                      />
+                    )}
                   </div>
-                  <Button
-                    variant="ghost"
-                    className="text-white hover:text-red-200"
-                    onClick={() => handleDeleteNote(activeNote.id)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </div>
-                <div className="mt-2 flex items-center gap-2 text-xs text-blue-100">
-                  <CalendarIcon className="h-4 w-4" />
-                  Last updated{" "}
-                  {new Date(activeNote.updatedAt).toLocaleDateString(undefined, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                  {savingNoteId === activeNote.id && (
-                    <span className="flex items-center gap-1 text-blue-200">
-                      <Loader2 className="h-3 w-3 animate-spin" /> Saving...
-                    </span>
-                  )}
-                </div>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="gap-2"
-                    onClick={() => addBlock("text")}
-                  >
-                    <TextCursorInput className="h-4 w-4" /> Add Text
-                  </Button>
+                {savingNoteId === activeNote.id && (
+                  <div className="flex items-center gap-2 text-xs text-blue-100">
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Saving…
+                  </div>
+                )}
+                <div className="flex flex-wrap gap-2 justify-between">
                   <Button
                     type="button"
                     variant="secondary"
@@ -412,11 +394,18 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
                   >
                     <CheckSquare className="h-4 w-4" /> Add Checklist
                   </Button>
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:text-red-200"
+                    onClick={() => handleDeleteNote(activeNote.id)}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
 
               <div className="flex-1 space-y-4">
-                {activeNote.content.map((block) =>
+                {remainingBlocks.map((block) =>
                   block.type === "text" ? (
                     <TextEditorBlock
                       key={block.id}
