@@ -17,6 +17,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { DialogFooter } from "@/components/ui/dialog";
 import { ShoppingListStatus } from "@prisma/client";
+import { useNotifications } from "@/components/notifications/notifications-provider";
 
 const listSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -40,6 +41,7 @@ interface ShoppingListFormProps {
 export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { refresh } = useNotifications();
 
   const sanitizedDefaults: ListFormData = list
     ? {
@@ -85,6 +87,7 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
 
       const savedList = await response.json();
       onSuccess(savedList);
+      refresh({ silent: true }).catch((err) => console.error("Failed to refresh notifications:", err));
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
@@ -111,6 +114,7 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
       }
 
       onDelete();
+      refresh({ silent: true }).catch((err) => console.error("Failed to refresh notifications:", err));
     } catch (err) {
       setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
