@@ -30,9 +30,9 @@ export default async function MarinaPermissionsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Marina / Port Permissions</h1>
+        <h1 className="text-3xl font-bold">Port & Authority Permits</h1>
         <p className="text-muted-foreground">
-          Store and manage documents related to marina and port permissions.
+          Store and manage all port entry letters, harbor permits, and authority clearances.
         </p>
       </div>
 

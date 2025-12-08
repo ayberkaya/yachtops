@@ -30,9 +30,9 @@ export default async function VesselDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Vessel Documents</h1>
+        <h1 className="text-3xl font-bold">Vessel Certificates</h1>
         <p className="text-muted-foreground">
-          Store and manage documents related to vessel documentation.
+          Centralize registry certificates, class surveys, and technical attestations.
         </p>
       </div>
 

@@ -50,17 +50,17 @@ export default async function ReceiptsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Documents</h1>
+        <h1 className="text-3xl font-bold">Financial Documents</h1>
         <p className="text-muted-foreground">
-          Approved expense receipts and invoices
+          Approved expense receipts, invoices, and supporting files
         </p>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Receipts & Invoices</CardTitle>
+          <CardTitle>Financial Documents</CardTitle>
           <CardDescription>
-            All receipt photos from approved expenses, with date and category.
+            All receipt and invoice scans tied to approved expenses, organized by category.
           </CardDescription>
         </CardHeader>
         <CardContent>

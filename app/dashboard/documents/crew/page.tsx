@@ -53,9 +53,9 @@ export default async function CrewDocumentsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Crew Documents</h1>
+        <h1 className="text-3xl font-bold">Crew Certifications</h1>
         <p className="text-muted-foreground">
-          Store and manage documents related to crew documentation.
+          Store licenses, medicals, and training records for every crew member.
         </p>
       </div>
 

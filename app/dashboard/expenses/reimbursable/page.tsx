@@ -52,9 +52,9 @@ export default async function ReimbursableExpensesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Reimbursable Expenses</h1>
+        <h1 className="text-3xl font-bold">Reimbursements</h1>
         <p className="text-muted-foreground">
-          Manage reimbursement status for reimbursable expenses
+          Track and update payout status for reimbursable spend
         </p>
       </div>
       <ReimbursableExpensesList 

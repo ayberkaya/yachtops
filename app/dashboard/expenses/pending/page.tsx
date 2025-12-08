@@ -43,8 +43,8 @@ export default async function PendingExpensesPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Pending Expenses</h1>
-        <p className="text-muted-foreground">Review and approve submitted expenses</p>
+        <h1 className="text-3xl font-bold">Approval Queue</h1>
+        <p className="text-muted-foreground">Review, approve, or reject submitted expenses</p>
       </div>
       <PendingExpensesList 
         expenses={pendingExpenses.map(exp => ({

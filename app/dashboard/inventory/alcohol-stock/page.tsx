@@ -30,9 +30,9 @@ export default async function AlcoholStockPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Alcohol Stock</h1>
+        <h1 className="text-3xl font-bold">Beverage Stock</h1>
         <p className="text-muted-foreground">
-          Manage vessel alcohol inventory and stock levels
+          Manage every wine, spirit, and beverage level across the vessel
         </p>
       </div>
       <AlcoholStockView 

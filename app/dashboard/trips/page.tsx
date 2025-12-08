@@ -63,8 +63,8 @@ export default async function TripsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Trips</h1>
-          <p className="text-muted-foreground">Manage yacht trips and charters</p>
+          <h1 className="text-3xl font-bold">Active Voyages</h1>
+          <p className="text-muted-foreground">Monitor every ongoing or upcoming voyage</p>
         </div>
       </div>
       <TripList 

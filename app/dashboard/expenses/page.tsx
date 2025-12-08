@@ -69,8 +69,8 @@ export default async function ExpensesPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Expenses</h1>
-          <p className="text-muted-foreground">View and manage all expenses</p>
+          <h1 className="text-3xl font-bold">All Expenses</h1>
+          <p className="text-muted-foreground">Full ledger of every recorded expense</p>
         </div>
       </div>
       <ExpenseList

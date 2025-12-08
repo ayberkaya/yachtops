@@ -25,6 +25,8 @@ import {
   FileCheck,
   Settings,
   ListChecks,
+  Route,
+  ClipboardCheck,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth";
@@ -78,50 +80,50 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             children: [
               {
                 href: "/dashboard/expenses",
-                label: "Expenses",
+                label: "All Expenses",
                 permission: "expenses.view",
               },
               {
                 href: "/dashboard/expenses/pending",
-                label: "Pending Approval",
+                label: "Approval Queue",
                 permission: "expenses.approve",
               },
               {
                 href: "/dashboard/expenses/reimbursable",
-                label: "Reimbursable",
+                label: "Reimbursements",
                 permission: "expenses.view",
               },
               {
                 href: "/dashboard/cash",
-                label: "Cash",
+                label: "Cash Ledger",
                 permission: "expenses.view",
               },
             ],
           },
           {
             href: "#documents",
-            label: "Documents",
+            label: "Compliance",
             icon: FileText,
             permission: "documents.view",
             children: [
               {
                 href: "/dashboard/documents/receipts",
-                label: "Receipts & Invoices",
+                label: "Financial Documents",
                 permission: "documents.receipts.view",
               },
               {
                 href: "/dashboard/documents/marina-permissions",
-                label: "Marina / Port Permissions",
+                label: "Port & Authority Permits",
                 permission: "documents.marina.view",
               },
               {
                 href: "/dashboard/documents/vessel",
-                label: "Vessel Documents",
+                label: "Vessel Certificates",
                 permission: "documents.vessel.view",
               },
               {
                 href: "/dashboard/documents/crew",
-                label: "Crew Documents",
+                label: "Crew Certifications",
                 permission: "documents.crew.view",
               },
             ],
@@ -152,15 +154,27 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             children: [
               {
                 href: "/dashboard/trips",
-                label: "Voyages",
+                label: "Active Voyages",
                 permission: "trips.view",
                 icon: Anchor,
               },
               {
                 href: "/dashboard/trips/voyage-planning",
-                label: "Voyage plan & checklists",
+                label: "Voyage Planning",
                 permission: "trips.view",
                 icon: ListChecks,
+              },
+              {
+                href: "/dashboard/trips/route-fuel",
+                label: "Route & Fuel Estimation",
+                permission: "trips.view",
+                icon: Route,
+              },
+              {
+                href: "/dashboard/trips/post-voyage-report",
+                label: "Post-Voyage Report",
+                permission: "trips.view",
+                icon: ClipboardCheck,
               },
             ],
           },
@@ -172,8 +186,23 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             children: [
               {
                 href: "/dashboard/inventory/alcohol-stock",
-                label: "Alcohol Stock",
+                label: "Beverage Stock",
                 permission: "inventory.alcohol.view",
+              },
+              {
+                href: "/dashboard/inventory/food-provisions",
+                label: "Food & Provisions",
+                permission: "inventory.view",
+              },
+              {
+                href: "/dashboard/inventory/cleaning-supplies",
+                label: "Cleaning Supplies",
+                permission: "inventory.view",
+              },
+              {
+                href: "/dashboard/inventory/spare-parts",
+                label: "Spare Parts",
+                permission: "inventory.view",
               },
             ],
           },
@@ -609,50 +638,50 @@ export function Sidebar() {
             children: [
               {
                 href: "/dashboard/expenses",
-                label: "Expenses",
+                label: "All Expenses",
                 permission: "expenses.view",
               },
               {
                 href: "/dashboard/expenses/pending",
-                label: "Pending Approval",
+                label: "Approval Queue",
                 permission: "expenses.approve",
               },
               {
                 href: "/dashboard/expenses/reimbursable",
-                label: "Reimbursable",
+                label: "Reimbursements",
                 permission: "expenses.view",
               },
               {
                 href: "/dashboard/cash",
-                label: "Cash",
+                label: "Cash Ledger",
                 permission: "expenses.view",
               },
             ],
           },
           {
             href: "#documents",
-            label: "Documents",
+            label: "Compliance",
             icon: FileText,
             permission: "documents.view",
             children: [
               {
                 href: "/dashboard/documents/receipts",
-                label: "Receipts & Invoices",
+                label: "Financial Documents",
                 permission: "documents.receipts.view",
               },
               {
                 href: "/dashboard/documents/marina-permissions",
-                label: "Marina / Port Permissions",
+                label: "Port & Authority Permits",
                 permission: "documents.marina.view",
               },
               {
                 href: "/dashboard/documents/vessel",
-                label: "Vessel Documents",
+                label: "Vessel Certificates",
                 permission: "documents.vessel.view",
               },
               {
                 href: "/dashboard/documents/crew",
-                label: "Crew Documents",
+                label: "Crew Certifications",
                 permission: "documents.crew.view",
               },
             ],
@@ -683,15 +712,27 @@ export function Sidebar() {
             children: [
               {
                 href: "/dashboard/trips",
-                label: "Voyages",
+                label: "Active Voyages",
                 permission: "trips.view",
                 icon: Anchor,
               },
               {
                 href: "/dashboard/trips/voyage-planning",
-                label: "Voyage plan & checklists",
+                label: "Voyage Planning",
                 permission: "trips.view",
                 icon: ListChecks,
+              },
+              {
+                href: "/dashboard/trips/route-fuel",
+                label: "Route & Fuel Estimation",
+                permission: "trips.view",
+                icon: Route,
+              },
+              {
+                href: "/dashboard/trips/post-voyage-report",
+                label: "Post-Voyage Report",
+                permission: "trips.view",
+                icon: ClipboardCheck,
               },
             ],
           },
@@ -703,8 +744,23 @@ export function Sidebar() {
             children: [
               {
                 href: "/dashboard/inventory/alcohol-stock",
-                label: "Alcohol Stock",
+                label: "Beverage Stock",
                 permission: "inventory.alcohol.view",
+              },
+              {
+                href: "/dashboard/inventory/food-provisions",
+                label: "Food & Provisions",
+                permission: "inventory.view",
+              },
+              {
+                href: "/dashboard/inventory/cleaning-supplies",
+                label: "Cleaning Supplies",
+                permission: "inventory.view",
+              },
+              {
+                href: "/dashboard/inventory/spare-parts",
+                label: "Spare Parts",
+                permission: "inventory.view",
               },
             ],
           },
@@ -897,7 +953,7 @@ export function Sidebar() {
           const leafActive =
             item.href !== "#" &&
             (pathname === item.href ||
-              (item.label === "Documents" && pathname.startsWith("/dashboard/documents/")) ||
+                (item.label === "Compliance" && pathname.startsWith("/dashboard/documents/")) ||
               (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
           const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
           const parentOpen = expandedSet.has(item.href);

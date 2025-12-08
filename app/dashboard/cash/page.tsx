@@ -18,9 +18,9 @@ export default async function CashPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Cash</h1>
+        <h1 className="text-3xl font-bold">Cash Ledger</h1>
         <p className="text-muted-foreground">
-          Cash balance and transaction management
+          Monitor onboard cash balances and transactions
         </p>
       </div>
       <CashView />
