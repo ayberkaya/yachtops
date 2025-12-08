@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { ExpenseStatus, TripStatus, TaskStatus, ShoppingListStatus } from "@prisma/client";
+import { ExpenseStatus, ShoppingListStatus, TaskStatus, TripStatus } from "@prisma/client";
 import { jsPDF } from "jspdf";
-import { format } from "date-fns";
+import { endOfDay, format, isValid, parseISO, startOfDay } from "date-fns";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+
+const SECTION_KEYS = ["summary", "financial", "trips", "tasks", "shopping"] as const;
+type SectionKey = (typeof SECTION_KEYS)[number];
+
+const isSectionKey = (value: string): value is SectionKey =>
+  SECTION_KEYS.includes(value as SectionKey);
 
 export async function GET(request: NextRequest) {
   try {
@@ -23,18 +29,51 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const year = parseInt(searchParams.get("year") || new Date().getFullYear().toString());
-    const month = parseInt(searchParams.get("month") || (new Date().getMonth() + 1).toString());
+    const now = new Date();
+    const startParam = searchParams.get("start");
+    const endParam = searchParams.get("end");
 
-    const startDate = new Date(year, month - 1, 1);
-    const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+    let rawStartDate = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (startParam) {
+      const parsed = parseISO(startParam);
+      if (!isValid(parsed)) {
+        return NextResponse.json({ error: "Invalid start date" }, { status: 400 });
+      }
+      rawStartDate = parsed;
+    }
 
-    // Get yacht info
+    let rawEndDate = now;
+    if (endParam) {
+      const parsed = parseISO(endParam);
+      if (!isValid(parsed)) {
+        return NextResponse.json({ error: "Invalid end date" }, { status: 400 });
+      }
+      rawEndDate = parsed;
+    }
+
+    const startDate = startOfDay(rawStartDate);
+    const endDate = endOfDay(rawEndDate);
+
+    if (startDate > endDate) {
+      return NextResponse.json(
+        { error: "Start date must be before or equal to end date" },
+        { status: 400 }
+      );
+    }
+
+    const sectionsFromQuery = searchParams.getAll("sections");
+    const normalizedSections = sectionsFromQuery
+      .flatMap((entry) => entry.split(","))
+      .map((section) => section.trim())
+      .filter((section): section is SectionKey => section.length > 0 && isSectionKey(section));
+    const selectedSections: SectionKey[] =
+      normalizedSections.length > 0 ? Array.from(new Set(normalizedSections)) : SECTION_KEYS;
+    const sectionSet = new Set<SectionKey>(selectedSections);
+
     const yacht = await db.yacht.findUnique({
       where: { id: tenantId || undefined },
     });
 
-    // Get approved expenses for the month
     const expenses = await db.expense.findMany({
       where: {
         yachtId: tenantId || undefined,
@@ -52,7 +91,6 @@ export async function GET(request: NextRequest) {
       orderBy: { date: "desc" },
     });
 
-    // Get trips for the month
     const trips = await db.trip.findMany({
       where: {
         yachtId: tenantId || undefined,
@@ -77,7 +115,6 @@ export async function GET(request: NextRequest) {
       orderBy: { startDate: "asc" },
     });
 
-    // Get completed tasks for the month
     const completedTasks = await db.task.findMany({
       where: {
         yachtId: tenantId || undefined,
@@ -95,7 +132,6 @@ export async function GET(request: NextRequest) {
       orderBy: { completedAt: "desc" },
     });
 
-    // Get completed shopping lists
     const completedShoppingLists = await db.shoppingList.findMany({
       where: {
         yachtId: tenantId || undefined,
@@ -112,8 +148,6 @@ export async function GET(request: NextRequest) {
       orderBy: { updatedAt: "desc" },
     });
 
-
-    // Calculate expense totals by category
     const expensesByCategory: Record<string, number> = {};
     const expensesByCurrency: Record<string, number> = {};
     const primaryCurrency = "EUR";
@@ -129,15 +163,18 @@ export async function GET(request: NextRequest) {
 
     const totalPrimaryCurrency = expensesByCurrency[primaryCurrency] || 0;
 
-    // Create PDF
     const doc = new jsPDF();
     let yPos = 20;
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
     const contentWidth = pageWidth - 2 * margin;
 
-    // Helper function to add text with auto page break
-    const addText = (text: string, fontSize: number = 10, isBold: boolean = false, color: number[] = [0, 0, 0]) => {
+    const addText = (
+      text: string,
+      fontSize: number = 10,
+      isBold: boolean = false,
+      color: number[] = [0, 0, 0]
+    ) => {
       if (yPos > 280) {
         doc.addPage();
         yPos = 20;
@@ -150,7 +187,6 @@ export async function GET(request: NextRequest) {
       yPos += lines.length * (fontSize * 0.4) + 5;
     };
 
-    // Helper function to add section header
     const addSectionHeader = (text: string) => {
       if (yPos > 270) {
         doc.addPage();
@@ -163,90 +199,150 @@ export async function GET(request: NextRequest) {
       yPos += 10;
     };
 
-    // Header with subtle logo
-    // Small logo/icon in top left
+    const periodLabel = `${format(startDate, "MMM d, yyyy")} - ${format(endDate, "MMM d, yyyy")}`;
+
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
-    doc.setTextColor(20, 184, 166); // teal-500
+    doc.setTextColor(20, 184, 166);
     doc.text("⚓ YachtOps", margin, 15);
-    doc.setTextColor(0, 0, 0); // Reset to black
-    
-    // Main title
+    doc.setTextColor(0, 0, 0);
+
     doc.setFontSize(20);
     doc.setFont("helvetica", "bold");
-    doc.text("Monthly Operations Report", pageWidth / 2, yPos, { align: "center" });
+    doc.text("Operations Report", pageWidth / 2, yPos, { align: "center" });
     yPos += 10;
     doc.setFontSize(14);
     doc.text(yacht?.name || "Yacht Operations", pageWidth / 2, yPos, { align: "center" });
     yPos += 8;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
-    doc.text(`Period: ${format(startDate, "MMMM yyyy")}`, pageWidth / 2, yPos, { align: "center" });
+    doc.text(`Period: ${periodLabel}`, pageWidth / 2, yPos, { align: "center" });
     yPos += 15;
 
-    // Executive Summary
-    addSectionHeader("Executive Summary");
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    addText(`Total Approved Expenses: ${expenses.length} transactions`);
-    if (totalPrimaryCurrency > 0) {
+    if (sectionSet.has("summary")) {
+      addSectionHeader("Executive Summary");
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      addText(`Date range: ${periodLabel}`);
+      addText(`Approved expenses: ${expenses.length} transactions`);
+      if (totalPrimaryCurrency > 0) {
+        addText(
+          `Total expense amount (${primaryCurrency}): ${totalPrimaryCurrency.toLocaleString("en-US", {
+            style: "currency",
+            currency: primaryCurrency,
+          })}`
+        );
+      }
       addText(
-        `Total Expense Amount (${primaryCurrency}): ${totalPrimaryCurrency.toLocaleString("en-US", {
-          style: "currency",
-          currency: primaryCurrency,
-        })}`
+        `Trips touching this range: ${trips.length} (${trips.filter((t) => t.status === TripStatus.COMPLETED).length} completed)`
       );
+      addText(`Completed tasks: ${completedTasks.length}`);
+      addText(`Completed shopping lists: ${completedShoppingLists.length}`);
+      yPos += 5;
     }
-    addText(`Trips: ${trips.length} (${trips.filter((t) => t.status === TripStatus.COMPLETED).length} completed)`);
-    addText(`Completed Shopping Lists: ${completedShoppingLists.length}`);
-    yPos += 5;
 
-    // Financial Overview
-    addSectionHeader("Financial Overview");
-    addText("Expenses by Category:", 12, true);
-    Object.entries(expensesByCategory)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([category, amount]) => {
-        addText(`${category}: ${amount.toLocaleString("en-US", { style: "currency", currency: "EUR" })}`);
-      });
-    yPos += 5;
-    addText("Expenses by Currency:", 12, true);
-    Object.entries(expensesByCurrency)
-      .sort(([, a], [, b]) => b - a)
-      .forEach(([currency, amount]) => {
-        addText(`${currency}: ${amount.toLocaleString("en-US", { style: "currency", currency })}`);
-      });
-    yPos += 5;
+    if (sectionSet.has("financial")) {
+      addSectionHeader("Financial Overview");
+      if (expenses.length === 0) {
+        addText("No approved expenses recorded in the selected date range.");
+      } else {
+        addText("Expenses by Category:", 12, true);
+        Object.entries(expensesByCategory)
+          .sort(([, a], [, b]) => b - a)
+          .forEach(([category, amount]) => {
+            addText(`${category}: ${amount.toLocaleString("en-US", { style: "currency", currency: "EUR" })}`);
+          });
+        yPos += 5;
+        addText("Expenses by Currency:", 12, true);
+        Object.entries(expensesByCurrency)
+          .sort(([, a], [, b]) => b - a)
+          .forEach(([currency, amount]) => {
+            addText(`${currency}: ${amount.toLocaleString("en-US", { style: "currency", currency })}`);
+          });
+      }
+      yPos += 5;
+    }
 
-    // Trips
-    if (trips.length > 0) {
+    if (sectionSet.has("trips")) {
       addSectionHeader("Trips");
-      trips.forEach((trip) => {
-        addText(`${trip.name} (${trip.status})`, 10, true);
-        addText(`  Dates: ${format(new Date(trip.startDate), "MMM d")} - ${trip.endDate ? format(new Date(trip.endDate), "MMM d, yyyy") : "Ongoing"}`);
-        if (trip.departurePort) addText(`  From: ${trip.departurePort}`);
-        if (trip.arrivalPort) addText(`  To: ${trip.arrivalPort}`);
-        yPos += 3;
-      });
+      if (trips.length === 0) {
+        addText("No trips were planned or completed within this date range.");
+      } else {
+        trips.forEach((trip) => {
+          addText(`${trip.name} (${trip.status})`, 10, true);
+          addText(
+            `  Dates: ${format(new Date(trip.startDate), "MMM d")} - ${
+              trip.endDate ? format(new Date(trip.endDate), "MMM d, yyyy") : "Ongoing"
+            }`
+          );
+          if (trip.departurePort) addText(`  From: ${trip.departurePort}`);
+          if (trip.arrivalPort) addText(`  To: ${trip.arrivalPort}`);
+          if (trip.createdBy?.name) addText(`  Created by: ${trip.createdBy.name}`);
+          yPos += 3;
+        });
+      }
       yPos += 5;
     }
 
-    // Shopping Lists
-    if (completedShoppingLists.length > 0) {
-      addSectionHeader("Completed Shopping Lists");
-      addText(`Total Lists Completed: ${completedShoppingLists.length}`);
-      addText(`Total Items: ${completedShoppingLists.reduce((sum, list) => sum + list._count.items, 0)}`);
+    if (sectionSet.has("tasks")) {
+      addSectionHeader("Completed Tasks");
+      if (completedTasks.length === 0) {
+        addText("No tasks were completed within this date range.");
+      } else {
+        completedTasks.forEach((task) => {
+          addText(task.title, 10, true);
+          const details: string[] = [];
+          if (task.completedAt) {
+            details.push(`Completed: ${format(new Date(task.completedAt), "MMM d, yyyy HH:mm")}`);
+          }
+          if (task.assignee?.name) {
+            details.push(`Assignee: ${task.assignee.name}`);
+          }
+          if (task.completedBy?.name) {
+            details.push(`Checked by: ${task.completedBy.name}`);
+          }
+          if (task.trip?.name) {
+            details.push(`Trip: ${task.trip.name}`);
+          }
+          details.forEach((detail) => addText(`  ${detail}`));
+          yPos += 3;
+        });
+      }
       yPos += 5;
     }
 
+    if (sectionSet.has("shopping")) {
+      addSectionHeader("Shopping Lists");
+      if (completedShoppingLists.length === 0) {
+        addText("No shopping lists were completed within this date range.");
+      } else {
+        const totalItems = completedShoppingLists.reduce((sum, list) => sum + list._count.items, 0);
+        addText(`Total lists completed: ${completedShoppingLists.length}`);
+        addText(`Total items processed: ${totalItems}`);
+        completedShoppingLists.forEach((list) => {
+          addText(list.name, 10, true);
+          if (list.description) {
+            addText(`  ${list.description}`);
+          }
+          const shoppingDetails: string[] = [];
+          shoppingDetails.push(`Items: ${list._count.items}`);
+          shoppingDetails.push(`Completed on: ${format(new Date(list.updatedAt), "MMM d, yyyy")}`);
+          if (list.createdBy?.name) {
+            shoppingDetails.push(`Created by: ${list.createdBy.name}`);
+          }
+          shoppingDetails.forEach((detail) => addText(`  ${detail}`));
+          yPos += 3;
+        });
+      }
+      yPos += 5;
+    }
 
-    // Footer on all pages
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       doc.setFontSize(8);
       doc.setFont("helvetica", "normal");
-      doc.setTextColor(107, 114, 128); // gray-500
+      doc.setTextColor(107, 114, 128);
       doc.text(
         `Generated on ${format(new Date(), "MMMM d, yyyy 'at' HH:mm")} • YachtOps`,
         pageWidth / 2,
@@ -255,18 +351,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate PDF buffer
     const pdfArray = doc.output("arraybuffer");
     const pdfBuffer = Buffer.from(pdfArray);
+    const fileLabel = `operations-report-${format(startDate, "yyyyMMdd")}-${format(endDate, "yyyyMMdd")}.pdf`;
 
     return new NextResponse(pdfBuffer, {
       headers: {
         "Content-Type": "application/pdf",
-        "Content-Disposition": `attachment; filename="monthly-report-${year}-${month.toString().padStart(2, "0")}.pdf"`,
+        "Content-Disposition": `attachment; filename="${fileLabel}"`,
       },
     });
   } catch (error) {
-    console.error("Error generating monthly report:", error);
+    console.error("Error generating operations report:", error);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error("Error details:", { errorMessage, errorStack });
