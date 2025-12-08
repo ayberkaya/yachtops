@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { Loader2, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CalendarIcon, Loader2, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -35,6 +34,18 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
   const [creatingNote, setCreatingNote] = useState(false);
   const [noteItemInputs, setNoteItemInputs] = useState<Record<string, string>>({});
   const [noteLoading, setNoteLoading] = useState<string | null>(null);
+  const [activeNoteId, setActiveNoteId] = useState<string | null>(initialNotes[0]?.id ?? null);
+
+  useEffect(() => {
+    if (!activeNoteId && notes.length > 0) {
+      setActiveNoteId(notes[0].id);
+    }
+  }, [notes, activeNoteId]);
+
+  const activeNote = useMemo(
+    () => notes.find((note) => note.id === activeNoteId) ?? notes[0] ?? null,
+    [activeNoteId, notes]
+  );
 
   const handleCreateNote = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -51,6 +62,7 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
       }
       const note: UserNote = await response.json();
       setNotes((prev) => [note, ...prev]);
+      setActiveNoteId(note.id);
       setNewNoteTitle("");
     } catch (error) {
       console.error(error);
@@ -66,6 +78,12 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
       const response = await fetch(`/api/user-notes/${noteId}`, { method: "DELETE" });
       if (!response.ok) throw new Error("Failed to delete note");
       setNotes((prev) => prev.filter((note) => note.id !== noteId));
+      if (activeNoteId === noteId) {
+        setActiveNoteId((prev) => {
+          const remaining = notes.filter((note) => note.id !== noteId);
+          return remaining[0]?.id ?? null;
+        });
+      }
     } catch (error) {
       console.error(error);
     } finally {
@@ -149,74 +167,135 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
     }
   };
 
+  if (notes.length === 0) {
+    return (
+      <div className="rounded-3xl border border-dashed border-slate-300 bg-white/70 p-10 text-center shadow-sm">
+        <p className="text-lg font-semibold text-slate-900">Welcome to your notes</p>
+        <p className="mt-2 text-sm text-slate-500">
+          Create checklists, reminders, or mini logs. Only you can see what you write here.
+        </p>
+        <form onSubmit={handleCreateNote} className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+          <Input
+            value={newNoteTitle}
+            onChange={(e) => setNewNoteTitle(e.target.value)}
+            placeholder="New note title"
+            className="sm:w-64"
+            required
+          />
+          <Button type="submit" disabled={creatingNote}>
+            {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Create note"}
+          </Button>
+        </form>
+      </div>
+    );
+  }
+
   return (
-    <div className="space-y-8">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create a private note</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleCreateNote} className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="text-sm font-semibold text-slate-700">Title</label>
+    <div className="rounded-3xl border border-slate-200 bg-white shadow-xl shadow-slate-100 overflow-hidden">
+      <div className="grid min-h-[520px] md:grid-cols-[280px_1fr]">
+        <aside className="border-r border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-500">Personal</p>
+              <h2 className="text-lg font-bold text-slate-900">Notes</h2>
+            </div>
+            <form onSubmit={handleCreateNote} className="flex items-center gap-2">
               <Input
                 value={newNoteTitle}
                 onChange={(e) => setNewNoteTitle(e.target.value)}
-                placeholder="Owner meeting prep"
-                required
+                placeholder="New note"
+                className="hidden h-9 w-32 text-sm md:block"
               />
-            </div>
-            <div className="flex items-end">
-              <Button type="submit" disabled={creatingNote} className="w-full md:w-auto">
-                {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Note"}
+              <Button type="submit" size="icon" className="h-9 w-9" disabled={creatingNote}>
+                {creatingNote ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
               </Button>
-            </div>
-          </form>
-        </CardContent>
-      </Card>
-
-      {notes.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-slate-500">
-          You haven’t added any notes yet.
-        </div>
-      ) : (
-        <div className="grid gap-6 md:grid-cols-2">
-          {notes.map((note) => (
-            <Card key={note.id} className="flex flex-col">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>{note.title}</CardTitle>
-                  <p className="text-xs text-slate-500">
-                    Created {new Date(note.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={() => handleDeleteNote(note.id)}
-                  disabled={noteLoading === note.id}
+            </form>
+          </div>
+          <div className="max-h-[70vh] overflow-y-auto px-3 py-4">
+            {notes.map((note) => {
+              const isActive = note.id === activeNote?.id;
+              const completed = note.checklist.filter((item) => item.completed).length;
+              return (
+                <button
+                  key={note.id}
+                  onClick={() => setActiveNoteId(note.id)}
+                  className={cn(
+                    "w-full rounded-2xl px-4 py-3 text-left transition-all",
+                    isActive
+                      ? "bg-white shadow-sm shadow-slate-200"
+                      : "hover:bg-white/70"
+                  )}
                 >
-                  {noteLoading === note.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                </Button>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col gap-4">
-                <div className="space-y-3">
-                  {note.checklist.length === 0 ? (
-                    <p className="text-sm text-slate-500">No checklist items yet.</p>
-                  ) : (
-                    note.checklist.map((item) => (
-                      <div key={item.id} className="flex items-start justify-between gap-2 rounded-xl border border-slate-200 p-3">
-                        <label className="flex w-full cursor-pointer items-start gap-3">
+                  <p className="text-sm font-semibold text-slate-900 truncate">{note.title}</p>
+                  <p className="text-xs text-slate-500">
+                    {new Date(note.updatedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-1">
+                    {completed}/{note.checklist.length || 1} checklist items
+                  </p>
+                </button>
+              );
+            })}
+          </div>
+        </aside>
+
+        <section className="p-6 md:p-8">
+          {!activeNote ? (
+            <div className="h-full rounded-3xl border border-dashed border-slate-200 bg-slate-50 flex items-center justify-center text-slate-500">
+              Select a note to start writing.
+            </div>
+          ) : (
+            <div className="flex h-full flex-col gap-6">
+              <div className="flex flex-col gap-2 rounded-3xl border border-slate-200 bg-slate-900 text-white p-6 shadow-inner">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.3em] text-blue-200">Private checklist</p>
+                    <h3 className="text-2xl font-bold">{activeNote.title}</h3>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    className="text-white hover:text-red-200"
+                    onClick={() => handleDeleteNote(activeNote.id)}
+                    disabled={noteLoading === activeNote.id}
+                  >
+                    {noteLoading === activeNote.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-blue-100">
+                  <CalendarIcon className="h-4 w-4" />
+                  Last updated{" "}
+                  {new Date(activeNote.updatedAt).toLocaleDateString(undefined, {
+                    weekday: "short",
+                    month: "short",
+                    day: "numeric",
+                  })}
+                </div>
+              </div>
+
+              <div className="flex-1 space-y-4">
+                {activeNote.checklist.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-6 text-center text-slate-500">
+                    Add your first checklist item for this note.
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {activeNote.checklist.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-start justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                      >
+                        <label className="flex flex-1 cursor-pointer items-start gap-3">
                           <Checkbox
                             checked={item.completed}
                             onCheckedChange={(checked) =>
-                              handleToggleChecklistItem(note.id, item, Boolean(checked))
+                              handleToggleChecklistItem(activeNote.id, item, Boolean(checked))
                             }
                             disabled={noteLoading === item.id}
+                            className="mt-0.5"
                           />
                           <span
                             className={cn(
-                              "text-sm text-slate-700",
+                              "text-sm leading-relaxed text-slate-800",
                               item.completed && "text-slate-400 line-through"
                             )}
                           >
@@ -227,36 +306,39 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
                           size="icon"
                           variant="ghost"
                           className="text-slate-400 hover:text-red-500"
-                          onClick={() => handleDeleteChecklistItem(note.id, item.id)}
+                          onClick={() => handleDeleteChecklistItem(activeNote.id, item.id)}
                           disabled={noteLoading === item.id}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </div>
-                    ))
-                  )}
-                </div>
-                <div className="flex gap-2">
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row">
                   <Input
-                    value={noteItemInputs[note.id] || ""}
+                    value={noteItemInputs[activeNote.id] || ""}
                     onChange={(e) =>
-                      setNoteItemInputs((prev) => ({ ...prev, [note.id]: e.target.value }))
+                      setNoteItemInputs((prev) => ({ ...prev, [activeNote.id]: e.target.value }))
                     }
                     placeholder="Add checklist item"
+                    className="flex-1"
                   />
                   <Button
                     type="button"
-                    onClick={() => handleAddChecklistItem(note.id)}
-                    disabled={noteLoading === note.id}
+                    className="md:w-36"
+                    onClick={() => handleAddChecklistItem(activeNote.id)}
+                    disabled={noteLoading === activeNote.id}
                   >
-                    {noteLoading === note.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    {noteLoading === activeNote.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Add Item"}
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+              </div>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
