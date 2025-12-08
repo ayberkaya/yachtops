@@ -351,7 +351,7 @@ model VesselDocument {
 
 model UserNote {
   id        String                     @id @default(cuid())
-  userId    String
+  userId    String                     @map("user_id")
   title     String
   createdAt DateTime                   @default(now())
   updatedAt DateTime                   @updatedAt
