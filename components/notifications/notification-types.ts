@@ -13,6 +13,7 @@ export interface DashboardNotification {
   content: string;
   read: boolean;
   createdAt: string;
+  link?: string | null;
   task: {
     id: string;
     title: string;
