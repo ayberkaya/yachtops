@@ -65,6 +65,8 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
         return;
       }
 
+      // Optimistically remove the approved expense for instant feedback
+      setExpenses((prev) => prev.filter((exp) => exp.id !== id));
       router.refresh();
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -110,6 +112,8 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
         return;
       }
 
+      // Optimistically remove the rejected expense for instant feedback
+      setExpenses((prev) => prev.filter((exp) => exp.id !== rejectingExpenseId));
       router.refresh();
     } catch (error) {
       alert("An error occurred. Please try again.");
