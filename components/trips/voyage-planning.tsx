@@ -445,10 +445,10 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
           }
         }}
       >
-        <div className="absolute right-4 top-4">
+        <div className="absolute -top-[12px] -right-2 z-10">
           <Icon
             className={cn(
-              "h-5 w-5",
+              "h-6 w-6",
               isComplete ? "text-emerald-600" : "text-amber-500 animate-pulse"
             )}
           />
@@ -641,7 +641,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
         </Card>
       )}
 
-      {isLoading ? (
+      {selectedTrip?.status === "COMPLETED" ? null : isLoading ? (
         <div className="flex items-center gap-3 text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
           Loading checklists...
