@@ -125,15 +125,17 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     return daysUntilExpiry <= 30;
   });
 
-  const upcomingMaintenance = maintenanceLogs.filter((maint) => {
-    if (!maint.nextDueDate) return false;
-    const dueDate = new Date(maint.nextDueDate);
-    dueDate.setHours(0, 0, 0, 0);
+  const upcomingMaintenance = maintenanceLogs.filter(
+    (maint): maint is (typeof maintenanceLogs)[number] & { nextDueDate: Date } => {
+      if (!maint.nextDueDate) return false;
+      const dueDate = new Date(maint.nextDueDate);
+      dueDate.setHours(0, 0, 0, 0);
 
-    // Show if due within 30 days
-    const daysUntilDue = differenceInDays(dueDate, today);
-    return daysUntilDue <= 30 && daysUntilDue >= 0;
-  });
+      // Show if due within 30 days
+      const daysUntilDue = differenceInDays(dueDate, today);
+      return daysUntilDue <= 30 && daysUntilDue >= 0;
+    }
+  );
 
   return (
     <div className="space-y-6">
@@ -231,7 +233,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
           <CardContent>
             <div className="space-y-2">
               {upcomingMaintenance.map((maint) => {
-                const dueDate = new Date(maint.nextDueDate);
+                const dueDate = new Date(maint.nextDueDate!);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
                 dueDate.setHours(0, 0, 0, 0);

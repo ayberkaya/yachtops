@@ -1,6 +1,4 @@
 import type { NextConfig } from "next";
-import webpack from "webpack";
-
 const nextConfig: NextConfig = {
   // Performance optimizations
   compress: true,
@@ -19,7 +17,7 @@ const nextConfig: NextConfig = {
 
   // In dev with webpack, disable filesystem cache to avoid ENOENT on iCloud paths
   // Add ProgressPlugin in prod to surface where build hangs
-  webpack: (config, { dev }) => {
+  webpack: (config, { dev, webpack }) => {
     if (dev) {
       config.cache = false;
     } else {
@@ -28,7 +26,7 @@ const nextConfig: NextConfig = {
           activeModules: true,
           modules: true,
           modulesCount: 1,
-          handler(percent, message, ...details) {
+          handler(percent: number, message: string, ...details: string[]) {
             if (percent >= 0.6) {
               const detail = details.filter(Boolean).join(" ");
               console.log(`[build] ${Math.round(percent * 100)}% ${message} ${detail}`);

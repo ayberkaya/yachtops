@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { normalizeContent } from "../route";
+import { normalizeContent } from "@/lib/user-notes";
 
 const updateSchema = z.object({
   title: z.string().min(1).max(120).optional(),
