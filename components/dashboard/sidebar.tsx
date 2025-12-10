@@ -42,6 +42,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const [reimbursableCount, setReimbursableCount] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // Define base navItems structure (static, no user dependency)
@@ -329,6 +330,74 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     return () => clearInterval(interval);
   }, [session?.user]);
 
+  // Fetch low stock count (alcohol) - desktop sidebar
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchLowStock = async () => {
+      try {
+        if (!hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
+          setLowStockCount(0);
+          return;
+        }
+        const response = await fetch("/api/alcohol-stock", { cache: "no-store" });
+        if (!response.ok) {
+          setLowStockCount(0);
+          return;
+        }
+        const items = await response.json();
+        const count = (items ?? []).filter(
+          (item: any) =>
+            item?.lowStockThreshold !== null &&
+            item?.lowStockThreshold !== undefined &&
+            Number(item.quantity) <= Number(item.lowStockThreshold)
+        ).length;
+        setLowStockCount(count);
+      } catch (error) {
+        console.error("Error fetching low stock count:", error);
+        setLowStockCount(0);
+      }
+    };
+
+    fetchLowStock();
+    const interval = setInterval(fetchLowStock, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
+  // Fetch low stock count (alcohol)
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchLowStock = async () => {
+      try {
+        if (!hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
+          setLowStockCount(0);
+          return;
+        }
+        const response = await fetch("/api/alcohol-stock", { cache: "no-store" });
+        if (!response.ok) {
+          setLowStockCount(0);
+          return;
+        }
+        const items = await response.json();
+        const count = (items ?? []).filter(
+          (item: any) =>
+            item?.lowStockThreshold !== null &&
+            item?.lowStockThreshold !== undefined &&
+            Number(item.quantity) <= Number(item.lowStockThreshold)
+        ).length;
+        setLowStockCount(count);
+      } catch (error) {
+        console.error("Error fetching low stock count:", error);
+        setLowStockCount(0);
+      }
+    };
+
+    fetchLowStock();
+    const interval = setInterval(fetchLowStock, 30000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
   // Early return after all hooks (to maintain hook order)
   if (status === "loading" || !session?.user) {
     return null;
@@ -494,19 +563,26 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                                   : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
                               }`}
                             >
-                              <span className="flex items-center justify-between">
-                                <span className="capitalize">{child.label}</span>
-                                {isPendingApproval && pendingExpensesCount > 0 && (
-                                  <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                    {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
+                                <span className="flex items-center justify-between">
+                                  <span className="capitalize flex items-center gap-2">
+                                    {child.label}
+                                    {child.href === "/dashboard/inventory/alcohol-stock" && lowStockCount > 0 && (
+                                      <span className="inline-flex items-center gap-1 rounded-full border border-red-500 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600">
+                                        Low Stock
+                                      </span>
+                                    )}
                                   </span>
-                                )}
-                                {isReimbursablePage && reimbursableCount > 0 && (
-                                <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                  {reimbursableCount > 99 ? "99+" : reimbursableCount}
+                                  {isPendingApproval && pendingExpensesCount > 0 && (
+                                    <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                      {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
+                                    </span>
+                                  )}
+                                  {isReimbursablePage && reimbursableCount > 0 && (
+                                  <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                                    {reimbursableCount > 99 ? "99+" : reimbursableCount}
+                                  </span>
+                                  )}
                                 </span>
-                                )}
-                              </span>
                             </Link>
                           );
                         })}
@@ -628,6 +704,7 @@ export function Sidebar() {
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const [reimbursableCount, setReimbursableCount] = useState(0);
+  const [lowStockCount, setLowStockCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1094,7 +1171,14 @@ export function Sidebar() {
                           }}
                         >
                           <span className="flex items-center justify-between">
-                            <span className="capitalize">{child.label}</span>
+                            <span className="capitalize flex items-center gap-2">
+                              {child.label}
+                              {child.href === "/dashboard/inventory/alcohol-stock" && lowStockCount > 0 && (
+                                <span className="inline-flex items-center gap-1 rounded-full border border-red-500 bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600">
+                                  Low Stock
+                                </span>
+                              )}
+                            </span>
                             {isPendingApproval && pendingExpensesCount > 0 && (
                               <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                                 {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}

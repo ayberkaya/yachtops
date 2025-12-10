@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Bell, Check, CheckCheck, RefreshCcw } from "lucide-react";
+import { Bell, CheckCheck, RefreshCcw } from "lucide-react";
+import { format } from "date-fns";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "./notifications-provider";
 import { NOTIFICATION_BADGE_META } from "./notification-types";
@@ -18,14 +18,16 @@ export function DashboardNotificationsPanel() {
     useNotifications();
   const [pendingExpensesCount, setPendingExpensesCount] = useState<number | null>(null);
   const [reimbursableCount, setReimbursableCount] = useState<number | null>(null);
+  const [lowStockCount, setLowStockCount] = useState<number | null>(null);
   const [isFinanceLoading, setIsFinanceLoading] = useState(true);
 
   const fetchFinanceAlerts = useCallback(async () => {
     setIsFinanceLoading(true);
     try {
-      const [pendingRes, reimbRes] = await Promise.all([
+      const [pendingRes, reimbRes, stockRes] = await Promise.all([
         fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" }),
         fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" }),
+        fetch("/api/alcohol-stock", { cache: "no-store" }),
       ]);
 
       if (pendingRes.ok) {
@@ -41,10 +43,24 @@ export function DashboardNotificationsPanel() {
       } else {
         setReimbursableCount(0);
       }
+
+      if (stockRes.ok) {
+        const stockData = await stockRes.json();
+        const count = (stockData ?? []).filter(
+          (item: any) =>
+            item?.lowStockThreshold !== null &&
+            item?.lowStockThreshold !== undefined &&
+            Number(item.quantity) <= Number(item.lowStockThreshold)
+        ).length;
+        setLowStockCount(count);
+      } else {
+        setLowStockCount(0);
+      }
     } catch (error) {
-      console.error("Error fetching finance alerts:", error);
+      console.error("Error fetching finance/stock alerts:", error);
       setPendingExpensesCount(0);
       setReimbursableCount(0);
+      setLowStockCount(0);
     } finally {
       setIsFinanceLoading(false);
     }
@@ -89,8 +105,20 @@ export function DashboardNotificationsPanel() {
       });
     }
 
+    if (lowStockCount && lowStockCount > 0) {
+      alerts.push({
+        id: "inventory-low-stock",
+        label: "Inventory",
+        content: `There ${lowStockCount === 1 ? "is" : "are"} ${lowStockCount} item${
+          lowStockCount === 1 ? "" : "s"
+        } below threshold in beverage stock.`,
+        href: "/dashboard/inventory/alcohol-stock",
+        badge: "Low Stock",
+      });
+    }
+
     return alerts;
-  }, [pendingExpensesCount, reimbursableCount]);
+  }, [pendingExpensesCount, reimbursableCount, lowStockCount]);
 
   const getBadge = (type: keyof typeof NOTIFICATION_BADGE_META) => {
     const meta = NOTIFICATION_BADGE_META[type] ?? { label: type, variant: "default" as const };
@@ -109,7 +137,8 @@ export function DashboardNotificationsPanel() {
     );
   };
 
-  const showLoading = isLoading && isFinanceLoading && notifications.length === 0 && financeAlerts.length === 0;
+  const showLoading =
+    isLoading && isFinanceLoading && notifications.length === 0 && financeAlerts.length === 0;
   const hasAlerts = notifications.length > 0 || financeAlerts.length > 0;
 
   return (
@@ -122,9 +151,9 @@ export function DashboardNotificationsPanel() {
           aria-label="Open notifications"
         >
           <Bell className="h-4 w-4" />
-          {unreadCount > 0 && (
+          {(unreadCount > 0 || (lowStockCount ?? 0) > 0) && (
             <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-              {unreadCount > 9 ? "9+" : unreadCount}
+              {unreadCount > 0 ? (unreadCount > 9 ? "9+" : unreadCount) : "!"}
             </span>
           )}
         </Button>
@@ -185,10 +214,7 @@ export function DashboardNotificationsPanel() {
                         <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
                           {alert.badge}
                         </span>
-                        <Link
-                          href={alert.href}
-                          className="text-xs text-blue-600 hover:underline"
-                        >
+                        <Link href={alert.href} className="text-xs text-blue-600 hover:underline">
                           Review →
                         </Link>
                       </div>
@@ -198,51 +224,35 @@ export function DashboardNotificationsPanel() {
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className={cn(
-                        "rounded-xl border px-3 py-2.5 text-sm transition-colors",
-                        notification.read
-                          ? "bg-white/30 border-slate-100"
-                          : "bg-primary/5 border-primary/10 shadow-sm"
-                      )}
+                      className="rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-accent/40"
                     >
                       <div className="flex items-center justify-between gap-2">
+                        {getBadge(notification.type)}
                         <div className="flex items-center gap-2">
-                          {getBadge(notification.type)}
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-xs text-muted-foreground">
                             {format(new Date(notification.createdAt), "MMM d, HH:mm")}
                           </span>
+                          {!notification.read && (
+                            <button
+                              className="text-xs text-blue-600 hover:underline"
+                              onClick={() => markAsRead(notification.id)}
+                            >
+                              Mark as read
+                            </button>
+                          )}
                         </div>
-                        {!notification.read && (
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-7 w-7 text-muted-foreground"
-                            onClick={() => markAsRead(notification.id)}
-                            title="Mark as read"
-                          >
-                            <Check className="h-3 w-3" />
-                          </Button>
+                      </div>
+                      <div className="mt-1">
+                        <p className="text-sm text-foreground">{notification.title}</p>
+                        {notification.body && (
+                          <p className="text-xs text-muted-foreground">{notification.body}</p>
+                        )}
+                        {notification.link && (
+                          <Link href={notification.link} className="text-xs text-blue-600 hover:underline">
+                            View →
+                          </Link>
                         )}
                       </div>
-                      <p className="mt-1 text-sm text-foreground">{notification.content}</p>
-                      {notification.task && (
-                        <Link
-                          href={`/dashboard/tasks/${notification.task.id}`}
-                          className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center gap-1"
-                          onClick={() => markAsRead(notification.id)}
-                        >
-                          View task →
-                        </Link>
-                      )}
-                      {notification.message && (
-                        <Link
-                          href={`/dashboard/messages?channel=${notification.message.channelId}`}
-                          className="text-xs text-blue-600 hover:underline mt-1 inline-flex items-center gap-1"
-                          onClick={() => markAsRead(notification.id)}
-                        >
-                          Open channel →
-                        </Link>
-                      )}
                     </div>
                   ))}
                 </div>
@@ -254,5 +264,4 @@ export function DashboardNotificationsPanel() {
     </Popover>
   );
 }
-
 
