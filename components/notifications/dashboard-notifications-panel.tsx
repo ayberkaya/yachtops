@@ -20,6 +20,8 @@ export function DashboardNotificationsPanel() {
   const [reimbursableCount, setReimbursableCount] = useState<number | null>(null);
   const [lowStockCount, setLowStockCount] = useState<number | null>(null);
   const [isFinanceLoading, setIsFinanceLoading] = useState(true);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
 
   const fetchFinanceAlerts = useCallback(async () => {
     setIsFinanceLoading(true);
@@ -141,14 +143,25 @@ export function DashboardNotificationsPanel() {
     isLoading && isFinanceLoading && notifications.length === 0 && financeAlerts.length === 0;
   const hasAlerts = notifications.length > 0 || financeAlerts.length > 0;
 
+  useEffect(() => {
+    if (!isHovered && isOpen) {
+      const timer = setTimeout(() => {
+        setIsOpen(false);
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isHovered, isOpen]);
+
   return (
-    <Popover>
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
           size="icon"
           className="relative h-10 w-10 rounded-full border border-slate-200 text-primary"
           aria-label="Open notifications"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
         >
           <Bell className="h-4 w-4" />
           {(unreadCount > 0 || (lowStockCount ?? 0) > 0) && (
@@ -158,7 +171,12 @@ export function DashboardNotificationsPanel() {
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="end" className="w-96 border-none p-0 shadow-xl">
+      <PopoverContent 
+        align="end" 
+        className="w-96 border-none p-0 shadow-xl"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+      >
         <Card className="border border-slate-200 shadow-none">
           <CardHeader className="space-y-2">
             <div className="flex items-center justify-between gap-3">
@@ -185,7 +203,10 @@ export function DashboardNotificationsPanel() {
                   size="icon"
                   variant="ghost"
                   className="h-8 w-8"
-                  onClick={() => refresh()}
+                  onClick={async () => {
+                    await refresh({ silent: false });
+                    await fetchFinanceAlerts();
+                  }}
                   title="Refresh notifications"
                 >
                   <RefreshCcw className="h-4 w-4" />
@@ -212,7 +233,7 @@ export function DashboardNotificationsPanel() {
                         key={alert.id}
                         className={`rounded-xl border px-3 py-2.5 text-sm transition-colors shadow-sm ${
                           isLowStock
-                            ? "bg-red-50 dark:bg-red-950/30 border-red-500"
+                            ? "bg-red-600 dark:bg-red-700 border-red-500"
                             : "bg-amber-50/60 border-amber-200"
                         }`}
                       >
@@ -220,19 +241,19 @@ export function DashboardNotificationsPanel() {
                           <span
                             className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
                               isLowStock
-                                ? "bg-red-600 text-white"
+                                ? "bg-red-700 text-white"
                                 : "bg-amber-100 text-amber-800"
                             }`}
                           >
                             {alert.badge}
                           </span>
-                          <Link href={alert.href} className="text-xs text-blue-600 hover:underline">
+                          <Link href={alert.href} className={`text-xs hover:underline ${isLowStock ? "text-white" : "text-blue-600"}`}>
                             Review →
                           </Link>
                         </div>
                         <p
                           className={`mt-1 text-sm ${
-                            isLowStock ? "text-red-900 dark:text-red-100 font-medium" : "text-foreground"
+                            isLowStock ? "text-white font-medium" : "text-foreground"
                           }`}
                         >
                           {alert.content}

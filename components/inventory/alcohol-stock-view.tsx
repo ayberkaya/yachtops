@@ -367,7 +367,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     <div className={`flex-1 ${!isLow ? "!text-black" : ""}`} style={!isLow ? { color: '#000000' } : undefined}>
                       <div className="flex items-center gap-2 mb-0.5">
                         <h3
-                          className={`font-bold text-base ${isLow ? "text-white" : "!text-black"}`}
+                          className={`font-semibold text-base ${isLow ? "text-white" : "!text-black"}`}
                           style={!isLow ? { color: '#000000' } : undefined}
                         >
                           {stock.name}
@@ -380,12 +380,12 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         )}
                       </div>
                       <div
-                        className={`flex items-center gap-4 text-sm font-semibold ${isLow ? "text-white" : "!text-black"}`}
+                        className={`flex items-center gap-4 text-sm font-medium ${isLow ? "text-white" : "!text-black"}`}
                         style={!isLow ? { color: '#000000' } : undefined}
                       >
                         <span>
                           Quantity: <strong
-                            className={`font-bold text-sm ${isLow ? "text-white" : "!text-black"}`}
+                            className={`font-semibold text-sm ${isLow ? "text-white" : "!text-black"}`}
                             style={!isLow ? { color: '#000000' } : undefined}
                           >
                             {stock.quantity}
