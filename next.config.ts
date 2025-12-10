@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
   // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/yachtops-next locally to avoid iCloud path issues.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
+  // Silence Next.js warning when using Turbopack alongside a webpack config
+  turbopack: {},
+
   // In dev with webpack, disable filesystem cache to avoid ENOENT on iCloud paths
   // Add ProgressPlugin in prod to surface where build hangs
   webpack: (config, { dev, webpack }) => {
