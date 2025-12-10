@@ -43,7 +43,14 @@ export async function PATCH(
     const body = await request.json();
     const validated = updateChecklistSchema.parse(body);
 
-    await ensureTripChecklistTableReady();
+    console.log("PATCH checklist:", { tripId, checklistId, validated });
+
+    try {
+      await ensureTripChecklistTableReady();
+    } catch (error) {
+      console.error("Error ensuring checklist table ready:", error);
+      throw error;
+    }
 
     const checklist = await db.tripChecklistItem.findFirst({
       where: {
@@ -56,8 +63,11 @@ export async function PATCH(
     });
 
     if (!checklist) {
+      console.error("Checklist item not found:", { checklistId, tripId, tenantId });
       return NextResponse.json({ error: "Checklist item not found" }, { status: 404 });
     }
+
+    console.log("Found checklist:", { id: checklist.id, completed: checklist.completed });
 
     const updateData: any = {};
 
@@ -75,7 +85,23 @@ export async function PATCH(
 
       updateData.completed = validated.completed;
       updateData.completedAt = validated.completed ? new Date() : null;
-      updateData.completedById = validated.completed ? session.user.id : null;
+      
+      // Only set completedById if the user exists in the database
+      if (validated.completed) {
+        const userExists = await db.user.findUnique({
+          where: { id: session.user.id },
+          select: { id: true },
+        });
+        
+        if (userExists) {
+          updateData.completedById = session.user.id;
+        } else {
+          console.warn(`User ${session.user.id} not found in database, setting completedById to null`);
+          updateData.completedById = null;
+        }
+      } else {
+        updateData.completedById = null;
+      }
     }
 
     if (validated.title !== undefined) {
@@ -89,17 +115,38 @@ export async function PATCH(
       updateData.remarks = validated.remarks ?? null;
     }
 
-    const updated = await db.tripChecklistItem.update({
-      where: { id: checklistId },
-      data: updateData,
-      include: {
-        completedBy: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    });
+    console.log("Updating checklist with data:", updateData);
 
-    return NextResponse.json(updated);
+    let updated;
+    try {
+      updated = await db.tripChecklistItem.update({
+        where: { id: checklistId },
+        data: updateData,
+        include: {
+          completedBy: {
+            select: { id: true, name: true, email: true },
+          },
+        },
+      });
+      console.log("Update successful:", { id: updated.id, completed: updated.completed });
+    } catch (dbError) {
+      console.error("Database update error:", dbError);
+      throw dbError;
+    }
+
+    // Serialize the response properly - Prisma returns Date objects that need to be converted to ISO strings
+    const response = {
+      id: updated.id,
+      type: updated.type,
+      title: updated.title,
+      completed: updated.completed,
+      completedAt: updated.completedAt ? updated.completedAt.toISOString() : null,
+      remarks: updated.remarks,
+      completedBy: updated.completedBy,
+    };
+
+    console.log("Returning response:", response);
+    return NextResponse.json(response);
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
@@ -109,8 +156,9 @@ export async function PATCH(
     }
 
     console.error("Error updating checklist item:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { error: "Internal server error", details: errorMessage },
       { status: 500 }
     );
   }

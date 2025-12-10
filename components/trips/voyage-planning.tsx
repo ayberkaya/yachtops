@@ -273,7 +273,49 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
         data = await load();
       }
 
-      setChecklists(data);
+      // Normalize the data to match ChecklistItem type
+      const normalized = {
+        preDeparture: data.preDeparture.map((item: any) => ({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          completed: item.completed,
+          completedAt: item.completedAt
+            ? typeof item.completedAt === "string"
+              ? item.completedAt
+              : new Date(item.completedAt).toISOString()
+            : null,
+          remarks: item.remarks,
+          completedBy: item.completedBy
+            ? {
+                id: item.completedBy.id,
+                name: item.completedBy.name,
+                email: item.completedBy.email,
+              }
+            : null,
+        })),
+        postArrival: data.postArrival.map((item: any) => ({
+          id: item.id,
+          type: item.type,
+          title: item.title,
+          completed: item.completed,
+          completedAt: item.completedAt
+            ? typeof item.completedAt === "string"
+              ? item.completedAt
+              : new Date(item.completedAt).toISOString()
+            : null,
+          remarks: item.remarks,
+          completedBy: item.completedBy
+            ? {
+                id: item.completedBy.id,
+                name: item.completedBy.name,
+                email: item.completedBy.email,
+              }
+            : null,
+        })),
+      };
+
+      setChecklists(normalized);
       setRemarksDrafts({});
     } catch (err) {
       if (!silent) {
@@ -291,15 +333,40 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     setChecklists((prev) => {
       const targetKey =
         updated.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
+      const currentList = prev[targetKey];
+      const existingIndex = currentList.findIndex((item) => item.id === updated.id);
+      
+      let newList;
+      if (existingIndex >= 0) {
+        // Update existing item
+        newList = currentList.map((item) =>
+          item.id === updated.id
+            ? {
+                ...updated,
+                completedAt:
+                  updated.completedAt instanceof Date
+                    ? updated.completedAt.toISOString()
+                    : updated.completedAt,
+              }
+            : item
+        );
+      } else {
+        // Add new item if it doesn't exist
+        newList = [
+          ...currentList,
+          {
+            ...updated,
+            completedAt:
+              updated.completedAt instanceof Date
+                ? updated.completedAt.toISOString()
+                : updated.completedAt,
+          },
+        ];
+      }
+      
       return {
         ...prev,
-        [targetKey]: prev[targetKey]
-          .map((item) => (item.id === updated.id ? updated : item))
-          .map((item) =>
-            item.id === updated.id && updated.completedBy
-              ? { ...item, completedBy: updated.completedBy }
-              : item
-          ),
+        [targetKey]: newList,
       };
     });
   };
@@ -343,7 +410,9 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     }
 
     setSavingId(item.id);
-    applyChecklistUpdate({
+    
+    // Optimistic update
+    const optimisticUpdate: ChecklistItem = {
       ...item,
       completed,
       completedAt: completed ? new Date().toISOString() : null,
@@ -354,7 +423,8 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
             email: currentUser.email,
           }
         : null,
-    });
+    };
+    applyChecklistUpdate(optimisticUpdate);
 
     try {
       const response = await fetch(
@@ -366,16 +436,44 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
         }
       );
 
+      const responseData = await response.json();
+
       if (!response.ok) {
-        const result = await response.json().catch(() => ({}));
-        throw new Error(result.error || "Güncelleme başarısız");
+        const errorMessage = responseData.error || `HTTP ${response.status}: Güncelleme başarısız`;
+        const details = responseData.details ? `: ${responseData.details}` : "";
+        throw new Error(`${errorMessage}${details}`);
       }
 
-      const updated = await response.json();
-      applyChecklistUpdate(updated);
+      // Normalize the response to match ChecklistItem type
+      const normalized: ChecklistItem = {
+        id: responseData.id,
+        type: responseData.type || item.type,
+        title: responseData.title || item.title,
+        completed: responseData.completed !== undefined ? responseData.completed : completed,
+        completedAt: responseData.completedAt
+          ? typeof responseData.completedAt === "string"
+            ? responseData.completedAt
+            : new Date(responseData.completedAt).toISOString()
+          : null,
+        remarks: responseData.remarks ?? item.remarks ?? null,
+        completedBy: responseData.completedBy
+          ? {
+              id: responseData.completedBy.id,
+              name: responseData.completedBy.name,
+              email: responseData.completedBy.email,
+            }
+          : null,
+      };
+      applyChecklistUpdate(normalized);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Checklist update failed");
-      applyChecklistUpdate(item); // revert
+      console.error("Checklist update error:", err);
+      let errorMessage = "Checklist update failed";
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      // Revert to original state
+      applyChecklistUpdate(item);
     } finally {
       setSavingId(null);
     }
