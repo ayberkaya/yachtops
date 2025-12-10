@@ -435,9 +435,9 @@ export function UserNotes({ initialNotes }: UserNotesProps) {
                 const textLine = activeNote.content.find(
                   (line): line is TextLine => line.type === "text"
                 );
-                const checkLines = activeNote.content.filter(
-                  (line): line is CheckLine => line.type === "checkItem"
-                );
+                const checkLines = activeNote.content
+                  .filter((line): line is CheckLine => line.type === "checkItem")
+                  .sort((a, b) => Number(a.completed) - Number(b.completed));
 
                 return (
                   <>

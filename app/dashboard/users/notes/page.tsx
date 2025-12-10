@@ -11,6 +11,7 @@ export default async function UserNotesPage() {
     redirect("/auth/signin");
   }
 
+  // Fetch notes - if user doesn't exist in DB, this will return empty array
   const notes = await db.userNote.findMany({
     where: {
       userId: session.user.id,
