@@ -67,9 +67,25 @@ export async function GET(
       orderBy: [{ type: "asc" }, { orderIndex: "asc" }, { createdAt: "asc" }],
     });
 
+    // If completedBy is null but completed is true, use session user info as fallback
+    // This handles cases where the user doesn't exist in the database
+    const itemsWithFallback = items.map((item) => {
+      if (item.completed && !item.completedBy) {
+        return {
+          ...item,
+          completedBy: {
+            id: session.user.id,
+            name: session.user.name,
+            email: session.user.email,
+          },
+        };
+      }
+      return item;
+    });
+
     return NextResponse.json({
-      preDeparture: items.filter((item) => item.type === TripChecklistType.PRE_DEPARTURE),
-      postArrival: items.filter((item) => item.type === TripChecklistType.POST_ARRIVAL),
+      preDeparture: itemsWithFallback.filter((item) => item.type === TripChecklistType.PRE_DEPARTURE),
+      postArrival: itemsWithFallback.filter((item) => item.type === TripChecklistType.POST_ARRIVAL),
     });
   } catch (error) {
     console.error("Error fetching trip checklists:", error);

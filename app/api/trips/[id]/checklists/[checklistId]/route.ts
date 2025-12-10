@@ -87,10 +87,11 @@ export async function PATCH(
       updateData.completedAt = validated.completed ? new Date() : null;
       
       // Only set completedById if the user exists in the database
+      // If user doesn't exist, we'll set it to null but still return session user info in response
       if (validated.completed) {
         const userExists = await db.user.findUnique({
           where: { id: session.user.id },
-          select: { id: true },
+          select: { id: true, name: true, email: true },
         });
         
         if (userExists) {
@@ -135,6 +136,17 @@ export async function PATCH(
     }
 
     // Serialize the response properly - Prisma returns Date objects that need to be converted to ISO strings
+    // If completedBy is null but completed is true, use session user info as fallback
+    let completedBy = updated.completedBy;
+    if (updated.completed && !completedBy && validated.completed) {
+      // User doesn't exist in DB, but we still want to show who completed it
+      completedBy = {
+        id: session.user.id,
+        name: session.user.name,
+        email: session.user.email,
+      };
+    }
+
     const response = {
       id: updated.id,
       type: updated.type,
@@ -142,7 +154,7 @@ export async function PATCH(
       completed: updated.completed,
       completedAt: updated.completedAt ? updated.completedAt.toISOString() : null,
       remarks: updated.remarks,
-      completedBy: updated.completedBy,
+      completedBy: completedBy,
     };
 
     console.log("Returning response:", response);
