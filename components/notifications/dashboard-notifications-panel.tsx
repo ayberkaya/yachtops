@@ -243,9 +243,12 @@ export function DashboardNotificationsPanel() {
                         </div>
                       </div>
                       <div className="mt-1">
-                        <p className="text-sm text-foreground">{notification.title}</p>
-                        {notification.body && (
-                          <p className="text-xs text-muted-foreground">{notification.body}</p>
+                        <p className="text-sm text-foreground">{notification.content}</p>
+                        {notification.message?.content && (
+                          <p className="text-xs text-muted-foreground">{notification.message.content}</p>
+                        )}
+                        {notification.task?.title && (
+                          <p className="text-xs text-muted-foreground">Task: {notification.task.title}</p>
                         )}
                         {notification.link && (
                           <Link href={notification.link} className="text-xs text-blue-600 hover:underline">
