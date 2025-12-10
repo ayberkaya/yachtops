@@ -13,11 +13,6 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60,
   },
 
-  // Experimental features for better performance
-  experimental: {
-    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
-  },
-
   // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/yachtops-next locally to avoid iCloud path issues.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
