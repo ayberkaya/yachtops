@@ -351,7 +351,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 <div
                   key={stock.id}
                   className={`flex items-center justify-between p-4 border rounded-lg ${
-                    isLowStock(stock) ? "border-red-600 bg-red-600 dark:bg-red-700 shadow-sm" : ""
+                    isLowStock(stock) ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm" : ""
                   }`}
                 >
                   <div className="flex-1">
@@ -385,7 +385,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     >
                       <Minus className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                     </Button>
-                    <span className="w-12 text-center font-semibold">
+                    <span className={`w-12 text-center font-semibold ${isLowStock(stock) ? "text-white" : ""}`}>
                       {stock.quantity}
                     </span>
                     <Button
