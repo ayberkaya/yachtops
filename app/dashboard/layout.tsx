@@ -3,6 +3,10 @@ import { getSession } from "@/lib/get-session";
 import { Sidebar, MobileMenuButton } from "@/components/dashboard/sidebar";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 
+// Force dynamic rendering for all dashboard routes to avoid static pre-render during build
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export default async function DashboardLayout({
   children,
 }: {
