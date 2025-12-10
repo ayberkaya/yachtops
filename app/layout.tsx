@@ -7,6 +7,10 @@ import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
 
+// Force dynamic rendering globally to avoid build-time prerender hangs
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
 export const metadata: Metadata = {
   title: "YachtOps - Yacht Operations Management",
   description: "Complete yacht operations management system",
