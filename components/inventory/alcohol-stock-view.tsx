@@ -351,23 +351,27 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 <div
                   key={stock.id}
                   className={`flex items-center justify-between p-4 border rounded-lg ${
-                    isLowStock(stock) ? "border-orange-500 bg-orange-50/50 dark:bg-orange-950/20" : ""
+                    isLowStock(stock) ? "border-red-600 bg-red-50 dark:bg-red-950/30 shadow-sm" : ""
                   }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{stock.name}</h3>
+                      <h3 className={`font-semibold ${isLowStock(stock) ? "text-red-900 dark:text-red-100" : ""}`}>
+                        {stock.name}
+                      </h3>
                       {getCategoryBadge(stock.category)}
                       {isLowStock(stock) && (
-                        <Badge variant="destructive" className="gap-1">
+                        <Badge variant="destructive" className="gap-1 bg-red-600 hover:bg-red-700 border-red-700">
                           <AlertTriangle className="h-3 w-3" />
                           Low Stock
                         </Badge>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className={`flex items-center gap-4 text-sm ${isLowStock(stock) ? "text-red-800 dark:text-red-200" : "text-muted-foreground"}`}>
                       <span>
-                        Quantity: <strong>{stock.quantity}</strong> {stock.unit}
+                        Quantity: <strong className={isLowStock(stock) ? "text-red-900 dark:text-red-100 font-bold" : ""}>
+                          {stock.quantity}
+                        </strong> {stock.unit}
                         {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
                       </span>
                     </div>

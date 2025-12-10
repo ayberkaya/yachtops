@@ -205,22 +205,41 @@ export function DashboardNotificationsPanel() {
             ) : (
               <ScrollArea className="max-h-64 pr-3">
                 <div className="space-y-3">
-                  {financeAlerts.map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="rounded-xl border px-3 py-2.5 text-sm transition-colors bg-amber-50/60 border-amber-200 shadow-sm"
-                    >
-                      <div className="flex items-center justify-between gap-2">
-                        <span className="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
-                          {alert.badge}
-                        </span>
-                        <Link href={alert.href} className="text-xs text-blue-600 hover:underline">
-                          Review →
-                        </Link>
+                  {financeAlerts.map((alert) => {
+                    const isLowStock = alert.id === "inventory-low-stock";
+                    return (
+                      <div
+                        key={alert.id}
+                        className={`rounded-xl border px-3 py-2.5 text-sm transition-colors shadow-sm ${
+                          isLowStock
+                            ? "bg-red-50 dark:bg-red-950/30 border-red-500"
+                            : "bg-amber-50/60 border-amber-200"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                              isLowStock
+                                ? "bg-red-600 text-white"
+                                : "bg-amber-100 text-amber-800"
+                            }`}
+                          >
+                            {alert.badge}
+                          </span>
+                          <Link href={alert.href} className="text-xs text-blue-600 hover:underline">
+                            Review →
+                          </Link>
+                        </div>
+                        <p
+                          className={`mt-1 text-sm ${
+                            isLowStock ? "text-red-900 dark:text-red-100 font-medium" : "text-foreground"
+                          }`}
+                        >
+                          {alert.content}
+                        </p>
                       </div>
-                      <p className="mt-1 text-sm text-foreground">{alert.content}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {notifications.map((notification) => (
                     <div
                       key={notification.id}
