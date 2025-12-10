@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -47,6 +48,7 @@ interface ShoppingListViewProps {
 
 export function ShoppingListView({ initialLists, initialProducts }: ShoppingListViewProps) {
   const router = useRouter();
+  const { data: session } = useSession();
   const [lists, setLists] = useState(initialLists);
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
@@ -68,9 +70,19 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
   };
 
   const handleListCreated = async (list: ShoppingList) => {
-    setLists((prev) => [list, ...prev]);
+    // Ensure the list has the correct structure with createdBy
+    const listWithCreatedBy: ShoppingList = {
+      ...list,
+      createdBy: list.createdBy || {
+        id: list.id, // fallback
+        name: null,
+        email: "",
+      },
+    };
+    setLists((prev) => [listWithCreatedBy, ...prev]);
     setIsListDialogOpen(false);
-    router.refresh();
+    // Don't refresh immediately to avoid stale data
+    setTimeout(() => router.refresh(), 100);
   };
 
   const handleListUpdated = async (list: ShoppingList) => {
@@ -177,9 +189,8 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                         </div>
                         <div className={`text-sm ${isCompleted ? "text-white" : "text-muted-foreground"}`}>
                           {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
-                          {list.createdBy && (
-                            <> • Created by {list.createdBy.name || list.createdBy.email}</>
-                          )}
+                          {" • Created by "}
+                          {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
                         </div>
                         {list.description && (
                           <div className={`text-xs mt-1 ${isCompleted ? "text-white/90" : "text-muted-foreground"}`}>{list.description}</div>

@@ -83,6 +83,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = listSchema.parse(body);
 
+    // Fetch current user to ensure we have the correct user data
+    const currentUser = await db.user.findUnique({
+      where: { id: session.user.id },
+      select: { id: true, name: true, email: true },
+    });
+
+    if (!currentUser) {
+      return NextResponse.json(
+        { error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     const list = await db.shoppingList.create({
       data: {
         yachtId: ensuredTenantId,
@@ -101,7 +114,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    return NextResponse.json(list, { status: 201 });
+    // Always use the current user for createdBy to ensure correctness
+    const responseList = {
+      ...list,
+      createdBy: currentUser,
+    };
+
+    return NextResponse.json(responseList, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
