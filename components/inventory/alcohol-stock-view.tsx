@@ -347,55 +347,80 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
             </p>
           ) : (
             <div className="space-y-4">
-              {filteredStocks.map((stock) => (
-                <div
-                  key={stock.id}
-                  className={`flex items-center justify-between p-4 border rounded-lg ${
-                    isLowStock(stock) ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm" : ""
-                  }`}
-                >
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className={`font-bold text-lg ${isLowStock(stock) ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
-                        {stock.name}
-                      </h3>
-                      {getCategoryBadge(stock.category)}
-                      {isLowStock(stock) && (
-                        <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800">
-                          <AlertTriangle className="h-3 w-3" />
-                          Low Stock
-                        </Badge>
-                      )}
+              {filteredStocks.map((stock) => {
+                const isLow = isLowStock(stock);
+                return (
+                  <div
+                    key={stock.id}
+                    className={`flex items-center justify-between p-4 border rounded-lg ${
+                      isLow
+                        ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
+                        : ""
+                    }`}
+                    style={!isLow ? { color: '#000000' } : undefined}
+                  >
+                    <div className={`flex-1 ${!isLow ? "!text-black" : ""}`} style={!isLow ? { color: '#000000' } : undefined}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3
+                          className={`font-bold text-lg ${isLow ? "text-white" : "!text-black"}`}
+                          style={!isLow ? { color: '#000000' } : undefined}
+                        >
+                          {stock.name}
+                        </h3>
+                        {getCategoryBadge(stock.category)}
+                        {isLow && (
+                          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800">
+                            <AlertTriangle className="h-3 w-3" />
+                            Low Stock
+                          </Badge>
+                        )}
+                      </div>
+                      <div
+                        className={`flex items-center gap-4 text-base font-semibold ${isLow ? "text-white" : "!text-black"}`}
+                        style={!isLow ? { color: '#000000' } : undefined}
+                      >
+                        <span>
+                          Quantity: <strong
+                            className={isLow ? "text-white font-bold text-lg" : "!text-black font-bold"}
+                            style={!isLow ? { color: '#000000' } : undefined}
+                          >
+                            {stock.quantity}
+                          </strong> {stock.unit}
+                          {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
+                        </span>
+                      </div>
                     </div>
-                    <div className={`flex items-center gap-4 text-base font-semibold ${isLowStock(stock) ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
-                      <span>
-                        Quantity: <strong className={isLowStock(stock) ? "text-white font-bold text-lg" : "text-slate-900 dark:text-slate-100 font-bold"}>
-                          {stock.quantity}
-                        </strong> {stock.unit}
-                        {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
+                    <div className="flex items-center gap-2" style={!isLow ? { color: '#000000' } : undefined}>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleUpdateQuantity(stock, -1)}
+                        className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                        style={!isLow ? { color: '#000000' } : undefined}
+                      >
+                        <Minus
+                          className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                          style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
+                        />
+                      </Button>
+                      <span
+                        className={`w-12 text-center font-semibold ${!isLow ? "!text-black" : ""}`}
+                        style={!isLow ? { color: '#000000' } : { color: '#ffffff' }}
+                      >
+                        {stock.quantity}
                       </span>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleUpdateQuantity(stock, -1)}
-                      className="h-8 w-8"
-                    >
-                      <Minus className="h-4 w-4 text-slate-900 dark:text-slate-100" />
-                    </Button>
-                    <span className={`w-12 text-center font-semibold ${isLowStock(stock) ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
-                      {stock.quantity}
-                    </span>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleUpdateQuantity(stock, 1)}
-                      className="h-8 w-8"
-                    >
-                      <Plus className="h-4 w-4 text-slate-900 dark:text-slate-100" />
-                    </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleUpdateQuantity(stock, 1)}
+                        className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                        style={!isLow ? { color: '#000000' } : undefined}
+                      >
+                        <Plus
+                          className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                          style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
+                        />
+                      </Button>
                     <Dialog
                       open={viewingHistory === stock.id}
                       onOpenChange={(open) => {
@@ -408,8 +433,16 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       }}
                     >
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-8 w-8">
-                          <History className="h-4 w-4 text-slate-900 dark:text-slate-100" />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                          style={!isLow ? { color: '#000000' } : undefined}
+                        >
+                          <History
+                            className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                            style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
+                          />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
@@ -476,8 +509,16 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       }}
                     >
                       <DialogTrigger asChild>
-                        <Button variant="outline" size="icon" className="h-8 w-8">
-                          <Settings className="h-4 w-4 text-slate-900 dark:text-slate-100" />
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                          style={!isLow ? { color: '#000000' } : undefined}
+                        >
+                          <Settings
+                            className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                            style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
+                          />
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
@@ -541,13 +582,18 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       variant="outline"
                       size="icon"
                       onClick={() => handleDeleteStock(stock.id)}
-                      className="h-8 w-8"
+                      className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                      style={!isLow ? { color: '#000000' } : undefined}
                     >
-                      <Trash2 className="h-4 w-4 text-slate-900 dark:text-slate-100" />
+                      <Trash2
+                        className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                        style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
+                      />
                     </Button>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
           )}
         </CardContent>
