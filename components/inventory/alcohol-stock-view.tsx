@@ -356,7 +356,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className={`font-bold text-lg ${isLowStock(stock) ? "text-white" : ""}`}>
+                      <h3 className={`font-bold text-lg ${isLowStock(stock) ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
                         {stock.name}
                       </h3>
                       {getCategoryBadge(stock.category)}
@@ -367,9 +367,9 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         </Badge>
                       )}
                     </div>
-                    <div className={`flex items-center gap-4 text-base font-semibold ${isLowStock(stock) ? "text-white" : "text-muted-foreground"}`}>
+                    <div className={`flex items-center gap-4 text-base font-semibold ${isLowStock(stock) ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
                       <span>
-                        Quantity: <strong className={isLowStock(stock) ? "text-white font-bold text-lg" : "font-bold"}>
+                        Quantity: <strong className={isLowStock(stock) ? "text-white font-bold text-lg" : "text-slate-900 dark:text-slate-100 font-bold"}>
                           {stock.quantity}
                         </strong> {stock.unit}
                         {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
@@ -385,7 +385,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     >
                       <Minus className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                     </Button>
-                    <span className={`w-12 text-center font-semibold ${isLowStock(stock) ? "text-white" : ""}`}>
+                    <span className={`w-12 text-center font-semibold ${isLowStock(stock) ? "text-white" : "text-slate-900 dark:text-slate-100"}`}>
                       {stock.quantity}
                     </span>
                     <Button
