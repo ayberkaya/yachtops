@@ -356,7 +356,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className={`font-semibold ${isLowStock(stock) ? "text-red-900 dark:text-red-100" : ""}`}>
+                      <h3 className={`font-bold text-lg ${isLowStock(stock) ? "text-red-900 dark:text-red-100" : ""}`}>
                         {stock.name}
                       </h3>
                       {getCategoryBadge(stock.category)}
@@ -367,9 +367,9 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         </Badge>
                       )}
                     </div>
-                    <div className={`flex items-center gap-4 text-sm ${isLowStock(stock) ? "text-red-800 dark:text-red-200" : "text-muted-foreground"}`}>
+                    <div className={`flex items-center gap-4 text-base font-semibold ${isLowStock(stock) ? "text-red-900 dark:text-red-100" : "text-muted-foreground"}`}>
                       <span>
-                        Quantity: <strong className={isLowStock(stock) ? "text-red-900 dark:text-red-100 font-bold" : ""}>
+                        Quantity: <strong className={isLowStock(stock) ? "text-red-900 dark:text-red-100 font-bold text-lg" : "font-bold"}>
                           {stock.quantity}
                         </strong> {stock.unit}
                         {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
@@ -512,6 +512,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                               placeholder="Leave empty to disable alert"
                               value={thresholdValue}
                               onChange={(e) => setThresholdValue(e.target.value)}
+                              className="h-9 text-sm"
                             />
                             <p className="text-xs text-muted-foreground mt-1">
                               Current stock: {stock.quantity} {stock.unit}
@@ -537,12 +538,12 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       </DialogContent>
                     </Dialog>
                     <Button
-                      variant="destructive"
+                      variant="outline"
                       size="icon"
                       onClick={() => handleDeleteStock(stock.id)}
                       className="h-8 w-8"
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                     </Button>
                   </div>
                 </div>
