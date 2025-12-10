@@ -17,7 +17,11 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {isOwnerOrCaptain ? <OwnerCaptainDashboard /> : <CrewDashboard />}
+      {isOwnerOrCaptain ? (
+        <OwnerCaptainDashboard user={user} />
+      ) : (
+        <CrewDashboard user={user} />
+      )}
     </div>
   );
 }

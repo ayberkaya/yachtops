@@ -1,24 +1,22 @@
-import { getSession } from "@/lib/get-session";
+import type { Session } from "next-auth";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import Link from "next/link";
-import { ExpenseStatus, TaskStatus, UserRole } from "@prisma/client";
+import { ExpenseStatus, TaskStatus } from "@prisma/client";
 import { format, differenceInDays, isPast, isToday } from "date-fns";
 import { DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Package, FileText, Wrench, Bell } from "lucide-react";
 import { hasPermission } from "@/lib/permissions";
 import { MonthlyReportDownload } from "./monthly-report-download";
 import { QuickActions } from "./quick-actions";
 
-export async function OwnerCaptainDashboard() {
-  const session = await getSession();
-  if (!session?.user) return null;
+type DashboardUser = NonNullable<Session["user"]>;
 
-  // Fetch pending expenses
-  const pendingExpenses = await db.expense.findMany({
+export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
+  const pendingExpensesPromise = db.expense.findMany({
     where: {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: user.yachtId || undefined,
       status: ExpenseStatus.SUBMITTED,
     },
     include: {
@@ -36,10 +34,9 @@ export async function OwnerCaptainDashboard() {
     take: 5,
   });
 
-  // Fetch recent expenses
-  const recentExpenses = await db.expense.findMany({
+  const recentExpensesPromise = db.expense.findMany({
     where: {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: user.yachtId || undefined,
     },
     include: {
       createdBy: {
@@ -53,10 +50,9 @@ export async function OwnerCaptainDashboard() {
     take: 5,
   });
 
-  // Fetch upcoming trips
-  const upcomingTrips = await db.trip.findMany({
+  const upcomingTripsPromise = db.trip.findMany({
     where: {
-      yachtId: session.user.yachtId || undefined,
+      yachtId: user.yachtId || undefined,
       startDate: {
         gte: new Date(),
       },
@@ -65,94 +61,41 @@ export async function OwnerCaptainDashboard() {
     take: 5,
   });
 
-  // Calculate totals
-  const totalPendingAmount = pendingExpenses.reduce(
-    (sum, exp) => sum + Number(exp.baseAmount || exp.amount),
-    0
-  );
-
-  // Fetch low stock alcohol items (if user has inventory permission)
-  const lowStockItems: any[] = [];
-  if (hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
-    const allStocks = await db.alcoholStock.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-    });
-    
-    lowStockItems.push(
-      ...allStocks.filter((stock) => {
-        if (stock.lowStockThreshold === null) return false;
-        return stock.quantity <= stock.lowStockThreshold;
-      })
-    );
-  }
-
-  // Fetch expiring marina permissions (if user has documents permission)
-  const expiringPermissions: any[] = [];
-  if (hasPermission(session.user, "documents.marina.view", session.user.permissions)) {
-    const allPermissions = await db.marinaPermissionDocument.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-        expiryDate: {
-          not: null,
-        },
-      },
-    });
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    expiringPermissions.push(
-      ...allPermissions.filter((perm) => {
-        if (!perm.expiryDate) return false;
-        const expiry = new Date(perm.expiryDate);
-        expiry.setHours(0, 0, 0, 0);
-        
-        // Show if expired or expiring within 30 days
-        if (isPast(expiry) && !isToday(expiry)) return true;
-        const daysUntilExpiry = differenceInDays(expiry, today);
-        return daysUntilExpiry <= 30;
-      })
-    );
-  }
-
-  // Fetch upcoming maintenance (if user has maintenance permission)
-  const upcomingMaintenance: any[] = [];
-  if (hasPermission(session.user, "maintenance.view", session.user.permissions)) {
-    const allMaintenance = await db.maintenanceLog.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-        nextDueDate: {
-          not: null,
-        },
-      },
-    });
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    upcomingMaintenance.push(
-      ...allMaintenance.filter((maint) => {
-        if (!maint.nextDueDate) return false;
-        const dueDate = new Date(maint.nextDueDate);
-        dueDate.setHours(0, 0, 0, 0);
-
-        // Show if due within 30 days
-        const daysUntilDue = differenceInDays(dueDate, today);
-        return daysUntilDue <= 30 && daysUntilDue >= 0;
-      })
-    );
-  }
-
-  // Fetch tasks assigned to my role (if user has tasks permission)
-  const roleAssignedTasks: any[] = [];
-  if (hasPermission(session.user, "tasks.view", session.user.permissions)) {
-    roleAssignedTasks.push(
-      ...(await db.task.findMany({
+  const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions)
+    ? db.alcoholStock.findMany({
         where: {
-          yachtId: session.user.yachtId || undefined,
-          assigneeRole: session.user.role,
+          yachtId: user.yachtId || undefined,
+        },
+      })
+    : Promise.resolve([]);
+
+  const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions)
+    ? db.marinaPermissionDocument.findMany({
+        where: {
+          yachtId: user.yachtId || undefined,
+          expiryDate: {
+            not: null,
+          },
+        },
+      })
+    : Promise.resolve([]);
+
+  const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions)
+    ? db.maintenanceLog.findMany({
+        where: {
+          yachtId: user.yachtId || undefined,
+          nextDueDate: {
+            not: null,
+          },
+        },
+      })
+    : Promise.resolve([]);
+
+  const roleTasksPromise = hasPermission(user, "tasks.view", user.permissions)
+    ? db.task.findMany({
+        where: {
+          yachtId: user.yachtId || undefined,
+          assigneeRole: user.role,
           status: {
             not: TaskStatus.DONE,
           },
@@ -163,9 +106,60 @@ export async function OwnerCaptainDashboard() {
           },
         },
         orderBy: { dueDate: "asc" },
-      }))
-    );
-  }
+      })
+    : Promise.resolve([]);
+
+  const [
+    pendingExpenses,
+    recentExpenses,
+    upcomingTrips,
+    alcoholStocks,
+    marinaPermissions,
+    maintenanceLogs,
+    roleAssignedTasks,
+  ] = await Promise.all([
+    pendingExpensesPromise,
+    recentExpensesPromise,
+    upcomingTripsPromise,
+    alcoholStocksPromise,
+    marinaPermissionsPromise,
+    maintenanceLogsPromise,
+    roleTasksPromise,
+  ]);
+
+  const totalPendingAmount = pendingExpenses.reduce(
+    (sum, exp) => sum + Number(exp.baseAmount || exp.amount),
+    0
+  );
+
+  const lowStockItems = alcoholStocks.filter((stock) => {
+    if (stock.lowStockThreshold === null) return false;
+    return stock.quantity <= stock.lowStockThreshold;
+  });
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const expiringPermissions = marinaPermissions.filter((perm) => {
+    if (!perm.expiryDate) return false;
+    const expiry = new Date(perm.expiryDate);
+    expiry.setHours(0, 0, 0, 0);
+
+    // Show if expired or expiring within 30 days
+    if (isPast(expiry) && !isToday(expiry)) return true;
+    const daysUntilExpiry = differenceInDays(expiry, today);
+    return daysUntilExpiry <= 30;
+  });
+
+  const upcomingMaintenance = maintenanceLogs.filter((maint) => {
+    if (!maint.nextDueDate) return false;
+    const dueDate = new Date(maint.nextDueDate);
+    dueDate.setHours(0, 0, 0, 0);
+
+    // Show if due within 30 days
+    const daysUntilDue = differenceInDays(dueDate, today);
+    return daysUntilDue <= 30 && daysUntilDue >= 0;
+  });
 
   return (
     <div className="space-y-6">
@@ -173,7 +167,7 @@ export async function OwnerCaptainDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {session.user.name || session.user.email}
+            Welcome back, {user.name || user.email}
           </p>
         </div>
         <QuickActions />
@@ -187,7 +181,7 @@ export async function OwnerCaptainDashboard() {
               <div className="flex items-center gap-3">
                 <Bell className="h-6 w-6 text-red-600 dark:text-red-400 animate-bounce" />
                 <CardTitle className="text-red-900 dark:text-red-100 text-lg font-bold">
-                  New Tasks Assigned to {session.user.role}
+                  New Tasks Assigned to {user.role}
                 </CardTitle>
               </div>
               <Button asChild variant="outline" size="sm" className="border-red-300 hover:bg-red-100 dark:hover:bg-red-900">
