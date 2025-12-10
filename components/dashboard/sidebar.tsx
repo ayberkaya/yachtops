@@ -706,7 +706,7 @@ export function Sidebar() {
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
-  const navContentRef = useRef<HTMLNavElement>(null);
+  const navContentRef = useRef<HTMLElement>(null);
   const scrollPositionRef = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
