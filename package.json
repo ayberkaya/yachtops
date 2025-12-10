@@ -6,7 +6,7 @@
     "dev": "next dev",
     "dev:webpack": "next dev --webpack",
     "dev:mobile": "next dev -H 0.0.0.0",
-    "build": "prisma generate && next build",
+    "build": "NEXT_TURBOPACK=0 prisma generate && next build --webpack",
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",

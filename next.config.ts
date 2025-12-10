@@ -18,10 +18,6 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
 
-  // Use Turbopack (default in Next.js 16)
-  // Empty config to silence the warning
-  turbopack: {},
-
   // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/yachtops-next locally to avoid iCloud path issues.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
