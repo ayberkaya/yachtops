@@ -162,7 +162,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
       BEER: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
     };
     return (
-      <Badge className={colors[category]}>
+      <Badge className={`${colors[category]} text-[10px] px-1.5 py-0.5 leading-tight`}>
         {category}
       </Badge>
     );
@@ -352,36 +352,40 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 return (
                   <div
                     key={stock.id}
-                    className={`flex items-center justify-between p-4 border rounded-lg ${
+                    className={`relative flex items-center justify-between py-3 px-4 border rounded-lg ${
                       isLow
                         ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
                         : ""
                     }`}
                     style={!isLow ? { color: '#000000' } : undefined}
                   >
+                    {getCategoryBadge(stock.category) && (
+                      <div className="absolute -top-[14px] left-0 z-10">
+                        {getCategoryBadge(stock.category)}
+                      </div>
+                    )}
                     <div className={`flex-1 ${!isLow ? "!text-black" : ""}`} style={!isLow ? { color: '#000000' } : undefined}>
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-0.5">
                         <h3
-                          className={`font-bold text-lg ${isLow ? "text-white" : "!text-black"}`}
+                          className={`font-bold text-base ${isLow ? "text-white" : "!text-black"}`}
                           style={!isLow ? { color: '#000000' } : undefined}
                         >
                           {stock.name}
                         </h3>
-                        {getCategoryBadge(stock.category)}
                         {isLow && (
-                          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800">
-                            <AlertTriangle className="h-3 w-3" />
+                          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800 text-[10px] px-1.5 py-0.5">
+                            <AlertTriangle className="h-2.5 w-2.5" />
                             Low Stock
                           </Badge>
                         )}
                       </div>
                       <div
-                        className={`flex items-center gap-4 text-base font-semibold ${isLow ? "text-white" : "!text-black"}`}
+                        className={`flex items-center gap-4 text-sm font-semibold ${isLow ? "text-white" : "!text-black"}`}
                         style={!isLow ? { color: '#000000' } : undefined}
                       >
                         <span>
                           Quantity: <strong
-                            className={isLow ? "text-white font-bold text-lg" : "!text-black font-bold"}
+                            className={`font-bold text-sm ${isLow ? "text-white" : "!text-black"}`}
                             style={!isLow ? { color: '#000000' } : undefined}
                           >
                             {stock.quantity}
@@ -553,7 +557,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                               placeholder="Leave empty to disable alert"
                               value={thresholdValue}
                               onChange={(e) => setThresholdValue(e.target.value)}
-                              className="h-9 text-sm"
+                              className="h-9 text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
                             />
                             <p className="text-xs text-muted-foreground mt-1">
                               Current stock: {stock.quantity} {stock.unit}
