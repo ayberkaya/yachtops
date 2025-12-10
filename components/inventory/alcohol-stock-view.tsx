@@ -351,25 +351,25 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 <div
                   key={stock.id}
                   className={`flex items-center justify-between p-4 border rounded-lg ${
-                    isLowStock(stock) ? "border-red-600 bg-red-50 dark:bg-red-950/30 shadow-sm" : ""
+                    isLowStock(stock) ? "border-red-600 bg-red-600 dark:bg-red-700 shadow-sm" : ""
                   }`}
                 >
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className={`font-bold text-lg ${isLowStock(stock) ? "text-red-900 dark:text-red-100" : ""}`}>
+                      <h3 className={`font-bold text-lg ${isLowStock(stock) ? "text-white" : ""}`}>
                         {stock.name}
                       </h3>
                       {getCategoryBadge(stock.category)}
                       {isLowStock(stock) && (
-                        <Badge variant="destructive" className="gap-1 bg-red-600 hover:bg-red-700 border-red-700">
+                        <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800">
                           <AlertTriangle className="h-3 w-3" />
                           Low Stock
                         </Badge>
                       )}
                     </div>
-                    <div className={`flex items-center gap-4 text-base font-semibold ${isLowStock(stock) ? "text-red-900 dark:text-red-100" : "text-muted-foreground"}`}>
+                    <div className={`flex items-center gap-4 text-base font-semibold ${isLowStock(stock) ? "text-white" : "text-muted-foreground"}`}>
                       <span>
-                        Quantity: <strong className={isLowStock(stock) ? "text-red-900 dark:text-red-100 font-bold text-lg" : "font-bold"}>
+                        Quantity: <strong className={isLowStock(stock) ? "text-white font-bold text-lg" : "font-bold"}>
                           {stock.quantity}
                         </strong> {stock.unit}
                         {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
@@ -383,7 +383,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       onClick={() => handleUpdateQuantity(stock, -1)}
                       className="h-8 w-8"
                     >
-                      <Minus className="h-4 w-4" />
+                      <Minus className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                     </Button>
                     <span className="w-12 text-center font-semibold">
                       {stock.quantity}
@@ -394,7 +394,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       onClick={() => handleUpdateQuantity(stock, 1)}
                       className="h-8 w-8"
                     >
-                      <Plus className="h-4 w-4" />
+                      <Plus className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                     </Button>
                     <Dialog
                       open={viewingHistory === stock.id}
@@ -409,7 +409,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     >
                       <DialogTrigger asChild>
                         <Button variant="outline" size="icon" className="h-8 w-8">
-                          <History className="h-4 w-4" />
+                          <History className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent className="max-w-2xl">
@@ -477,7 +477,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     >
                       <DialogTrigger asChild>
                         <Button variant="outline" size="icon" className="h-8 w-8">
-                          <Settings className="h-4 w-4" />
+                          <Settings className="h-4 w-4 text-slate-900 dark:text-slate-100" />
                         </Button>
                       </DialogTrigger>
                       <DialogContent>
