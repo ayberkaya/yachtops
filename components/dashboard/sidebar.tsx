@@ -706,6 +706,8 @@ export function Sidebar() {
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
+  const navContentRef = useRef<HTMLNavElement>(null);
+  const scrollPositionRef = useRef<number>(0);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsOpenDesktop, setSettingsOpenDesktop] = useState(false);
@@ -1050,8 +1052,32 @@ export function Sidebar() {
     const expandedSet = isMobile ? mobileExpandedItems : desktopExpandedItems;
     const setExpanded = isMobile ? setMobileExpandedItems : setDesktopExpandedItems;
 
+    // Save scroll position when scrolling
+    useEffect(() => {
+      if (!isMobile && navContentRef.current) {
+        const nav = navContentRef.current;
+        const handleScroll = () => {
+          scrollPositionRef.current = nav.scrollTop;
+        };
+        nav.addEventListener('scroll', handleScroll);
+        return () => nav.removeEventListener('scroll', handleScroll);
+      }
+    }, [isMobile]);
+
+    // Restore scroll position when sidebar expands
+    useEffect(() => {
+      if (!isMobile && navContentRef.current && isExpanded) {
+        // Use requestAnimationFrame to ensure DOM is updated
+        requestAnimationFrame(() => {
+          if (navContentRef.current) {
+            navContentRef.current.scrollTop = scrollPositionRef.current;
+          }
+        });
+      }
+    }, [isExpanded, isMobile]);
+
     return (
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
+      <nav ref={navContentRef} className="flex-1 overflow-y-auto pt-6 pb-4 px-3 space-y-1" style={{ minHeight: 0 }}>
         {navItems.map((item) => {
           const Icon = item.icon;
           const containerExpanded = isMobile ? true : isExpanded;
@@ -1212,25 +1238,15 @@ export function Sidebar() {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        {/* Hamburger Menu Button */}
-        <div className={`p-3 border-b border-border bg-secondary ${isExpanded ? "" : "flex justify-center"}`}>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg hover:bg-accent transition-colors"
-            title={isCollapsed ? "Expand menu" : "Collapse menu"}
-          >
-            <Menu className="h-5 w-5 text-foreground" />
-          </button>
-        </div>
 
         {/* Logo & Notification Section */}
-        <div className="border-b border-border bg-secondary p-6">
-          {isExpanded ? (
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                  <Anchor className="text-primary-foreground w-6 h-6" />
-                </div>
+        <div className="border-b border-border bg-secondary h-[140px] flex items-center justify-center p-6">
+          <div className={`flex ${isExpanded ? 'items-center justify-between w-full' : 'flex-col items-center justify-center'} gap-3`}>
+            <div className={`flex items-center ${isExpanded ? 'space-x-3' : 'flex-col'}`}>
+              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
+                <Anchor className="text-primary-foreground w-6 h-6" />
+              </div>
+              {isExpanded && (
                 <div>
                   <span className="font-bold text-lg tracking-wider block text-foreground">
                     YACHT
@@ -1239,17 +1255,12 @@ export function Sidebar() {
                     Operations
                   </span>
                 </div>
-              </div>
+              )}
+            </div>
+            <div className={isExpanded ? '' : 'mt-2'}>
               <DashboardNotificationsPanel />
             </div>
-          ) : (
-            <div className="flex flex-col items-center gap-3">
-              <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
-                <Anchor className="text-primary-foreground w-6 h-6" />
-              </div>
-              <DashboardNotificationsPanel />
-            </div>
-          )}
+          </div>
         </div>
 
         {/* Navigation */}
