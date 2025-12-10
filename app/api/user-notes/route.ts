@@ -9,7 +9,7 @@ const createSchema = z.object({
   title: z.string().min(1, "Title is required").max(120, "Title is too long"),
 });
 
-export const noteLineSchema = z.discriminatedUnion("type", [
+const noteLineSchema = z.discriminatedUnion("type", [
   z.object({
     id: z.string(),
     type: z.literal("text"),
@@ -39,7 +39,7 @@ const legacyChecklistSchema = z.object({
 
 type NoteLine = z.infer<typeof noteLineSchema>;
 
-export const normalizeContent = (raw: unknown): NoteLine[] => {
+const normalizeContent = (raw: unknown): NoteLine[] => {
   if (!Array.isArray(raw)) {
     return [
       {
