@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { OfflineIndicator } from "@/components/pwa/offline-indicator";
+import { SyncStatus } from "@/components/pwa/sync-status";
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -57,6 +58,7 @@ export default function RootLayout({
           <ServiceWorkerRegister />
           <InstallPrompt />
           <OfflineIndicator />
+          <SyncStatus />
         </Providers>
         {/* <SpeedInsights /> */}
       </body>
