@@ -610,27 +610,21 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
           return (
             <div
               key={item.id}
-              className="flex items-start gap-3 rounded-md border p-3 transition hover:bg-muted/40"
+              className="flex items-center gap-3 rounded-md border p-3 transition hover:bg-muted/40"
             >
               <Checkbox
                 checked={item.completed}
                 disabled={disableInteractions || isCheckboxSaving}
                 onCheckedChange={(checked) => handleToggle(item, !!checked)}
-                className="mt-0.5"
               />
               <div className="flex-1 space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium">{item.title}</span>
                   {item.completed && (
                     <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                      <UserCheck className="h-4 w-4 text-emerald-600" />
+                      <UserCheck className="h-[25px] w-[25px] text-emerald-600" />
                       <span>{who || "Completed by"}</span>
                     </span>
-                  )}
-                  {isCheckboxSaving && (
-                    <Badge variant="secondary" className="text-[10px]">
-                      Kaydediliyor...
-                    </Badge>
                   )}
                 </div>
                 <p className="text-xs text-muted-foreground">
