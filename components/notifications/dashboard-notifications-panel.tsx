@@ -7,7 +7,6 @@ import { format } from "date-fns";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useNotifications } from "./notifications-provider";
@@ -224,7 +223,7 @@ export function DashboardNotificationsPanel() {
                 You're all caught up! No notifications yet.
               </div>
             ) : (
-              <ScrollArea className="max-h-64 pr-3">
+              <div className="max-h-[80vh] overflow-y-auto pr-3">
                 <div className="space-y-3">
                   {financeAlerts.map((alert) => {
                     const isLowStock = alert.id === "inventory-low-stock";
@@ -299,7 +298,7 @@ export function DashboardNotificationsPanel() {
                     </div>
                   ))}
                 </div>
-              </ScrollArea>
+              </div>
             )}
           </CardContent>
         </Card>
