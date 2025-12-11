@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
     doc.setFontSize(16);
     doc.setFont("helvetica", "bold");
     doc.setTextColor(20, 184, 166);
-    doc.text("⚓ YachtOps", margin, 15);
+    doc.text("⚓ HelmOps", margin, 15);
     doc.setTextColor(0, 0, 0);
 
     doc.setFontSize(20);
@@ -214,7 +214,7 @@ export async function GET(request: NextRequest) {
     doc.text("Operations Report", pageWidth / 2, yPos, { align: "center" });
     yPos += 10;
     doc.setFontSize(14);
-    doc.text(yacht?.name || "Yacht Operations", pageWidth / 2, yPos, { align: "center" });
+    doc.text(yacht?.name || "Helm Operations", pageWidth / 2, yPos, { align: "center" });
     yPos += 8;
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");
@@ -346,7 +346,7 @@ export async function GET(request: NextRequest) {
       doc.setFont("helvetica", "normal");
       doc.setTextColor(107, 114, 128);
       doc.text(
-        `Generated on ${format(new Date(), "MMMM d, yyyy 'at' HH:mm")} • YachtOps`,
+        `Generated on ${format(new Date(), "MMMM d, yyyy 'at' HH:mm")} • HelmOps`,
         pageWidth / 2,
         285,
         { align: "center" }

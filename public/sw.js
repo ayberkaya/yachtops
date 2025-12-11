@@ -1,6 +1,6 @@
-// Service Worker for YachtOps PWA (offline-first with API caching)
-const CACHE_NAME = "yachtops-static-v2";
-const API_CACHE_NAME = "yachtops-api-v1";
+// Service Worker for HelmOps PWA (offline-first with API caching)
+const CACHE_NAME = "helmops-static-v2";
+const API_CACHE_NAME = "helmops-api-v1";
 
 const PRECACHE_URLS = [
   "/",

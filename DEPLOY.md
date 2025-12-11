@@ -1,6 +1,6 @@
 # 🚀 Hızlı Deploy Rehberi - Link Paylaşımı İçin
 
-Bu rehber, YachtOps uygulamasını hızlıca deploy edip link paylaşmak için gereken adımları içerir.
+Bu rehber, HelmOps uygulamasını hızlıca deploy edip link paylaşmak için gereken adımları içerir.
 
 ## 🎯 Amaç
 
@@ -34,7 +34,7 @@ git push origin main
    - `NEXTAUTH_SECRET` - `openssl rand -base64 32` ile oluşturun
 7. "Deploy" butonuna tıklayın
 8. 2-3 dakika içinde deploy tamamlanır
-9. **Link hazır!** Örnek: `https://yachtops.vercel.app`
+9. **Link hazır!** Örnek: `https://helmops.vercel.app`
 
 **Yöntem B: Vercel CLI (Hızlı)**
 
@@ -53,7 +53,7 @@ vercel --prod
 
 Deploy tamamlandıktan sonra:
 - Vercel dashboard'da projenizin URL'i görünecek
-- Örnek: `https://yachtops-xyz.vercel.app`
+- Örnek: `https://helmops-xyz.vercel.app`
 - Bu linki karşı tarafa gönderin
 
 ## 🌐 Alternatif: Netlify
@@ -77,7 +77,7 @@ git push
    - Publish directory: `.next`
 6. Environment variables ekleyin
 7. "Deploy site" butonuna tıklayın
-8. Link hazır! Örnek: `https://yachtops.netlify.app`
+8. Link hazır! Örnek: `https://helmops.netlify.app`
 
 ## 📱 PWA Olarak Kullanım
 
@@ -100,7 +100,7 @@ Deploy sırasında şu environment variables'ları ekleyin:
 ### Zorunlu:
 
 ```env
-DATABASE_URL=postgresql://user:password@host:5432/yachtops?schema=public
+DATABASE_URL=postgresql://user:password@host:5432/helmops?schema=public
 NEXTAUTH_URL=https://your-app.vercel.app
 NEXTAUTH_SECRET=your-secret-key-here
 ```
@@ -143,7 +143,7 @@ openssl rand -base64 32
 
 ```bash
 #!/bin/bash
-echo "🚀 Deploying YachtOps to Vercel..."
+echo "🚀 Deploying HelmOps to Vercel..."
 
 # GitHub'a push
 git add .

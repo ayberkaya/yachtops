@@ -1,6 +1,6 @@
-# YachtOps - Yacht Operations Management System
+# HelmOps - Helm Operations Management System
 
-Production-ready yacht operations management system for private and charter yachts.
+Production-ready helm operations management system for private and charter yachts.
 
 ## 🔗 Hızlı Link Paylaşımı
 
@@ -19,7 +19,7 @@ Create a `.env` file in the root directory:
 
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/helmops?schema=public"
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"
@@ -35,12 +35,12 @@ openssl rand -base64 32
 
 #### Option A: Local PostgreSQL (Docker)
 ```bash
-docker run --name yachtops-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=yachtops -p 5432:5432 -d postgres:16
+docker run --name helmops-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=helmops -p 5432:5432 -d postgres:16
 ```
 
 Then use:
 ```
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/helmops?schema=public"
 ```
 
 #### Option B: Cloud Database
@@ -61,9 +61,9 @@ npm run db:seed
 
 This creates:
 - A yacht: "Sea Breeze"
-- Owner: `owner@yachtops.com` / `owner123`
-- Captain: `captain@yachtops.com` / `captain123`
-- Crew: `crew@yachtops.com` / `crew123`
+- Owner: `owner@helmops.com` / `owner123`
+- Captain: `captain@helmops.com` / `captain123`
+- Crew: `crew@helmops.com` / `crew123`
 - Expense categories
 - Sample trip
 
@@ -123,7 +123,7 @@ Open [http://localhost:3000](http://localhost:3000)
 ## 📁 Project Structure
 
 ```
-yachtops/
+helmops/
 ├── app/                    # Next.js App Router
 │   ├── api/               # API routes
 │   ├── auth/              # Authentication pages
@@ -150,7 +150,7 @@ yachtops/
 
 ## 📱 PWA (Progressive Web App)
 
-YachtOps bir PWA olarak çalışır ve cihazlara yüklenebilir.
+HelmOps bir PWA olarak çalışır ve cihazlara yüklenebilir.
 
 ### PWA Özellikleri
 

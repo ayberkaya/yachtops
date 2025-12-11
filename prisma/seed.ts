@@ -32,7 +32,7 @@ async function main() {
   // Create owner
   const ownerPassword = await bcrypt.hash("owner123", 10);
   const owner = await prisma.user.upsert({
-    where: { email: "owner@yachtops.com" },
+    where: { email: "owner@helmops.com" },
     update: {
       passwordHash: ownerPassword,
       name: "John Owner",
@@ -41,7 +41,7 @@ async function main() {
       username: "owner",
     },
     create: {
-      email: "owner@yachtops.com",
+      email: "owner@helmops.com",
       passwordHash: ownerPassword,
       name: "John Owner",
       role: UserRole.OWNER,
@@ -55,7 +55,7 @@ async function main() {
   // Create captain
   const captainPassword = await bcrypt.hash("captain123", 10);
   const captain = await prisma.user.upsert({
-    where: { email: "captain@yachtops.com" },
+    where: { email: "captain@helmops.com" },
     update: {
       passwordHash: captainPassword,
       name: "Sarah Captain",
@@ -64,7 +64,7 @@ async function main() {
       username: "captain",
     },
     create: {
-      email: "captain@yachtops.com",
+      email: "captain@helmops.com",
       passwordHash: captainPassword,
       name: "Sarah Captain",
       role: UserRole.CAPTAIN,
@@ -78,7 +78,7 @@ async function main() {
   // Create crew member
   const crewPassword = await bcrypt.hash("crew123", 10);
   const crew = await prisma.user.upsert({
-    where: { email: "crew@yachtops.com" },
+    where: { email: "crew@helmops.com" },
     update: {
       passwordHash: crewPassword,
       name: "Mike Crew",
@@ -87,7 +87,7 @@ async function main() {
       username: "crew",
     },
     create: {
-      email: "crew@yachtops.com",
+      email: "crew@helmops.com",
       passwordHash: crewPassword,
       name: "Mike Crew",
       role: UserRole.CREW,
@@ -173,9 +173,9 @@ async function main() {
 
   console.log("\n🎉 Seeding completed!");
   console.log("\n📝 Test credentials:");
-  console.log("  Owner:   owner@yachtops.com / owner123");
-  console.log("  Captain: captain@yachtops.com / captain123");
-  console.log("  Crew:    crew@yachtops.com / crew123");
+  console.log("  Owner:   owner@helmops.com / owner123");
+  console.log("  Captain: captain@helmops.com / captain123");
+  console.log("  Crew:    crew@helmops.com / crew123");
 }
 
 main()

@@ -1,4 +1,4 @@
-# YachtOps - Setup Instructions
+# HelmOps - Setup Instructions
 
 ## Initial Setup
 
@@ -8,7 +8,7 @@ Create a `.env` file in the root directory with the following:
 
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/helmops?schema=public"
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"
@@ -26,12 +26,12 @@ NEXTAUTH_SECRET="your-secret-key-here-change-in-production"
 If you have Docker installed, you can run:
 
 ```bash
-docker run --name yachtops-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=yachtops -p 5432:5432 -d postgres:16
+docker run --name helmops-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=helmops -p 5432:5432 -d postgres:16
 ```
 
 Then update your `.env`:
 ```
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/helmops?schema=public"
 ```
 
 #### Option B: Cloud Database (Supabase/Neon)
@@ -72,7 +72,7 @@ The app will be available at `http://localhost:3000`
 ## Project Structure
 
 ```
-yachtops/
+helmops/
 ├── app/                    # Next.js App Router pages and routes
 ├── components/             # React components
 │   └── ui/                # shadcn/ui components

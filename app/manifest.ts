@@ -2,9 +2,9 @@ import { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'YachtOps - Yacht Operations Management',
-    short_name: 'YachtOps',
-    description: 'Complete yacht operations management system',
+    name: 'HelmOps - Helm Operations Management',
+    short_name: 'HelmOps',
+    description: 'Complete helm operations management system',
     start_url: '/dashboard',
     display: 'standalone',
     background_color: '#ffffff',

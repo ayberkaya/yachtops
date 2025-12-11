@@ -1,6 +1,6 @@
 # PWA (Progressive Web App) Setup
 
-YachtOps uygulaması PWA desteği ile gelir. Bu dokümantasyon PWA özelliklerini ve kurulumunu açıklar.
+HelmOps uygulaması PWA desteği ile gelir. Bu dokümantasyon PWA özelliklerini ve kurulumunu açıklar.
 
 ## 📱 PWA Özellikleri
 

@@ -1,13 +1,13 @@
-# ⚡ Hızlı Başlangıç - YachtOps PWA
+# ⚡ Hızlı Başlangıç - HelmOps PWA
 
-Bu rehber, YachtOps uygulamasını en hızlı şekilde çalıştırmak için gereken adımları içerir.
+Bu rehber, HelmOps uygulamasını en hızlı şekilde çalıştırmak için gereken adımları içerir.
 
 ## 🎯 5 Dakikada Başlangıç
 
 ### 1. Projeyi İndirin ve Bağımlılıkları Yükleyin
 
 ```bash
-cd yachtops
+cd helmops
 npm install
 ```
 
@@ -26,7 +26,7 @@ npm install
 `.env` dosyası oluşturun:
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/helmops?schema=public"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="$(openssl rand -base64 32)"
 ```
@@ -35,9 +35,9 @@ NEXTAUTH_SECRET="$(openssl rand -base64 32)"
 
 ```bash
 # PostgreSQL başlatın (Docker ile)
-docker run --name yachtops-postgres \
+docker run --name helmops-postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=yachtops \
+  -e POSTGRES_DB=helmops \
   -p 5432:5432 \
   -d postgres:16
 

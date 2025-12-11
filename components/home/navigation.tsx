@@ -15,7 +15,7 @@ export function Navigation() {
               <Anchor className="h-5 w-5 text-primary" />
             </div>
             <span className="text-xl font-semibold text-foreground">
-              YachtOps
+              HelmOps
             </span>
           </div>
           <div className="flex items-center gap-2 sm:gap-4">

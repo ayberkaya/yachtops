@@ -2,7 +2,7 @@
 
 ## ❌ Sorun
 
-Preview URL'leri (`yachtops-fl32tm3js-ayberkayas-projects.vercel.app`) bazen Vercel hesabı gerektirebilir ve herkesin erişemeyeceği durumlar olabilir.
+Preview URL'leri (`helmops-fl32tm3js-ayberkayas-projects.vercel.app`) bazen Vercel hesabı gerektirebilir ve herkesin erişemeyeceği durumlar olabilir.
 
 ## ✅ Çözüm: Production Domain Kullanın
 
@@ -12,13 +12,13 @@ Preview URL'leri (`yachtops-fl32tm3js-ayberkayas-projects.vercel.app`) bazen Ver
 2. **"Deployments"** sekmesine tıklayın
 3. **"Production"** etiketli deployment'ı bulun
 4. Production deployment'ın URL'ine tıklayın
-5. URL şu formatta olmalı: `https://yachtops-xyz.vercel.app` (preview URL değil!)
+5. URL şu formatta olmalı: `https://helmops-xyz.vercel.app` (preview URL değil!)
 
 ### Adım 2: Production Domain'i Paylaşın
 
 Production URL'i şu formatta olmalı:
-- ✅ `https://yachtops-xyz.vercel.app` (Production)
-- ❌ `https://yachtops-fl32tm3js-ayberkayas-projects.vercel.app` (Preview)
+- ✅ `https://helmops-xyz.vercel.app` (Production)
+- ❌ `https://helmops-fl32tm3js-ayberkayas-projects.vercel.app` (Preview)
 
 ### Adım 3: Preview Deployment'ları Public Yapın (Opsiyonel)
 
@@ -37,7 +37,7 @@ Daha profesyonel bir URL için custom domain ekleyebilirsiniz:
 
 1. Vercel Dashboard → Projeniz → **Settings** → **Domains**
 2. **"Add Domain"** butonuna tıklayın
-3. Domain'inizi girin (örn: `yachtops.com`)
+3. Domain'inizi girin (örn: `helmops.com`)
 4. DNS ayarlarını yapın (Vercel size talimat verecek)
 5. Domain aktif olduktan sonra herkes erişebilir!
 
@@ -47,7 +47,7 @@ Daha profesyonel bir URL için custom domain ekleyebilirsiniz:
 
 1. Vercel Dashboard → Projeniz
 2. Üst kısımda **"Domains"** sekmesine tıklayın
-3. Production domain'i göreceksiniz: `yachtops-xyz.vercel.app`
+3. Production domain'i göreceksiniz: `helmops-xyz.vercel.app`
 
 ### Yöntem 2: Deployments Sekmesi
 
@@ -72,5 +72,5 @@ Bu komut tüm deployment'ları listeler. Production olanı bulun.
 
 ## 🎯 Sonuç
 
-Production domain'i (`yachtops-xyz.vercel.app`) herkesin erişebileceği public bir URL'dir. Preview URL'leri yerine bu URL'i kullanın!
+Production domain'i (`helmops-xyz.vercel.app`) herkesin erişebileceği public bir URL'dir. Preview URL'leri yerine bu URL'i kullanın!
 

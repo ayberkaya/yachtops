@@ -31,7 +31,7 @@ DATABASE_URL="postgresql://postgres.xxxxx:[YOUR-PASSWORD]@aws-0-eu-central-1.poo
 ## Migration Çalıştır
 
 ```bash
-cd yachtops
+cd helmops
 npx prisma migrate dev --name init
 ```
 
@@ -51,7 +51,7 @@ Tarayıcıda: http://localhost:3000
 
 ## Test Hesapları (seed sonrası)
 
-- **Owner**: `owner@yachtops.com` / `owner123`
-- **Captain**: `captain@yachtops.com` / `captain123`
-- **Crew**: `crew@yachtops.com` / `crew123`
+- **Owner**: `owner@helmops.com` / `owner123`
+- **Captain**: `captain@helmops.com` / `captain123`
+- **Crew**: `crew@helmops.com` / `crew123`
 

@@ -35,8 +35,8 @@
     ".next/types/**/*.ts",
     ".next/dev/types/**/*.ts",
     "**/*.mts",
-    "/tmp/yachtops-next/types/**/*.ts",
-    "/tmp/yachtops-next/dev/types/**/*.ts"
+    "/tmp/helmops-next/types/**/*.ts",
+    "/tmp/helmops-next/dev/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"

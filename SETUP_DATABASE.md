@@ -5,16 +5,16 @@
 If you have Docker installed, run:
 
 ```bash
-docker run --name yachtops-postgres \
+docker run --name helmops-postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=yachtops \
+  -e POSTGRES_DB=helmops \
   -p 5432:5432 \
   -d postgres:16
 ```
 
 Then update your `.env` file:
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5432/helmops?schema=public"
 ```
 
 ## Option 2: Local PostgreSQL
@@ -23,12 +23,12 @@ If you have PostgreSQL installed locally:
 
 1. Create a database:
 ```bash
-createdb yachtops
+createdb helmops
 ```
 
 2. Update your `.env` file:
 ```env
-DATABASE_URL="postgresql://your_username:your_password@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://your_username:your_password@localhost:5432/helmops?schema=public"
 ```
 
 ## Option 3: Cloud Database (Supabase/Neon)
@@ -44,7 +44,7 @@ DATABASE_URL="your_connection_string_here"
 
 Run the migration:
 ```bash
-cd yachtops
+cd helmops
 npx prisma migrate dev --name init
 ```
 

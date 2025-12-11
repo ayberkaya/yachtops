@@ -103,7 +103,7 @@ export default function SignUpPage() {
             </div>
           </Link>
           <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-3">
-            YachtOps
+            HelmOps
           </h1>
           <p className="text-lg text-slate-600 font-medium">
             Create your account to get started
@@ -114,7 +114,7 @@ export default function SignUpPage() {
           <CardHeader className="space-y-2 pb-6">
             <CardTitle className="text-3xl font-bold text-slate-900">Create Account</CardTitle>
             <CardDescription className="text-base text-slate-600">
-              Set up your yacht operations management system
+              Set up your helm operations management system
             </CardDescription>
           </CardHeader>
           <Form {...form}>

@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     minimumCacheTTL: 60,
   },
 
-  // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/yachtops-next locally to avoid iCloud path issues.
+  // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/helmops-next locally to avoid iCloud path issues.
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
   // Silence Next.js warning when using Turbopack alongside a webpack config

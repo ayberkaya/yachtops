@@ -1,10 +1,10 @@
-# 📱 YachtOps PWA - Kullanıcı Rehberi
+# 📱 HelmOps PWA - Kullanıcı Rehberi
 
-Bu dokümantasyon, YachtOps uygulamasını PWA olarak kullanmak isteyen kullanıcılar için hazırlanmıştır.
+Bu dokümantasyon, HelmOps uygulamasını PWA olarak kullanmak isteyen kullanıcılar için hazırlanmıştır.
 
 ## 🎯 PWA Nedir?
 
-Progressive Web App (PWA), web uygulamalarının mobil uygulamalar gibi çalışmasını sağlayan teknolojidir. YachtOps'u cihazınıza yükleyerek:
+Progressive Web App (PWA), web uygulamalarının mobil uygulamalar gibi çalışmasını sağlayan teknolojidir. HelmOps'u cihazınıza yükleyerek:
 
 - ✅ İnternet bağlantısı olmadan çalışabilirsiniz (offline mod)
 - ✅ Uygulamayı home screen'e ekleyebilirsiniz
@@ -16,18 +16,18 @@ Progressive Web App (PWA), web uygulamalarının mobil uygulamalar gibi çalış
 ### Desktop (Windows/Mac/Linux)
 
 **Chrome/Edge:**
-1. YachtOps uygulamasını tarayıcıda açın
+1. HelmOps uygulamasını tarayıcıda açın
 2. Adres çubuğunda install ikonuna tıklayın
 3. "Install" butonuna tıklayın
 4. Uygulama yüklenecek ve standalone modda açılacaktır
 
 **Alternatif:**
-- Menüden "Install YachtOps" seçeneğini kullanın
+- Menüden "Install HelmOps" seçeneğini kullanın
 
 ### Android
 
 **Chrome:**
-1. YachtOps uygulamasını Chrome'da açın
+1. HelmOps uygulamasını Chrome'da açın
 2. Menüden "Add to Home Screen" seçin
 3. Uygulama home screen'e eklenecektir
 4. Home screen'den uygulamayı açın
@@ -39,7 +39,7 @@ Progressive Web App (PWA), web uygulamalarının mobil uygulamalar gibi çalış
 ### iOS (iPhone/iPad)
 
 **Safari:**
-1. YachtOps uygulamasını Safari'de açın
+1. HelmOps uygulamasını Safari'de açın
 2. Paylaş butonuna (kare içinde ok) tıklayın
 3. "Add to Home Screen" seçeneğini seçin
 4. Uygulama adını düzenleyip "Add" butonuna tıklayın
@@ -54,13 +54,13 @@ Progressive Web App (PWA), web uygulamalarının mobil uygulamalar gibi çalış
 3. "Sign In" butonuna tıklayın
 
 **Test Hesapları (eğer seed data kullanıldıysa):**
-- Owner: `owner@yachtops.com` / `owner123`
-- Captain: `captain@yachtops.com` / `captain123`
-- Crew: `crew@yachtops.com` / `crew123`
+- Owner: `owner@helmops.com` / `owner123`
+- Captain: `captain@helmops.com` / `captain123`
+- Crew: `crew@helmops.com` / `crew123`
 
 ### Offline Mod
 
-YachtOps offline modda da çalışabilir:
+HelmOps offline modda da çalışabilir:
 
 1. Uygulamayı bir kez açın (internet bağlantısıyla)
 2. Sayfalar cache'lenecektir

@@ -1,6 +1,6 @@
 # 🚀 PWA Kurulum ve Test Rehberi
 
-Bu dokümantasyon, YachtOps uygulamasını PWA olarak kurmak ve test etmek için gerekli tüm adımları içerir.
+Bu dokümantasyon, HelmOps uygulamasını PWA olarak kurmak ve test etmek için gerekli tüm adımları içerir.
 
 ## 📋 Ön Koşullar
 
@@ -14,7 +14,7 @@ Bu dokümantasyon, YachtOps uygulamasını PWA olarak kurmak ve test etmek için
 
 ```bash
 git clone <repository-url>
-cd yachtops
+cd helmops
 ```
 
 ### 2. Bağımlılıkları Yükleyin
@@ -58,7 +58,7 @@ Hazırladığınız icon dosyalarını şu konumlara yerleştirin:
 
 ```env
 # Database
-DATABASE_URL="postgresql://user:password@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/helmops?schema=public"
 
 # NextAuth
 NEXTAUTH_URL="http://localhost:3000"
@@ -251,7 +251,7 @@ Test etmeden önce şunları kontrol edin:
 ```bash
 # 1. Projeyi klonla ve bağımlılıkları yükle
 git clone <repo>
-cd yachtops
+cd helmops
 npm install
 
 # 2. Icon dosyalarını oluştur (veya hazır icon'ları kopyala)

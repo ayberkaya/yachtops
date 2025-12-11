@@ -1,6 +1,6 @@
 # 🎯 PWA Hazır! - Karşı Taraf İçin Rehber
 
-YachtOps uygulaması PWA olarak hazır ve test edilmeye hazır. Bu dokümantasyon, uygulamayı alan kişinin ne yapması gerektiğini açıklar.
+HelmOps uygulaması PWA olarak hazır ve test edilmeye hazır. Bu dokümantasyon, uygulamayı alan kişinin ne yapması gerektiğini açıklar.
 
 ## ✅ Hazır Olan Özellikler
 
@@ -25,7 +25,7 @@ YachtOps uygulaması PWA olarak hazır ve test edilmeye hazır. Bu dokümantasyo
 
 ```bash
 git clone <repository-url>
-cd yachtops
+cd helmops
 ```
 
 ### 2. Bağımlılıkları Yükleyin
@@ -50,7 +50,7 @@ npm run create-icons
 `.env` dosyası oluşturun:
 
 ```env
-DATABASE_URL="postgresql://user:password@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/helmops?schema=public"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key-here"
 ```

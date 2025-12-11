@@ -10,7 +10,7 @@ export default function DemoRequestPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="space-y-3 text-center">
           <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Request a Demo</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">See YachtOps in Action</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">See HelmOps in Action</h1>
           <p className="text-slate-600">
             Tell us about your vessel and workflows. We will tailor a live demo to your needs.
           </p>

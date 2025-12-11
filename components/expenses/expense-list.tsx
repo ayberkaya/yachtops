@@ -94,7 +94,7 @@ interface SavedFilter {
   filters: FilterState;
 }
 
-const STORAGE_KEY = "yachtops_saved_expense_filters";
+const STORAGE_KEY = "helmops_saved_expense_filters";
 
 export function ExpenseList({ initialExpenses, categories, trips, users, currentUserId }: ExpenseListProps) {
   const { data: session } = useSession();

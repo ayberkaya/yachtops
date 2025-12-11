@@ -94,10 +94,10 @@ export default function SignInPage() {
             </div>
           </Link>
           <h1 className="text-5xl font-extrabold tracking-tight bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 bg-clip-text text-transparent mb-3">
-            YachtOps
+            HelmOps
           </h1>
           <p className="text-lg text-slate-600 font-medium">
-            Complete yacht operations management system
+            Complete helm operations management system
           </p>
         </div>
 

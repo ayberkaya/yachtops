@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 async function test() {
   console.log("Testing authorize function logic...");
   
-  const email = "owner@yachtops.com";
+  const email = "owner@helmops.com";
   const password = "owner123";
   
   const user = await prisma.user.findUnique({

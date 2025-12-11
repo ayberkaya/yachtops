@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Icon creation script for YachtOps PWA
+# Icon creation script for HelmOps PWA
 # This script creates PNG icons from SVG
 
 echo "Creating PWA icons..."

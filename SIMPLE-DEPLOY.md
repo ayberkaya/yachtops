@@ -21,14 +21,14 @@ git push
    - `NEXTAUTH_URL` → Otomatik doldurulur
    - `NEXTAUTH_SECRET` → `openssl rand -base64 32` ile oluşturun
 4. "Deploy" → 2 dakika bekle
-5. ✅ **Link hazır!** Örnek: `https://yachtops.vercel.app`
+5. ✅ **Link hazır!** Örnek: `https://helmops.vercel.app`
 
 ### 3. Link'i Paylaşın
 
 Karşı tarafa gönderin:
 ```
-YachtOps uygulaması hazır! 
-Link: https://yachtops.vercel.app
+HelmOps uygulaması hazır! 
+Link: https://helmops.vercel.app
 
 Kullanım:
 - Desktop: Linki açın, install ikonuna tıklayın
@@ -83,9 +83,9 @@ Kullanım:
 3. Uygulamayı kullanmaya başlayın!
 
 **Test Hesapları (seed sonrası):**
-- Owner: `owner@yachtops.com` / `owner123`
-- Captain: `captain@yachtops.com` / `captain123`
-- Crew: `crew@yachtops.com` / `crew123`
+- Owner: `owner@helmops.com` / `owner123`
+- Captain: `captain@helmops.com` / `captain123`
+- Crew: `crew@helmops.com` / `crew123`
 
 ## 🎉 Hazır!
 

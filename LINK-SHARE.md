@@ -1,6 +1,6 @@
 # 🔗 Link Paylaşımı - Karşı Taraf İçin Hazır Link
 
-Bu dokümantasyon, YachtOps uygulamasını deploy edip karşı tarafa link göndermek için gereken adımları içerir.
+Bu dokümantasyon, HelmOps uygulamasını deploy edip karşı tarafa link göndermek için gereken adımları içerir.
 
 ## 🎯 Amaç
 
@@ -41,18 +41,18 @@ npx prisma migrate deploy
 
 Karşı tarafa gönderin:
 ```
-YachtOps uygulaması hazır! 
+HelmOps uygulaması hazır! 
 
-🔗 Link: https://yachtops.vercel.app
+🔗 Link: https://helmops.vercel.app
 
 📱 Kullanım:
 - Desktop: Linki açın, install ikonuna tıklayın
 - Mobil: Linki açın, "Add to Home Screen" seçin
 
 🔑 Test Hesapları:
-- Owner: owner@yachtops.com / owner123
-- Captain: captain@yachtops.com / captain123
-- Crew: crew@yachtops.com / crew123
+- Owner: owner@helmops.com / owner123
+- Captain: captain@helmops.com / captain123
+- Crew: crew@helmops.com / crew123
 ```
 
 ## 🔧 Environment Variables
@@ -60,7 +60,7 @@ YachtOps uygulaması hazır!
 Vercel deploy sırasında şunları ekleyin:
 
 ```env
-DATABASE_URL=postgresql://user:pass@host:5432/yachtops
+DATABASE_URL=postgresql://user:pass@host:5432/helmops
 NEXTAUTH_URL=https://your-app.vercel.app
 NEXTAUTH_SECRET=<openssl rand -base64 32 ile oluşturun>
 ```

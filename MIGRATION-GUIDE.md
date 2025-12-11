@@ -19,7 +19,7 @@ vercel login
 ### Adım 3: Projeye Bağlan
 
 ```bash
-cd yachtops
+cd helmops
 vercel link
 ```
 
@@ -48,15 +48,15 @@ npm run db:seed
 ```
 
 Bu komut test kullanıcıları oluşturur:
-- Owner: `owner@yachtops.com` / `owner123`
-- Captain: `captain@yachtops.com` / `captain123`
-- Crew: `crew@yachtops.com` / `crew123`
+- Owner: `owner@helmops.com` / `owner123`
+- Captain: `captain@helmops.com` / `captain123`
+- Crew: `crew@helmops.com` / `crew123`
 
 ## ✅ Kontrol
 
 Migration başarılı olduktan sonra:
 
-1. Linki açın: `https://yachtops-10ckxe3gl-ayberkayas-projects.vercel.app`
+1. Linki açın: `https://helmops-10ckxe3gl-ayberkayas-projects.vercel.app`
 2. Sign in sayfasına gidin
 3. Test hesaplarıyla giriş yapmayı deneyin
 

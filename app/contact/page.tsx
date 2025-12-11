@@ -10,7 +10,7 @@ export default function ContactPage() {
       <div className="max-w-3xl mx-auto space-y-8">
         <div className="space-y-3 text-center">
           <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Contact Sales</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Let’s talk about your yacht ops</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Let’s talk about your helm ops</h1>
           <p className="text-slate-600">
             Ask anything about features, pricing, onboarding, or custom needs.
           </p>

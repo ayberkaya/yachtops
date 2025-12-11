@@ -128,12 +128,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             permission: "messages.view",
           },
           {
-            href: "/dashboard/users/notes",
-            label: "Personal Notes",
-            icon: NotebookPen,
-            permission: null,
-          },
-          {
             href: "#trips",
             label: "Voyages",
             icon: Anchor,
@@ -193,12 +187,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               },
             ],
           },
-    {
-      href: "/dashboard/users/notes",
-      label: "Personal Notes",
-      icon: NotebookPen,
-      permission: null,
-    },
     {
       href: "/dashboard/maintenance",
       label: "Maintenance",
@@ -433,7 +421,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               </div>
               <div>
                 <span className="font-bold text-lg tracking-wider block text-slate-900" style={{ color: '#0f172a' }}>
-                  YACHT
+                  HELM
                 </span>
                 <span className="text-xs text-slate-700 uppercase tracking-widest font-medium" style={{ color: '#334155' }}>
                   Operations
@@ -1249,7 +1237,7 @@ export function Sidebar() {
               {isExpanded && (
                 <div>
                   <span className="font-bold text-lg tracking-wider block text-foreground">
-                    YACHT
+                    HELM
                   </span>
                   <span className="text-xs text-muted-foreground uppercase tracking-widest">
                     Operations
@@ -1332,13 +1320,13 @@ export function Sidebar() {
                     <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">My Documents</span>
                   </Link>
-                <Link
-                  href="/dashboard/users/notes"
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                >
-                  <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                  <span className="transition-colors duration-200">Personal Notes</span>
-                </Link>
+                  <Link
+                    href="/dashboard/users/notes"
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">Personal Notes</span>
+                  </Link>
                 </div>
               )}
 

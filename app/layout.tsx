@@ -12,13 +12,13 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
-  title: "YachtOps - Yacht Operations Management",
-  description: "Complete yacht operations management system",
+  title: "HelmOps - Helm Operations Management",
+  description: "Complete helm operations management system",
   manifest: "/manifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "YachtOps",
+    title: "HelmOps",
   },
   formatDetection: {
     telephone: false,

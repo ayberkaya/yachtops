@@ -74,7 +74,7 @@ export function InstallPrompt() {
       <div className="bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl shadow-2xl p-4 flex items-start gap-4">
         <div className="flex-1">
           <h3 className="font-semibold text-slate-900 dark:text-slate-100 mb-1">
-            Install YachtOps
+            Install HelmOps
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400">
             Install our app for a better experience with offline access and faster loading.

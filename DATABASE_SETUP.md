@@ -28,7 +28,7 @@ postgresql://postgres:yourpassword@db.abcdefghijklmnop.supabase.co:5432/postgres
 Database connection string'i ayarladıktan sonra:
 
 ```bash
-cd yachtops
+cd helmops
 npx prisma migrate dev --name init
 ```
 

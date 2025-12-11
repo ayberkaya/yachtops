@@ -1,6 +1,6 @@
-# 🧪 YachtOps PWA Test Rehberi
+# 🧪 HelmOps PWA Test Rehberi
 
-Bu rehber, YachtOps uygulamasını PWA olarak test etmek için adım adım talimatlar içerir.
+Bu rehber, HelmOps uygulamasını PWA olarak test etmek için adım adım talimatlar içerir.
 
 ## 🎯 Test Senaryosu
 
@@ -32,7 +32,7 @@ Projeyi aldığınızda şu dosyaların mevcut olduğundan emin olun:
 ```bash
 # Git ile klonlayın veya ZIP olarak indirin
 git clone <repository-url>
-cd yachtops
+cd helmops
 ```
 
 ### Adım 2: Bağımlılıkları Yükleyin
@@ -76,7 +76,7 @@ cp .env.example .env
 
 ```env
 # Database Connection
-DATABASE_URL="postgresql://user:password@localhost:5432/yachtops?schema=public"
+DATABASE_URL="postgresql://user:password@localhost:5432/helmops?schema=public"
 
 # NextAuth Configuration
 NEXTAUTH_URL="http://localhost:3000"
@@ -96,20 +96,20 @@ macOS (Homebrew):
 ```bash
 brew install postgresql@16
 brew services start postgresql@16
-createdb yachtops
+createdb helmops
 ```
 
 Linux:
 ```bash
 sudo apt-get install postgresql postgresql-contrib
-sudo -u postgres createdb yachtops
+sudo -u postgres createdb helmops
 ```
 
 Docker:
 ```bash
-docker run --name yachtops-postgres \
+docker run --name helmops-postgres \
   -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=yachtops \
+  -e POSTGRES_DB=helmops \
   -p 5432:5432 \
   -d postgres:16
 ```
@@ -124,9 +124,9 @@ npm run db:seed
 ```
 
 Seed sonrası test kullanıcıları:
-- Owner: `owner@yachtops.com` / `owner123`
-- Captain: `captain@yachtops.com` / `captain123`
-- Crew: `crew@yachtops.com` / `crew123`
+- Owner: `owner@helmops.com` / `owner123`
+- Captain: `captain@helmops.com` / `captain123`
+- Crew: `crew@helmops.com` / `crew123`
 
 ### Adım 6: Uygulamayı Başlatın
 

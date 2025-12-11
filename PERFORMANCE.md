@@ -1,6 +1,6 @@
 # Performance & Mobile Optimizations
 
-Bu dokümantasyon, YachtOps uygulamasında yapılan performans ve mobil optimizasyonları açıklar.
+Bu dokümantasyon, HelmOps uygulamasında yapılan performans ve mobil optimizasyonları açıklar.
 
 ## 🚀 Performans Optimizasyonları
 

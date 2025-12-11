@@ -1,11 +1,11 @@
 #!/bin/bash
 
-# YachtOps Deployment Script
+# HelmOps Deployment Script
 # Bu script projeyi Vercel'e deploy eder
 
 set -e
 
-echo "🚀 YachtOps Deployment Script"
+echo "🚀 HelmOps Deployment Script"
 echo "=============================="
 echo ""
 
