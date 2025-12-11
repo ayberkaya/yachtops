@@ -115,11 +115,12 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
 
     const priorityStr = typeof priority === "string" ? priority : priority;
     const isUrgent = priorityStr === "URGENT";
+    const isMedium = priorityStr === "MEDIUM";
     
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
-        className={isUrgent ? "urgent-blink" : ""}
+        className={isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}
         style={isUrgent ? { animation: "blinkRed 1s ease-in-out infinite" } : undefined}
       >
         {priorityStr}
