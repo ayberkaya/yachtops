@@ -357,7 +357,7 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
               open={expandedSections.expenses}
               onOpenChange={() => toggleSection("expenses")}
             >
-              <CollapsibleTrigger asChild>
+              <CollapsibleTrigger>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -476,7 +476,7 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
               open={expandedSections.tasks}
               onOpenChange={() => toggleSection("tasks")}
             >
-              <CollapsibleTrigger asChild>
+              <CollapsibleTrigger>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -534,7 +534,7 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
               open={expandedSections.movements}
               onOpenChange={() => toggleSection("movements")}
             >
-              <CollapsibleTrigger asChild>
+              <CollapsibleTrigger>
                 <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -594,7 +594,7 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
                 open={expandedSections.tanks}
                 onOpenChange={() => toggleSection("tanks")}
               >
-                <CollapsibleTrigger asChild>
+                <CollapsibleTrigger>
                   <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -653,7 +653,7 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
                 open={expandedSections.checklists}
                 onOpenChange={() => toggleSection("checklists")}
               >
-                <CollapsibleTrigger asChild>
+                <CollapsibleTrigger>
                   <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
