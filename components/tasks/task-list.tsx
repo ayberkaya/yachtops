@@ -104,12 +104,19 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     const priorityStr = typeof priority === "string" ? priority : priority;
     const isUrgent = priorityStr === "URGENT";
     const isMedium = priorityStr === "MEDIUM";
+    const isHigh = priorityStr === "HIGH";
     
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
         className={isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}
-        style={isUrgent ? { animation: "blinkRed 1s ease-in-out infinite" } : undefined}
+        style={
+          isUrgent 
+            ? { animation: "blinkRed 1s ease-in-out infinite" } 
+            : isHigh
+            ? { borderImage: "none", borderColor: "rgba(0, 0, 0, 0.14)" }
+            : undefined
+        }
       >
         {priorityStr}
       </Badge>
@@ -286,15 +293,21 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
+            const isDone = task.status === TaskStatus.DONE;
             const isUrgent = task.priority === TaskPriority.URGENT || task.priority === "URGENT";
+            const isHighPriority = task.priority === TaskPriority.HIGH || task.priority === "HIGH";
             const isLowPriority = task.priority === TaskPriority.LOW || task.priority === "LOW";
             
             return (
               <Card 
                 key={task.id} 
-                className={`flex flex-col ${
-                  isUrgent
+                className={`flex flex-col relative ${
+                  isDone
+                    ? "border-2"
+                    : isUrgent
                     ? "border-2 border-red-600 dark:border-red-600"
+                    : isHighPriority
+                    ? "border-2"
                     : isLowPriority
                     ? "border-2"
                     : isTodo 
@@ -302,10 +315,22 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     : ""
                 }`}
                 style={
-                  isUrgent
+                  isDone
+                    ? {
+                        borderColor: "rgba(34, 197, 94, 1)",
+                        backgroundColor: "rgba(34, 197, 94, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isUrgent
                     ? {
                         borderColor: "rgba(231, 0, 11, 1)",
                         backgroundColor: "rgba(231, 0, 11, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isHighPriority
+                    ? {
+                        borderColor: "rgba(255, 102, 0, 1)",
+                        backgroundColor: "rgba(255, 102, 0, 0.2)",
                         backdropFilter: "none"
                       }
                     : isLowPriority
@@ -323,6 +348,11 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     : undefined
                 }
               >
+                {isDone && (
+                  <div className="absolute -top-[11px] -right-[11px] z-10 flex items-center justify-center w-6 h-6 bg-white dark:bg-background rounded-full border-2 border-green-500">
+                    <Check className="h-4 w-4 text-green-600" />
+                  </div>
+                )}
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg">
@@ -331,7 +361,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </Link>
                     </CardTitle>
                     <div className="flex flex-col items-end gap-2">
-                      {getPriorityBadge(task.priority)}
+                      {!isDone && getPriorityBadge(task.priority)}
                       {getStatusBadge(task.status)}
                     </div>
                   </div>
