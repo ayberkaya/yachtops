@@ -318,40 +318,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     return () => clearInterval(interval);
   }, [session?.user]);
 
-  // Fetch low stock count (alcohol) - desktop sidebar
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchLowStock = async () => {
-      try {
-        if (!hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
-          setLowStockCount(0);
-          return;
-        }
-        const response = await fetch("/api/alcohol-stock", { cache: "no-store" });
-        if (!response.ok) {
-          setLowStockCount(0);
-          return;
-        }
-        const items = await response.json();
-        const count = (items ?? []).filter(
-          (item: any) =>
-            item?.lowStockThreshold !== null &&
-            item?.lowStockThreshold !== undefined &&
-            Number(item.quantity) <= Number(item.lowStockThreshold)
-        ).length;
-        setLowStockCount(count);
-      } catch (error) {
-        console.error("Error fetching low stock count:", error);
-        setLowStockCount(0);
-      }
-    };
-
-    fetchLowStock();
-    const interval = setInterval(fetchLowStock, 30000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
   // Fetch low stock count (alcohol)
   useEffect(() => {
     if (!session?.user) return;
@@ -436,10 +402,24 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               const isActive = mobileExpandedItems.has(item.href);
               const Icon = item.icon;
               const showChildren = mobileExpandedItems.has(item.href) && item.children;
-              const incomeBadge =
-                item.label === "Finance"
-                  ? pendingExpensesCount + reimbursableCount
-                  : 0;
+              
+              // Calculate total notifications from children
+              const getChildrenNotificationCount = (item: any): number => {
+                if (!item.children) return 0;
+                let total = 0;
+                item.children.forEach((child: any) => {
+                  if (child.href === "/dashboard/expenses/pending") {
+                    total += pendingExpensesCount;
+                  } else if (child.href === "/dashboard/expenses/reimbursable") {
+                    total += reimbursableCount;
+                  } else if (child.href === "/dashboard/inventory/alcohol-stock") {
+                    total += lowStockCount;
+                  }
+                });
+                return total;
+              };
+              
+              const childrenNotificationCount = getChildrenNotificationCount(item);
 
               return (
                 <div key={`${item.href}-${item.label}`}>
@@ -467,9 +447,9 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       <span className="text-sm font-medium flex-1 text-left">
                         {item.label}
                       </span>
-                      {incomeBadge > 0 && (
+                      {item.children && childrenNotificationCount > 0 && (
                         <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                          {incomeBadge > 99 ? "99+" : incomeBadge}
+                          {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
                         </span>
                       )}
                       {item.children && (
@@ -555,8 +535,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                                   <span className="capitalize flex items-center gap-2">
                                     {child.label}
                                     {child.href === "/dashboard/inventory/alcohol-stock" && lowStockCount > 0 && (
-                                      <span className="inline-flex items-center gap-1 rounded-full border border-red-600 bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                                        Low Stock
+                                      <span className="inline-flex items-center justify-center gap-1 rounded-full border border-red-600 bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm w-[19px] h-[19px]">
+                                        {lowStockCount > 99 ? "99+" : lowStockCount}
                                       </span>
                                     )}
                                   </span>
@@ -1078,10 +1058,24 @@ export function Sidebar() {
           const parentOpen = expandedSet.has(item.href);
           const isActive = leafActive || childActive || parentOpen;
           const showChildren = parentOpen && item.children;
-          const incomeBadge =
-            item.label === "Finance"
-              ? pendingExpensesCount + reimbursableCount
-              : 0;
+          
+          // Calculate total notifications from children
+          const getChildrenNotificationCount = (item: any): number => {
+            if (!item.children) return 0;
+            let total = 0;
+            item.children.forEach((child: any) => {
+              if (child.href === "/dashboard/expenses/pending") {
+                total += pendingExpensesCount;
+              } else if (child.href === "/dashboard/expenses/reimbursable") {
+                total += reimbursableCount;
+              } else if (child.href === "/dashboard/inventory/alcohol-stock") {
+                total += lowStockCount;
+              }
+            });
+            return total;
+          };
+          
+          const childrenNotificationCount = getChildrenNotificationCount(item);
 
           const handleToggle = (e: React.MouseEvent) => {
             e.stopPropagation();
@@ -1120,14 +1114,14 @@ export function Sidebar() {
                     <span className="text-sm font-medium flex-1">
                       {item.label}
                     </span>
-                    {incomeBadge > 0 && item.label === "Finance" && (
-                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                        {incomeBadge > 99 ? "99+" : incomeBadge}
-                      </span>
-                    )}
                     {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
                       <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                         {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                      </span>
+                    )}
+                    {item.children && childrenNotificationCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                        {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
                       </span>
                     )}
                     {item.children && (
@@ -1145,9 +1139,9 @@ export function Sidebar() {
                     {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
                   </span>
                 )}
-                {!containerExpanded && incomeBadge > 0 && item.label === "Finance" && (
+                {!containerExpanded && item.children && childrenNotificationCount > 0 && (
                   <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
-                    {incomeBadge > 99 ? "99+" : incomeBadge}
+                    {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
                   </span>
                 )}
               </Link>
@@ -1188,8 +1182,8 @@ export function Sidebar() {
                             <span className="capitalize flex items-center gap-2">
                               {child.label}
                               {child.href === "/dashboard/inventory/alcohol-stock" && lowStockCount > 0 && (
-                                <span className="inline-flex items-center gap-1 rounded-full border border-red-600 bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm">
-                                  Low Stock
+                                <span className="inline-flex items-center justify-center gap-1 rounded-full border border-red-600 bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm w-[19px] h-[19px]">
+                                  {lowStockCount > 99 ? "99+" : lowStockCount}
                                 </span>
                               )}
                             </span>
