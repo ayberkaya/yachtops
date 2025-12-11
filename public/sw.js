@@ -1,11 +1,18 @@
 // Service Worker for HelmOps PWA (offline-first with API caching)
-const CACHE_NAME = "helmops-static-v3";
+const CACHE_NAME = "helmops-static-v4";
 const API_CACHE_NAME = "helmops-api-v2";
 
 const PRECACHE_URLS = [
   "/",
   "/auth/signin",
   "/dashboard",
+  "/dashboard/expenses",
+  "/dashboard/tasks",
+  "/dashboard/maintenance",
+  "/dashboard/shopping",
+  "/dashboard/trips",
+  "/dashboard/inventory",
+  "/dashboard/cash",
   "/offline",
   "/manifest",
 ];
@@ -34,15 +41,117 @@ async function networkFirst(request, cacheName = CACHE_NAME, fallbackToOffline =
   try {
     const response = await fetch(request);
     if (response && response.status === 200) {
+      // Cache successful responses
       cache.put(request, response.clone()).catch(() => {});
     }
     return response;
   } catch (error) {
+    // Network failed - try cache
     const cached = await cache.match(request);
     if (cached) return cached;
-    if (fallbackToOffline && request.destination === "document") {
-      const offline = await cache.match("/offline");
-      if (offline) return offline;
+    
+    // If navigation request and offline fallback enabled, return offline page
+    if (fallbackToOffline && (request.mode === "navigate" || request.destination === "document")) {
+      const offlineUrl = new URL("/offline", self.location.origin);
+      const offlineRequest = new Request(offlineUrl);
+      const offline = await cache.match(offlineRequest);
+      if (offline) {
+        return offline;
+      }
+      // If offline page not cached, create a simple offline response
+      return new Response(
+        `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Offline - HelmOps</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: system-ui; text-align: center; padding: 2rem; }
+            h1 { color: #333; }
+            p { color: #666; }
+          </style>
+        </head>
+        <body>
+          <h1>You're Offline</h1>
+          <p>Please check your internet connection and try again.</p>
+          <button onclick="window.location.reload()">Retry</button>
+        </body>
+        </html>
+        `,
+        {
+          headers: { "Content-Type": "text/html" },
+          status: 200,
+        }
+      );
+    }
+    throw error;
+  }
+}
+
+// Helper: cache-first with network fallback (better for offline navigation)
+async function cacheFirstWithNetwork(request, cacheName = CACHE_NAME, fallbackToOffline = false) {
+  const cache = await caches.open(cacheName);
+  
+  // Try cache first
+  const cached = await cache.match(request);
+  if (cached) {
+    // Also try to update in background
+    fetch(request)
+      .then((response) => {
+        if (response && response.status === 200) {
+          cache.put(request, response.clone()).catch(() => {});
+        }
+      })
+      .catch(() => {});
+    return cached;
+  }
+  
+  // Cache miss - try network
+  try {
+    const response = await fetch(request);
+    if (response && response.status === 200) {
+      cache.put(request, response.clone()).catch(() => {});
+    }
+    return response;
+  } catch (error) {
+    // Network failed and no cache - return offline page for navigation
+    if (fallbackToOffline && (request.mode === "navigate" || request.destination === "document")) {
+      const offlineUrl = new URL("/offline", self.location.origin);
+      const offlineRequest = new Request(offlineUrl);
+      const offline = await cache.match(offlineRequest);
+      if (offline) {
+        return offline;
+      }
+      // Simple offline response
+      return new Response(
+        `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Offline - HelmOps</title>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1">
+          <style>
+            body { font-family: system-ui; text-align: center; padding: 2rem; }
+            h1 { color: #333; }
+            p { color: #666; }
+            button { padding: 0.5rem 1rem; margin-top: 1rem; cursor: pointer; }
+          </style>
+        </head>
+        <body>
+          <h1>You're Offline</h1>
+          <p>Please check your internet connection and try again.</p>
+          <button onclick="window.location.reload()">Retry</button>
+        </body>
+        </html>
+        `,
+        {
+          headers: { "Content-Type": "text/html" },
+          status: 200,
+        }
+      );
     }
     throw error;
   }
@@ -53,7 +162,13 @@ self.addEventListener("install", (event) => {
   event.waitUntil(
     caches
       .open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS))
+      .then((cache) => {
+        // Precache essential routes
+        return cache.addAll(PRECACHE_URLS).catch((error) => {
+          console.error("Cache installation failed:", error);
+          // Continue even if some URLs fail
+        });
+      })
       .catch((error) => console.error("Cache installation failed:", error))
   );
   self.skipWaiting();
@@ -99,9 +214,11 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation/page requests: network-first with offline fallback
+  // Navigation/page requests: cache-first for better offline support
   if (isNavigation || event.request.destination === "document") {
-    event.respondWith(networkFirst(event.request, CACHE_NAME, true));
+    // Use cache-first for navigation to allow offline browsing
+    // This will cache pages as users visit them
+    event.respondWith(cacheFirstWithNetwork(event.request, CACHE_NAME, true));
     return;
   }
 
