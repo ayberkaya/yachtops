@@ -167,7 +167,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                 return (
                   <div
                     key={list.id}
-                    className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors ${
+                    className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors shadow-[2px_4px_6px_0px_rgba(0,0,0,0.3)] ${
                       selectedList === list.id ? "bg-muted" : ""
                     } ${
                       isCompleted 
