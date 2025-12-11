@@ -103,11 +103,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
 
     const priorityStr = typeof priority === "string" ? priority : priority;
     const isUrgent = priorityStr === "URGENT";
+    const isMedium = priorityStr === "MEDIUM";
     
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
-        className={isUrgent ? "urgent-blink" : ""}
+        className={isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}
         style={isUrgent ? { animation: "blinkRed 1s ease-in-out infinite" } : undefined}
       >
         {priorityStr}
@@ -285,15 +286,42 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
+            const isUrgent = task.priority === TaskPriority.URGENT || task.priority === "URGENT";
+            const isLowPriority = task.priority === TaskPriority.LOW || task.priority === "LOW";
             
             return (
               <Card 
                 key={task.id} 
                 className={`flex flex-col ${
-                  isTodo 
-                    ? "border-2 border-red-500 dark:border-red-500 bg-amber-50/30 dark:bg-amber-950/20" 
+                  isUrgent
+                    ? "border-2 border-red-600 dark:border-red-600"
+                    : isLowPriority
+                    ? "border-2"
+                    : isTodo 
+                    ? "border-2 border-amber-200 dark:border-amber-200 bg-amber-50/30 dark:bg-amber-950/20" 
                     : ""
                 }`}
+                style={
+                  isUrgent
+                    ? {
+                        borderColor: "rgba(231, 0, 11, 1)",
+                        backgroundColor: "rgba(231, 0, 11, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isLowPriority
+                    ? {
+                        borderColor: "rgba(92, 92, 92, 1)",
+                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isTodo
+                    ? {
+                        borderColor: "rgba(254, 230, 133, 1)",
+                        backgroundColor: "rgba(254, 230, 133, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : undefined
+                }
               >
                 <CardHeader className="pb-3">
                   <div className="flex items-center justify-between">
