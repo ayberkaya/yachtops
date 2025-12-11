@@ -101,12 +101,20 @@ export default async function PostVoyageReportPage() {
         createdAt: trip.createdAt.toISOString(),
         updatedAt: trip.updatedAt.toISOString(),
         expenses: trip.expenses.map((exp) => ({
-          ...exp,
+          id: exp.id,
+          amount: exp.amount.toString(),
+          currency: exp.currency,
+          status: exp.status.toString(),
           date: exp.date.toISOString(),
+          description: exp.description,
+          category: exp.category,
         })),
         tasks: trip.tasks.map((task) => ({
-          ...task,
+          id: task.id,
+          title: task.title,
+          status: task.status.toString(),
           completedAt: task.completedAt ? task.completedAt.toISOString() : null,
+          completedBy: task.completedBy,
         })),
         movementLogs: trip.movementLogs.map((log) => ({
           ...log,
