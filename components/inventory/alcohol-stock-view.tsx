@@ -357,7 +357,14 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
                         : ""
                     }`}
-                    style={!isLow ? { color: '#000000' } : undefined}
+                    style={
+                      isLow
+                        ? {
+                            borderColor: "rgba(231, 0, 11, 1)",
+                            backgroundColor: "rgba(231, 0, 11, 0.85)"
+                          }
+                        : { color: '#000000' }
+                    }
                   >
                     {getCategoryBadge(stock.category) && (
                       <div className="absolute -top-[14px] left-0 z-10">
