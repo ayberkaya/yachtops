@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
+import { TaskStatus } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,7 +50,21 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
-    return NextResponse.json(notifications);
+    // Filter out task-related notifications for completed tasks
+    const filteredNotifications = notifications.filter((notification) => {
+      // If notification has no task, always show it
+      if (!notification.task) {
+        return true;
+      }
+      // Hide notifications for completed tasks (all task-related notifications)
+      if (notification.task.status === TaskStatus.DONE) {
+        return false;
+      }
+      // Otherwise, show all notifications
+      return true;
+    });
+
+    return NextResponse.json(filteredNotifications);
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return NextResponse.json(

@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { useNotifications } from "./notifications-provider";
 import { NOTIFICATION_BADGE_META } from "./notification-types";
+import { TaskStatus } from "@prisma/client";
 
 export function DashboardNotificationsPanel() {
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead, refresh } =
@@ -138,9 +139,27 @@ export function DashboardNotificationsPanel() {
     );
   };
 
+  // Filter out task-related notifications for completed tasks
+  const filteredNotifications = useMemo(() => {
+    return notifications.filter((notification) => {
+      // If notification has no task, always show it
+      if (!notification.task) {
+        return true;
+      }
+      // Hide notifications for completed tasks (all task-related notifications)
+      if (notification.task.status === TaskStatus.DONE) {
+        return false;
+      }
+      // Otherwise, show all notifications
+      return true;
+    });
+  }, [notifications]);
+
+  const filteredUnreadCount = filteredNotifications.filter((n) => !n.read).length;
+
   const showLoading =
-    isLoading && isFinanceLoading && notifications.length === 0 && financeAlerts.length === 0;
-  const hasAlerts = notifications.length > 0 || financeAlerts.length > 0;
+    isLoading && isFinanceLoading && filteredNotifications.length === 0 && financeAlerts.length === 0;
+  const hasAlerts = filteredNotifications.length > 0 || financeAlerts.length > 0;
 
   useEffect(() => {
     if (!isHovered && isOpen) {
@@ -163,9 +182,9 @@ export function DashboardNotificationsPanel() {
           onMouseLeave={() => setIsHovered(false)}
         >
           <Bell className="h-4 w-4" />
-          {(unreadCount > 0 || (lowStockCount ?? 0) > 0) && (
+          {(filteredUnreadCount > 0 || (lowStockCount ?? 0) > 0) && (
             <span className="absolute -top-1 -right-1 inline-flex h-4 min-w-[1rem] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
-              {unreadCount > 0 ? (unreadCount > 9 ? "9+" : unreadCount) : "!"}
+              {filteredUnreadCount > 0 ? (filteredUnreadCount > 9 ? "9+" : filteredUnreadCount) : "!"}
             </span>
           )}
         </Button>
@@ -182,12 +201,12 @@ export function DashboardNotificationsPanel() {
               <div className="flex items-center gap-2">
                 <Bell className="h-4 w-4 text-primary" />
                 <CardTitle className="text-base">Notifications</CardTitle>
-                {unreadCount > 0 && (
-                  <span className="text-xs font-semibold text-primary">{unreadCount} new</span>
+                {filteredUnreadCount > 0 && (
+                  <span className="text-xs font-semibold text-primary">{filteredUnreadCount} new</span>
                 )}
               </div>
               <div className="flex items-center gap-1.5">
-                {unreadCount > 0 && (
+                {filteredUnreadCount > 0 && (
                   <Button
                     size="icon"
                     variant="ghost"
@@ -260,7 +279,7 @@ export function DashboardNotificationsPanel() {
                       </div>
                     );
                   })}
-                  {notifications.map((notification) => (
+                  {filteredNotifications.map((notification) => (
                     <div
                       key={notification.id}
                       className="rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-accent/40"
