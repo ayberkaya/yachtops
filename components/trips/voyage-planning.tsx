@@ -77,6 +77,14 @@ type ChecklistItem = {
   } | null;
 };
 
+// Helper function to safely convert completedAt to string
+const normalizeCompletedAt = (value: string | null | Date | unknown): string | null => {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+  if (value instanceof Date) return value.toISOString();
+  return null;
+};
+
 const FALLBACK_PRE: ChecklistItem[] = [
   {
     id: "pre-fallback-1",
@@ -343,10 +351,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
           item.id === updated.id
             ? {
                 ...updated,
-                completedAt:
-                  updated.completedAt instanceof Date
-                    ? updated.completedAt.toISOString()
-                    : updated.completedAt,
+                completedAt: normalizeCompletedAt(updated.completedAt),
               }
             : item
         );
@@ -356,10 +361,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
           ...currentList,
           {
             ...updated,
-            completedAt:
-              updated.completedAt instanceof Date
-                ? updated.completedAt.toISOString()
-                : updated.completedAt,
+            completedAt: normalizeCompletedAt(updated.completedAt),
           },
         ];
       }
