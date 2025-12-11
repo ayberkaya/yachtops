@@ -291,7 +291,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 key={task.id} 
                 className={`flex flex-col ${
                   isTodo 
-                    ? "border-2 border-amber-400 dark:border-amber-500 bg-amber-50/30 dark:bg-amber-950/20" 
+                    ? "border-2 border-red-500 dark:border-red-500 bg-amber-50/30 dark:bg-amber-950/20" 
                     : ""
                 }`}
               >
