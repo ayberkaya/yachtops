@@ -294,9 +294,9 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
 
             const isTodo = task.status === TaskStatus.TODO;
             const isDone = task.status === TaskStatus.DONE;
-            const isUrgent = task.priority === TaskPriority.URGENT || task.priority === "URGENT";
-            const isHighPriority = task.priority === TaskPriority.HIGH || task.priority === "HIGH";
-            const isLowPriority = task.priority === TaskPriority.LOW || task.priority === "LOW";
+            const isUrgent = String(task.priority) === "URGENT";
+            const isHighPriority = task.priority === TaskPriority.HIGH;
+            const isLowPriority = task.priority === TaskPriority.LOW;
             
             return (
               <Card 
