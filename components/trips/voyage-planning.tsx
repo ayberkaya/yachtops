@@ -696,12 +696,14 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
       </div>
 
       {selectedTrip && (
-        <Card>
+        <Card className="relative">
+          <div className="absolute -top-3 right-0 z-10">
+            {tripStatusBadge(selectedTrip.status)}
+          </div>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Anchor className="h-5 w-5" />
               {selectedTrip.name}
-              {tripStatusBadge(selectedTrip.status)}
             </CardTitle>
             <CardDescription>
               {selectedTrip.departurePort || "TBD"} → {selectedTrip.arrivalPort || "TBD"}

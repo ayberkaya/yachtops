@@ -293,17 +293,19 @@ export function ReimbursableExpensesList({ expenses: initialExpenses }: Reimburs
                       Reimburse to: <span className="font-medium text-foreground">{crewPersonalLabel}</span>
                     </div>
                   )}
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    asChild
-                  >
-                    <Link href={`/dashboard/expenses/${expense.id}`}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      View Details
-                    </Link>
-                  </Button>
                 </div>
+              </div>
+              <div className="flex justify-end mt-4 pt-4 border-t">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  asChild
+                >
+                  <Link href={`/dashboard/expenses/${expense.id}`}>
+                    <Eye className="mr-2 h-4 w-4" />
+                    View Details
+                  </Link>
+                </Button>
               </div>
             </CardContent>
             )}
