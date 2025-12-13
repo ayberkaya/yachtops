@@ -1,8 +1,9 @@
+import { NextRequest } from "next/server";
 import { handlers } from "@/lib/auth-config";
 
 // Export handlers directly for NextAuth v5
 // Wrap in try-catch to ensure JSON responses on errors
-export const GET = async (req: Request) => {
+export const GET = async (req: NextRequest) => {
   try {
     return await handlers.GET(req);
   } catch (error) {
@@ -17,7 +18,7 @@ export const GET = async (req: Request) => {
   }
 };
 
-export const POST = async (req: Request) => {
+export const POST = async (req: NextRequest) => {
   try {
     return await handlers.POST(req);
   } catch (error) {
