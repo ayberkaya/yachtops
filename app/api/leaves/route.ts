@@ -179,19 +179,14 @@ export async function POST(request: NextRequest) {
     let overlappingLeaves;
     try {
       overlappingLeaves = await db.leave.findFirst({
-      where: {
-        userId: validated.userId,
-        yachtId: session.user.yachtId,
-        OR: [
-          {
-            AND: [
-              { startDate: { lte: new Date(validated.endDate) } },
-              { endDate: { gte: new Date(validated.startDate) } },
-            ],
-          },
-        ],
+        where: {
+          userId: validated.userId,
+          yachtId: session.user.yachtId,
+          startDate: { lte: new Date(validated.endDate) },
+          endDate: { gte: new Date(validated.startDate) },
+        },
       });
-    } catch (dbError) {
+    } catch (dbError: any) {
       console.error("Database error checking overlapping leaves:", dbError);
       // If table doesn't exist, this will fail - but we'll catch it in the create
       overlappingLeaves = null;
@@ -207,41 +202,41 @@ export async function POST(request: NextRequest) {
     let leave;
     try {
       leave = await db.leave.create({
-      data: {
-        yachtId: session.user.yachtId,
-        userId: validated.userId,
-        startDate: new Date(validated.startDate),
-        endDate: new Date(validated.endDate),
-        type: validated.type,
-        reason: validated.reason || null,
-        status: validated.status || LeaveStatus.PENDING,
-        createdByUserId: session.user.id,
-      },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+        data: {
+          yachtId: session.user.yachtId,
+          userId: validated.userId,
+          startDate: new Date(validated.startDate),
+          endDate: new Date(validated.endDate),
+          type: validated.type,
+          reason: validated.reason || null,
+          status: validated.status || LeaveStatus.PENDING,
+          createdByUserId: session.user.id,
+        },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          createdBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          approvedBy: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
           },
         },
-        createdBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        approvedBy: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-      },
-    });
+      });
     } catch (dbError: any) {
       console.error("Database error creating leave:", dbError);
       
@@ -289,4 +284,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
