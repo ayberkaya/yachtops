@@ -369,7 +369,7 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Crew Members</SelectItem>
-                  {users.map((user) => (
+                  {crewMembers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name || user.email}
                     </SelectItem>
