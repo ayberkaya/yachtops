@@ -265,7 +265,7 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
               {expense.receipts.map((receipt: any) => (
                 <div key={receipt.id} className="border rounded-lg p-2">
                   <a
-                    href={receipt.fileUrl}
+                    href={`/api/expenses/receipts/${receipt.id}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm text-primary hover:underline"

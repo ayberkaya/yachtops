@@ -114,6 +114,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const [receiptFile, setReceiptFile] = useState<File | null>(null);
 
   // Load crew users (for PaidBy = CREW_PERSONAL dropdown)
+  // Include all users except OWNER
   React.useEffect(() => {
     const loadCrew = async () => {
       try {
@@ -121,7 +122,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
         if (!res.ok) return;
         const data = await res.json();
         const crew = (data || []).filter(
-          (u: any) => u.role === "CREW"
+          (u: any) => u.role !== "OWNER" && u.role !== "SUPER_ADMIN" && u.role !== "ADMIN"
         );
         setCrewUsers(crew);
       } catch (e) {

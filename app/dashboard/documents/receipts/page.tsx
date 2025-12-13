@@ -74,10 +74,10 @@ export default async function ReceiptsPage() {
                 <Card key={receipt.id} className="overflow-hidden">
                   <CardContent className="p-3 space-y-2">
                     <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
-                      {/* Simple image preview; data URL stored in fileUrl */}
+                      {/* Simple image preview */}
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
-                        src={receipt.fileUrl}
+                        src={`/api/expenses/receipts/${receipt.id}`}
                         alt="Receipt"
                         className="h-full w-full object-cover"
                         loading="lazy"
@@ -109,7 +109,7 @@ export default async function ReceiptsPage() {
                     </div>
                     <div className="flex justify-between items-center pt-1">
                       <Link
-                        href={receipt.fileUrl}
+                        href={`/api/expenses/receipts/${receipt.id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="text-xs text-primary hover:underline"
