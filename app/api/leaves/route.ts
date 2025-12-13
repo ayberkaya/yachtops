@@ -247,6 +247,20 @@ export async function POST(request: NextRequest) {
     }
 
     console.log("Creating leave in database...");
+    console.log("db.leave exists:", !!db.leave);
+    console.log("db keys:", Object.keys(db).filter(k => k.toLowerCase().includes('leave')));
+    
+    if (!db.leave) {
+      console.error("db.leave is undefined! Prisma client may not be generated correctly.");
+      return NextResponse.json(
+        {
+          error: "Database configuration error",
+          message: "Leave model not found in Prisma client. Please restart the development server.",
+        },
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    
     let leave;
     try {
       leave = await db.leave.create({
