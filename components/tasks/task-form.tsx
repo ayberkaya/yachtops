@@ -48,6 +48,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
+
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema) as any,
     defaultValues: task || {
@@ -181,7 +182,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   };
 
   const handleDelete = async () => {
-    if (!task || !onDelete) return;
+    if (!task?.id || !onDelete) return;
 
     if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
 
@@ -417,19 +418,18 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           </p>
         </div>
 
-        <DialogFooter className="flex-row justify-between">
-          {task?.id && onDelete ? (
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+          {onDelete && (
             <Button
               type="button"
               variant="destructive"
               onClick={handleDelete}
-              disabled={isLoading || isDeleting}
+              disabled={isLoading || isDeleting || !task?.id}
+              className="sm:mr-auto"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
-          ) : (
-            <div />
           )}
           <Button type="submit" disabled={isLoading || isDeleting}>
             {isLoading ? "Saving..." : task ? "Update" : "Create"}

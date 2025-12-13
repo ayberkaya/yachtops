@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TripStatus, TripType } from "@prisma/client";
+import { Trash2 } from "lucide-react";
 
 const tripSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -39,11 +40,13 @@ type TripFormData = z.infer<typeof tripSchema>;
 interface TripFormProps {
   trip?: any;
   onSuccess: () => void;
+  onDelete?: () => void;
 }
 
-export function TripForm({ trip, onSuccess }: TripFormProps) {
+export function TripForm({ trip, onSuccess, onDelete }: TripFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripSchema) as any,
@@ -102,6 +105,31 @@ export function TripForm({ trip, onSuccess }: TripFormProps) {
     } catch (err) {
       setError("An error occurred. Please try again.");
       setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!trip || !onDelete) return;
+
+    if (!confirm("Are you sure you want to delete this trip? This action cannot be undone.")) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/trips/${trip.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete trip");
+      }
+
+      onDelete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setIsDeleting(false);
     }
   };
 
@@ -309,8 +337,20 @@ export function TripForm({ trip, onSuccess }: TripFormProps) {
           )}
         />
 
-        <DialogFooter>
-          <Button type="submit" disabled={isLoading}>
+        <DialogFooter className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+          {trip?.id && onDelete && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isLoading || isDeleting}
+              className="sm:mr-auto"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+          <Button type="submit" disabled={isLoading || isDeleting}>
             {isLoading ? "Saving..." : trip ? "Update" : "Create"}
           </Button>
         </DialogFooter>

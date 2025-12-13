@@ -6,6 +6,7 @@ import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { z } from "zod";
 import { notifyTaskAssignment, notifyTaskCompletion } from "@/lib/notifications";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { hasPermission } from "@/lib/permissions";
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
@@ -377,10 +378,6 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!canManageUsers(session.user)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const tenantIdFromSession = getTenantId(session);
     const isAdmin = isPlatformAdmin(session);
     const requestedTenantId = null; // DELETE does not accept override
@@ -390,6 +387,30 @@ export async function DELETE(
     }
 
     const { id } = await params;
+    
+    // Fetch task to check ownership
+    const task = await db.task.findUnique({
+      where: {
+        id,
+        yachtId: tenantId || undefined,
+      },
+      select: {
+        createdByUserId: true,
+      },
+    });
+
+    if (!task) {
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
+    }
+
+    // Check if user is the task creator OR has tasks.delete permission
+    const isTaskOwner = task.createdByUserId === session.user.id;
+    const hasDeletePermission = hasPermission(session.user, "tasks.delete", session.user.permissions);
+
+    if (!isTaskOwner && !hasDeletePermission) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     await db.task.delete({
       where: {
         id,

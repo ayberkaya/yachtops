@@ -268,7 +268,7 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
             </div>
           </div>
         </div>
-        {canManage && (
+        {canManage && task && (
           <Dialog open={isEditing} onOpenChange={setIsEditing}>
             <DialogTrigger asChild>
               <Button variant="outline">

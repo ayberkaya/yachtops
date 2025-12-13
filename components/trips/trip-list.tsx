@@ -205,6 +205,10 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
                   setIsDialogOpen(false);
                   router.refresh();
                 }}
+                onDelete={() => {
+                  setIsDialogOpen(false);
+                  router.refresh();
+                }}
               />
             </DialogContent>
           </Dialog>

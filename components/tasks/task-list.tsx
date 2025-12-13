@@ -38,10 +38,11 @@ import {
 } from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2 } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { TaskCompletionDialog } from "./task-completion-dialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { hasPermission } from "@/lib/permissions";
 
 interface Task {
   id: string;
@@ -62,7 +63,7 @@ interface TaskListProps {
   initialTasks: Task[];
   users: { id: string; name: string | null; email: string }[];
   trips: { id: string; name: string }[];
-  currentUser: { id: string; role: UserRole };
+  currentUser: { id: string; role: UserRole; permissions?: string | null };
 }
 
 type ViewMode = "table" | "cards";
@@ -143,6 +144,29 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
       }
     } catch (error) {
       console.error("Error updating task status:", error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        setTasks((prev) => prev.filter((t) => t.id !== taskId));
+        router.refresh();
+      } else {
+        const errorData = await response.json();
+        alert(errorData.error || "Failed to delete task");
+      }
+    } catch (error) {
+      console.error("Error deleting task:", error);
+      alert("An error occurred while deleting the task");
     }
   };
 
@@ -284,15 +308,14 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               </>
             )}
           </Button>
-        </div>
-        <div className="relative">
-          <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-            <CollapsibleTrigger>
-              <Button variant="outline" size="sm">
-                Filters
-              </Button>
-            </CollapsibleTrigger>
-            <CollapsibleContent className="absolute right-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-start gap-3 z-20">
+          <div className="relative">
+            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+              <CollapsibleTrigger>
+                <Button variant="outline" size="sm">
+                  Filters
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="absolute left-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-start gap-3 z-20">
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Status</span>
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -351,8 +374,9 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               >
                 Apply
               </Button>
-            </CollapsibleContent>
-          </Collapsible>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
         </div>
       </div>
 
@@ -565,20 +589,36 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </span>
                     )}
                   </div>
-                  {canManage && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setEditingTask(task);
-                        setIsDialogOpen(true);
-                      }}
-                    >
-                      <Pencil className="h-3 w-3 md:h-4 md:w-4" />
-                    </Button>
-                  )}
+                  <div className="flex items-center gap-1">
+                    {(task.createdBy && task.createdBy.id === currentUser.id) || 
+                     hasPermission(currentUser, "tasks.delete", currentUser.permissions) ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTask(task.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                      </Button>
+                    ) : null}
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTask(task);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3 md:h-4 md:w-4" />
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
               </div>
@@ -704,18 +744,31 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         )}
                       </TableCell>
                       <TableCell className="text-right">
-                        {canManage && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditingTask(task);
-                              setIsDialogOpen(true);
-                            }}
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                        )}
+                        <div className="flex items-center justify-end gap-1">
+                          {(task.createdBy && task.createdBy.id === currentUser.id) || 
+                           hasPermission(currentUser, "tasks.delete", currentUser.permissions) ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteTask(task.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingTask(task);
+                                setIsDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   );
