@@ -19,7 +19,7 @@ export default async function ShiftsPage() {
     redirect("/dashboard");
   }
 
-  const [shifts, users] = await Promise.all([
+  const [shifts, users, leaves] = await Promise.all([
     db.shift.findMany({
       where: {
         yachtId: session.user.yachtId,
@@ -60,6 +60,38 @@ export default async function ShiftsPage() {
       },
       orderBy: { name: "asc" },
     }),
+    db.leave.findMany({
+      where: {
+        yachtId: session.user.yachtId,
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        approvedBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+      orderBy: [
+        { startDate: "asc" },
+      ],
+    }),
   ]);
 
   return (
@@ -79,6 +111,13 @@ export default async function ShiftsPage() {
           endTime: shift.endTime.toISOString(),
           createdAt: shift.createdAt.toISOString(),
           updatedAt: shift.updatedAt.toISOString(),
+        }))}
+        initialLeaves={leaves.map((leave) => ({
+          ...leave,
+          startDate: leave.startDate.toISOString().split("T")[0],
+          endDate: leave.endDate.toISOString().split("T")[0],
+          createdAt: leave.createdAt.toISOString(),
+          updatedAt: leave.updatedAt.toISOString(),
         }))}
         users={users}
       />

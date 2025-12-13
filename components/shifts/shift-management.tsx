@@ -48,6 +48,7 @@ type User = {
 
 interface ShiftManagementProps {
   initialShifts: Shift[];
+  initialLeaves?: Leave[];
   users: User[];
 }
 
@@ -85,9 +86,9 @@ type Leave = {
   };
 };
 
-export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) {
+export function ShiftManagement({ initialShifts, initialLeaves = [], users }: ShiftManagementProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
-  const [leaves, setLeaves] = useState<Leave[]>([]);
+  const [leaves, setLeaves] = useState<Leave[]>(initialLeaves);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
