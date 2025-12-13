@@ -64,19 +64,20 @@ export async function GET(request: NextRequest) {
       where.OR = [];
       if (startDate && endDate) {
         // Find leaves that overlap with the date range
+        // End date is exclusive - person returns to work on end date
         where.OR.push({
           AND: [
-            { startDate: { lte: new Date(endDate) } },
-            { endDate: { gte: new Date(startDate) } },
+            { startDate: { lt: new Date(endDate) } }, // Start before end date (exclusive)
+            { endDate: { gt: new Date(startDate) } }, // End after start date
           ],
         });
       } else if (startDate) {
         where.OR.push({
-          endDate: { gte: new Date(startDate) },
+          endDate: { gt: new Date(startDate) }, // End after start date
         });
       } else if (endDate) {
         where.OR.push({
-          startDate: { lte: new Date(endDate) },
+          startDate: { lt: new Date(endDate) }, // Start before end date (exclusive)
         });
       }
     }
