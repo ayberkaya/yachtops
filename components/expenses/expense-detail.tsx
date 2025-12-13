@@ -18,7 +18,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import { ExpenseStatus, PaymentMethod, PaidBy } from "@prisma/client";
-import { ArrowLeft, Check, X } from "lucide-react";
+import { ArrowLeft, Check, X, Paperclip, Download, Eye } from "lucide-react";
 
 interface ExpenseDetailProps {
   expense: any;
@@ -26,11 +26,18 @@ interface ExpenseDetailProps {
   canEdit: boolean;
 }
 
+interface Receipt {
+  id: string;
+  fileUrl: string;
+  uploadedAt: string;
+}
+
 export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailProps) {
   const router = useRouter();
   const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [previewReceipt, setPreviewReceipt] = useState<Receipt | null>(null);
 
   // Derive extra display info from notes for UI-only fields (crew personal, card owner)
   let crewPersonalLabel: string | null = null;
@@ -261,22 +268,57 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
             <CardDescription>{expense.receipts.length} receipt(s) attached</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {expense.receipts.map((receipt: any) => (
-                <div key={receipt.id} className="border rounded-lg p-2">
-                  <a
-                    href={`/api/expenses/receipts/${receipt.id}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-sm text-primary hover:underline"
+            <div className="space-y-2">
+              {expense.receipts.map((receipt: Receipt) => {
+                const receiptUrl = `/api/expenses/receipts/${receipt.id}`;
+                
+                return (
+                  <div
+                    key={receipt.id}
+                    className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      setPreviewReceipt(receipt);
+                    }}
                   >
-                    View Receipt
-                  </a>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {format(new Date(receipt.uploadedAt), "MMM d, yyyy")}
-                  </p>
-                </div>
-              ))}
+                    <div className="flex items-center gap-3 flex-1 min-w-0">
+                      <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium truncate">
+                            Receipt
+                          </span>
+                          <Eye className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                        </div>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>
+                            {format(new Date(receipt.uploadedAt), "MMM d, yyyy")}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const link = document.createElement("a");
+                          link.href = receiptUrl;
+                          link.download = `receipt-${receipt.id}.jpg`;
+                          link.target = "_blank";
+                          document.body.appendChild(link);
+                          link.click();
+                          document.body.removeChild(link);
+                        }}
+                        title="Download"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </CardContent>
         </Card>
@@ -403,6 +445,71 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
               Reject Expense
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Receipt Preview Dialog */}
+      <Dialog open={!!previewReceipt} onOpenChange={(open) => !open && setPreviewReceipt(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0" showCloseButton={false}>
+          {previewReceipt && (
+            <>
+              <DialogHeader className="px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <DialogTitle className="truncate">Receipt</DialogTitle>
+                    <DialogDescription className="mt-1">
+                      {format(new Date(previewReceipt.uploadedAt), "MMM d, yyyy")}
+                    </DialogDescription>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = `/api/expenses/receipts/${previewReceipt.id}`;
+                        link.download = `receipt-${previewReceipt.id}.jpg`;
+                        link.target = "_blank";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPreviewReceipt(null)}
+                      title="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="px-6 pb-6 overflow-auto max-h-[calc(90vh-120px)]">
+                <img
+                  src={`/api/expenses/receipts/${previewReceipt.id}`}
+                  alt="Receipt"
+                  className="max-w-full h-auto rounded-lg"
+                  onError={(e) => {
+                    // If image fails to load, show error message
+                    const target = e.target as HTMLImageElement;
+                    const parent = target.parentElement;
+                    if (parent && !parent.querySelector('.error-message')) {
+                      target.style.display = "none";
+                      const errorDiv = document.createElement("div");
+                      errorDiv.className = "error-message text-center py-8 text-muted-foreground";
+                      errorDiv.textContent = "Failed to load receipt preview";
+                      parent.appendChild(errorDiv);
+                    }
+                  }}
+                />
+              </div>
+            </>
+          )}
         </DialogContent>
       </Dialog>
     </div>
