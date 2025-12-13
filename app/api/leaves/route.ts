@@ -304,13 +304,22 @@ export async function POST(request: NextRequest) {
       }
       
       // Return detailed error for debugging
+      const errorResponse = {
+        error: "Database error",
+        message: dbError?.message || "Failed to create leave",
+        code: dbError?.code,
+        ...(process.env.NODE_ENV === "development" 
+          ? { 
+              meta: dbError?.meta,
+              stack: dbError?.stack?.substring(0, 500),
+            } 
+          : {}),
+      };
+      
+      console.error("Returning error response:", JSON.stringify(errorResponse, null, 2));
+      
       return NextResponse.json(
-        {
-          error: "Database error",
-          message: dbError?.message || "Failed to create leave",
-          code: dbError?.code,
-          ...(process.env.NODE_ENV === "development" ? { meta: dbError?.meta } : {}),
-        },
+        errorResponse,
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }

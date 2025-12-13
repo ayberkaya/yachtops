@@ -124,7 +124,9 @@ export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps)
           }
           throw new Error(`Server error: ${response.status} ${response.statusText}. ${text.substring(0, 200)}`);
         }
-        throw new Error(errorData.error || errorData.message || errorData.details || "Failed to save leave");
+        const errorMsg = errorData.error || errorData.message || errorData.details || "Failed to save leave";
+        const fullError = errorData.code ? `${errorMsg} (Code: ${errorData.code})` : errorMsg;
+        throw new Error(fullError);
       }
 
       const result = await response.json();
