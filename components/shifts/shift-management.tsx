@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Clock, User, Plus, Edit, Trash2, Filter } from "lucide-react";
+import { Calendar, Clock, User, Plus, Edit, Trash2, Filter, LayoutGrid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import { ShiftCalendar } from "./shift-calendar";
 
 type Shift = {
   id: string;
@@ -63,8 +64,11 @@ const shiftTypeColors: Record<Shift["type"], string> = {
   ON_CALL: "bg-orange-100 text-orange-700 border-orange-200",
 };
 
+type ViewMode = "list" | "calendar";
+
 export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
+  const [viewMode, setViewMode] = useState<ViewMode>("list");
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
   const crewMembers = users.filter((user) => {
@@ -239,14 +243,36 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
           <h2 className="text-2xl font-bold">Shift Management</h2>
           <p className="text-muted-foreground">Track and manage crew member shifts</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={() => handleOpenDialog()}>
-              <Plus className="mr-2 h-4 w-4" />
-              New Shift
+        <div className="flex items-center gap-2">
+          {/* View Mode Toggle */}
+          <div className="flex items-center gap-1 border rounded-lg p-1">
+            <Button
+              variant={viewMode === "list" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+              className="h-8"
+            >
+              <List className="h-4 w-4 mr-2" />
+              List
             </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <Button
+              variant={viewMode === "calendar" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+              className="h-8"
+            >
+              <LayoutGrid className="h-4 w-4 mr-2" />
+              Calendar
+            </Button>
+          </div>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={() => handleOpenDialog()}>
+                <Plus className="mr-2 h-4 w-4" />
+                New Shift
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{editingShift ? "Edit Shift" : "New Shift"}</DialogTitle>
               <DialogDescription>
@@ -349,6 +375,7 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Filters */}
@@ -390,8 +417,13 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
         </CardContent>
       </Card>
 
-      {/* Shifts List */}
-      {sortedDates.length === 0 ? (
+      {/* Shifts View */}
+      {viewMode === "calendar" ? (
+        <ShiftCalendar
+          shifts={filteredShifts}
+          onShiftClick={(shift) => handleOpenDialog(shift)}
+        />
+      ) : sortedDates.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center">
             <Calendar className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
