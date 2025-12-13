@@ -92,11 +92,20 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
   };
 
   // Get leaves for a specific date
+  // End date is exclusive - person returns to work on end date
   const getLeavesForDate = (date: Date): Leave[] => {
     return leaves.filter((leave) => {
       const startDate = new Date(leave.startDate);
+      startDate.setHours(0, 0, 0, 0); // Start of day
+      
       const endDate = new Date(leave.endDate);
-      return isWithinInterval(date, { start: startDate, end: endDate });
+      endDate.setHours(0, 0, 0, 0); // Start of end date (exclusive)
+      
+      const checkDate = new Date(date);
+      checkDate.setHours(0, 0, 0, 0);
+      
+      // Start date inclusive, end date exclusive
+      return checkDate >= startDate && checkDate < endDate;
     });
   };
 
@@ -128,11 +137,18 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
   }, [shifts]);
 
   // Group leaves by date range for quick lookup
+  // End date is exclusive - person returns to work on end date
   const leavesByDate = useMemo(() => {
     const grouped: Record<string, Leave[]> = {};
     leaves.forEach((leave) => {
       const start = new Date(leave.startDate);
+      start.setHours(0, 0, 0, 0);
+      
       const end = new Date(leave.endDate);
+      end.setHours(0, 0, 0, 0);
+      // End date is exclusive, so we subtract 1 day to get the last day of leave
+      end.setDate(end.getDate() - 1);
+      
       const days = eachDayOfInterval({ start, end });
       days.forEach((day) => {
         const dateStr = format(day, "yyyy-MM-dd");

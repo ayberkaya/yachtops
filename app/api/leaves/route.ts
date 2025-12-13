@@ -231,6 +231,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for overlapping leaves
+    // End date is exclusive - person returns to work on end date
     console.log("Checking for overlapping leaves...");
     let overlappingLeaves;
     try {
@@ -238,8 +239,10 @@ export async function POST(request: NextRequest) {
         where: {
           userId: validated.userId,
           yachtId: session.user.yachtId,
-          startDate: { lte: new Date(validated.endDate) },
-          endDate: { gte: new Date(validated.startDate) },
+          // Start date can be before or equal to new end date (exclusive)
+          startDate: { lt: new Date(validated.endDate) },
+          // End date (exclusive) should be after new start date
+          endDate: { gt: new Date(validated.startDate) },
         },
       });
       console.log("Overlapping leaves check:", overlappingLeaves ? "found" : "none");

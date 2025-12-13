@@ -228,6 +228,9 @@ export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps)
             onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
             required
           />
+          <p className="text-xs text-muted-foreground">
+            Last day of leave. The person will return to work on this date.
+          </p>
         </div>
       </div>
 
