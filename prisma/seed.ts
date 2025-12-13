@@ -309,7 +309,7 @@ async function main() {
       departurePort: "Monaco",
       arrivalPort: "Cannes",
       status: "COMPLETED",
-      createdByUserId: captain.id,
+      createdByUserId: captain?.id || null,
     },
   });
 
