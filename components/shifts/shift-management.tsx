@@ -390,16 +390,18 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
         >
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
-              <CardTitle className="text-lg flex items-center justify-between">
+              <CardTitle className="text-lg flex items-center justify-center relative">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
                   Filters
                 </div>
-                {filtersOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
+                <div className="absolute right-0">
+                  {filtersOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </div>
               </CardTitle>
             </CardHeader>
           </CollapsibleTrigger>
