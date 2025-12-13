@@ -246,7 +246,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           )}
         />
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <FormField
             control={form.control}
             name="assigneeId"
@@ -344,7 +344,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           )}
         />
 
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
             name="dueDate"
@@ -386,28 +386,6 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
               </FormItem>
             )}
           />
-
-          <FormField
-            control={form.control}
-            name="status"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Status</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>Todo</SelectItem>
-                    <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
         <div className="space-y-2">
@@ -439,18 +417,19 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           </p>
         </div>
 
-        <DialogFooter className="flex justify-between sm:justify-end">
-          {task && onDelete && (
+        <DialogFooter className="flex-row justify-between">
+          {task?.id && onDelete ? (
             <Button
               type="button"
               variant="destructive"
               onClick={handleDelete}
               disabled={isLoading || isDeleting}
-              className="sm:mr-auto"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               {isDeleting ? "Deleting..." : "Delete"}
             </Button>
+          ) : (
+            <div />
           )}
           <Button type="submit" disabled={isLoading || isDeleting}>
             {isLoading ? "Saving..." : task ? "Update" : "Create"}
