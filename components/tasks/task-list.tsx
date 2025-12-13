@@ -84,6 +84,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const groupBy = "none";
 
   const canManage = currentUser.role !== "CREW";
+  
+  // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
+  const crewMembers = users.filter((user: any) => {
+    const role = String(user.role || "").toUpperCase().trim();
+    return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
+  });
 
   const getStatusBadge = (status: TaskStatus) => {
     const variants: Record<TaskStatus, "default" | "secondary" | "outline"> = {
@@ -339,7 +345,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   <SelectContent>
                     <SelectItem key="all" value="all">All assignees</SelectItem>
                     <SelectItem key="unassigned" value="unassigned">Unassigned</SelectItem>
-                    {users.map((u) => (
+                    {crewMembers.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.name || u.email}
                       </SelectItem>

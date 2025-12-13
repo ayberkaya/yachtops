@@ -60,7 +60,7 @@ export default async function ExpensesPage() {
       where: {
         yachtId: session.user.yachtId || undefined,
       },
-      select: { id: true, name: true, email: true },
+      select: { id: true, name: true, email: true, role: true },
       orderBy: { name: "asc" },
     }),
   ]);

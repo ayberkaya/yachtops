@@ -106,6 +106,12 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [saveFilterDialogOpen, setSaveFilterDialogOpen] = useState(false);
   const [filterName, setFilterName] = useState("");
+  
+  // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
+  const crewMembers = users.filter((user: any) => {
+    const role = String(user.role || "").toUpperCase().trim();
+    return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
+  });
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
   const [groupBy, setGroupBy] = useState<"none" | "category" | "date" | "trip">("none");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "status">("date");
@@ -700,7 +706,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Users</SelectItem>
-                  {users.map((user) => (
+                  {crewMembers.map((user) => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name || user.email}
                     </SelectItem>
