@@ -117,10 +117,14 @@ export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps)
             throw new Error(`Failed to save leave: ${response.status} ${response.statusText}`);
           }
         } else {
+          // If we get HTML (Next.js error page), try to extract useful info
           const text = await response.text();
+          if (text.includes("<!DOCTYPE") || text.includes("<html")) {
+            throw new Error(`Server error: ${response.status} ${response.statusText}. Please check the server logs for details.`);
+          }
           throw new Error(`Server error: ${response.status} ${response.statusText}. ${text.substring(0, 200)}`);
         }
-        throw new Error(errorData.error || errorData.message || "Failed to save leave");
+        throw new Error(errorData.error || errorData.message || errorData.details || "Failed to save leave");
       }
 
       const result = await response.json();

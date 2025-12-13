@@ -163,10 +163,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user belongs to same yacht
-    const user = await db.user.findUnique({
-      where: { id: validated.userId },
-      select: { yachtId: true },
-    });
+    let user;
+    try {
+      user = await db.user.findUnique({
+        where: { id: validated.userId },
+        select: { yachtId: true },
+      });
+    } catch (dbError: any) {
+      console.error("Database error fetching user:", dbError);
+      return NextResponse.json(
+        { error: "Database error", message: "Failed to verify user" },
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
     if (!user || user.yachtId !== session.user.yachtId) {
       return NextResponse.json(
@@ -265,22 +274,39 @@ export async function POST(request: NextRequest) {
       { status: 201, headers: { "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error creating leave:", error);
-    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    console.error("=== ERROR IN POST /api/leaves ===");
+    console.error("Error type:", error?.constructor?.name);
+    console.error("Error message:", error instanceof Error ? error.message : String(error));
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack");
     
-    // Ensure we always return JSON
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: errorMessage,
-        ...(process.env.NODE_ENV === "development" && error instanceof Error
-          ? { stack: error.stack }
-          : {}),
-      },
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    const errorStack = error instanceof Error ? error.stack : undefined;
+    
+    // Ensure we always return JSON, even if something goes wrong
+    try {
+      return NextResponse.json(
+        {
+          error: "Internal server error",
+          message: errorMessage,
+          ...(process.env.NODE_ENV === "development" && errorStack
+            ? { stack: errorStack }
+            : {}),
+        },
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    } catch (responseError) {
+      // Fallback if JSON creation fails
+      console.error("Failed to create error response:", responseError);
+      return new NextResponse(
+        JSON.stringify({ error: "Internal server error", message: "Failed to process request" }),
+        {
+          status: 500,
+          headers: { "Content-Type": "application/json" },
+        }
+      );
+    }
   }
 }
