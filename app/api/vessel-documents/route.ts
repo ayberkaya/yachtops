@@ -82,13 +82,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validation = validateFileUpload(file, "document");
-    if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error || "File validation failed" },
-        { status: 400 }
-      );
-    }
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const mimeType = file.type || "application/pdf";
