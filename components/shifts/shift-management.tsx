@@ -382,7 +382,12 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
 
       {/* Filters */}
       <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <Card>
+        <Card
+          style={{
+            height: filtersOpen ? "auto" : "56px",
+          }}
+          className="overflow-hidden"
+        >
           <CollapsibleTrigger asChild>
             <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
               <CardTitle className="text-lg flex items-center justify-between">
