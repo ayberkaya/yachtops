@@ -4,7 +4,23 @@ import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { z } from "zod";
-import { LeaveType, LeaveStatus } from "@prisma/client";
+
+// Define enums manually to avoid Prisma client import issues
+const LeaveType = {
+  ANNUAL_LEAVE: "ANNUAL_LEAVE",
+  SICK_LEAVE: "SICK_LEAVE",
+  PERSONAL_LEAVE: "PERSONAL_LEAVE",
+  EMERGENCY_LEAVE: "EMERGENCY_LEAVE",
+} as const;
+
+const LeaveStatus = {
+  PENDING: "PENDING",
+  APPROVED: "APPROVED",
+  REJECTED: "REJECTED",
+} as const;
+
+type LeaveType = typeof LeaveType[keyof typeof LeaveType];
+type LeaveStatus = typeof LeaveStatus[keyof typeof LeaveStatus];
 
 const createLeaveSchema = z.object({
   userId: z.string().min(1),
@@ -241,7 +257,7 @@ export async function POST(request: NextRequest) {
           endDate: new Date(validated.endDate),
           type: validated.type,
           reason: validated.reason || null,
-          status: validated.status || LeaveStatus.PENDING,
+          status: (validated.status as any) || "PENDING",
           createdByUserId: session.user.id,
         },
         include: {
