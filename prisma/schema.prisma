@@ -627,7 +627,6 @@ enum TripType {
 
 enum TaskStatus {
   TODO
-  IN_PROGRESS
   DONE
 }
 

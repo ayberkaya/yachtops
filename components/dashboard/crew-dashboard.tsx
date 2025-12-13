@@ -104,7 +104,6 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
   ]);
 
   const pendingTasksCount = myTasks.filter((t) => t.status === TaskStatus.TODO).length;
-  const inProgressTasksCount = myTasks.filter((t) => t.status === TaskStatus.IN_PROGRESS).length;
 
   const lowStockItems = alcoholStocks.filter((stock) => {
     if (stock.lowStockThreshold === null) return false;
@@ -340,7 +339,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
           <CardContent>
             <div className="text-2xl font-bold">{myTasks.length}</div>
             <p className="text-xs text-muted-foreground">
-              {pendingTasksCount} pending, {inProgressTasksCount} in progress
+              {pendingTasksCount} pending
             </p>
           </CardContent>
         </Card>

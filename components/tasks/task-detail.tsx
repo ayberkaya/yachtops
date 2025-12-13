@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { ArrowLeft, User, Ship, Calendar, CheckCircle2, MessageSquare, Paperclip, Upload, X, Pencil, Download, Eye, Camera } from "lucide-react";
+import { ArrowLeft, User, Ship, Calendar, CheckCircle2, MessageSquare, Paperclip, Upload, X, Pencil, Download, Eye, Camera, Check } from "lucide-react";
 import { TaskForm } from "./task-form";
 import Link from "next/link";
 
@@ -96,13 +96,12 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
   const getStatusBadge = (status: TaskStatus) => {
     const variants: Record<TaskStatus, "default" | "secondary" | "outline"> = {
       [TaskStatus.TODO]: "outline",
-      [TaskStatus.IN_PROGRESS]: "secondary",
       [TaskStatus.DONE]: "default",
     };
 
     return (
       <Badge variant={variants[status]}>
-        {status.replace("_", " ")}
+        {status === TaskStatus.DONE ? "Completed" : "To-Do"}
       </Badge>
     );
   };
@@ -194,6 +193,24 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
     }
   };
 
+  const handleMarkAsCompleted = async () => {
+    if (!task) return;
+
+    try {
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: TaskStatus.DONE }),
+      });
+
+      if (response.ok) {
+        fetchTask();
+      }
+    } catch (error) {
+      console.error("Error marking task as completed:", error);
+    }
+  };
+
   const handleDeleteAttachment = async (attachmentId: string) => {
     if (!confirm("Are you sure you want to delete this attachment?")) return;
 
@@ -271,6 +288,11 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
                 onSuccess={() => {
                   setIsEditing(false);
                   fetchTask();
+                  router.refresh();
+                }}
+                onDelete={() => {
+                  setIsEditing(false);
+                  router.push("/dashboard/tasks");
                   router.refresh();
                 }}
               />
@@ -472,72 +494,24 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {task.createdBy && (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    Created by <span className="font-bold">{task.createdBy.name || task.createdBy.email}</span>
-                  </span>
-                </div>
-              )}
-              {task.assignee ? (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-bold">
-                    {task.assignee.name || task.assignee.email}
-                  </span>
-                </div>
-              ) : task.assigneeRole ? (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-bold">{task.assigneeRole}</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Unassigned</span>
-                </div>
-              )}
-
-              {task.trip && (
-                <div className="flex items-center gap-2">
-                  <Ship className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{task.trip.name}</span>
-                </div>
-              )}
-
-              {task.dueDate && (
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">
-                    {format(new Date(task.dueDate), "MMM d, yyyy")}
-                  </span>
-                </div>
-              )}
-
-              {task.completedBy && (
-                <div className="flex items-center gap-2 pt-2 border-t">
-                  <CheckCircle2 className="h-4 w-4 text-green-600" />
-                  <div className="text-sm">
-                    <div>Completed by <span className="font-bold">{task.completedBy.name || task.completedBy.email}</span></div>
-                    {task.completedAt && (
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(task.completedAt), "MMM d, yyyy 'at' h:mm a")}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
       </div>
+
+      {/* Mark as Completed Button */}
+      {task.status !== TaskStatus.DONE && (
+        <div className="flex justify-end pt-4">
+          <Button
+            onClick={handleMarkAsCompleted}
+            className="bg-green-600 hover:bg-green-700 text-white"
+            size="lg"
+            style={{
+              boxShadow: "0px 0px 0px 0px rgba(0, 0, 0, 0), 0px 0px 0px 0px rgba(0, 0, 0, 0), 0px 0px 0px 0px rgba(0, 0, 0, 0), 0px 0px 0px 0px rgba(0, 0, 0, 0), 0px 4px 6px -1px rgba(0, 0, 0, 0.1), 0px 2px 4px -2px rgba(0, 0, 0, 0.1), 0px 4px 12px 0px rgba(0, 0, 0, 0.15)"
+            }}
+          >
+            Mark as Completed
+            <Check className="ml-2 h-4 w-4" />
+          </Button>
+        </div>
+      )}
 
       {/* Image Preview Dialog */}
       <Dialog open={!!previewAttachment} onOpenChange={(open) => !open && setPreviewAttachment(null)}>

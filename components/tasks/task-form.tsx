@@ -19,6 +19,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { Trash2 } from "lucide-react";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -38,12 +39,14 @@ interface TaskFormProps {
   users: { id: string; name: string | null; email: string }[];
   trips: { id: string; name: string }[];
   onSuccess: (createdTask?: any) => void;
+  onDelete?: () => void;
 }
 
-export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
+export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema) as any,
@@ -177,6 +180,31 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!task || !onDelete) return;
+
+    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
+
+    setIsDeleting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/tasks/${task.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to delete task");
+      }
+
+      onDelete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
+      setIsDeleting(false);
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -241,7 +269,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">Unassigned</SelectItem>
+                    <SelectItem key="none" value="none">Unassigned</SelectItem>
                     {users.map((user) => (
                       <SelectItem key={user.id} value={user.id}>
                         {user.name || user.email}
@@ -276,9 +304,9 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="none">No role assignment</SelectItem>
-                    <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
-                    <SelectItem value={UserRole.CREW}>Crew</SelectItem>
+                    <SelectItem key="none" value="none">No role assignment</SelectItem>
+                    <SelectItem key={UserRole.CAPTAIN} value={UserRole.CAPTAIN}>Captain</SelectItem>
+                    <SelectItem key={UserRole.CREW} value={UserRole.CREW}>Crew</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -303,7 +331,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
-                  <SelectItem value="none">No trip</SelectItem>
+                  <SelectItem key="none" value="none">No trip</SelectItem>
                   {trips.map((trip) => (
                     <SelectItem key={trip.id} value={trip.id}>
                       {trip.name}
@@ -348,10 +376,10 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value="LOW">Low</SelectItem>
-                    <SelectItem value="MEDIUM">Medium</SelectItem>
-                    <SelectItem value="HIGH">High</SelectItem>
-                    <SelectItem value="URGENT">Urgent</SelectItem>
+                    <SelectItem key="LOW" value="LOW">Low</SelectItem>
+                    <SelectItem key="MEDIUM" value="MEDIUM">Medium</SelectItem>
+                    <SelectItem key="HIGH" value="HIGH">High</SelectItem>
+                    <SelectItem key="URGENT" value="URGENT">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -372,9 +400,8 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-                    <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                    <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                    <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>Todo</SelectItem>
+                    <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
                   </SelectContent>
                 </Select>
                 <FormMessage />
@@ -412,8 +439,20 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
           </p>
         </div>
 
-        <DialogFooter>
-          <Button type="submit" disabled={isLoading}>
+        <DialogFooter className="flex justify-between sm:justify-end">
+          {task && onDelete && (
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isLoading || isDeleting}
+              className="sm:mr-auto"
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          )}
+          <Button type="submit" disabled={isLoading || isDeleting}>
             {isLoading ? "Saving..." : task ? "Update" : "Create"}
           </Button>
         </DialogFooter>

@@ -86,13 +86,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const getStatusBadge = (status: TaskStatus) => {
     const variants: Record<TaskStatus, "default" | "secondary" | "outline"> = {
       [TaskStatus.TODO]: "outline",
-      [TaskStatus.IN_PROGRESS]: "secondary",
       [TaskStatus.DONE]: "default",
     };
 
     return (
       <Badge variant={variants[status]} className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1">
-        {status.replace("_", " ")}
+        {status === TaskStatus.DONE ? "Completed" : "To-Do"}
       </Badge>
     );
   };
@@ -301,10 +300,9 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Statuses</SelectItem>
-                    <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-                    <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                    <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                    <SelectItem key="all" value="all">All Statuses</SelectItem>
+                    <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>To-Do</SelectItem>
+                    <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -315,8 +313,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <SelectValue placeholder="Filter by assignee" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All assignees</SelectItem>
-                    <SelectItem value="unassigned">Unassigned</SelectItem>
+                    <SelectItem key="all" value="all">All assignees</SelectItem>
+                    <SelectItem key="unassigned" value="unassigned">Unassigned</SelectItem>
                     {users.map((u) => (
                       <SelectItem key={u.id} value={u.id}>
                         {u.name || u.email}
@@ -377,7 +375,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
-            const isInProgress = task.status === TaskStatus.IN_PROGRESS;
             const isDone = task.status === TaskStatus.DONE;
             const isUrgent = String(task.priority) === "URGENT";
             const isHighPriority = task.priority === TaskPriority.HIGH;
@@ -397,16 +394,14 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               cardBorderColor = "rgba(92, 92, 92, 1)";
             } else if (isTodo) {
               cardBorderColor = "rgba(254, 230, 133, 1)";
-            } else if (isInProgress) {
-              cardBorderColor = "rgba(59, 130, 246, 1)"; // Blue for in progress
             }
             
             // Clock icon color matches border color
-            if (isTodo || isInProgress) {
+            if (isTodo) {
               clockIconColor = cardBorderColor;
             }
             
-            const isClickable = (isTodo || isInProgress) && !canManage;
+            const isClickable = isTodo && !canManage;
             
             return (
               <div
@@ -464,12 +459,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         backgroundColor: "rgba(254, 230, 133, 0.2)",
                         backdropFilter: "none"
                       }
-                    : isInProgress
-                    ? {
-                        borderColor: "rgba(59, 130, 246, 1)",
-                        backgroundColor: "rgba(59, 130, 246, 0.2)",
-                        backdropFilter: "none"
-                      }
                     : undefined
                 }
               >
@@ -478,7 +467,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <Check className="h-4 w-4 text-green-600" />
                   </div>
                 )}
-                {(isTodo || isInProgress) && (
+                {isTodo && (
                   <div className="absolute -top-[11px] -right-[11px] z-10">
                     <div 
                       className="flex items-center justify-center w-6 h-6 bg-white dark:bg-background rounded-full border-2"
@@ -504,7 +493,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     </CardTitle>
                     <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
                       {!isDone && getPriorityBadge(task.priority)}
-                      {!isTodo && !isInProgress && getStatusBadge(task.status)}
+                      {isDone && getStatusBadge(task.status)}
                     </div>
                   </div>
                   {task.description && (
@@ -666,9 +655,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-                              <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                              <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
+                              <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>To-Do</SelectItem>
+                              <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
                             </SelectContent>
                           </Select>
                         ) : (
