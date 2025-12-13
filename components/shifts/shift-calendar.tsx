@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths, isToday } from "date-fns";
-import { ChevronLeft, ChevronRight, Clock, User } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths, isToday, isWithinInterval } from "date-fns";
+import { ChevronLeft, ChevronRight, Clock, User, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { LeaveType, LeaveStatus } from "@prisma/client";
 
 type Shift = {
   id: string;
@@ -38,10 +39,28 @@ type Shift = {
   updatedAt: string;
 };
 
+type Leave = {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  type: LeaveType;
+  reason?: string | null;
+  status: LeaveStatus;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  };
+};
+
 interface ShiftCalendarProps {
   shifts: Shift[];
+  leaves?: Leave[];
   onDateClick?: (date: Date) => void;
   onShiftClick?: (shift: Shift) => void;
+  onLeaveClick?: (leave: Leave) => void;
 }
 
 const shiftTypeColors: Record<Shift["type"], string> = {
@@ -60,15 +79,30 @@ const shiftTypeLabels: Record<Shift["type"], string> = {
   ON_CALL: "On Call",
 };
 
-export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalendarProps) {
+export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, onLeaveClick }: ShiftCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedDateShifts, setSelectedDateShifts] = useState<Shift[]>([]);
+  const [selectedDateLeaves, setSelectedDateLeaves] = useState<Leave[]>([]);
 
   // Get shifts for a specific date
   const getShiftsForDate = (date: Date): Shift[] => {
     const dateStr = format(date, "yyyy-MM-dd");
     return shifts.filter((shift) => shift.date === dateStr);
+  };
+
+  // Get leaves for a specific date
+  const getLeavesForDate = (date: Date): Leave[] => {
+    return leaves.filter((leave) => {
+      const startDate = new Date(leave.startDate);
+      const endDate = new Date(leave.endDate);
+      return isWithinInterval(date, { start: startDate, end: endDate });
+    });
+  };
+
+  // Check if a date has any leave
+  const hasLeaveOnDate = (date: Date): boolean => {
+    return getLeavesForDate(date).length > 0;
   };
 
   // Calendar grid generation
@@ -93,11 +127,36 @@ export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalend
     return grouped;
   }, [shifts]);
 
+  // Group leaves by date range for quick lookup
+  const leavesByDate = useMemo(() => {
+    const grouped: Record<string, Leave[]> = {};
+    leaves.forEach((leave) => {
+      const start = new Date(leave.startDate);
+      const end = new Date(leave.endDate);
+      const days = eachDayOfInterval({ start, end });
+      days.forEach((day) => {
+        const dateStr = format(day, "yyyy-MM-dd");
+        if (!grouped[dateStr]) {
+          grouped[dateStr] = [];
+        }
+        grouped[dateStr].push(leave);
+      });
+    });
+    return grouped;
+  }, [leaves]);
+
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
     const dayShifts = getShiftsForDate(date);
+    const dayLeaves = getLeavesForDate(date);
     setSelectedDateShifts(dayShifts);
+    setSelectedDateLeaves(dayLeaves);
     onDateClick?.(date);
+  };
+
+  const handleLeaveClick = (leave: Leave, e: React.MouseEvent) => {
+    e.stopPropagation();
+    onLeaveClick?.(leave);
   };
 
   const handleShiftClick = (shift: Shift, e: React.MouseEvent) => {
@@ -158,9 +217,12 @@ export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalend
           <div className="grid grid-cols-7 gap-1">
             {calendarDays.map((day, idx) => {
               const dayShifts = shiftsByDate[format(day, "yyyy-MM-dd")] || [];
+              const dayLeaves = leavesByDate[format(day, "yyyy-MM-dd")] || [];
               const isCurrentMonth = isSameMonth(day, currentMonth);
               const isCurrentDay = isToday(day);
               const hasShifts = dayShifts.length > 0;
+              const hasLeaves = dayLeaves.length > 0;
+              const uniqueLeaves = Array.from(new Map(dayLeaves.map(l => [l.id, l])).values());
 
               return (
                 <div
@@ -169,8 +231,9 @@ export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalend
                     "min-h-[100px] border rounded-lg p-2 cursor-pointer transition-colors",
                     !isCurrentMonth && "opacity-40 bg-muted/30",
                     isCurrentDay && "ring-2 ring-primary",
-                    hasShifts && "bg-accent/50 hover:bg-accent",
-                    !hasShifts && "hover:bg-muted/50"
+                    hasLeaves && "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800",
+                    hasShifts && !hasLeaves && "bg-accent/50 hover:bg-accent",
+                    !hasShifts && !hasLeaves && "hover:bg-muted/50"
                   )}
                   onClick={() => handleDateClick(day)}
                 >
@@ -183,7 +246,20 @@ export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalend
                     {format(day, "d")}
                   </div>
                   <div className="space-y-1">
-                    {dayShifts.slice(0, 3).map((shift) => (
+                    {hasLeaves && (
+                      <Badge
+                        className="text-[10px] px-1.5 py-0.5 w-full justify-start cursor-pointer bg-red-100 text-red-700 border-red-200 hover:bg-red-200"
+                        onClick={(e) => {
+                          if (uniqueLeaves[0]) handleLeaveClick(uniqueLeaves[0], e);
+                        }}
+                      >
+                        <CalendarDays className="h-3 w-3 mr-1" />
+                        <span className="truncate">
+                          {uniqueLeaves[0]?.user.name || uniqueLeaves[0]?.user.email.split("@")[0]}: Leave
+                        </span>
+                      </Badge>
+                    )}
+                    {dayShifts.slice(0, hasLeaves ? 2 : 3).map((shift) => (
                       <Badge
                         key={shift.id}
                         className={cn(
@@ -197,9 +273,9 @@ export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalend
                         </span>
                       </Badge>
                     ))}
-                    {dayShifts.length > 3 && (
+                    {dayShifts.length > (hasLeaves ? 2 : 3) && (
                       <div className="text-xs text-muted-foreground">
-                        +{dayShifts.length - 3} more
+                        +{dayShifts.length - (hasLeaves ? 2 : 3)} more
                       </div>
                     )}
                   </div>
@@ -239,52 +315,84 @@ export function ShiftCalendar({ shifts, onDateClick, onShiftClick }: ShiftCalend
               {selectedDate && format(selectedDate, "EEEE, MMMM d, yyyy")}
             </DialogTitle>
             <DialogDescription>
-              {selectedDateShifts.length === 0
-                ? "No shifts scheduled for this day"
-                : `${selectedDateShifts.length} shift${selectedDateShifts.length > 1 ? "s" : ""} scheduled`}
+              {selectedDateShifts.length === 0 && selectedDateLeaves.length === 0
+                ? "No shifts or leaves scheduled for this day"
+                : `${selectedDateShifts.length} shift${selectedDateShifts.length !== 1 ? "s" : ""}${selectedDateShifts.length > 0 && selectedDateLeaves.length > 0 ? " and " : ""}${selectedDateLeaves.length > 0 ? `${selectedDateLeaves.length} leave${selectedDateLeaves.length !== 1 ? "s" : ""}` : ""} scheduled`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-4">
-            {selectedDateShifts.length === 0 ? (
+            {selectedDateShifts.length === 0 && selectedDateLeaves.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                 <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <p>No shifts scheduled for this day</p>
+                <p>No shifts or leaves scheduled for this day</p>
               </div>
             ) : (
-              selectedDateShifts.map((shift) => (
-                <div
-                  key={shift.id}
-                  className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
-                  onClick={() => {
-                    onShiftClick?.(shift);
-                    setSelectedDate(null);
-                  }}
-                >
-                  <div className="flex items-center gap-4 flex-1">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">
-                        {shift.user.name || shift.user.email}
-                      </span>
+              <>
+                {selectedDateLeaves.map((leave) => (
+                  <div
+                    key={leave.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors cursor-pointer bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800"
+                    onClick={() => {
+                      onLeaveClick?.(leave);
+                      setSelectedDate(null);
+                    }}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-2">
+                        <CalendarDays className="h-4 w-4 text-red-600 dark:text-red-400" />
+                        <span className="font-medium">
+                          {leave.user.name || leave.user.email}
+                        </span>
+                      </div>
+                      <Badge className="bg-red-100 text-red-700 border-red-200">
+                        {leave.type.replace("_", " ")}
+                      </Badge>
+                      <Badge variant={leave.status === "APPROVED" ? "default" : leave.status === "REJECTED" ? "destructive" : "secondary"}>
+                        {leave.status}
+                      </Badge>
+                      {leave.reason && (
+                        <span className="text-sm text-muted-foreground truncate max-w-xs">
+                          {leave.reason}
+                        </span>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">
-                        {format(new Date(shift.startTime), "HH:mm")} -{" "}
-                        {format(new Date(shift.endTime), "HH:mm")}
-                      </span>
-                    </div>
-                    <Badge className={shiftTypeColors[shift.type]}>
-                      {shiftTypeLabels[shift.type]}
-                    </Badge>
-                    {shift.notes && (
-                      <span className="text-sm text-muted-foreground truncate max-w-xs">
-                        {shift.notes}
-                      </span>
-                    )}
                   </div>
-                </div>
-              ))
+                ))}
+                {selectedDateShifts.map((shift) => (
+                  <div
+                    key={shift.id}
+                    className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                    onClick={() => {
+                      onShiftClick?.(shift);
+                      setSelectedDate(null);
+                    }}
+                  >
+                    <div className="flex items-center gap-4 flex-1">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">
+                          {shift.user.name || shift.user.email}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          {format(new Date(shift.startTime), "HH:mm")} -{" "}
+                          {format(new Date(shift.endTime), "HH:mm")}
+                        </span>
+                      </div>
+                      <Badge className={shiftTypeColors[shift.type]}>
+                        {shiftTypeLabels[shift.type]}
+                      </Badge>
+                      {shift.notes && (
+                        <span className="text-sm text-muted-foreground truncate max-w-xs">
+                          {shift.notes}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </>
             )}
           </div>
         </DialogContent>

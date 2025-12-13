@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Clock, User, Plus, Edit, Trash2, Filter, LayoutGrid, List, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, Clock, User, Plus, Edit, Trash2, Filter, LayoutGrid, List, ChevronDown, ChevronUp, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
 import { ShiftCalendar } from "./shift-calendar";
+import { LeaveForm } from "./leave-form";
+import { LeaveType, LeaveStatus } from "@prisma/client";
 
 type Shift = {
   id: string;
@@ -67,8 +69,25 @@ const shiftTypeColors: Record<Shift["type"], string> = {
 
 type ViewMode = "list" | "calendar";
 
+type Leave = {
+  id: string;
+  userId: string;
+  startDate: string;
+  endDate: string;
+  type: LeaveType;
+  reason?: string | null;
+  status: LeaveStatus;
+  user: {
+    id: string;
+    name: string | null;
+    email: string;
+    role: string;
+  };
+};
+
 export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
+  const [leaves, setLeaves] = useState<Leave[]>([]);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
@@ -77,7 +96,9 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
     return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
+  const [editingLeave, setEditingLeave] = useState<Leave | null>(null);
   const [filterUserId, setFilterUserId] = useState<string>("all");
   const [filterDate, setFilterDate] = useState<string>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -93,7 +114,31 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
 
   useEffect(() => {
     fetchShifts();
+    fetchLeaves();
   }, [filterUserId, filterDate]);
+
+  const fetchLeaves = async () => {
+    try {
+      const params = new URLSearchParams();
+      if (filterUserId !== "all") {
+        params.append("userId", filterUserId);
+      }
+      if (filterDate) {
+        params.append("startDate", filterDate);
+        const endDate = new Date(filterDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        params.append("endDate", endDate.toISOString().split("T")[0]);
+      }
+
+      const response = await fetch(`/api/leaves?${params.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLeaves(data);
+      }
+    } catch (error) {
+      console.error("Error fetching leaves:", error);
+    }
+  };
 
   const fetchShifts = async () => {
     try {
@@ -186,6 +231,7 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
         alert(editingShift ? "Shift updated successfully" : "Shift created successfully");
         handleCloseDialog();
         fetchShifts();
+        fetchLeaves();
       } else {
         const error = await response.json();
         alert(error.error || "An error occurred");
@@ -209,6 +255,7 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
       if (response.ok) {
         alert("Shift deleted successfully");
         fetchShifts();
+        fetchLeaves();
       } else {
         const error = await response.json();
         alert(error.error || "An error occurred while deleting the shift");
@@ -267,6 +314,39 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
               Calendar
             </Button>
           </div>
+          <Dialog open={isLeaveDialogOpen} onOpenChange={setIsLeaveDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" onClick={() => {
+                setEditingLeave(null);
+                setIsLeaveDialogOpen(true);
+              }}>
+                <CalendarDays className="mr-2 h-4 w-4" />
+                New Leave
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>{editingLeave ? "Edit Leave" : "New Leave"}</DialogTitle>
+                <DialogDescription>
+                  {editingLeave ? "Update leave information" : "Create a new leave request"}
+                </DialogDescription>
+              </DialogHeader>
+              <LeaveForm
+                leave={editingLeave || undefined}
+                users={users}
+                onSuccess={() => {
+                  setIsLeaveDialogOpen(false);
+                  setEditingLeave(null);
+                  fetchLeaves();
+                }}
+                onDelete={() => {
+                  setIsLeaveDialogOpen(false);
+                  setEditingLeave(null);
+                  fetchLeaves();
+                }}
+              />
+            </DialogContent>
+          </Dialog>
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
               <Button onClick={() => handleOpenDialog()}>
@@ -381,28 +461,28 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
       </div>
 
       {/* Filters */}
-      <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-        <Card
-          style={{
-            height: filtersOpen ? "auto" : "56px",
-          }}
-          className="overflow-hidden"
-        >
-          <CollapsibleTrigger asChild>
+        <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
+          <Card
+            style={{
+              height: filtersOpen ? "auto" : "56px",
+            }}
+            className="overflow-hidden"
+          >
             <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors flex items-center h-full py-0">
-              <CardTitle className="text-lg flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <Filter className="h-4 w-4" />
-                  Filters
-                </div>
-                {filtersOpen ? (
-                  <ChevronUp className="h-4 w-4" />
-                ) : (
-                  <ChevronDown className="h-4 w-4" />
-                )}
-              </CardTitle>
+              <CollapsibleTrigger className="w-full">
+                <CardTitle className="text-lg flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-4 w-4" />
+                    Filters
+                  </div>
+                  {filtersOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </CardTitle>
+              </CollapsibleTrigger>
             </CardHeader>
-          </CollapsibleTrigger>
           <CollapsibleContent>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -441,7 +521,12 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
       {viewMode === "calendar" ? (
         <ShiftCalendar
           shifts={filteredShifts}
+          leaves={leaves}
           onShiftClick={(shift) => handleOpenDialog(shift)}
+          onLeaveClick={(leave) => {
+            setEditingLeave(leave);
+            setIsLeaveDialogOpen(true);
+          }}
         />
       ) : sortedDates.length === 0 ? (
         <Card>

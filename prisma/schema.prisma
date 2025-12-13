@@ -47,6 +47,9 @@ model User {
   shifts                  Shift[]              @relation("ShiftAssignee")
   createdShifts           Shift[]              @relation("ShiftCreator")
   createdTasks            Task[]                @relation("TaskCreator")
+  leaves                  Leave[]               @relation("LeaveAssignee")
+  createdLeaves           Leave[]               @relation("LeaveCreator")
+  approvedLeaves          Leave[]               @relation("LeaveApprover")
 
   @@map("users")
 }
@@ -76,6 +79,7 @@ model Yacht {
   users                     User[]
   vesselDocuments           VesselDocument[]
   shifts                    Shift[]
+  leaves                    Leave[]
 
   @@map("yachts")
 }
@@ -753,4 +757,40 @@ enum ShiftType {
   NIGHT
   FULL_DAY
   ON_CALL
+}
+
+model Leave {
+  id              String      @id @default(cuid())
+  yachtId         String      @map("yacht_id")
+  userId          String      @map("user_id")
+  startDate       DateTime    @map("start_date")
+  endDate         DateTime    @map("end_date")
+  type            LeaveType
+  reason          String?
+  status          LeaveStatus @default(PENDING)
+  approvedByUserId String?    @map("approved_by_user_id")
+  approvedBy      User?       @relation("LeaveApprover", fields: [approvedByUserId], references: [id])
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+  createdByUserId String?    @map("created_by_user_id")
+  createdBy      User?       @relation("LeaveCreator", fields: [createdByUserId], references: [id])
+  user            User        @relation("LeaveAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  yacht           Yacht       @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@index([yachtId, startDate, endDate])
+  @@index([userId, startDate, endDate])
+  @@map("leaves")
+}
+
+enum LeaveType {
+  ANNUAL_LEAVE
+  SICK_LEAVE
+  PERSONAL_LEAVE
+  EMERGENCY_LEAVE
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
 }
