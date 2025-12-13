@@ -115,9 +115,14 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("=== POST /api/leaves - Starting ===");
   try {
+    console.log("Getting session...");
     const session = await getSession();
+    console.log("Session:", session ? "exists" : "null");
+    
     if (!session?.user) {
+      console.log("No session or user");
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401, headers: { "Content-Type": "application/json" } }
@@ -125,6 +130,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (!session.user.yachtId) {
+      console.log("No yachtId in session");
       return NextResponse.json(
         { error: "No yacht assigned" },
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -133,26 +139,33 @@ export async function POST(request: NextRequest) {
 
     // Check permission - users.view is enough to create leaves
     if (!hasPermission(session.user, "users.view", session.user.permissions)) {
+      console.log("Permission denied");
       return NextResponse.json(
         { error: "Forbidden" },
         { status: 403, headers: { "Content-Type": "application/json" } }
       );
     }
 
+    console.log("Parsing request body...");
     let body;
     try {
       body = await request.json();
+      console.log("Request body:", JSON.stringify(body, null, 2));
     } catch (parseError) {
+      console.error("JSON parse error:", parseError);
       return NextResponse.json(
         { error: "Invalid JSON in request body" },
         { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
+    console.log("Validating schema...");
     let validated;
     try {
       validated = createLeaveSchema.parse(body);
+      console.log("Validation passed:", validated);
     } catch (validationError) {
+      console.error("Validation error:", validationError);
       if (validationError instanceof z.ZodError) {
         return NextResponse.json(
           { error: "Invalid input", details: validationError.issues },
@@ -163,21 +176,26 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify user belongs to same yacht
+    console.log("Fetching user from database...");
     let user;
     try {
       user = await db.user.findUnique({
         where: { id: validated.userId },
         select: { yachtId: true },
       });
+      console.log("User found:", user ? `yachtId: ${user.yachtId}` : "not found");
     } catch (dbError: any) {
       console.error("Database error fetching user:", dbError);
+      console.error("Error code:", dbError?.code);
+      console.error("Error message:", dbError?.message);
       return NextResponse.json(
-        { error: "Database error", message: "Failed to verify user" },
+        { error: "Database error", message: "Failed to verify user", details: dbError?.message },
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
 
     if (!user || user.yachtId !== session.user.yachtId) {
+      console.log("User validation failed:", { userExists: !!user, userYachtId: user?.yachtId, sessionYachtId: session.user.yachtId });
       return NextResponse.json(
         { error: "Invalid user" },
         { status: 400, headers: { "Content-Type": "application/json" } }
@@ -185,6 +203,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for overlapping leaves
+    console.log("Checking for overlapping leaves...");
     let overlappingLeaves;
     try {
       overlappingLeaves = await db.leave.findFirst({
@@ -195,8 +214,11 @@ export async function POST(request: NextRequest) {
           endDate: { gte: new Date(validated.startDate) },
         },
       });
+      console.log("Overlapping leaves check:", overlappingLeaves ? "found" : "none");
     } catch (dbError: any) {
       console.error("Database error checking overlapping leaves:", dbError);
+      console.error("Error code:", dbError?.code);
+      console.error("Error message:", dbError?.message);
       // If table doesn't exist, this will fail - but we'll catch it in the create
       overlappingLeaves = null;
     }
@@ -208,6 +230,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log("Creating leave in database...");
     let leave;
     try {
       leave = await db.leave.create({
@@ -247,7 +270,11 @@ export async function POST(request: NextRequest) {
         },
       });
     } catch (dbError: any) {
-      console.error("Database error creating leave:", dbError);
+      console.error("=== Database error creating leave ===");
+      console.error("Error code:", dbError?.code);
+      console.error("Error message:", dbError?.message);
+      console.error("Error meta:", dbError?.meta);
+      console.error("Full error:", JSON.stringify(dbError, Object.getOwnPropertyNames(dbError)));
       
       // Check if it's a table doesn't exist error
       if (dbError?.code === "42P01" || dbError?.message?.includes("does not exist")) {
@@ -260,9 +287,19 @@ export async function POST(request: NextRequest) {
         );
       }
       
-      throw dbError;
+      // Return detailed error for debugging
+      return NextResponse.json(
+        {
+          error: "Database error",
+          message: dbError?.message || "Failed to create leave",
+          code: dbError?.code,
+          ...(process.env.NODE_ENV === "development" ? { meta: dbError?.meta } : {}),
+        },
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
     }
 
+    console.log("Leave created successfully:", leave.id);
     return NextResponse.json(
       {
         ...leave,
