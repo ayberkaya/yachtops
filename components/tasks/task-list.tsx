@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
@@ -87,7 +87,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     };
 
     return (
-      <Badge variant={variants[status]}>
+      <Badge variant={variants[status]} className="text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1">
         {status.replace("_", " ")}
       </Badge>
     );
@@ -109,7 +109,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
-        className={isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}
+        className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 ${isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}`}
         style={
           isUrgent 
             ? { animation: "blinkRed 1s ease-in-out infinite" } 
@@ -293,15 +293,39 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
+            const isInProgress = task.status === TaskStatus.IN_PROGRESS;
             const isDone = task.status === TaskStatus.DONE;
             const isUrgent = String(task.priority) === "URGENT";
             const isHighPriority = task.priority === TaskPriority.HIGH;
             const isLowPriority = task.priority === TaskPriority.LOW;
             
+            // Determine card border color
+            let cardBorderColor: string | undefined;
+            let clockIconColor: string | undefined;
+            
+            if (isDone) {
+              cardBorderColor = "rgba(34, 197, 94, 1)";
+            } else if (isUrgent) {
+              cardBorderColor = "rgba(231, 0, 11, 1)";
+            } else if (isHighPriority) {
+              cardBorderColor = "rgba(255, 102, 0, 1)";
+            } else if (isLowPriority) {
+              cardBorderColor = "rgba(92, 92, 92, 1)";
+            } else if (isTodo) {
+              cardBorderColor = "rgba(254, 230, 133, 1)";
+            } else if (isInProgress) {
+              cardBorderColor = "rgba(59, 130, 246, 1)"; // Blue for in progress
+            }
+            
+            // Clock icon color matches border color
+            if (isTodo || isInProgress) {
+              clockIconColor = cardBorderColor;
+            }
+            
             return (
               <Card 
                 key={task.id} 
-                className={`flex flex-col relative ${
+                className={`flex flex-col relative p-3 md:p-6 gap-3 md:gap-6 ${
                   isDone
                     ? "border-2"
                     : isUrgent
@@ -345,6 +369,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         backgroundColor: "rgba(254, 230, 133, 0.2)",
                         backdropFilter: "none"
                       }
+                    : isInProgress
+                    ? {
+                        borderColor: "rgba(59, 130, 246, 1)",
+                        backgroundColor: "rgba(59, 130, 246, 0.2)",
+                        backdropFilter: "none"
+                      }
                     : undefined
                 }
               >
@@ -353,74 +383,90 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <Check className="h-4 w-4 text-green-600" />
                   </div>
                 )}
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg">
+                {(isTodo || isInProgress) && (
+                  <div className="absolute -top-[11px] -right-[11px] z-10">
+                    <div 
+                      className="flex items-center justify-center w-6 h-6 bg-white dark:bg-background rounded-full border-2"
+                      style={{ borderColor: clockIconColor }}
+                    >
+                      <Clock 
+                        className="h-5 w-5" 
+                        style={{ color: clockIconColor }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <CardHeader className="pb-2 md:pb-3 px-0 pt-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base md:text-lg">
                       <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
                         {task.title}
                       </Link>
                     </CardTitle>
-                    <div className="flex flex-col items-end gap-2">
+                    <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
                       {!isDone && getPriorityBadge(task.priority)}
-                      {getStatusBadge(task.status)}
+                      {!isTodo && !isInProgress && getStatusBadge(task.status)}
                     </div>
                   </div>
                   {task.description && (
-                    <CardDescription className="line-clamp-2 mt-2">
+                    <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
                       {task.description}
                     </CardDescription>
                   )}
                 </CardHeader>
-                <CardContent className="flex-1 space-y-2 text-sm">
+                <CardContent className="flex-1 space-y-1 md:space-y-2 text-xs md:text-sm px-0 pb-0">
                   {task.assignee ? (
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <User className="h-4 w-4" />
-                      {task.assignee.name || task.assignee.email}
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <User className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="truncate">{task.assignee.name || task.assignee.email}</span>
                     </p>
                   ) : task.assigneeRole ? (
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <User className="h-4 w-4" />
-                      {task.assigneeRole}
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <User className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="truncate">{task.assigneeRole}</span>
                     </p>
                   ) : null}
                   {task.trip && (
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <Ship className="h-4 w-4" />
-                      {task.trip.name}
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <Ship className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="truncate">{task.trip.name}</span>
                     </p>
                   )}
                   {task.dueDate && (
-                    <p className="flex items-center gap-2 text-muted-foreground">
-                      <Calendar className="h-4 w-4" />
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <Calendar className="h-3 w-3 md:h-4 md:w-4" />
                       {format(new Date(task.dueDate), "MMM d, yyyy")}
                     </p>
                   )}
                   {task.completedBy && (
-                    <div className="flex items-center gap-2 pt-2 border-t mt-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
-                      <span className="text-xs text-muted-foreground">
+                    <div className="flex items-center gap-1.5 md:gap-2 pt-1.5 md:pt-2 border-t mt-1.5 md:mt-2">
+                      <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
+                      <span className="text-[10px] md:text-xs text-muted-foreground">
                         Completed by {task.completedBy.name || task.completedBy.email}
                         {task.completedAt && ` on ${format(new Date(task.completedAt), "MMM d, yyyy")}`}
                       </span>
                     </div>
                   )}
                 </CardContent>
-                <div className="p-4 border-t flex justify-between items-center">
-                  <div className="flex items-center gap-2">
+                <div className="p-2 md:p-4 border-t flex justify-between items-center gap-2">
+                  <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                     {canComplete && (
                       <Button
                         variant="outline"
                         size="sm"
+                        className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3"
                         onClick={() => handleStatusChange(task.id, TaskStatus.DONE)}
                       >
-                        <Check className="h-3 w-3 mr-1" />
-                        Complete
+                        <Check className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
+                        <span className="hidden sm:inline">Complete</span>
+                        <span className="sm:hidden">Done</span>
                       </Button>
                     )}
                     {canUncomplete && (
                       <Button
                         variant="outline"
                         size="sm"
+                        className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3"
                         onClick={() => handleStatusChange(task.id, TaskStatus.TODO)}
                       >
                         Undo
@@ -431,7 +477,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         value={task.status}
                         onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
                       >
-                        <SelectTrigger className="w-[140px]">
+                        <SelectTrigger className="w-[100px] md:w-[140px] h-7 md:h-9 text-xs md:text-sm">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -446,12 +492,13 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0"
                       onClick={() => {
                         setEditingTask(task);
                         setIsDialogOpen(true);
                       }}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil className="h-3 w-3 md:h-4 md:w-4" />
                     </Button>
                   )}
                 </div>
