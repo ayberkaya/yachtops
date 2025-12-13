@@ -121,12 +121,23 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
         const res = await fetch("/api/users");
         if (!res.ok) return;
         const data = await res.json();
+        // Debug: log all users and their roles
+        console.log("All users from API:", data);
         const crew = (data || []).filter(
           (u: any) => {
-            const role = u.role?.toUpperCase?.() || u.role;
-            return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
+            if (!u || !u.role) {
+              console.log("User without role:", u);
+              return false;
+            }
+            const role = String(u.role).toUpperCase().trim();
+            const isExcluded = role === "OWNER" || role === "SUPER_ADMIN" || role === "ADMIN";
+            if (isExcluded) {
+              console.log("Excluding user with role:", role, u);
+            }
+            return !isExcluded;
           }
         );
+        console.log("Filtered crew users:", crew);
         setCrewUsers(crew);
       } catch (e) {
         console.error("Failed to load crew users for expense form", e);
