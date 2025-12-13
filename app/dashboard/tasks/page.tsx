@@ -38,6 +38,9 @@ export default async function TasksPage() {
       completedBy: {
         select: { id: true, name: true, email: true },
       },
+      createdBy: {
+        select: { id: true, name: true, email: true },
+      },
       trip: {
         select: { id: true, name: true },
       },
