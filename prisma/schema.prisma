@@ -44,6 +44,8 @@ model User {
   yacht                   Yacht?                @relation(fields: [yachtId], references: [id], onDelete: Cascade)
   channels                MessageChannel[]      @relation("ChannelMembers")
   notes                   UserNote[]
+  shifts                  Shift[]              @relation("ShiftAssignee")
+  createdShifts           Shift[]              @relation("ShiftCreator")
 
   @@map("users")
 }
@@ -72,6 +74,7 @@ model Yacht {
   trips                     Trip[]
   users                     User[]
   vesselDocuments           VesselDocument[]
+  shifts                    Shift[]
 
   @@map("yachts")
 }
@@ -719,4 +722,33 @@ enum TripChecklistType {
 enum TripMovementEvent {
   DEPARTURE
   ARRIVAL
+}
+
+model Shift {
+  id            String      @id @default(cuid())
+  yachtId       String      @map("yacht_id")
+  userId        String      @map("user_id")
+  date          DateTime
+  startTime     DateTime    @map("start_time")
+  endTime       DateTime    @map("end_time")
+  type          ShiftType
+  notes         String?
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+  createdByUserId String?   @map("created_by_user_id")
+  createdBy     User?       @relation("ShiftCreator", fields: [createdByUserId], references: [id])
+  user          User        @relation("ShiftAssignee", fields: [userId], references: [id], onDelete: Cascade)
+  yacht         Yacht       @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@index([yachtId, date])
+  @@index([userId, date])
+  @@map("shifts")
+}
+
+enum ShiftType {
+  MORNING
+  AFTERNOON
+  NIGHT
+  FULL_DAY
+  ON_CALL
 }

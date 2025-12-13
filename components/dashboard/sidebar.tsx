@@ -29,6 +29,7 @@ import {
   Route,
   ClipboardCheck,
   NotebookPen,
+  Clock,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth";
@@ -44,6 +45,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [usersMenuOpen, setUsersMenuOpen] = useState(false);
 
   // Define base navItems structure (static, no user dependency)
   const coreNavItems = [
@@ -593,17 +595,51 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               {settingsOpen && (
                 <div className="space-y-2">
                   {hasPermission(user, "users.view", user.permissions) && (
-                    <Link
-                      href="/dashboard/users"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                    >
-                      <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                      <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Users</span>
-                    </Link>
+                    <div className="space-y-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUsersMenuOpen((prev) => !prev);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-900 hover:bg-accent rounded-lg transition-colors"
+                        style={{ color: '#0f172a' }}
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Users size={16} className="text-slate-600" />
+                          <span>Users</span>
+                        </div>
+                        <ChevronRight
+                          size={16}
+                          className={`transition-transform duration-200 text-slate-600 ${usersMenuOpen ? "rotate-90" : ""}`}
+                        />
+                      </button>
+                      {usersMenuOpen && (
+                        <div className="space-y-1 ml-4">
+                          <Link
+                            href="/dashboard/users"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMobileMenuOpen(false);
+                            }}
+                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                          >
+                            <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>User Management</span>
+                          </Link>
+                          <Link
+                            href="/dashboard/users/shifts"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMobileMenuOpen(false);
+                            }}
+                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                          >
+                            <Clock size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Shift Management</span>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
                   )}
                   {hasPermission(user, "performance.view", user.permissions) && (
                     <Link
@@ -679,6 +715,7 @@ export function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsOpenDesktop, setSettingsOpenDesktop] = useState(false);
+  const [usersMenuOpenDesktop, setUsersMenuOpenDesktop] = useState(false);
   const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
   const [desktopExpandedItems, setDesktopExpandedItems] = useState<Set<string>>(new Set());
   const prevCollapsed = useRef<boolean>(false);
@@ -1290,13 +1327,42 @@ export function Sidebar() {
                     <span className="transition-colors duration-200">Settings</span>
                   </Link>
                   {hasPermission(user, "users.view", user.permissions) && (
-                    <Link
-                      href="/dashboard/users"
-                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                    >
-                      <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                      <span className="transition-colors duration-200">Users</span>
-                    </Link>
+                    <div className="space-y-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setUsersMenuOpenDesktop((prev) => !prev);
+                        }}
+                        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <Users size={16} className="text-muted-foreground" />
+                          <span>Users</span>
+                        </div>
+                        <ChevronRight
+                          size={16}
+                          className={`transition-transform duration-200 text-muted-foreground ${usersMenuOpenDesktop ? "rotate-90" : ""}`}
+                        />
+                      </button>
+                      {usersMenuOpenDesktop && (
+                        <div className="space-y-1 ml-4">
+                          <Link
+                            href="/dashboard/users"
+                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                          >
+                            <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                            <span className="transition-colors duration-200">User Management</span>
+                          </Link>
+                          <Link
+                            href="/dashboard/users/shifts"
+                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                          >
+                            <Clock size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                            <span className="transition-colors duration-200">Shift Management</span>
+                          </Link>
+                        </div>
+                      )}
+                    </div>
                   )}
                   {hasPermission(user, "performance.view", user.permissions) && (
                     <Link
