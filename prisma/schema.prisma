@@ -46,6 +46,7 @@ model User {
   notes                   UserNote[]
   shifts                  Shift[]              @relation("ShiftAssignee")
   createdShifts           Shift[]              @relation("ShiftCreator")
+  createdTasks            Task[]                @relation("TaskCreator")
 
   @@map("users")
 }
@@ -191,6 +192,7 @@ model Task {
   dueDate       DateTime?        @map("due_date")
   status        TaskStatus       @default(TODO)
   priority      TaskPriority     @default(MEDIUM)
+  createdByUserId String?        @map("created_by_user_id")
   createdAt     DateTime         @default(now()) @map("created_at")
   updatedAt     DateTime         @updatedAt @map("updated_at")
   notifications Notification[]
@@ -198,6 +200,7 @@ model Task {
   comments      TaskComment[]
   assignee      User?            @relation("TaskAssignee", fields: [assigneeId], references: [id])
   completedBy   User?            @relation("TaskCompleter", fields: [completedById], references: [id])
+  createdBy    User?            @relation("TaskCreator", fields: [createdByUserId], references: [id])
   trip          Trip?            @relation(fields: [tripId], references: [id])
   yacht         Yacht            @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 

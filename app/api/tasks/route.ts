@@ -71,6 +71,9 @@ export async function GET(request: NextRequest) {
         completedBy: {
           select: { id: true, name: true, email: true },
         },
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
         trip: {
           select: { id: true, name: true },
         },
@@ -176,12 +179,16 @@ export async function POST(request: NextRequest) {
         dueDate: validated.dueDate ? new Date(validated.dueDate) : null,
         status: validated.status,
         priority: (validated.priority || "MEDIUM") as TaskPriority,
+        createdByUserId: session.user.id,
       },
       include: {
         assignee: {
           select: { id: true, name: true, email: true },
         },
         completedBy: {
+          select: { id: true, name: true, email: true },
+        },
+        createdBy: {
           select: { id: true, name: true, email: true },
         },
         trip: {

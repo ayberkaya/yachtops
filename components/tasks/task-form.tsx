@@ -37,7 +37,7 @@ interface TaskFormProps {
   task?: any;
   users: { id: string; name: string | null; email: string }[];
   trips: { id: string; name: string }[];
-  onSuccess: () => void;
+  onSuccess: (createdTask?: any) => void;
 }
 
 export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
@@ -168,7 +168,7 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
       }
 
       setPhotoFile(null);
-      onSuccess();
+      onSuccess(result);
     } catch (err) {
       console.error("Task form submission error:", err);
       const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
@@ -387,9 +387,29 @@ export function TaskForm({ task, users, trips, onSuccess }: TaskFormProps) {
           <FormLabel>Photo (optional)</FormLabel>
           <Input
             type="file"
-            accept="image/*"
-            onChange={(e) => setPhotoFile(e.target.files?.[0] || null)}
+            accept="image/jpeg,image/jpg,image/png"
+            capture="environment"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) {
+                const fileName = file.name.toLowerCase();
+                const validExtensions = ['.jpg', '.jpeg', '.png'];
+                const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+                if (!isValid) {
+                  alert('Only JPG, JPEG, and PNG images are allowed.');
+                  e.target.value = '';
+                  setPhotoFile(null);
+                  return;
+                }
+                setPhotoFile(file);
+              } else {
+                setPhotoFile(null);
+              }
+            }}
           />
+          <p className="text-xs text-muted-foreground">
+            Only JPG, JPEG, and PNG formats are supported
+          </p>
         </div>
 
         <DialogFooter>

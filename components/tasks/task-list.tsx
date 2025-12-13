@@ -40,6 +40,7 @@ import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
 import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock } from "lucide-react";
 import { TaskForm } from "./task-form";
+import { TaskCompletionDialog } from "./task-completion-dialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 interface Task {
@@ -53,6 +54,7 @@ interface Task {
   assigneeRole: UserRole | null;
   completedBy: { id: string; name: string | null; email: string } | null;
   completedAt: string | null;
+  createdBy: { id: string; name: string | null; email: string } | null;
   trip: { id: string; name: string } | null;
 }
 
@@ -75,6 +77,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const [dateFrom, setDateFrom] = useState<string>("");
   const [dateTo, setDateTo] = useState<string>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const groupBy = "none";
 
   const canManage = currentUser.role !== "CREW";
@@ -140,6 +144,86 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
       }
     } catch (error) {
       console.error("Error updating task status:", error);
+    }
+  };
+
+  const handleCompleteTask = async (
+    taskId: string,
+    photoFile?: File | null,
+    note?: string
+  ) => {
+    try {
+      // First, update task status to DONE
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: TaskStatus.DONE }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update task status");
+      }
+
+      const updatedTask = await response.json();
+
+      // If photo provided, upload as attachment
+      if (photoFile) {
+        try {
+          const toDataUrl = (file: File) =>
+            new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = (err) => reject(err);
+              reader.readAsDataURL(file);
+            });
+
+          const fileUrl = await toDataUrl(photoFile);
+          await fetch(`/api/tasks/${taskId}/attachments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              fileName: photoFile.name,
+              fileUrl,
+              fileSize: photoFile.size,
+              mimeType: photoFile.type || "image/*",
+            }),
+          });
+        } catch (uploadErr) {
+          console.error("Photo upload failed", uploadErr);
+        }
+      }
+
+      // If note provided, add as comment
+      if (note && note.trim()) {
+        try {
+          await fetch(`/api/tasks/${taskId}/comments`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ content: note }),
+          });
+        } catch (commentErr) {
+          console.error("Comment creation failed", commentErr);
+        }
+      }
+
+      // Refresh task data
+      const refreshResponse = await fetch(`/api/tasks/${taskId}`);
+      if (refreshResponse.ok) {
+        const refreshedTask = await refreshResponse.json();
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? refreshedTask : t))
+        );
+      } else {
+        // Fallback to updated task
+        setTasks((prev) =>
+          prev.map((t) => (t.id === taskId ? updatedTask : t))
+        );
+      }
+
+      router.refresh();
+    } catch (error) {
+      console.error("Error completing task:", error);
+      throw error;
     }
   };
 
@@ -322,9 +406,20 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               clockIconColor = cardBorderColor;
             }
             
+            const isClickable = (isTodo || isInProgress) && !canManage;
+            
             return (
+              <div
+                key={task.id}
+                onClick={() => {
+                  if (isClickable) {
+                    setSelectedTask(task);
+                    setIsCompletionDialogOpen(true);
+                  }
+                }}
+                className={isClickable ? "cursor-pointer" : ""}
+              >
               <Card 
-                key={task.id} 
                 className={`flex flex-col relative p-3 md:p-6 gap-3 md:gap-6 ${
                   isDone
                     ? "border-2"
@@ -399,9 +494,13 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 <CardHeader className="pb-2 md:pb-3 px-0 pt-0">
                   <div className="flex items-center justify-between gap-2">
                     <CardTitle className="text-base md:text-lg">
-                      <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
-                        {task.title}
-                      </Link>
+                      {isClickable ? (
+                        <span className="hover:underline cursor-pointer">{task.title}</span>
+                      ) : (
+                        <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
+                          {task.title}
+                        </Link>
+                      )}
                     </CardTitle>
                     <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
                       {!isDone && getPriorityBadge(task.priority)}
@@ -415,15 +514,23 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   )}
                 </CardHeader>
                 <CardContent className="flex-1 space-y-1 md:space-y-2 text-xs md:text-sm px-0 pb-0">
+                  {task.createdBy && (
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <User className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="text-[10px] md:text-xs">
+                        Created by <span className="font-bold">{task.createdBy.name || task.createdBy.email}</span>
+                      </span>
+                    </p>
+                  )}
                   {task.assignee ? (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
                       <User className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="truncate">{task.assignee.name || task.assignee.email}</span>
+                      <span className="truncate font-bold">{task.assignee.name || task.assignee.email}</span>
                     </p>
                   ) : task.assigneeRole ? (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
                       <User className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="truncate">{task.assigneeRole}</span>
+                      <span className="truncate font-bold">{task.assigneeRole}</span>
                     </p>
                   ) : null}
                   {task.trip && (
@@ -442,7 +549,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     <div className="flex items-center gap-1.5 md:gap-2 pt-1.5 md:pt-2 border-t mt-1.5 md:mt-2">
                       <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
                       <span className="text-[10px] md:text-xs text-muted-foreground">
-                        Completed by {task.completedBy.name || task.completedBy.email}
+                        Completed by <span className="font-bold">{task.completedBy.name || task.completedBy.email}</span>
                         {task.completedAt && ` on ${format(new Date(task.completedAt), "MMM d, yyyy")}`}
                       </span>
                     </div>
@@ -450,42 +557,23 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 </CardContent>
                 <div className="p-2 md:p-4 flex justify-between items-center gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
-                    {canComplete && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3"
-                        onClick={() => handleStatusChange(task.id, TaskStatus.DONE)}
-                      >
-                        <Check className="h-2.5 w-2.5 md:h-3 md:w-3 mr-0.5 md:mr-1" />
-                        <span className="hidden sm:inline">Complete</span>
-                        <span className="sm:hidden">Done</span>
-                      </Button>
-                    )}
                     {canUncomplete && (
                       <Button
                         variant="outline"
                         size="sm"
                         className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3"
-                        onClick={() => handleStatusChange(task.id, TaskStatus.TODO)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(task.id, TaskStatus.TODO);
+                        }}
                       >
                         Undo
                       </Button>
                     )}
-                    {canManage && (
-                      <Select
-                        value={task.status}
-                        onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
-                      >
-                        <SelectTrigger className="w-[100px] md:w-[140px] h-7 md:h-9 text-xs md:text-sm">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value={TaskStatus.TODO}>Todo</SelectItem>
-                          <SelectItem value={TaskStatus.IN_PROGRESS}>In Progress</SelectItem>
-                          <SelectItem value={TaskStatus.DONE}>Done</SelectItem>
-                        </SelectContent>
-                      </Select>
+                    {isClickable && (
+                      <span className="text-xs md:text-sm text-muted-foreground">
+                        Click card to complete
+                      </span>
                     )}
                   </div>
                   {canManage && (
@@ -493,7 +581,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       variant="ghost"
                       size="icon"
                       className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0"
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation();
                         setEditingTask(task);
                         setIsDialogOpen(true);
                       }}
@@ -503,6 +592,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   )}
                 </div>
               </Card>
+              </div>
             );
           })}
               </div>
@@ -663,13 +753,33 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             task={editingTask}
             users={users}
             trips={trips}
-            onSuccess={() => {
+            onSuccess={(createdTask) => {
               setIsDialogOpen(false);
-              router.refresh();
+              if (createdTask && !editingTask) {
+                // New task created - add to state
+                setTasks((prev) => [createdTask, ...prev]);
+              } else if (createdTask && editingTask) {
+                // Task updated - update in state
+                setTasks((prev) =>
+                  prev.map((t) => (t.id === createdTask.id ? createdTask : t))
+                );
+              } else {
+                // Fallback to refresh
+                router.refresh();
+              }
             }}
           />
         </DialogContent>
       </Dialog>
+
+      {selectedTask && (
+        <TaskCompletionDialog
+          task={selectedTask}
+          open={isCompletionDialogOpen}
+          onOpenChange={setIsCompletionDialogOpen}
+          onComplete={handleCompleteTask}
+        />
+      )}
     </div>
   );
 }

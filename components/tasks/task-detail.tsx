@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { ArrowLeft, User, Ship, Calendar, CheckCircle2, MessageSquare, Paperclip, Upload, X, Pencil } from "lucide-react";
+import { ArrowLeft, User, Ship, Calendar, CheckCircle2, MessageSquare, Paperclip, Upload, X, Pencil, Download, Eye, Camera } from "lucide-react";
 import { TaskForm } from "./task-form";
 import Link from "next/link";
 
@@ -33,6 +33,7 @@ interface Task {
   assigneeRole: UserRole | null;
   completedBy: { id: string; name: string | null; email: string } | null;
   completedAt: string | null;
+  createdBy: { id: string; name: string | null; email: string } | null;
   trip: { id: string; name: string } | null;
   comments: TaskComment[];
   attachments: TaskAttachment[];
@@ -70,6 +71,7 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
   const [commentText, setCommentText] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [isUploadingAttachment, setIsUploadingAttachment] = useState(false);
+  const [previewAttachment, setPreviewAttachment] = useState<TaskAttachment | null>(null);
 
   const canManage = currentUser.role !== "CREW";
 
@@ -154,6 +156,17 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
     const file = e.target.files?.[0];
     if (!file) return;
 
+    // Validate file extension
+    const fileName = file.name.toLowerCase();
+    const validExtensions = ['.jpg', '.jpeg', '.png'];
+    const isValid = validExtensions.some(ext => fileName.endsWith(ext));
+    
+    if (!isValid) {
+      alert('Only JPG, JPEG, and PNG images are allowed.');
+      e.target.value = '';
+      return;
+    }
+
     setIsUploadingAttachment(true);
     try {
       // In a real app, you'd upload to S3/cloud storage first
@@ -167,7 +180,7 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
           fileName: file.name,
           fileUrl: fileUrl,
           fileSize: file.size,
-          mimeType: file.type,
+          mimeType: file.type || "image/jpeg",
         }),
       });
 
@@ -335,17 +348,34 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="file-upload" className="cursor-pointer">
-                  <Button variant="outline" size="sm" asChild>
-                    <span>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Upload File
-                    </span>
-                  </Button>
-                </Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="file-upload" className="cursor-pointer">
+                    <Button variant="outline" size="sm" asChild>
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Upload Photo
+                      </span>
+                    </Button>
+                  </Label>
+                  <Label htmlFor="camera-upload" className="cursor-pointer">
+                    <Button variant="outline" size="icon" type="button">
+                      <Camera className="h-4 w-4" />
+                    </Button>
+                  </Label>
+                </div>
                 <Input
                   id="file-upload"
                   type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  disabled={isUploadingAttachment}
+                />
+                <Input
+                  id="camera-upload"
+                  type="file"
+                  accept="image/jpeg,image/jpg,image/png"
+                  capture="environment"
                   className="hidden"
                   onChange={handleFileUpload}
                   disabled={isUploadingAttachment}
@@ -353,48 +383,85 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
               </div>
 
               <div className="space-y-2">
-                {task.attachments.map((attachment) => (
-                  <div
-                    key={attachment.id}
-                    className="flex items-center justify-between p-3 border rounded-lg"
-                  >
-                    <div className="flex items-center gap-3 flex-1">
-                      <Paperclip className="h-4 w-4 text-muted-foreground" />
-                      <div className="flex-1 min-w-0">
-                        <a
-                          href={attachment.fileUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm font-medium hover:underline truncate block"
-                        >
-                          {attachment.fileName}
-                        </a>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>
-                            {attachment.fileSize
-                              ? `${(attachment.fileSize / 1024).toFixed(1)} KB`
-                              : "Unknown size"}
-                          </span>
-                          <span>•</span>
-                          <span>
-                            {format(new Date(attachment.createdAt), "MMM d, yyyy")}
-                          </span>
-                          <span>•</span>
-                          <span>{attachment.user.name || attachment.user.email}</span>
+                {task.attachments.map((attachment) => {
+                  const isImage = attachment.mimeType?.startsWith("image/") || 
+                                  /\.(jpg|jpeg|png|gif|webp|heic|heif)$/i.test(attachment.fileName);
+                  
+                  return (
+                    <div
+                      key={attachment.id}
+                      className="flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        if (isImage) {
+                          setPreviewAttachment(attachment);
+                        } else {
+                          window.open(attachment.fileUrl, "_blank");
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <Paperclip className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium truncate">
+                              {attachment.fileName}
+                            </span>
+                            {isImage && (
+                              <Eye className="h-3 w-3 text-muted-foreground flex-shrink-0" />
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>
+                              {attachment.fileSize
+                                ? `${(attachment.fileSize / 1024).toFixed(1)} KB`
+                                : "Unknown size"}
+                            </span>
+                            <span>•</span>
+                            <span>
+                              {format(new Date(attachment.createdAt), "MMM d, yyyy")}
+                            </span>
+                            <span>•</span>
+                            <span>{attachment.user.name || attachment.user.email}</span>
+                          </div>
                         </div>
                       </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const link = document.createElement("a");
+                            link.href = attachment.fileUrl;
+                            link.download = attachment.fileName;
+                            link.target = "_blank";
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                          }}
+                          title="Download"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                        {canManage && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteAttachment(attachment.id);
+                            }}
+                            title="Delete"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
                     </div>
-                    {canManage && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleDeleteAttachment(attachment.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
                 {task.attachments.length === 0 && (
                   <p className="text-sm text-muted-foreground text-center py-4">
                     No attachments yet
@@ -411,17 +478,25 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
               <CardTitle>Details</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              {task.assignee ? (
+              {task.createdBy && (
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm">
+                    Created by <span className="font-bold">{task.createdBy.name || task.createdBy.email}</span>
+                  </span>
+                </div>
+              )}
+              {task.assignee ? (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <span className="text-sm font-bold">
                     {task.assignee.name || task.assignee.email}
                   </span>
                 </div>
               ) : task.assigneeRole ? (
                 <div className="flex items-center gap-2">
                   <User className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">{task.assigneeRole}</span>
+                  <span className="text-sm font-bold">{task.assigneeRole}</span>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
@@ -450,7 +525,7 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
                 <div className="flex items-center gap-2 pt-2 border-t">
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <div className="text-sm">
-                    <div>Completed by {task.completedBy.name || task.completedBy.email}</div>
+                    <div>Completed by <span className="font-bold">{task.completedBy.name || task.completedBy.email}</span></div>
                     {task.completedAt && (
                       <div className="text-xs text-muted-foreground">
                         {format(new Date(task.completedAt), "MMM d, yyyy 'at' h:mm a")}
@@ -463,6 +538,97 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
           </Card>
         </div>
       </div>
+
+      {/* Image Preview Dialog */}
+      <Dialog open={!!previewAttachment} onOpenChange={(open) => !open && setPreviewAttachment(null)}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0" showCloseButton={false}>
+          {previewAttachment && (
+            <>
+              <DialogHeader className="px-6 pt-6 pb-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1 min-w-0">
+                    <DialogTitle className="truncate">{previewAttachment.fileName}</DialogTitle>
+                    <DialogDescription className="mt-1">
+                      {previewAttachment.fileSize
+                        ? `${(previewAttachment.fileSize / 1024).toFixed(1)} KB`
+                        : "Unknown size"} • {format(new Date(previewAttachment.createdAt), "MMM d, yyyy")} • {previewAttachment.user.name || previewAttachment.user.email}
+                    </DialogDescription>
+                  </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = previewAttachment.fileUrl;
+                        link.download = previewAttachment.fileName;
+                        link.target = "_blank";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                      title="Download"
+                    >
+                      <Download className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setPreviewAttachment(null)}
+                      title="Close"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </DialogHeader>
+              <div className="px-6 pb-6 overflow-auto max-h-[calc(90vh-120px)]">
+                {previewAttachment.fileName.toLowerCase().endsWith('.heic') || 
+                 previewAttachment.fileName.toLowerCase().endsWith('.heif') ? (
+                  <div className="text-center py-12">
+                    <p className="text-muted-foreground mb-4">
+                      HEIC format is not supported for preview in browsers.
+                    </p>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        const link = document.createElement("a");
+                        link.href = previewAttachment.fileUrl;
+                        link.download = previewAttachment.fileName;
+                        link.target = "_blank";
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                      }}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      Download to view
+                    </Button>
+                  </div>
+                ) : (
+                  <img
+                    src={previewAttachment.fileUrl}
+                    alt={previewAttachment.fileName}
+                    className="max-w-full h-auto rounded-lg"
+                    onError={(e) => {
+                      // If image fails to load, show error message
+                      const target = e.target as HTMLImageElement;
+                      const parent = target.parentElement;
+                      if (parent && !parent.querySelector('.error-message')) {
+                        target.style.display = "none";
+                        const errorDiv = document.createElement("div");
+                        errorDiv.className = "error-message text-center py-8 text-muted-foreground";
+                        errorDiv.textContent = "Failed to load image preview";
+                        parent.appendChild(errorDiv);
+                      }
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -49,6 +49,9 @@ export async function GET(
         completedBy: {
           select: { id: true, name: true, email: true },
         },
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
         trip: {
           select: { id: true, name: true },
         },
@@ -291,6 +294,9 @@ export async function PATCH(
           select: { id: true, name: true, email: true },
         },
         completedBy: {
+          select: { id: true, name: true, email: true },
+        },
+        createdBy: {
           select: { id: true, name: true, email: true },
         },
         trip: {

@@ -507,7 +507,7 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
                             <p className="font-medium">{task.title}</p>
                             {task.completedAt && task.completedBy && (
                               <p className="text-sm text-muted-foreground">
-                                Completed by {task.completedBy.name || task.completedBy.email} on{" "}
+                                Completed by <span className="font-bold">{task.completedBy.name || task.completedBy.email}</span> on{" "}
                                 {format(new Date(task.completedAt), "PPp")}
                               </p>
                             )}

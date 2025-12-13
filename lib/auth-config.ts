@@ -127,13 +127,48 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       console.log("🔄 [AUTH] Session callback called", { hasToken: !!token, tokenId: token.id });
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as UserRole;
-        session.user.yachtId = token.yachtId as string | null;
-        (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
-        session.user.permissions = token.permissions as string | null | undefined;
-        console.log("✅ [AUTH] Session updated with user data");
+      if (session.user && token.id) {
+        // Fetch fresh user data from database to ensure name and other fields are up-to-date
+        try {
+          const freshUser = await db.user.findUnique({
+            where: { id: token.id as string },
+            select: {
+              id: true,
+              email: true,
+              name: true,
+              role: true,
+              yachtId: true,
+              permissions: true,
+            },
+          });
+
+          if (freshUser) {
+            session.user.id = freshUser.id;
+            session.user.name = freshUser.name;
+            session.user.email = freshUser.email;
+            session.user.role = freshUser.role;
+            session.user.yachtId = freshUser.yachtId;
+            (session.user as any).tenantId = freshUser.yachtId;
+            session.user.permissions = freshUser.permissions;
+            console.log("✅ [AUTH] Session updated with fresh user data from database");
+          } else {
+            // Fallback to token data if user not found
+            session.user.id = token.id as string;
+            session.user.role = token.role as UserRole;
+            session.user.yachtId = token.yachtId as string | null;
+            (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+            session.user.permissions = token.permissions as string | null | undefined;
+            console.log("⚠️ [AUTH] User not found in database, using token data");
+          }
+        } catch (error) {
+          console.error("❌ [AUTH] Error fetching fresh user data:", error);
+          // Fallback to token data on error
+          session.user.id = token.id as string;
+          session.user.role = token.role as UserRole;
+          session.user.yachtId = token.yachtId as string | null;
+          (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+          session.user.permissions = token.permissions as string | null | undefined;
+        }
       }
       return session;
     },
