@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { validateFileUpload, sanitizeFileName } from "@/lib/file-upload-security";
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,16 +73,35 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
+    // Validate file upload security
+    const validation = validateFileUpload(file, "document");
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || "File validation failed" },
+        { status: 400 }
+      );
+    }
+
+    const validation = validateFileUpload(file, "document");
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || "File validation failed" },
+        { status: 400 }
+      );
+    }
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const mimeType = file.type || "application/pdf";
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
+    // Sanitize file name
+    const sanitizedFileName = sanitizeFileName(file.name);
+
     const doc = await db.vesselDocument.create({
       data: {
         yachtId: ensuredTenantId,
-        title,
+        title: title || sanitizedFileName,
         fileUrl: dataUrl,
         notes,
         expiryDate,

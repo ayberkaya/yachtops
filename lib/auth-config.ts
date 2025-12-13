@@ -179,7 +179,23 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   session: {
     strategy: "jwt",
   },
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || "fallback-secret-for-development-only",
+  secret: (() => {
+    const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+    if (!secret) {
+      if (process.env.NODE_ENV === "production") {
+        throw new Error(
+          "NEXTAUTH_SECRET or AUTH_SECRET must be set in production environment. " +
+          "Generate one with: openssl rand -base64 32"
+        );
+      }
+      console.warn(
+        "⚠️ [SECURITY] NEXTAUTH_SECRET not set. Using fallback secret for development only. " +
+        "This MUST be set in production!"
+      );
+      return "fallback-secret-for-development-only";
+    }
+    return secret;
+  })(),
   trustHost: true, // Required for NextAuth v5 in development
   // Disable noisy debug logs by default; enable with NEXTAUTH_DEBUG=true if needed
   debug: process.env.NEXTAUTH_DEBUG === "true",
