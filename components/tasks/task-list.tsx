@@ -43,6 +43,7 @@ import { TaskForm } from "./task-form";
 import { TaskCompletionDialog } from "./task-completion-dialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { hasPermission } from "@/lib/permissions";
+import { SessionUser } from "@/lib/auth";
 
 interface Task {
   id: string;
@@ -63,7 +64,7 @@ interface TaskListProps {
   initialTasks: Task[];
   users: { id: string; name: string | null; email: string }[];
   trips: { id: string; name: string }[];
-  currentUser: { id: string; role: UserRole; permissions?: string | null };
+  currentUser: SessionUser;
 }
 
 type ViewMode = "table" | "cards";
