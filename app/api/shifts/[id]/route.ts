@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -17,8 +17,9 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const shift = await db.shift.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         user: {
           select: {
@@ -65,7 +66,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -77,8 +78,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const shift = await db.shift.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!shift) {
@@ -112,7 +114,7 @@ export async function PATCH(
     if (notes !== undefined) updateData.notes = notes || null;
 
     const updatedShift = await db.shift.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         user: {
@@ -152,7 +154,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -164,8 +166,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
     const shift = await db.shift.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!shift) {
@@ -177,7 +180,7 @@ export async function DELETE(
     }
 
     await db.shift.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({ success: true });
