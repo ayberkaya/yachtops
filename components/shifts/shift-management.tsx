@@ -389,8 +389,8 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
           className="overflow-hidden"
         >
           <CollapsibleTrigger asChild>
-            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors">
-              <CardTitle className="text-lg flex items-center justify-between">
+            <CardHeader className="cursor-pointer hover:bg-accent/50 transition-colors flex items-center h-full py-0">
+              <CardTitle className="text-lg flex items-center justify-between w-full">
                 <div className="flex items-center gap-2">
                   <Filter className="h-4 w-4" />
                   Filters
