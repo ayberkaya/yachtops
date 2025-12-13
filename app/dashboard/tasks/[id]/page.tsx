@@ -28,7 +28,7 @@ export default async function TaskDetailPage({
           where: {
             yachtId: session.user.yachtId || undefined,
           },
-          select: { id: true, name: true, email: true },
+          select: { id: true, name: true, email: true, role: true },
         })
       : [],
     db.trip.findMany({

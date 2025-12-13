@@ -36,7 +36,7 @@ type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
   task?: any;
-  users: { id: string; name: string | null; email: string }[];
+  users: { id: string; name: string | null; email: string; role?: UserRole }[];
   trips: { id: string; name: string }[];
   onSuccess: (createdTask?: any) => void;
   onDelete?: () => void;
