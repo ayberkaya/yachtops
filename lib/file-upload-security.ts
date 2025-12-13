@@ -89,14 +89,14 @@ export function validateMimeType(
   file: File,
   category: FileCategory = "general"
 ): FileValidationResult {
-  const allowedTypes = ALLOWED_MIME_TYPES[category];
+  const allowedTypes = ALLOWED_MIME_TYPES[category] as readonly string[];
   const fileType = file.type.toLowerCase();
   
   if (!fileType || fileType === "application/octet-stream") {
     const extension = getFileExtension(file.name);
     if (extension) {
-      const allowedExtensions = ALLOWED_EXTENSIONS[category];
-      if (!allowedExtensions.includes(extension.toLowerCase() as any)) {
+      const allowedExtensions = ALLOWED_EXTENSIONS[category] as readonly string[];
+      if (!allowedExtensions.includes(extension.toLowerCase())) {
         return {
           valid: false,
           error: `File type not allowed. Allowed types: ${allowedExtensions.join(", ")}`,
@@ -109,7 +109,7 @@ export function validateMimeType(
       };
     }
   } else {
-    if (!allowedTypes.includes(fileType as any)) {
+    if (!allowedTypes.includes(fileType)) {
       return {
         valid: false,
         error: `File type "${fileType}" not allowed. Allowed types: ${allowedTypes.join(", ")}`,
