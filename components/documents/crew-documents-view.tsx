@@ -49,6 +49,12 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  
+  // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
+  const filteredCrewMembers = crewMembers.filter((member) => {
+    const role = String(member.role || "").toUpperCase().trim();
+    return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
+  });
   const [userId, setUserId] = useState<string>("");
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -167,7 +173,7 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
                     <SelectValue placeholder="Select crew member" />
                   </SelectTrigger>
                   <SelectContent>
-                    {crewMembers.map((member) => (
+                    {filteredCrewMembers.map((member) => (
                       <SelectItem key={member.id} value={member.id}>
                         {member.name || member.email}
                       </SelectItem>

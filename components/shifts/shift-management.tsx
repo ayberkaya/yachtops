@@ -65,6 +65,12 @@ const shiftTypeColors: Record<Shift["type"], string> = {
 
 export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) {
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
+  
+  // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
+  const crewMembers = users.filter((user) => {
+    const role = String(user.role || "").toUpperCase().trim();
+    return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
+  });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [filterUserId, setFilterUserId] = useState<string>("all");
@@ -260,7 +266,7 @@ export function ShiftManagement({ initialShifts, users }: ShiftManagementProps) 
                       <SelectValue placeholder="Select crew member" />
                     </SelectTrigger>
                     <SelectContent>
-                      {users.map((user) => (
+                      {crewMembers.map((user) => (
                         <SelectItem key={user.id} value={user.id}>
                           {user.name || user.email}
                         </SelectItem>
