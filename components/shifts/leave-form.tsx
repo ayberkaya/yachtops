@@ -108,12 +108,25 @@ export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps)
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to save leave");
+        let errorData;
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            errorData = await response.json();
+          } catch (parseError) {
+            throw new Error(`Failed to save leave: ${response.status} ${response.statusText}`);
+          }
+        } else {
+          const text = await response.text();
+          throw new Error(`Server error: ${response.status} ${response.statusText}. ${text.substring(0, 200)}`);
+        }
+        throw new Error(errorData.error || errorData.message || "Failed to save leave");
       }
 
+      const result = await response.json();
       onSuccess();
     } catch (err) {
+      console.error("Error saving leave:", err);
       setError(err instanceof Error ? err.message : "An error occurred");
       setIsLoading(false);
     }

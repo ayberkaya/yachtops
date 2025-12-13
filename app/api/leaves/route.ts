@@ -118,20 +118,49 @@ export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     if (!session.user.yachtId) {
-      return NextResponse.json({ error: "No yacht assigned" }, { status: 400 });
+      return NextResponse.json(
+        { error: "No yacht assigned" },
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // Check permission - users.view is enough to create leaves
     if (!hasPermission(session.user, "users.view", session.user.permissions)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403, headers: { "Content-Type": "application/json" } }
+      );
     }
 
-    const body = await request.json();
-    const validated = createLeaveSchema.parse(body);
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    let validated;
+    try {
+      validated = createLeaveSchema.parse(body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: "Invalid input", details: validationError.issues },
+          { status: 400, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      throw validationError;
+    }
 
     // Verify user belongs to same yacht
     const user = await db.user.findUnique({
@@ -140,11 +169,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (!user || user.yachtId !== session.user.yachtId) {
-      return NextResponse.json({ error: "Invalid user" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid user" },
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
     }
 
     // Check for overlapping leaves
-    const overlappingLeaves = await db.leave.findFirst({
+    let overlappingLeaves;
+    try {
+      overlappingLeaves = await db.leave.findFirst({
       where: {
         userId: validated.userId,
         yachtId: session.user.yachtId,
@@ -156,17 +190,23 @@ export async function POST(request: NextRequest) {
             ],
           },
         ],
-      },
-    });
+      });
+    } catch (dbError) {
+      console.error("Database error checking overlapping leaves:", dbError);
+      // If table doesn't exist, this will fail - but we'll catch it in the create
+      overlappingLeaves = null;
+    }
 
     if (overlappingLeaves) {
       return NextResponse.json(
         { error: "Leave already exists for this date range" },
-        { status: 400 }
+        { status: 400, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    const leave = await db.leave.create({
+    let leave;
+    try {
+      leave = await db.leave.create({
       data: {
         yachtId: session.user.yachtId,
         userId: validated.userId,
@@ -202,26 +242,50 @@ export async function POST(request: NextRequest) {
         },
       },
     });
-
-    return NextResponse.json({
-      ...leave,
-      startDate: leave.startDate.toISOString().split("T")[0],
-      endDate: leave.endDate.toISOString().split("T")[0],
-      createdAt: leave.createdAt.toISOString(),
-      updatedAt: leave.updatedAt.toISOString(),
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid input", details: error.issues },
-        { status: 400 }
-      );
+    } catch (dbError: any) {
+      console.error("Database error creating leave:", dbError);
+      
+      // Check if it's a table doesn't exist error
+      if (dbError?.code === "42P01" || dbError?.message?.includes("does not exist")) {
+        return NextResponse.json(
+          { 
+            error: "Database table not found. Please run migrations.",
+            details: "The 'leaves' table does not exist. Run: npx prisma migrate deploy"
+          },
+          { status: 500, headers: { "Content-Type": "application/json" } }
+        );
+      }
+      
+      throw dbError;
     }
 
-    console.error("Error creating leave:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        ...leave,
+        startDate: leave.startDate.toISOString().split("T")[0],
+        endDate: leave.endDate.toISOString().split("T")[0],
+        createdAt: leave.createdAt.toISOString(),
+        updatedAt: leave.updatedAt.toISOString(),
+      },
+      { status: 201, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("Error creating leave:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
+    
+    // Ensure we always return JSON
+    return NextResponse.json(
+      {
+        error: "Internal server error",
+        message: errorMessage,
+        ...(process.env.NODE_ENV === "development" && error instanceof Error
+          ? { stack: error.stack }
+          : {}),
+      },
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }
