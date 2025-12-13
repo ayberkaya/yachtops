@@ -192,6 +192,14 @@ export function ReimbursableExpensesList({ expenses: initialExpenses }: Reimburs
                 ? "bg-green-50 border-green-200 dark:bg-green-950/30 dark:border-green-800"
                 : undefined
             }
+            style={
+              expense.isReimbursed
+                ? {
+                    borderColor: "rgba(1, 102, 48, 1)",
+                    backgroundColor: "rgba(1, 102, 48, 0.55)",
+                  }
+                : undefined
+            }
           >
             <CardHeader
               className="cursor-pointer"
