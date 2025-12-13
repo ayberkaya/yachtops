@@ -81,6 +81,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    console.log("GET /api/leaves - db.leave exists:", !!db.leave);
+    if (!db.leave) {
+      console.error("db.leave is undefined in GET handler!");
+      return NextResponse.json(
+        {
+          error: "Database configuration error",
+          message: "Leave model not found in Prisma client. Please restart the development server.",
+        },
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    
     const leaves = await db.leave.findMany({
       where,
       include: {
