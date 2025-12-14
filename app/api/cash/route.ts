@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
       });
 
       // Calculate current balance (only non-deleted transactions)
-      const balance = transactions.reduce((acc, transaction) => {
+      const balance = transactions.reduce((acc: number, transaction) => {
         if (transaction.type === CashTransactionType.DEPOSIT) {
           return acc + transaction.amount;
         } else {
