@@ -535,15 +535,15 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
       ) : (
         <div className="space-y-4">
           {sortedDates.map((date) => (
-            <Card key={date}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Calendar className="h-5 w-5" />
+            <Card key={date} className="p-2 gap-1">
+              <CardHeader className="pb-0 pt-0 px-0">
+                <CardTitle className="flex items-center gap-1.5 text-sm">
+                  <Calendar className="h-3.5 w-3.5" />
                   {format(new Date(date), "d MMMM yyyy, EEEE")}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
+              <CardContent className="px-0 pt-0 pb-0">
+                <div className="space-y-1.5">
                   {groupedShifts[date].map((shift) => (
                     <div
                       key={shift.id}
