@@ -39,7 +39,7 @@ export async function GET(
 
     // Check channel access
     if (!parentMessage.channel.isGeneral && 
-        !parentMessage.channel.members.some((m) => m.id === session.user.id)) {
+        !parentMessage.channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -165,7 +165,7 @@ export async function POST(
 
     // Check channel access
     if (!parentMessage.channel.isGeneral && 
-        !parentMessage.channel.members.some((m) => m.id === session.user.id)) {
+        !parentMessage.channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
