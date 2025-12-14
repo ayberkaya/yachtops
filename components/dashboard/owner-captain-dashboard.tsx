@@ -18,6 +18,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
     where: {
       yachtId: user.yachtId || undefined,
       status: ExpenseStatus.SUBMITTED,
+      deletedAt: null,
     },
     include: {
       createdBy: {
@@ -37,6 +38,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
   const recentExpensesPromise = db.expense.findMany({
     where: {
       yachtId: user.yachtId || undefined,
+      deletedAt: null,
     },
     include: {
       createdBy: {
@@ -76,6 +78,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
           expiryDate: {
             not: null,
           },
+          deletedAt: null,
         },
       })
     : Promise.resolve([]);

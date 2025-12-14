@@ -142,17 +142,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
               return session;
             }
 
-            const freshUser = await db.user.findUnique({
-              where: { id: token.id as string },
-              select: {
-                id: true,
-                email: true,
-                name: true,
-                role: true,
-                yachtId: true,
-                permissions: true,
-              },
-            });
+            // Wrap database query in a timeout to prevent hanging
+            let freshUser = null;
+            try {
+              freshUser = await Promise.race([
+                db.user.findUnique({
+                  where: { id: token.id as string },
+                  select: {
+                    id: true,
+                    email: true,
+                    name: true,
+                    role: true,
+                    yachtId: true,
+                    permissions: true,
+                  },
+                }),
+                new Promise<null>((resolve) => 
+                  setTimeout(() => {
+                    console.warn("⚠️ [AUTH] Database query timeout, using token data");
+                    resolve(null);
+                  }, 3000)
+                ),
+              ]);
+            } catch (dbError) {
+              console.error("❌ [AUTH] Database query error:", dbError);
+              freshUser = null;
+            }
 
             if (freshUser) {
               session.user.id = freshUser.id;

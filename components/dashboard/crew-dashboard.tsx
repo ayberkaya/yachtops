@@ -47,6 +47,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
   const myExpensesPromise = db.expense.findMany({
     where: {
       createdByUserId: user.id,
+      deletedAt: null,
     },
     include: {
       category: {
@@ -72,6 +73,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
           expiryDate: {
             not: null,
           },
+          deletedAt: null,
         },
       })
     : Promise.resolve([]);
