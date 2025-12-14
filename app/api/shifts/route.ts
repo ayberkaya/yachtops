@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(
-      shifts.map((shift) => ({
+      shifts.map((shift: { date: Date; startTime: Date; endTime: Date; createdAt: Date; updatedAt: Date }) => ({
         ...shift,
         date: shift.date.toISOString().split("T")[0],
         startTime: shift.startTime.toISOString(),

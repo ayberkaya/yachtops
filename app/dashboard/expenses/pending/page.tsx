@@ -49,7 +49,7 @@ export default async function PendingExpensesPage() {
         <p className="text-muted-foreground">Review, approve, or reject submitted expenses</p>
       </div>
       <PendingExpensesList 
-        expenses={pendingExpenses.map(exp => ({
+        expenses={pendingExpenses.map((exp: { date: Date; createdAt: Date; updatedAt: Date }) => ({
           ...exp,
           date: exp.date.toISOString().split('T')[0],
           createdAt: exp.createdAt.toISOString(),

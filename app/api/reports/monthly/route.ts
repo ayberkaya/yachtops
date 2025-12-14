@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
     const expensesByCurrency: Record<string, number> = {};
     const primaryCurrency = "EUR";
 
-    expenses.forEach((exp) => {
+    expenses.forEach((exp: { amount: string | number; category: { name: string }; currency: string }) => {
       const amount = Number(exp.amount);
       const categoryName = exp.category.name;
       const currency = exp.currency;
@@ -237,7 +237,7 @@ export async function GET(request: NextRequest) {
         );
       }
       addText(
-        `Trips touching this range: ${trips.length} (${trips.filter((t) => t.status === TripStatus.COMPLETED).length} completed)`
+        `Trips touching this range: ${trips.length} (${trips.filter((t: { status: TripStatus }) => t.status === TripStatus.COMPLETED).length} completed)`
       );
       addText(`Completed tasks: ${completedTasks.length}`);
       addText(`Completed shopping lists: ${completedShoppingLists.length}`);
@@ -271,7 +271,7 @@ export async function GET(request: NextRequest) {
       if (trips.length === 0) {
         addText("No trips were planned or completed within this date range.");
       } else {
-        trips.forEach((trip) => {
+        trips.forEach((trip: { name: string; status: TripStatus; startDate: Date; endDate: Date | null; departurePort: string | null; arrivalPort: string | null; createdBy: { name: string | null } | null }) => {
           addText(`${trip.name} (${trip.status})`, 10, true);
           addText(
             `  Dates: ${format(new Date(trip.startDate), "MMM d")} - ${
@@ -292,7 +292,7 @@ export async function GET(request: NextRequest) {
       if (completedTasks.length === 0) {
         addText("No tasks were completed within this date range.");
       } else {
-        completedTasks.forEach((task) => {
+        completedTasks.forEach((task: { title: string; completedAt: Date | null; assignee: { name: string | null } | null; completedBy: { name: string | null } | null; trip: { name: string | null } | null }) => {
           addText(task.title, 10, true);
           const details: string[] = [];
           if (task.completedAt) {
@@ -319,10 +319,10 @@ export async function GET(request: NextRequest) {
       if (completedShoppingLists.length === 0) {
         addText("No shopping lists were completed within this date range.");
       } else {
-        const totalItems = completedShoppingLists.reduce((sum, list) => sum + list._count.items, 0);
+        const totalItems = completedShoppingLists.reduce((sum: number, list: { _count: { items: number } }) => sum + list._count.items, 0);
         addText(`Total lists completed: ${completedShoppingLists.length}`);
         addText(`Total items processed: ${totalItems}`);
-        completedShoppingLists.forEach((list) => {
+        completedShoppingLists.forEach((list: { name: string; description: string | null; _count: { items: number }; updatedAt: Date; createdBy: { name: string | null } | null }) => {
           addText(list.name, 10, true);
           if (list.description) {
             addText(`  ${list.description}`);

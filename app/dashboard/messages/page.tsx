@@ -39,11 +39,11 @@ export default async function MessagesPage() {
 
   // Filter channels based on user access and sort: general first, then by creation date
   const accessibleChannels = allChannels
-    .filter((channel) => {
+    .filter((channel: { isGeneral: boolean; members: { id: string }[] }) => {
       if (channel.isGeneral) return true;
-      return channel.members.some((member) => member.id === session.user.id);
+      return channel.members.some((member: { id: string }) => member.id === session.user.id);
     })
-    .sort((a, b) => {
+    .sort((a: { isGeneral: boolean; createdAt: Date }, b: { isGeneral: boolean; createdAt: Date }) => {
       // General channels first
       if (a.isGeneral && !b.isGeneral) return -1;
       if (!a.isGeneral && b.isGeneral) return 1;

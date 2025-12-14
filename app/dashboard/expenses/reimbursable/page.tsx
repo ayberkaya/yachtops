@@ -41,7 +41,7 @@ export default async function ReimbursableExpensesPage() {
   });
 
   // Sort by reimbursement status (unpaid first), then by date
-  const sortedExpenses = reimbursableExpenses.sort((a, b) => {
+  const sortedExpenses = reimbursableExpenses.sort((a: { isReimbursed: boolean; date: Date }, b: { isReimbursed: boolean; date: Date }) => {
     // First sort by reimbursement status (false/unpaid comes before true/paid)
     if (a.isReimbursed !== b.isReimbursed) {
       return a.isReimbursed ? 1 : -1;
@@ -59,7 +59,7 @@ export default async function ReimbursableExpensesPage() {
         </p>
       </div>
       <ReimbursableExpensesList 
-        expenses={sortedExpenses.map(exp => ({
+        expenses={sortedExpenses.map((exp: { date: Date; reimbursedAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
           ...exp,
           date: exp.date.toISOString().split('T')[0],
           reimbursedAt: exp.reimbursedAt?.toISOString() || null,

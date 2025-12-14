@@ -69,7 +69,7 @@ export async function GET(
 
     // If completedBy is null but completed is true, use session user info as fallback
     // This handles cases where the user doesn't exist in the database
-    const itemsWithFallback = items.map((item) => {
+    const itemsWithFallback = items.map((item: { completed: boolean; completedBy: { id: string; name: string | null; email: string } | null; type: TripChecklistType }) => {
       if (item.completed && !item.completedBy) {
         return {
           ...item,
@@ -84,8 +84,8 @@ export async function GET(
     });
 
     return NextResponse.json({
-      preDeparture: itemsWithFallback.filter((item) => item.type === TripChecklistType.PRE_DEPARTURE),
-      postArrival: itemsWithFallback.filter((item) => item.type === TripChecklistType.POST_ARRIVAL),
+      preDeparture: itemsWithFallback.filter((item: { type: TripChecklistType }) => item.type === TripChecklistType.PRE_DEPARTURE),
+      postArrival: itemsWithFallback.filter((item: { type: TripChecklistType }) => item.type === TripChecklistType.POST_ARRIVAL),
     });
   } catch (error) {
     console.error("Error fetching trip checklists:", error);

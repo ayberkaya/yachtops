@@ -56,7 +56,7 @@ export default async function ReceiptsPage() {
         </p>
       </div>
 
-      <ReceiptsView receipts={receipts.map(receipt => ({
+      <ReceiptsView receipts={receipts.map((receipt: { id: string; uploadedAt: Date; expense: { id: string; date: Date; description: string | null; amount: string | number; currency: string; category: { id: string; name: string } } }) => ({
         id: receipt.id,
         uploadedAt: receipt.uploadedAt,
         expense: {

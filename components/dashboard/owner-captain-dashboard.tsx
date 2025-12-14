@@ -155,11 +155,11 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
   }
 
   const totalPendingAmount = pendingExpenses.reduce(
-    (sum, exp) => sum + Number(exp.baseAmount || exp.amount),
+    (sum: number, exp: { baseAmount: string | number | null; amount: string | number }) => sum + Number(exp.baseAmount || exp.amount),
     0
   );
 
-  const lowStockItems = alcoholStocks.filter((stock) => {
+  const lowStockItems = alcoholStocks.filter((stock: { lowStockThreshold: number | null; quantity: number }) => {
     if (stock.lowStockThreshold === null) return false;
     return stock.quantity <= stock.lowStockThreshold;
   });
@@ -167,7 +167,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const expiringPermissions = marinaPermissions.filter((perm) => {
+  const expiringPermissions = marinaPermissions.filter((perm: { expiryDate: string | Date | null }) => {
     if (!perm.expiryDate) return false;
     const expiry = new Date(perm.expiryDate);
     expiry.setHours(0, 0, 0, 0);
@@ -179,7 +179,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
   });
 
   const upcomingMaintenance = maintenanceLogs.filter(
-    (maint): maint is (typeof maintenanceLogs)[number] & { nextDueDate: Date } => {
+    (maint: { nextDueDate: Date | string | null }): maint is (typeof maintenanceLogs)[number] & { nextDueDate: Date } => {
       if (!maint.nextDueDate) return false;
       const dueDate = new Date(maint.nextDueDate);
       dueDate.setHours(0, 0, 0, 0);
@@ -285,7 +285,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {upcomingMaintenance.map((maint) => {
+              {upcomingMaintenance.map((maint: { id: string; nextDueDate: Date; title: string; component: string | null }) => {
                 const dueDate = new Date(maint.nextDueDate!);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -344,7 +344,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {expiringPermissions.map((perm) => {
+              {expiringPermissions.map((perm: { id: string; expiryDate: string | Date | null; title: string | null }) => {
                 const expiry = perm.expiryDate ? new Date(perm.expiryDate) : null;
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -429,7 +429,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
               <p className="text-sm text-muted-foreground">No pending expenses</p>
             ) : (
               <div className="space-y-4">
-                {pendingExpenses.map((expense) => (
+                {pendingExpenses.map((expense: { id: string; description: string | null; category: { name: string }; createdBy: { name: string | null; email: string }; baseAmount: string | number | null; amount: string | number; currency: string; date: string | Date }) => (
                   <div key={expense.id} className="flex items-center justify-between border-b pb-2">
                     <div>
                       <p className="font-medium">{expense.description}</p>
@@ -472,7 +472,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
               <p className="text-sm text-muted-foreground">No expenses yet</p>
             ) : (
               <div className="space-y-4">
-                {recentExpenses.map((expense) => (
+                {recentExpenses.map((expense: { id: string; description: string | null; category: { name: string }; createdBy: { name: string | null; email: string }; baseAmount: string | number | null; amount: string | number; currency: string; date: string | Date }) => (
                   <div key={expense.id} className="flex items-center justify-between border-b pb-2">
                     <div>
                       <p className="font-medium">{expense.description}</p>

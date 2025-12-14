@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check access
-    if (!channel.isGeneral && !channel.members.some((m) => m.id === session.user.id)) {
+    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -100,11 +100,11 @@ export async function GET(request: NextRequest) {
     // Mark messages as read for current user when fetching
     // Only mark messages that are not sent by current user
     const unreadMessages = messages.filter(
-      (msg) => msg.userId !== session.user.id
+      (msg: { userId: string }) => msg.userId !== session.user.id
     );
 
     if (unreadMessages.length > 0) {
-      const messageIds = unreadMessages.map((msg) => msg.id);
+      const messageIds = unreadMessages.map((msg: { id: string }) => msg.id);
       
       // Check which messages are already read
       const existingReads = await db.messageRead.findMany({
@@ -115,13 +115,13 @@ export async function GET(request: NextRequest) {
         select: { messageId: true },
       });
 
-      const alreadyReadIds = new Set(existingReads.map((r) => r.messageId));
-      const toMarkAsRead = messageIds.filter((id) => !alreadyReadIds.has(id));
+      const alreadyReadIds = new Set(existingReads.map((r: { messageId: string }) => r.messageId));
+      const toMarkAsRead = messageIds.filter((id: string) => !alreadyReadIds.has(id));
 
       // Mark unread messages as read
       if (toMarkAsRead.length > 0) {
         await db.messageRead.createMany({
-          data: toMarkAsRead.map((messageId) => ({
+          data: toMarkAsRead.map((messageId: string) => ({
             messageId,
             userId: session.user.id,
           })),
@@ -302,7 +302,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check access
-    if (!channel.isGeneral && !channel.members.some((m) => m.id === session.user.id)) {
+    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

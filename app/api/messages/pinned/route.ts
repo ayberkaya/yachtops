@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check access
-    if (!channel.isGeneral && !channel.members.some((m) => m.id === session.user.id)) {
+    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

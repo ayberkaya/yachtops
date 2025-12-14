@@ -37,7 +37,7 @@ export default async function MaintenancePage() {
       </div>
 
       <MaintenanceList 
-        initialLogs={logs.map(log => ({
+        initialLogs={logs.map((log: { date: Date; nextDueDate: Date | null; createdAt: Date; updatedAt: Date }) => ({
           ...log,
           date: log.date.toISOString().split('T')[0],
           nextDueDate: log.nextDueDate ? log.nextDueDate.toISOString().split('T')[0] : null,

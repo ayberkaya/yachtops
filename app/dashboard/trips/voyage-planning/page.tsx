@@ -39,7 +39,7 @@ export default async function VoyagePlanningPage() {
 
   return (
     <VoyagePlanning
-      trips={trips.map((trip) => ({
+      trips={trips.map((trip: { startDate: Date; endDate: Date | null }) => ({
         ...trip,
         startDate: trip.startDate.toISOString(),
         endDate: trip.endDate ? trip.endDate.toISOString() : null,

@@ -66,7 +66,7 @@ export async function GET(request: NextRequest) {
 
     // Group by date
     const tasksByDate: Record<string, typeof completedTasks> = {};
-    completedTasks.forEach((task) => {
+    completedTasks.forEach((task: { completedAt: Date | null }) => {
       if (task.completedAt) {
         const dateKey = format(new Date(task.completedAt), "yyyy-MM-dd");
         if (!tasksByDate[dateKey]) {

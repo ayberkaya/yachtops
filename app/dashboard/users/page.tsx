@@ -39,7 +39,7 @@ export default async function UsersPage() {
         <p className="text-muted-foreground">Manage yacht users and roles</p>
       </div>
       <UserList 
-        initialUsers={users.map(user => ({
+        initialUsers={users.map((user: { createdAt: Date }) => ({
           ...user,
           createdAt: user.createdAt.toISOString(),
         }))} 

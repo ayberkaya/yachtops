@@ -51,7 +51,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter out task-related notifications for completed tasks
-    const filteredNotifications = notifications.filter((notification) => {
+    const filteredNotifications = notifications.filter((notification: { task: { status: TaskStatus } | null }) => {
       // If notification has no task, always show it
       if (!notification.task) {
         return true;

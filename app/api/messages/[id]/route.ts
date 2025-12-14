@@ -73,7 +73,7 @@ export async function GET(
 
     // Check channel access
     if (!message.channel.isGeneral && 
-        !message.channel.members.some((m) => m.id === session.user.id)) {
+        !message.channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -125,7 +125,7 @@ export async function PATCH(
 
     // Check channel access
     if (!existingMessage.channel.isGeneral && 
-        !existingMessage.channel.members.some((m) => m.id === session.user.id)) {
+        !existingMessage.channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

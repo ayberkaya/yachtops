@@ -197,8 +197,8 @@ export async function ensureTripChecklistSeeded(tripId: string) {
     orderBy: { orderIndex: "asc" },
   });
 
-  const itemsByType = existingItems.reduce<Record<TripChecklistType, typeof existingItems>>(
-    (acc, item) => {
+  const itemsByType = existingItems.reduce(
+    (acc: Record<TripChecklistType, typeof existingItems>, item: { type: TripChecklistType }) => {
       acc[item.type] = acc[item.type] || [];
       acc[item.type].push(item);
       return acc;
@@ -206,7 +206,7 @@ export async function ensureTripChecklistSeeded(tripId: string) {
     {
       [TripChecklistType.PRE_DEPARTURE]: [],
       [TripChecklistType.POST_ARRIVAL]: [],
-    }
+    } as Record<TripChecklistType, typeof existingItems>
   );
 
   const inserts: {
@@ -220,7 +220,7 @@ export async function ensureTripChecklistSeeded(tripId: string) {
   for (const [typeKey, templates] of Object.entries(DEFAULT_TRIP_CHECKLIST_TEMPLATES)) {
     const type = typeKey as TripChecklistType;
     const existingForType = itemsByType[type];
-    const existingTitles = new Set(existingForType.map((item) => item.title));
+    const existingTitles = new Set(existingForType.map((item: { title: string }) => item.title));
     let orderIndex = existingForType.length > 0 ? existingForType[existingForType.length - 1].orderIndex + 1 : 0;
 
     templates.forEach((template, index) => {

@@ -35,7 +35,7 @@ export default async function UserNotesPage() {
         </p>
       </div>
       <UserNotes
-        initialNotes={notes.map((note) => ({
+        initialNotes={notes.map((note: { content: unknown; createdAt: Date; updatedAt: Date }) => ({
           ...note,
           content: Array.isArray(note.content) ? (note.content as any[]) : [],
           createdAt: note.createdAt.toISOString(),

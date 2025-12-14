@@ -77,18 +77,18 @@ export default async function RouteFuelPage() {
 
   return (
     <RouteFuelEstimation
-      trips={trips.map((trip) => ({
+      trips={trips.map((trip: { startDate: Date; endDate: Date | null }) => ({
         ...trip,
         startDate: trip.startDate.toISOString(),
         endDate: trip.endDate ? trip.endDate.toISOString() : null,
       }))}
-      movementLogs={movementLogs.map((log) => ({
+      movementLogs={movementLogs.map((log: { id: string; tripId: string; eventType: string; port: string | null; eta: Date | null; etd: Date | null; weather: string | null; seaState: string | null; notes: string | null; recordedAt: Date }) => ({
         ...log,
         eta: log.eta ? log.eta.toISOString() : null,
         etd: log.etd ? log.etd.toISOString() : null,
         recordedAt: log.recordedAt.toISOString(),
       }))}
-      tankLogs={tankLogs.map((log) => ({
+      tankLogs={tankLogs.map((log: { id: string; tripId: string; fuelLevel: number | null; freshWater: number | null; greyWater: number | null; blackWater: number | null; recordedAt: Date }) => ({
         ...log,
         recordedAt: log.recordedAt.toISOString(),
       }))}

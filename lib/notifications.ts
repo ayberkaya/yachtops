@@ -56,7 +56,7 @@ export async function notifyTaskAssignment(
         });
 
         await Promise.all(
-          users.map((user) =>
+          users.map((user: { id: string }) =>
             createNotification(
               user.id,
               NotificationType.TASK_ASSIGNED,

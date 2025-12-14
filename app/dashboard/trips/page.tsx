@@ -44,11 +44,11 @@ export default async function TripsPage() {
   });
 
   // Calculate expense summaries per trip
-  const tripsWithExpenseSummary = trips.map((trip) => {
-    const approvedExpenses = trip.expenses.filter((e) => e.status === "APPROVED");
+  const tripsWithExpenseSummary = trips.map((trip: { expenses: { status: string; currency: string; amount: string | number }[] }) => {
+    const approvedExpenses = trip.expenses.filter((e: { status: string }) => e.status === "APPROVED");
     const expensesByCurrency: Record<string, number> = {};
     
-    approvedExpenses.forEach((exp) => {
+    approvedExpenses.forEach((exp: { currency: string; amount: string | number }) => {
       const currency = exp.currency;
       expensesByCurrency[currency] = (expensesByCurrency[currency] || 0) + Number(exp.amount);
     });
@@ -68,7 +68,7 @@ export default async function TripsPage() {
         </div>
       </div>
       <TripList 
-        initialTrips={tripsWithExpenseSummary.map(trip => ({
+        initialTrips={tripsWithExpenseSummary.map((trip: { startDate: Date; endDate: Date | null; createdAt: Date; updatedAt: Date }) => ({
           ...trip,
           startDate: trip.startDate.toISOString().split('T')[0],
           endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : null,

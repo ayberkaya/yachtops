@@ -52,7 +52,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: "Channel not found" }, { status: 404 });
       }
 
-      if (!channel.isGeneral && !channel.members.some((m) => m.id === session.user.id)) {
+      if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       });
 
       where.channelId = {
-        in: accessibleChannels.map((ch) => ch.id),
+        in: accessibleChannels.map((ch: { id: string }) => ch.id),
       };
     }
 

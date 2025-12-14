@@ -129,9 +129,9 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     );
   }
 
-  const pendingTasksCount = myTasks.filter((t) => t.status === TaskStatus.TODO).length;
+  const pendingTasksCount = myTasks.filter((t: { status: TaskStatus }) => t.status === TaskStatus.TODO).length;
 
-  const lowStockItems = alcoholStocks.filter((stock) => {
+  const lowStockItems = alcoholStocks.filter((stock: { lowStockThreshold: number | null; quantity: number }) => {
     if (stock.lowStockThreshold === null) return false;
     return stock.quantity <= stock.lowStockThreshold;
   });
@@ -139,7 +139,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const expiringPermissions = marinaPermissions.filter((perm) => {
+  const expiringPermissions = marinaPermissions.filter((perm: { expiryDate: string | Date | null }) => {
     if (!perm.expiryDate) return false;
     const expiry = new Date(perm.expiryDate);
     expiry.setHours(0, 0, 0, 0);
@@ -151,7 +151,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
   });
 
   const upcomingMaintenance = maintenanceLogs.filter(
-    (maint): maint is (typeof maintenanceLogs)[number] & { nextDueDate: Date } => {
+    (maint: { nextDueDate: Date | string | null }): maint is (typeof maintenanceLogs)[number] & { nextDueDate: Date } => {
       if (!maint.nextDueDate) return false;
       const dueDate = new Date(maint.nextDueDate);
       dueDate.setHours(0, 0, 0, 0);
@@ -195,7 +195,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {roleAssignedTasks.slice(0, 5).map((task) => {
+              {roleAssignedTasks.slice(0, 5).map((task: { id: string; dueDate: string | Date | null; title: string; trip: { name: string } | null; status: string }) => {
                 const isOverdue = task.dueDate && new Date(task.dueDate) < new Date();
                 return (
                   <div
@@ -257,7 +257,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {upcomingMaintenance.map((maint) => {
+              {upcomingMaintenance.map((maint: { id: string; nextDueDate: Date; title: string; component: string | null }) => {
                 const dueDate = new Date(maint.nextDueDate!);
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -316,7 +316,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
           </CardHeader>
           <CardContent>
             <div className="space-y-2">
-              {expiringPermissions.map((perm) => {
+              {expiringPermissions.map((perm: { id: string; expiryDate: string | Date | null; title: string | null }) => {
                 const expiry = perm.expiryDate ? new Date(perm.expiryDate) : null;
                 const today = new Date();
                 today.setHours(0, 0, 0, 0);
@@ -408,7 +408,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
               <p className="text-sm text-muted-foreground">No tasks assigned</p>
             ) : (
               <div className="space-y-4">
-                {myTasks.map((task) => (
+                {myTasks.map((task: { id: string; title: string; trip: { name: string } | null; status: string; dueDate: string | Date | null }) => (
                   <div key={task.id} className="flex items-center justify-between border-b pb-2">
                     <div>
                       <p className="font-medium">{task.title}</p>
@@ -445,7 +445,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
               <p className="text-sm text-muted-foreground">No expenses yet</p>
             ) : (
               <div className="space-y-4">
-                {myExpenses.map((expense) => (
+                {myExpenses.map((expense: { id: string; description: string | null; category: { name: string }; status: string; baseAmount: string | number | null; amount: string | number; currency: string; date: string | Date }) => (
                   <div key={expense.id} className="flex items-center justify-between border-b pb-2">
                     <div>
                       <p className="font-medium">{expense.description}</p>

@@ -78,7 +78,7 @@ export default async function TasksPage() {
         </div>
       </div>
       <TaskList
-        initialTasks={tasks.map(task => ({
+        initialTasks={tasks.map((task: { dueDate: Date | null; completedAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
           ...task,
           dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : null,
           completedAt: task.completedAt ? task.completedAt.toISOString() : null,
