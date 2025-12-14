@@ -47,13 +47,16 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
-    const grouped = users.reduce<Record<string, typeof users>>((acc, user) => {
-      if (user.yachtId) {
-        acc[user.yachtId] = acc[user.yachtId] || [];
-        acc[user.yachtId].push(user);
-      }
-      return acc;
-    }, {});
+    const grouped = users.reduce<Record<string, typeof users>>(
+      (acc: Record<string, typeof users>, user: (typeof users)[number]) => {
+        if (user.yachtId) {
+          acc[user.yachtId] = acc[user.yachtId] || [];
+          acc[user.yachtId].push(user);
+        }
+        return acc;
+      },
+      {} as Record<string, typeof users>
+    );
 
     const enriched = owners.map((owner) => ({
       ...owner,
