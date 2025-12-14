@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +23,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Plus, Minus, Trash2, Settings, AlertTriangle, History, Filter } from "lucide-react";
+import { Plus, Minus, Trash2, Settings, AlertTriangle, History, Filter, Image } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 
@@ -96,6 +96,9 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
   const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [categoryFilter, setCategoryFilter] = useState<"ALL" | "WINE" | "SPIRITS" | "BEER">("ALL");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
 
   const handleAddStock = async () => {
     if (!selectedAlcohol && !customAlcohol.trim()) {
@@ -257,37 +260,43 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
       <Card>
         <CardHeader>
           <CardTitle>Add Alcohol to Stock</CardTitle>
-          <CardDescription>
-            Select from popular alcohols or enter a custom name
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
-              <Select value={selectedAlcohol} onValueChange={setSelectedAlcohol}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select from popular alcohols" />
-                </SelectTrigger>
-                <SelectContent>
-                  {POPULAR_ALCOHOLS.map((alcohol) => (
-                    <SelectItem key={alcohol} value={alcohol}>
-                      {alcohol}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex-1 text-center text-sm text-muted-foreground flex items-center justify-center">
-                OR
+              <div className="flex gap-2 w-full md:w-1/2">
+                <Input
+                  placeholder="Enter alcohol name"
+                  value={customAlcohol}
+                  onChange={(e) => {
+                    setCustomAlcohol(e.target.value);
+                    setSelectedAlcohol("");
+                  }}
+                  className="flex-1"
+                />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setSelectedImage(file);
+                    }
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="flex-shrink-0"
+                  title="Add image"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Image className="h-4 w-4" />
+                </Button>
               </div>
-              <Input
-                placeholder="Enter custom alcohol name"
-                value={customAlcohol}
-                onChange={(e) => {
-                  setCustomAlcohol(e.target.value);
-                  setSelectedAlcohol("");
-                }}
-                className="flex-1"
-              />
             </div>
             <div className="flex gap-4">
               <Select value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as any)}>
@@ -320,22 +329,190 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
               <CardTitle className="text-lg md:text-xl">Current Stock</CardTitle>
-              <CardDescription className="text-xs md:text-sm">
-                Manage quantities and set low stock alerts
-              </CardDescription>
             </div>
-            <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
-              <SelectTrigger className="w-full md:w-[150px]">
-                <Filter className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="ALL">All Categories</SelectItem>
-                <SelectItem value="WINE">Wine</SelectItem>
-                <SelectItem value="SPIRITS">Spirits</SelectItem>
-                <SelectItem value="BEER">Beer</SelectItem>
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2">
+              {selectedStockId && (() => {
+                const selectedStock = stocks.find(s => s.id === selectedStockId);
+                if (!selectedStock) return null;
+                const isLow = isLowStock(selectedStock);
+                return (
+                  <>
+                    <Dialog
+                      open={viewingHistory === selectedStock.id}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          setViewingHistory(null);
+                          setStockHistory([]);
+                        } else {
+                          handleViewHistory(selectedStock.id);
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="View history"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Stock History: {selectedStock.name}</DialogTitle>
+                          <DialogDescription>
+                            View all changes made to this stock item
+                          </DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="h-[400px] pr-4">
+                          {loadingHistory ? (
+                            <p className="text-sm text-muted-foreground text-center py-8">Loading history...</p>
+                          ) : stockHistory.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-8">No history available</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {stockHistory.map((entry) => (
+                                <div key={entry.id} className="border rounded-lg p-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-2">
+                                      <Badge variant={entry.quantityChange > 0 ? "default" : entry.quantityChange < 0 ? "destructive" : "secondary"}>
+                                        {entry.changeType}
+                                      </Badge>
+                                      <span className="text-sm font-semibold">
+                                        {entry.quantityBefore} → {entry.quantityAfter}
+                                      </span>
+                                      {entry.quantityChange !== 0 && (
+                                        <span className={`text-sm ${entry.quantityChange > 0 ? "text-green-600" : "text-red-600"}`}>
+                                          ({entry.quantityChange > 0 ? "+" : ""}{entry.quantityChange})
+                                        </span>
+                                      )}
+                                    </div>
+                                    <span className="text-xs text-muted-foreground">
+                                      {format(new Date(entry.createdAt), "MMM d, yyyy h:mm a")}
+                                    </span>
+                                  </div>
+                                  {entry.user && (
+                                    <p className="text-xs text-muted-foreground">
+                                      By: {entry.user.name || entry.user.email}
+                                    </p>
+                                  )}
+                                  {entry.notes && (
+                                    <p className="text-sm text-muted-foreground mt-1">{entry.notes}</p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
+                    <Dialog
+                      open={editingStock?.id === selectedStock.id}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          setEditingStock(null);
+                          setThresholdValue("");
+                          setEditingCategory("NONE");
+                        } else {
+                          setEditingStock(selectedStock);
+                          setThresholdValue(selectedStock.lowStockThreshold?.toString() || "");
+                          setEditingCategory(selectedStock.category || "NONE");
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="Settings"
+                        >
+                          <Settings className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent>
+                        <DialogHeader>
+                          <DialogTitle>Configure Settings</DialogTitle>
+                          <DialogDescription>
+                            Update category and alert threshold for {selectedStock.name}
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="space-y-4 py-4">
+                          <div>
+                            <Label htmlFor="category">Category</Label>
+                            <Select value={editingCategory} onValueChange={(v) => setEditingCategory(v as any)}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select category" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="NONE">No category</SelectItem>
+                                <SelectItem value="WINE">Wine</SelectItem>
+                                <SelectItem value="SPIRITS">Spirits</SelectItem>
+                                <SelectItem value="BEER">Beer</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div>
+                            <Label htmlFor="threshold">Low Stock Threshold</Label>
+                            <Input
+                              id="threshold"
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              placeholder="Leave empty to disable alert"
+                              value={thresholdValue}
+                              onChange={(e) => setThresholdValue(e.target.value)}
+                              className="h-9 text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                            />
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Current stock: {selectedStock.quantity} {selectedStock.unit}
+                              {selectedStock.unit !== "bottle" && selectedStock.unit !== "liter" ? "s" : selectedStock.unit === "bottle" ? "s" : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <DialogFooter>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setEditingStock(null);
+                              setThresholdValue("");
+                              setEditingCategory("NONE");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button onClick={() => handleUpdateSettings(selectedStock)}>
+                            Save Settings
+                          </Button>
+                        </DialogFooter>
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDeleteStock(selectedStock.id)}
+                      className="h-8 w-8"
+                      title="Delete"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                );
+              })()}
+              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
+                <SelectTrigger className="w-full md:w-[150px]">
+                  <Filter className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Categories</SelectItem>
+                  <SelectItem value="WINE">Wine</SelectItem>
+                  <SelectItem value="SPIRITS">Spirits</SelectItem>
+                  <SelectItem value="BEER">Beer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -352,19 +529,36 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 return (
                   <div
                     key={stock.id}
-                    className={`relative flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-3 px-3 md:px-4 border rounded-lg ${
+                    className={`relative flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-3 px-3 md:px-4 border-2 rounded-lg cursor-pointer transition-all ${
                       isLow
-                        ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
-                        : ""
+                        ? selectedStockId === stock.id
+                          ? "border-yellow-400 bg-red-600/95 dark:bg-red-700/95 shadow-lg ring-2 ring-yellow-400/50"
+                          : "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
+                        : selectedStockId === stock.id 
+                          ? "border-primary bg-primary/10 dark:bg-primary/20 shadow-md ring-2 ring-primary/20" 
+                          : "border-border hover:border-primary/50"
                     }`}
                     style={
                       isLow
-                        ? {
-                            borderColor: "rgba(231, 0, 11, 1)",
-                            backgroundColor: "rgba(231, 0, 11, 0.85)"
-                          }
-                        : { color: '#000000' }
+                        ? selectedStockId === stock.id
+                          ? {
+                              borderColor: "rgb(250, 204, 21)",
+                              backgroundColor: "rgba(231, 0, 11, 0.95)",
+                              boxShadow: "0 0 0 2px rgba(250, 204, 21, 0.3)"
+                            }
+                          : {
+                              borderColor: "rgba(231, 0, 11, 1)",
+                              backgroundColor: "rgba(231, 0, 11, 0.85)"
+                            }
+                        : selectedStockId === stock.id
+                          ? { 
+                              color: '#000000',
+                              borderColor: 'hsl(var(--primary))',
+                              backgroundColor: 'hsl(var(--primary) / 0.1)'
+                            }
+                          : { color: '#000000' }
                     }
+                    onClick={() => setSelectedStockId(selectedStockId === stock.id ? null : stock.id)}
                   >
                     {getCategoryBadge(stock.category) && (
                       <div className="absolute -top-[12px] left-2 md:left-0 z-10">
@@ -432,175 +626,6 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                           style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
                         />
                       </Button>
-                    <Dialog
-                      open={viewingHistory === stock.id}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          setViewingHistory(null);
-                          setStockHistory([]);
-                        } else {
-                          handleViewHistory(stock.id);
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
-                          style={!isLow ? { color: '#000000' } : undefined}
-                        >
-                          <History
-                            className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
-                            style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
-                          />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl">
-                        <DialogHeader>
-                          <DialogTitle>Stock History: {stock.name}</DialogTitle>
-                          <DialogDescription>
-                            View all changes made to this stock item
-                          </DialogDescription>
-                        </DialogHeader>
-                        <ScrollArea className="h-[400px] pr-4">
-                          {loadingHistory ? (
-                            <p className="text-sm text-muted-foreground text-center py-8">Loading history...</p>
-                          ) : stockHistory.length === 0 ? (
-                            <p className="text-sm text-muted-foreground text-center py-8">No history available</p>
-                          ) : (
-                            <div className="space-y-4">
-                              {stockHistory.map((entry) => (
-                                <div key={entry.id} className="border rounded-lg p-4">
-                                  <div className="flex items-center justify-between mb-2">
-                                    <div className="flex items-center gap-2">
-                                      <Badge variant={entry.quantityChange > 0 ? "default" : entry.quantityChange < 0 ? "destructive" : "secondary"}>
-                                        {entry.changeType}
-                                      </Badge>
-                                      <span className="text-sm font-semibold">
-                                        {entry.quantityBefore} → {entry.quantityAfter}
-                                      </span>
-                                      {entry.quantityChange !== 0 && (
-                                        <span className={`text-sm ${entry.quantityChange > 0 ? "text-green-600" : "text-red-600"}`}>
-                                          ({entry.quantityChange > 0 ? "+" : ""}{entry.quantityChange})
-                                        </span>
-                                      )}
-                                    </div>
-                                    <span className="text-xs text-muted-foreground">
-                                      {format(new Date(entry.createdAt), "MMM d, yyyy h:mm a")}
-                                    </span>
-                                  </div>
-                                  {entry.user && (
-                                    <p className="text-xs text-muted-foreground">
-                                      By: {entry.user.name || entry.user.email}
-                                    </p>
-                                  )}
-                                  {entry.notes && (
-                                    <p className="text-sm text-muted-foreground mt-1">{entry.notes}</p>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </ScrollArea>
-                      </DialogContent>
-                    </Dialog>
-                    <Dialog
-                      open={editingStock?.id === stock.id}
-                      onOpenChange={(open) => {
-                        if (!open) {
-                          setEditingStock(null);
-                          setThresholdValue("");
-                          setEditingCategory("NONE");
-                        } else {
-                          setEditingStock(stock);
-                          setThresholdValue(stock.lowStockThreshold?.toString() || "");
-                          setEditingCategory(stock.category || "NONE");
-                        }
-                      }}
-                    >
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
-                          style={!isLow ? { color: '#000000' } : undefined}
-                        >
-                          <Settings
-                            className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
-                            style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
-                          />
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent>
-                        <DialogHeader>
-                          <DialogTitle>Configure Settings</DialogTitle>
-                          <DialogDescription>
-                            Update category and alert threshold for {stock.name}
-                          </DialogDescription>
-                        </DialogHeader>
-                        <div className="space-y-4 py-4">
-                          <div>
-                            <Label htmlFor="category">Category</Label>
-                            <Select value={editingCategory} onValueChange={(v) => setEditingCategory(v as any)}>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Select category" />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="NONE">No category</SelectItem>
-                                <SelectItem value="WINE">Wine</SelectItem>
-                                <SelectItem value="SPIRITS">Spirits</SelectItem>
-                                <SelectItem value="BEER">Beer</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </div>
-                          <div>
-                            <Label htmlFor="threshold">Low Stock Threshold</Label>
-                            <Input
-                              id="threshold"
-                              type="number"
-                              min="0"
-                              step="0.1"
-                              placeholder="Leave empty to disable alert"
-                              value={thresholdValue}
-                              onChange={(e) => setThresholdValue(e.target.value)}
-                              className="h-9 text-sm [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
-                            />
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Current stock: {stock.quantity} {stock.unit}
-                              {stock.unit !== "bottle" && stock.unit !== "liter" ? "s" : stock.unit === "bottle" ? "s" : ""}
-                            </p>
-                          </div>
-                        </div>
-                        <DialogFooter>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setEditingStock(null);
-                              setThresholdValue("");
-                              setEditingCategory("NONE");
-                            }}
-                          >
-                            Cancel
-                          </Button>
-                          <Button onClick={() => handleUpdateSettings(stock)}>
-                            Save Settings
-                          </Button>
-                        </DialogFooter>
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleDeleteStock(stock.id)}
-                      className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
-                      style={!isLow ? { color: '#000000' } : undefined}
-                    >
-                      <Trash2
-                        className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
-                        style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
-                      />
-                    </Button>
                   </div>
                 </div>
               );
