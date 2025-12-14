@@ -126,7 +126,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json(
-      leaves.map((leave) => ({
+      leaves.map((leave: (typeof leaves)[number]) => ({
         ...leave,
         startDate: leave.startDate.toISOString().split("T")[0],
         endDate: leave.endDate.toISOString().split("T")[0],
