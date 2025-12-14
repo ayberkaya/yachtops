@@ -160,7 +160,9 @@ export function DashboardNotificationsPanel() {
     const seen = new Map<string, typeof notifications[0]>();
     
     for (const notification of withoutCompleted) {
-      const key = `${notification.type}-${notification.content}-${notification.taskId || ''}-${notification.messageId || ''}`;
+      const taskId = notification.task?.id || '';
+      const messageId = notification.message?.id || '';
+      const key = `${notification.type}-${notification.content}-${taskId}-${messageId}`;
       const existing = seen.get(key);
       
       if (!existing || new Date(notification.createdAt) > new Date(existing.createdAt)) {
