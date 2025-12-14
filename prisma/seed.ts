@@ -219,13 +219,13 @@ async function main() {
   // Create super admin
   const adminPassword = await bcrypt.hash("TempPass123!", 10);
   const existingAdmin = await prisma.user.findUnique({
-    where: { email: "admin@yachtops.local" },
+    where: { email: "admin@helmops.local" },
   });
   const existingAdminByUsername = await prisma.user.findUnique({
     where: { username: "admin" },
   });
   
-  if (existingAdminByUsername && existingAdminByUsername.email !== "admin@yachtops.local") {
+  if (existingAdminByUsername && existingAdminByUsername.email !== "admin@helmops.local") {
     await prisma.user.update({
       where: { username: "admin" },
       data: { username: `admin_${Date.now()}` },
@@ -234,7 +234,7 @@ async function main() {
   
   const admin = existingAdmin
     ? await prisma.user.update({
-        where: { email: "admin@yachtops.local" },
+        where: { email: "admin@helmops.local" },
         data: {
           passwordHash: adminPassword,
           name: "Super Admin",
@@ -246,7 +246,7 @@ async function main() {
       })
     : await prisma.user.create({
         data: {
-          email: "admin@yachtops.local",
+          email: "admin@helmops.local",
           passwordHash: adminPassword,
           name: "Super Admin",
           role: UserRole.SUPER_ADMIN,
@@ -337,7 +337,7 @@ async function main() {
 
   console.log("\n🎉 Seeding completed!");
   console.log("\n📝 Test credentials:");
-  console.log("  Super Admin: admin@yachtops.local / TempPass123!");
+  console.log("  Super Admin: admin@helmops.local / TempPass123!");
   console.log("  Owner:   owner@helmops.com / owner123");
   console.log("  Captain: captain@helmops.com / captain123");
   console.log("  Crew:    crew@helmops.com / crew123");

@@ -3,14 +3,14 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🔍 Finding test users (helmops.com and yachtops.com)...");
+  console.log("🔍 Finding test users (helmops.com)...");
 
   // Find test users
   const testUsers = await prisma.user.findMany({
     where: {
       OR: [
         { email: { contains: "@helmops.com" } },
-        { email: { contains: "@yachtops.com" } },
+        { email: { contains: "@helmops.com" } },
       ],
     },
     include: {

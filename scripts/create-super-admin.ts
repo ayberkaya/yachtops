@@ -12,7 +12,7 @@ const prisma = new PrismaClient({
 async function main() {
   console.log("🌱 Creating/updating super admin user...");
 
-  const email = "admin@yachtops.local";
+  const email = "admin@helmops.local";
   const password = "TempPass123!";
   const username = "admin";
 
