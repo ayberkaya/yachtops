@@ -145,7 +145,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
 
       if (response.ok) {
         const newStock = await response.json();
-        setStocks([...stocks, newStock].sort((a, b) => a.name.localeCompare(b.name)));
+        setStocks([...stocks, { ...newStock, imageUrl: newStock.imageUrl || null }].sort((a, b) => a.name.localeCompare(b.name)));
         setSelectedAlcohol("");
         setCustomAlcohol("");
         setSelectedCategory("NONE");
@@ -296,7 +296,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
       if (response.ok) {
         const updated = await response.json();
         setStocks(
-          stocks.map((s) => (s.id === stock.id ? updated : s)).sort((a, b) => a.name.localeCompare(b.name))
+          stocks.map((s) => (s.id === stock.id ? { ...updated, imageUrl: updated.imageUrl || s.imageUrl } : s)).sort((a, b) => a.name.localeCompare(b.name))
         );
         setEditingStock(null);
         setThresholdValue("");
@@ -305,9 +305,14 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
         if (editingImageInputRef.current) {
           editingImageInputRef.current.value = '';
         }
+        // Update selectedStockId if it's the same stock
+        if (selectedStockId === stock.id) {
+          setSelectedStockId(null);
+        }
         router.refresh();
       } else {
-        alert("Failed to update settings");
+        const errorData = await response.json().catch(() => ({ error: "Failed to update settings" }));
+        alert(errorData.error || "Failed to update settings");
       }
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -329,7 +334,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
-              <div className="flex gap-2 w-full md:w-1/2">
+              <div className="flex gap-2 w-full md:w-1/2 items-center">
                 <Input
                   placeholder="Enter alcohol name"
                   value={customAlcohol}
@@ -356,7 +361,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     <img
                       src={URL.createObjectURL(selectedImage)}
                       alt="Preview"
-                      className="w-20 h-20 md:w-24 md:h-24 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
+                      className="w-16 h-16 md:w-24 md:h-24 object-cover rounded-lg border cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => {
                         setSelectedImage(null);
                         if (fileInputRef.current) {
@@ -371,7 +376,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     type="button"
                     variant="outline"
                     size="icon"
-                    className="flex-shrink-0"
+                    className="flex-shrink-0 h-10 w-10"
                     title="Add image"
                     onClick={() => fileInputRef.current?.click()}
                   >
@@ -525,7 +530,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         <div className="space-y-4 py-4">
                           <div>
                             <Label>Image</Label>
-                            <div className="flex items-center gap-3 mt-2">
+                            <div className="flex items-center gap-3 mt-2 flex-wrap">
                               {editingStockImage && editingStockImage !== "REMOVE" ? (
                                 <div className="relative">
                                   <img
@@ -552,17 +557,20 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                                 <div className="w-20 h-20 border-2 border-dashed border-destructive rounded-lg flex items-center justify-center bg-destructive/10">
                                   <span className="text-xs text-destructive text-center px-2">Image will be removed</span>
                                 </div>
-                              ) : selectedStock?.imageUrl ? (
-                                <img
-                                  src={selectedStock.imageUrl}
-                                  alt={selectedStock.name}
-                                  className="w-20 h-20 object-cover rounded-lg border"
-                                />
-                              ) : (
-                                <div className="w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted">
-                                  <Image className="h-8 w-8 text-muted-foreground" />
-                                </div>
-                              )}
+                              ) : (() => {
+                                const currentStock = stocks.find(s => s.id === selectedStock?.id);
+                                return currentStock?.imageUrl ? (
+                                  <img
+                                    src={currentStock.imageUrl}
+                                    alt={currentStock.name}
+                                    className="w-20 h-20 object-cover rounded-lg border"
+                                  />
+                                ) : (
+                                  <div className="w-20 h-20 border-2 border-dashed rounded-lg flex items-center justify-center bg-muted">
+                                    <Image className="h-8 w-8 text-muted-foreground" />
+                                  </div>
+                                );
+                              })()}
                               <div className="flex flex-col gap-2">
                                 <input
                                   type="file"
@@ -781,35 +789,35 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     </div>
                     <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0" style={!isLow ? { color: '#000000' } : undefined}>
                       {stock.imageUrl && (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
-                            style={!isLow ? { color: '#000000' } : undefined}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setViewingImageStockId(stock.id);
-                            }}
-                            title="View image"
-                          >
-                            <Eye className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`} />
-                          </Button>
-                          <Dialog open={viewingImageStockId === stock.id} onOpenChange={(open) => setViewingImageStockId(open ? stock.id : null)}>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Image: {stock.name}</DialogTitle>
-                              </DialogHeader>
-                              <div className="flex items-center justify-center p-4">
-                                <img
-                                  src={stock.imageUrl}
-                                  alt={stock.name}
-                                  className="max-w-full max-h-[60vh] object-contain rounded-lg"
-                                />
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </>
+                        <Dialog open={viewingImageStockId === stock.id} onOpenChange={(open) => setViewingImageStockId(open ? stock.id : null)}>
+                          <DialogTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              className={`h-7 w-7 md:h-8 md:w-8 z-10 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                              style={!isLow ? { color: '#000000' } : undefined}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setViewingImageStockId(stock.id);
+                              }}
+                              title="View image"
+                            >
+                              <Eye className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`} />
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="max-w-2xl">
+                            <DialogHeader>
+                              <DialogTitle>Image: {stock.name}</DialogTitle>
+                            </DialogHeader>
+                            <div className="flex items-center justify-center p-4">
+                              <img
+                                src={stock.imageUrl}
+                                alt={stock.name}
+                                className="max-w-full max-h-[60vh] object-contain rounded-lg"
+                              />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       )}
                       <Button
                         variant="outline"
