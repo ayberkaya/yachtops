@@ -289,10 +289,6 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">Shift Management</h2>
-          <p className="text-muted-foreground">Track and manage crew member shifts</p>
-        </div>
         <div className="flex items-center gap-2">
           {/* View Mode Toggle */}
           <div className="flex items-center gap-1 border rounded-lg p-1">
