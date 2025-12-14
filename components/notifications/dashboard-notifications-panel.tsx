@@ -22,6 +22,16 @@ export function DashboardNotificationsPanel() {
   const [isFinanceLoading, setIsFinanceLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   const fetchFinanceAlerts = useCallback(async () => {
     setIsFinanceLoading(true);
@@ -211,12 +221,12 @@ export function DashboardNotificationsPanel() {
       </PopoverTrigger>
       <PopoverContent 
         align="end" 
-        className="w-[calc(100vw-2rem)] max-w-96 p-0 shadow-xl md:w-96"
+        className="w-[calc(100vw-2rem)] max-w-96 p-0 shadow-xl md:w-96 md:bg-popover"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         sideOffset={8}
       >
-        <Card className="border-0 shadow-none [backdrop-filter:blur(24px)] [-webkit-backdrop-filter:blur(24px)]">
+        <Card className="border-0 shadow-none">
           <CardHeader className="space-y-2 border-b border-border/50 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
