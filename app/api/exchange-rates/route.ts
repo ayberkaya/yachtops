@@ -15,34 +15,45 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Fetch exchange rates from free API
-    const response = await fetch(EXCHANGE_RATE_API_URL, {
-      next: { revalidate: 3600 }, // Cache for 1 hour
-    });
+    // Fetch exchange rates from free API with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch exchange rates");
-    }
+    try {
+      const response = await fetch(EXCHANGE_RATE_API_URL, {
+        next: { revalidate: 3600 }, // Cache for 1 hour
+        signal: controller.signal,
+      });
 
-    const data = await response.json();
-    const rates = data.rates;
+      clearTimeout(timeoutId);
 
-    // Filter to only supported currencies
-    const filteredRates: Record<string, number> = {};
-    SUPPORTED_CURRENCIES.forEach((currency) => {
-      if (rates[currency]) {
-        filteredRates[currency] = rates[currency];
+      if (!response.ok) {
+        throw new Error(`Failed to fetch exchange rates: ${response.status}`);
       }
-    });
 
-    // Ensure EUR is 1.0 (base currency)
-    filteredRates.EUR = 1.0;
+      const data = await response.json();
+      const rates = data.rates || {};
 
-    return NextResponse.json({
-      base: "EUR",
-      rates: filteredRates,
-      date: data.date || new Date().toISOString().split("T")[0],
-    });
+      // Filter to only supported currencies
+      const filteredRates: Record<string, number> = {};
+      SUPPORTED_CURRENCIES.forEach((currency) => {
+        if (rates[currency] && typeof rates[currency] === "number") {
+          filteredRates[currency] = rates[currency];
+        }
+      });
+
+      // Ensure EUR is 1.0 (base currency)
+      filteredRates.EUR = 1.0;
+
+      return NextResponse.json({
+        base: "EUR",
+        rates: filteredRates,
+        date: data.date || new Date().toISOString().split("T")[0],
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      throw fetchError;
+    }
   } catch (error) {
     console.error("Error fetching exchange rates:", error);
     

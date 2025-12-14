@@ -12,8 +12,28 @@ interface CacheEntry<T> {
 class APICache {
   private cache = new Map<string, CacheEntry<any>>();
   private defaultTTL = 60 * 1000; // 1 minute default
+  private cleanupInterval: NodeJS.Timeout | null = null;
+  private maxSize = 1000; // Maximum number of cache entries
+
+  constructor() {
+    // Start automatic cleanup every 5 minutes
+    if (typeof window !== "undefined") {
+      this.cleanupInterval = setInterval(() => {
+        this.cleanup();
+      }, 5 * 60 * 1000);
+    }
+  }
 
   set<T>(key: string, data: T, ttl?: number): void {
+    // Prevent cache from growing too large
+    if (this.cache.size >= this.maxSize) {
+      // Remove oldest entries (simple FIFO)
+      const firstKey = this.cache.keys().next().value;
+      if (firstKey) {
+        this.cache.delete(firstKey);
+      }
+    }
+
     this.cache.set(key, {
       data,
       timestamp: Date.now(),
@@ -34,12 +54,34 @@ class APICache {
     return entry.data as T;
   }
 
+  private cleanup(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+
+    for (const [key, entry] of this.cache.entries()) {
+      if (now - entry.timestamp > entry.ttl) {
+        keysToDelete.push(key);
+      }
+    }
+
+    keysToDelete.forEach((key) => this.cache.delete(key));
+  }
+
   clear(): void {
     this.cache.clear();
   }
 
   delete(key: string): void {
     this.cache.delete(key);
+  }
+
+  // Cleanup on destroy
+  destroy(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.clear();
   }
 }
 

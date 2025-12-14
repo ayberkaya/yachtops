@@ -14,7 +14,8 @@ import { QuickActions } from "./quick-actions";
 type DashboardUser = NonNullable<Session["user"]>;
 
 export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
-  const pendingExpensesPromise = db.expense.findMany({
+  try {
+    const pendingExpensesPromise = db.expense.findMany({
     where: {
       yachtId: user.yachtId || undefined,
       status: ExpenseStatus.SUBMITTED,
@@ -112,23 +113,46 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       })
     : Promise.resolve([]);
 
-  const [
-    pendingExpenses,
-    recentExpenses,
-    upcomingTrips,
-    alcoholStocks,
-    marinaPermissions,
-    maintenanceLogs,
-    roleAssignedTasks,
-  ] = await Promise.all([
-    pendingExpensesPromise,
-    recentExpensesPromise,
-    upcomingTripsPromise,
-    alcoholStocksPromise,
-    marinaPermissionsPromise,
-    maintenanceLogsPromise,
-    roleTasksPromise,
-  ]);
+  let pendingExpenses, recentExpenses, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
+
+  try {
+    [
+      pendingExpenses,
+      recentExpenses,
+      upcomingTrips,
+      alcoholStocks,
+      marinaPermissions,
+      maintenanceLogs,
+      roleAssignedTasks,
+    ] = await Promise.all([
+      pendingExpensesPromise,
+      recentExpensesPromise,
+      upcomingTripsPromise,
+      alcoholStocksPromise,
+      marinaPermissionsPromise,
+      maintenanceLogsPromise,
+      roleTasksPromise,
+    ]);
+  } catch (error) {
+    console.error("Error loading dashboard data:", error);
+    // Return error state instead of crashing
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
+        </div>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+            <CardDescription>
+              We encountered an error while loading your dashboard data. Please refresh the page to try again.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const totalPendingAmount = pendingExpenses.reduce(
     (sum, exp) => sum + Number(exp.baseAmount || exp.amount),
@@ -479,5 +503,24 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       <MonthlyReportDownload />
     </div>
   );
+  } catch (error) {
+    console.error("Error in OwnerCaptainDashboard:", error);
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
+        </div>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+            <CardDescription>
+              We encountered an error while loading your dashboard. Please refresh the page to try again.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 }
 

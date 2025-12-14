@@ -99,35 +99,70 @@ class ApiClient {
     // If online, try to make request
     if (this.isOnline && !skipQueue) {
       try {
-        const response = await fetch(fullUrl, {
-          ...fetchOptions,
-          headers: {
-            "Content-Type": "application/json",
-            ...fetchOptions.headers,
-          },
-        });
+        // Add timeout to fetch requests (30 seconds default)
+        const timeout = 30000;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-        const contentType = response.headers.get("content-type");
-        let data: T;
+        try {
+          const response = await fetch(fullUrl, {
+            ...fetchOptions,
+            signal: controller.signal,
+            headers: {
+              "Content-Type": "application/json",
+              ...fetchOptions.headers,
+            },
+          });
 
-        if (contentType && contentType.includes("application/json")) {
-          data = await response.json();
-        } else {
-          data = (await response.text()) as any;
+          clearTimeout(timeoutId);
+
+          // Check if response is ok
+          if (!response.ok) {
+            // Try to parse error response
+            let errorData: any;
+            try {
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                errorData = await response.json();
+              } else {
+                errorData = { error: response.statusText };
+              }
+            } catch {
+              errorData = { error: response.statusText };
+            }
+
+            // Throw error with response data
+            const error = new Error(errorData.message || errorData.error || `Request failed with status ${response.status}`);
+            (error as any).status = response.status;
+            (error as any).data = errorData;
+            throw error;
+          }
+
+          const contentType = response.headers.get("content-type");
+          let data: T;
+
+          if (contentType && contentType.includes("application/json")) {
+            data = await response.json();
+          } else {
+            data = (await response.text()) as any;
+          }
+
+          // Cache successful GET responses
+          if (isGetRequest && useCache && response.ok) {
+            const cacheKey = this.getCacheKey(fullUrl, fetchOptions);
+            await offlineStorage.setCache(cacheKey, data, cacheTTL);
+          }
+
+          return {
+            data,
+            status: response.status,
+            statusText: response.statusText,
+            headers: response.headers,
+          };
+        } catch (fetchError) {
+          clearTimeout(timeoutId);
+          throw fetchError;
         }
-
-        // Cache successful GET responses
-        if (isGetRequest && useCache && response.ok) {
-          const cacheKey = this.getCacheKey(fullUrl, fetchOptions);
-          await offlineStorage.setCache(cacheKey, data, cacheTTL);
-        }
-
-        return {
-          data,
-          status: response.status,
-          statusText: response.statusText,
-          headers: response.headers,
-        };
       } catch (error) {
         // Network error - check if we should queue
         if (queueOnOffline && !skipQueue && (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE")) {

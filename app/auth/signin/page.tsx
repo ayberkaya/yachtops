@@ -125,7 +125,7 @@ export default function SignInPage() {
                       <FormControl>
                         <Input
                           type="email"
-                          placeholder="you@example.com"
+                          placeholder="Enter your email address"
                           className="h-12 text-base border-2 border-slate-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 bg-white text-slate-900 placeholder:text-slate-400"
                           {...field}
                         />

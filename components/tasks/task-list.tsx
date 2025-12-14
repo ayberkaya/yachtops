@@ -169,7 +169,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         router.refresh();
       } else {
         const errorData = await response.json();
-        alert(errorData.error || "Failed to delete task");
+        alert(errorData.error || "Unable to delete task. Please try again.");
       }
     } catch (error) {
       console.error("Error deleting task:", error);
@@ -390,7 +390,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
       {filteredTasks.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
-            No tasks found
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">No tasks match your current filters.</p>
+              <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or create a new task.</p>
+            </div>
           </CardContent>
         </Card>
       ) : viewMode === "cards" ? (

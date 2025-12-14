@@ -111,7 +111,7 @@ export function TripForm({ trip, onSuccess, onDelete }: TripFormProps) {
   const handleDelete = async () => {
     if (!trip || !onDelete) return;
 
-    if (!confirm("Are you sure you want to delete this trip? This action cannot be undone.")) return;
+    if (!confirm("Delete this trip?\n\nThis action cannot be undone. The trip will be permanently removed.")) return;
 
     setIsDeleting(true);
     setError(null);

@@ -66,8 +66,14 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error("Error fetching trips:", error);
     return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
+      {
+        error: "Internal server error",
+        message: error instanceof Error ? error.message : "Failed to fetch trips",
+      },
+      {
+        status: 500,
+        headers: { "Content-Type": "application/json" },
+      }
     );
   }
 }
@@ -92,8 +98,28 @@ export async function POST(request: NextRequest) {
     }
     const ensuredTenantId = tenantId as string;
 
-    const body = await request.json();
-    const validated = tripSchema.parse(body);
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+
+    let validated;
+    try {
+      validated = tripSchema.parse(body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: "Invalid input", details: validationError.issues },
+          { status: 400 }
+        );
+      }
+      throw validationError;
+    }
 
     const trip = await db.trip.create({
       data: {

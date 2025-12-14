@@ -140,7 +140,7 @@ export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps)
 
   const handleDelete = async () => {
     if (!leave || !onDelete) return;
-    if (!confirm("Are you sure you want to delete this leave? This action cannot be undone.")) return;
+    if (!confirm("Delete this leave record?\n\nThis action cannot be undone. The leave record will be permanently removed.")) return;
 
     setIsDeleting(true);
     setError(null);

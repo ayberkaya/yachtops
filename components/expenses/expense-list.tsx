@@ -859,7 +859,10 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         </Card>
       ) : Object.keys(groupedExpenses).length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">No expenses found</CardContent>
+          <CardContent className="p-8 text-center">
+            <p className="text-muted-foreground">No expenses match your current filters.</p>
+            <p className="text-sm text-muted-foreground mt-2">Try adjusting your search criteria or create a new expense.</p>
+          </CardContent>
         </Card>
       ) : (
         <div className="space-y-6">

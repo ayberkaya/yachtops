@@ -630,22 +630,26 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         );
       } else {
         // Handle error response
-        let errorMessage = `Failed to send message (Status: ${response.status})`;
+        let errorMessage = "Unable to send message. Please try again.";
         try {
           const text = await response.text();
           console.error("Error response text:", text);
           console.error("Error response status:", response.status);
-          console.error("Error response headers:", Object.fromEntries(response.headers.entries()));
           
           if (text && text.trim()) {
             try {
               const errorData = JSON.parse(text);
-              errorMessage = errorData.error || errorData.details || errorMessage;
-              console.error("Failed to send message (parsed):", errorData);
+              // Use user-friendly error message
+              if (errorData.error === "Invalid input") {
+                errorMessage = "Please check your message and try again.";
+              } else if (errorData.error === "Unauthorized") {
+                errorMessage = "You are not authorized to send messages in this channel.";
+              } else if (errorData.error) {
+                errorMessage = errorData.error;
+              }
             } catch (jsonError) {
-              // If not JSON, use the text as error message
-              errorMessage = text.substring(0, 200) || errorMessage;
-              console.error("Failed to send message (non-JSON response):", text.substring(0, 200));
+              // If not JSON, use generic message
+              console.error("Failed to parse error response:", jsonError);
             }
           }
         } catch (parseError) {
@@ -655,7 +659,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       }
     } catch (error) {
       console.error("Error in handleSendMessage:", error);
-      alert(`An error occurred: ${error instanceof Error ? error.message : "Unknown error"}`);
+      alert("Unable to send message. Please check your connection and try again.");
     } finally {
       setIsSending(false);
     }

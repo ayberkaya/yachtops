@@ -145,7 +145,7 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
         router.refresh();
       } else {
         const result = await response.json();
-        alert(result.error || "Failed to delete trip");
+        alert(result.error || "Unable to delete trip. Please try again.");
       }
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -164,7 +164,7 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
         router.refresh();
       } else {
         const result = await response.json();
-        alert(result.error || "Failed to update status");
+        alert(result.error || "Unable to update trip status. Please try again.");
       }
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -323,8 +323,9 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
       {viewMode === "cards" ? (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
           {filteredTrips.length === 0 ? (
-            <div className="col-span-full p-8 text-center text-muted-foreground">
-              No trips found
+            <div className="col-span-full p-8 text-center">
+              <p className="text-muted-foreground">No trips match your current filters.</p>
+              <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or create a new trip.</p>
             </div>
           ) : (
             filteredTrips.map((trip) => (
@@ -453,7 +454,10 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
         <Card>
           <CardContent className="p-0">
             {filteredTrips.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">No trips found</div>
+              <div className="p-8 text-center">
+                <p className="text-muted-foreground">No trips match your current filters.</p>
+                <p className="text-sm text-muted-foreground mt-2">Try adjusting your filters or create a new trip.</p>
+              </div>
             ) : (
               <Table>
                 <TableHeader>

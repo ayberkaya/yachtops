@@ -77,7 +77,7 @@ export function InstallPrompt() {
             Install HelmOps
           </h3>
           <p className="text-sm text-slate-600 dark:text-slate-400">
-            Install our app for a better experience with offline access and faster loading.
+            Install HelmOps for offline access and improved performance.
           </p>
           <div className="flex gap-2 mt-3">
             <Button

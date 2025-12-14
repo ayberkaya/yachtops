@@ -56,7 +56,7 @@ export function UserList({ initialUsers }: UserListProps) {
   const canManage = session?.user ? canManageRoles(session.user) : false;
 
   const handleDelete = async (id: string, email: string) => {
-    if (!confirm(`Are you sure you want to delete user ${email}?`)) {
+    if (!confirm(`Delete user ${email}?\n\nThis action cannot be undone. The user will be permanently removed from the system.`)) {
       return;
     }
 
@@ -67,7 +67,7 @@ export function UserList({ initialUsers }: UserListProps) {
 
       if (!response.ok) {
         const result = await response.json();
-        alert(result.error || "Failed to delete user");
+        alert(result.error || "Unable to delete user. Please try again.");
         return;
       }
 
@@ -127,7 +127,10 @@ export function UserList({ initialUsers }: UserListProps) {
       <Card>
         <CardContent className="p-0">
           {users.length === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">No users found</div>
+            <div className="p-8 text-center">
+              <p className="text-muted-foreground">No users found.</p>
+              <p className="text-sm text-muted-foreground mt-2">Create a new user to get started.</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>

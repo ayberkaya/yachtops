@@ -4,14 +4,29 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
-// Create Prisma Client with proper logging
+// Create Prisma Client with proper logging and error handling
 const createPrismaClient = () => {
   try {
-    return new PrismaClient({
+    // Validate DATABASE_URL is set
+    if (!process.env.DATABASE_URL) {
+      throw new Error(
+        "DATABASE_URL environment variable is not set. Please configure your database connection."
+      );
+    }
+
+    const client = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
       // Don't fail on missing tables during initialization
       errorFormat: "pretty",
     });
+
+    // Test connection on startup (non-blocking)
+    client.$connect().catch((error) => {
+      console.error("Failed to connect to database:", error);
+      // Don't throw - let the app start and handle errors at runtime
+    });
+
+    return client;
   } catch (error) {
     console.error("Failed to create Prisma client:", error);
     throw error;

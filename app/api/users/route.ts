@@ -77,8 +77,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
-    const body = await request.json();
-    const validated = userSchema.parse(body);
+    let body;
+    try {
+      body = await request.json();
+    } catch (parseError) {
+      return NextResponse.json(
+        { error: "Invalid JSON in request body" },
+        { status: 400 }
+      );
+    }
+
+    let validated;
+    try {
+      validated = userSchema.parse(body);
+    } catch (validationError) {
+      if (validationError instanceof z.ZodError) {
+        return NextResponse.json(
+          { error: "Invalid input", details: validationError.issues },
+          { status: 400 }
+        );
+      }
+      throw validationError;
+    }
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({

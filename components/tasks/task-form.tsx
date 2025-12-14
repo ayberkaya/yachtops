@@ -184,7 +184,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   const handleDelete = async () => {
     if (!task?.id || !onDelete) return;
 
-    if (!confirm("Are you sure you want to delete this task? This action cannot be undone.")) return;
+    if (!confirm("Delete this task?\n\nThis action cannot be undone. The task will be permanently removed.")) return;
 
     setIsDeleting(true);
     setError(null);

@@ -12,7 +12,8 @@ import { QuickActions } from "./quick-actions";
 type DashboardUser = NonNullable<Session["user"]>;
 
 export async function CrewDashboard({ user }: { user: DashboardUser }) {
-  const myTasksPromise = db.task.findMany({
+  try {
+    const myTasksPromise = db.task.findMany({
     where: {
       assigneeId: user.id,
       status: {
@@ -89,21 +90,44 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
       })
     : Promise.resolve([]);
 
-  const [
-    myTasks,
-    roleAssignedTasks,
-    myExpenses,
-    alcoholStocks,
-    marinaPermissions,
-    maintenanceLogs,
-  ] = await Promise.all([
-    myTasksPromise,
-    roleAssignedTasksPromise,
-    myExpensesPromise,
-    alcoholStocksPromise,
-    marinaPermissionsPromise,
-    maintenanceLogsPromise,
-  ]);
+  let myTasks, roleAssignedTasks, myExpenses, alcoholStocks, marinaPermissions, maintenanceLogs;
+
+  try {
+    [
+      myTasks,
+      roleAssignedTasks,
+      myExpenses,
+      alcoholStocks,
+      marinaPermissions,
+      maintenanceLogs,
+    ] = await Promise.all([
+      myTasksPromise,
+      roleAssignedTasksPromise,
+      myExpensesPromise,
+      alcoholStocksPromise,
+      marinaPermissionsPromise,
+      maintenanceLogsPromise,
+    ]);
+  } catch (error) {
+    console.error("Error loading dashboard data:", error);
+    // Return error state instead of crashing
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">My Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
+        </div>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+            <CardDescription>
+              We encountered an error while loading your dashboard data. Please refresh the page to try again.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 
   const pendingTasksCount = myTasks.filter((t) => t.status === TaskStatus.TODO).length;
 
@@ -449,5 +473,24 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
       </div>
     </div>
   );
+  } catch (error) {
+    console.error("Error in CrewDashboard:", error);
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold">My Dashboard</h1>
+          <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
+        </div>
+        <Card className="border-destructive">
+          <CardHeader>
+            <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+            <CardDescription>
+              We encountered an error while loading your dashboard. Please refresh the page to try again.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
 }
 
