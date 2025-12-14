@@ -50,12 +50,12 @@ export async function GET(request: NextRequest) {
     });
 
     // Filter channels based on user access
-    const accessibleChannels = allChannels.filter((channel) => {
+    const accessibleChannels = allChannels.filter((channel: (typeof allChannels)[number]) => {
       // General channel - everyone can access
       if (channel.isGeneral) return true;
       
       // Private channels - only members can access
-      return channel.members.some((member) => member.id === session.user.id);
+      return channel.members.some((member: { id: string }) => member.id === session.user.id);
     });
 
     return NextResponse.json(accessibleChannels);
