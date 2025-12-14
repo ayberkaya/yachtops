@@ -275,9 +275,11 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     });
   }, [tasks, statusFilter, assigneeFilter, dateFrom, dateTo]);
 
-  // Group tasks
-  const groupedTasks = useMemo(() => {
-    return { All: filteredTasks };
+  // Separate active and completed tasks
+  const { activeTasks, completedTasks } = useMemo(() => {
+    const active = filteredTasks.filter((t) => t.status !== TaskStatus.DONE);
+    const completed = filteredTasks.filter((t) => t.status === TaskStatus.DONE);
+    return { activeTasks: active, completedTasks: completed };
   }, [filteredTasks]);
 
   return (
@@ -398,10 +400,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         </Card>
       ) : viewMode === "cards" ? (
         <div className="space-y-6">
-          {Object.entries(groupedTasks).map(([groupKey, groupTasks]) => (
-            <div key={groupKey}>
+          {/* Active Tasks Section */}
+          {activeTasks.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Active Tasks</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {groupTasks.map((task) => {
+                {activeTasks.map((task) => {
             const canComplete = !canManage && 
               (!task.assignee || task.assignee.id === currentUser.id) && 
               (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
@@ -636,20 +640,256 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
           })}
               </div>
             </div>
-          ))}
+          )}
+
+          {/* Completed Tasks Section */}
+          {completedTasks.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Completed</h2>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {completedTasks.map((task) => {
+            const canComplete = !canManage && 
+              (!task.assignee || task.assignee.id === currentUser.id) && 
+              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
+              task.status !== TaskStatus.DONE;
+            const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
+
+            const isTodo = task.status === TaskStatus.TODO;
+            const isDone = task.status === TaskStatus.DONE;
+            const isUrgent = String(task.priority) === "URGENT";
+            const isHighPriority = task.priority === TaskPriority.HIGH;
+            const isLowPriority = task.priority === TaskPriority.LOW;
+            
+            // Determine card border color
+            let cardBorderColor: string | undefined;
+            let clockIconColor: string | undefined;
+            
+            if (isDone) {
+              cardBorderColor = "rgba(34, 197, 94, 1)";
+            } else if (isUrgent) {
+              cardBorderColor = "rgba(231, 0, 11, 1)";
+            } else if (isHighPriority) {
+              cardBorderColor = "rgba(255, 102, 0, 1)";
+            } else if (isLowPriority) {
+              cardBorderColor = "rgba(92, 92, 92, 1)";
+            } else if (isTodo) {
+              cardBorderColor = "rgba(254, 230, 133, 1)";
+            }
+            
+            // Clock icon color matches border color
+            if (isTodo) {
+              clockIconColor = cardBorderColor;
+            }
+            
+            const isClickable = isTodo && !canManage;
+            
+            return (
+              <div
+                key={task.id}
+                onClick={() => {
+                  if (isClickable) {
+                    setSelectedTask(task);
+                    setIsCompletionDialogOpen(true);
+                  }
+                }}
+                className={isClickable ? "cursor-pointer" : ""}
+              >
+              <Card 
+                className={`flex flex-col relative p-3 md:p-6 gap-3 md:gap-6 ${
+                  isDone
+                    ? "border-2"
+                    : isUrgent
+                    ? "border-2 border-red-600 dark:border-red-600"
+                    : isHighPriority
+                    ? "border-2"
+                    : isLowPriority
+                    ? "border-2"
+                    : isTodo 
+                    ? "border-2 border-amber-200 dark:border-amber-200 bg-amber-50/30 dark:bg-amber-950/20" 
+                    : ""
+                }`}
+                style={
+                  isDone
+                    ? {
+                        borderColor: "rgba(34, 197, 94, 1)",
+                        backgroundColor: "rgba(34, 197, 94, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isUrgent
+                    ? {
+                        borderColor: "rgba(231, 0, 11, 1)",
+                        backgroundColor: "rgba(231, 0, 11, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isHighPriority
+                    ? {
+                        borderColor: "rgba(255, 102, 0, 1)",
+                        backgroundColor: "rgba(255, 102, 0, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isLowPriority
+                    ? {
+                        borderColor: "rgba(92, 92, 92, 1)",
+                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : isTodo
+                    ? {
+                        borderColor: "rgba(254, 230, 133, 1)",
+                        backgroundColor: "rgba(254, 230, 133, 0.2)",
+                        backdropFilter: "none"
+                      }
+                    : undefined
+                }
+              >
+                {isDone && (
+                  <div className="absolute -top-[11px] -right-[11px] z-10 flex items-center justify-center w-6 h-6 bg-white dark:bg-background rounded-full border-2 border-green-500">
+                    <Check className="h-4 w-4 text-green-600" />
+                  </div>
+                )}
+                {isTodo && (
+                  <div className="absolute -top-[11px] -right-[11px] z-10">
+                    <div 
+                      className="flex items-center justify-center w-6 h-6 bg-white dark:bg-background rounded-full border-2"
+                      style={{ borderColor: clockIconColor }}
+                    >
+                      <Clock 
+                        className="h-5 w-5" 
+                        style={{ color: clockIconColor }}
+                      />
+                    </div>
+                  </div>
+                )}
+                <CardHeader className="pb-2 md:pb-3 px-0 pt-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <CardTitle className="text-base md:text-lg">
+                      {isClickable ? (
+                        <span className="hover:underline cursor-pointer">{task.title}</span>
+                      ) : (
+                        <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
+                          {task.title}
+                        </Link>
+                      )}
+                    </CardTitle>
+                    <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
+                      {!isDone && getPriorityBadge(task.priority)}
+                      {isDone && getStatusBadge(task.status)}
+                    </div>
+                  </div>
+                  {task.description && (
+                    <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
+                      {task.description}
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent className="flex-1 space-y-1 md:space-y-2 text-xs md:text-sm px-0 pb-0">
+                  {task.createdBy && (
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <User className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="text-[10px] md:text-xs">
+                        Created by <span className="font-bold">{task.createdBy.name || task.createdBy.email}</span>
+                      </span>
+                    </p>
+                  )}
+                  {task.assignee ? (
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <User className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="truncate font-bold">{task.assignee.name || task.assignee.email}</span>
+                    </p>
+                  ) : task.assigneeRole ? (
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <User className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="truncate font-bold">{task.assigneeRole}</span>
+                    </p>
+                  ) : null}
+                  {task.trip && (
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <Ship className="h-3 w-3 md:h-4 md:w-4" />
+                      <span className="truncate">{task.trip.name}</span>
+                    </p>
+                  )}
+                  {task.dueDate && (
+                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
+                      <Calendar className="h-3 w-3 md:h-4 md:w-4" />
+                      {format(new Date(task.dueDate), "MMM d, yyyy")}
+                    </p>
+                  )}
+                  {task.completedBy && (
+                    <div className="flex items-center gap-1.5 md:gap-2 pt-1.5 md:pt-2 border-t mt-1.5 md:mt-2">
+                      <CheckCircle2 className="h-3 w-3 md:h-4 md:w-4 text-green-600" />
+                      <span className="text-[10px] md:text-xs text-muted-foreground">
+                        Completed by <span className="font-bold">{task.completedBy.name || task.completedBy.email}</span>
+                        {task.completedAt && ` on ${format(new Date(task.completedAt), "MMM d, yyyy")}`}
+                      </span>
+                    </div>
+                  )}
+                </CardContent>
+                <div className="p-2 md:p-4 flex justify-between items-center gap-2">
+                  <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
+                    {canUncomplete && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStatusChange(task.id, TaskStatus.TODO);
+                        }}
+                      >
+                        Undo
+                      </Button>
+                    )}
+                    {isClickable && (
+                      <span className="text-xs md:text-sm text-muted-foreground">
+                        Click card to complete
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1">
+                    {(task.createdBy && task.createdBy.id === currentUser.id) || 
+                     hasPermission(currentUser, "tasks.delete", currentUser.permissions) ? (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0 text-destructive hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTask(task.id);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
+                      </Button>
+                    ) : null}
+                    {canManage && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingTask(task);
+                          setIsDialogOpen(true);
+                        }}
+                      >
+                        <Pencil className="h-3 w-3 md:h-4 md:w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </Card>
+              </div>
+            );
+          })}
+              </div>
+            </div>
+          )}
         </div>
       ) : viewMode === "table" ? (
         <div className="space-y-6">
-          {Object.entries(groupedTasks).map(([groupKey, groupTasks]) => (
-            <div key={groupKey}>
-              {groupBy !== "none" && (
-                <h3 className="text-lg font-semibold mb-3">
-                  {groupKey}
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({groupTasks.length} {groupTasks.length === 1 ? "task" : "tasks"})
-                  </span>
-                </h3>
-              )}
+          {/* Active Tasks Table */}
+          {activeTasks.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Active Tasks</h2>
               <Card>
                 <CardContent className="p-0">
                   <Table>
@@ -666,7 +906,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {groupTasks.map((task) => {
+                      {activeTasks.map((task) => {
                   const canComplete = !canManage && 
               (!task.assignee || task.assignee.id === currentUser.id) && 
               (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
@@ -788,7 +1028,151 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 </CardContent>
               </Card>
             </div>
-          ))}
+          )}
+
+          {/* Completed Tasks Table */}
+          {completedTasks.length > 0 && (
+            <div>
+              <h2 className="text-xl font-semibold mb-4">Completed</h2>
+              <Card>
+                <CardContent className="p-0">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Title</TableHead>
+                        <TableHead>Priority</TableHead>
+                        <TableHead>Assignee</TableHead>
+                        <TableHead>Trip</TableHead>
+                        <TableHead>Due Date</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Completed By</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {completedTasks.map((task) => {
+                  const canComplete = !canManage && 
+              (!task.assignee || task.assignee.id === currentUser.id) && 
+              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
+              task.status !== TaskStatus.DONE;
+                  const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
+                  
+                  const isTodo = task.status === TaskStatus.TODO;
+                  
+                  return (
+                    <TableRow 
+                      key={task.id}
+                      className={isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""}
+                    >
+                      <TableCell className="font-medium">{task.title}</TableCell>
+                      <TableCell>
+                        {getPriorityBadge(task.priority)}
+                      </TableCell>
+                      <TableCell>
+                        {task.assignee
+                          ? task.assignee.name || task.assignee.email
+                          : task.assigneeRole
+                          ? task.assigneeRole
+                          : "Unassigned"}
+                      </TableCell>
+                      <TableCell>{task.trip?.name || "-"}</TableCell>
+                      <TableCell>
+                        {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "-"}
+                      </TableCell>
+                      <TableCell>
+                        {canManage ? (
+                          <Select
+                            value={task.status}
+                            onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>To-Do</SelectItem>
+                              <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(task.status)}
+                            {canComplete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(task.id, TaskStatus.DONE)}
+                                className="h-7"
+                              >
+                                <Check className="h-3 w-3 mr-1" />
+                                Complete
+                              </Button>
+                            )}
+                            {canUncomplete && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleStatusChange(task.id, TaskStatus.TODO)}
+                                className="h-7"
+                              >
+                                Undo
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {task.completedBy ? (
+                          <div className="flex items-center gap-2">
+                            <Check className="h-4 w-4 text-green-600" />
+                            <span className="text-sm">
+                              {task.completedBy.name || task.completedBy.email}
+                            </span>
+                            {task.completedAt && (
+                              <span className="text-xs text-muted-foreground">
+                                ({format(new Date(task.completedAt), "MMM d")})
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          {(task.createdBy && task.createdBy.id === currentUser.id) || 
+                           hasPermission(currentUser, "tasks.delete", currentUser.permissions) ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => handleDeleteTask(task.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          ) : null}
+                          {canManage && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => {
+                                setEditingTask(task);
+                                setIsDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </div>
+          )}
         </div>
       ) : null}
 
