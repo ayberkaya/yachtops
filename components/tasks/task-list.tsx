@@ -453,7 +453,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 className={isClickable ? "cursor-pointer" : ""}
               >
               <Card 
-                className={`flex flex-col relative p-3 md:p-6 gap-3 md:gap-6 ${
+                className={`flex flex-col relative pt-[11px] pb-[11px] px-3 md:p-6 gap-0 ${
                   isDone
                     ? "border-2"
                     : isUrgent
@@ -596,11 +596,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       >
                         Undo
                       </Button>
-                    )}
-                    {isClickable && (
-                      <span className="text-xs md:text-sm text-muted-foreground">
-                        Click card to complete
-                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
@@ -695,7 +690,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 className={isClickable ? "cursor-pointer" : ""}
               >
               <Card 
-                className={`flex flex-col relative p-3 md:p-6 gap-3 md:gap-6 ${
+                className={`flex flex-col relative pt-[11px] pb-[11px] px-3 md:p-6 gap-0 ${
                   isDone
                     ? "border-2"
                     : isUrgent
@@ -838,11 +833,6 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       >
                         Undo
                       </Button>
-                    )}
-                    {isClickable && (
-                      <span className="text-xs md:text-sm text-muted-foreground">
-                        Click card to complete
-                      </span>
                     )}
                   </div>
                   <div className="flex items-center gap-1">
