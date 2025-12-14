@@ -315,25 +315,6 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
         </CardContent>
       </Card>
 
-      {/* Legend */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Shift Types</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {Object.entries(shiftTypeLabels).map(([type, label]) => (
-              <Badge
-                key={type}
-                className={cn("text-xs", shiftTypeColors[type as Shift["type"]])}
-              >
-                {label}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Day Detail Dialog */}
       <Dialog open={selectedDate !== null} onOpenChange={(open) => {
         if (!open) setSelectedDate(null);
