@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
       {} as Record<string, typeof users>
     );
 
-    const enriched = owners.map((owner) => ({
+    const enriched = owners.map((owner: (typeof owners)[number]) => ({
       ...owner,
       users: owner.yachtId ? grouped[owner.yachtId] || [] : [],
     }));
