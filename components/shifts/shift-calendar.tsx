@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths, isToday } from "date-fns";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths, isToday, subDays } from "date-fns";
 import { ChevronLeft, ChevronRight, Clock, User, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -94,15 +94,16 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
   // Get leaves for a specific date
   // End date is exclusive - person returns to work on end date
   const getLeavesForDate = (date: Date): Leave[] => {
+    const checkDateStr = format(date, "yyyy-MM-dd");
+    const checkDate = new Date(checkDateStr + 'T00:00:00');
+    
     return leaves.filter((leave) => {
-      const startDate = new Date(leave.startDate);
-      startDate.setHours(0, 0, 0, 0); // Start of day
+      // Parse dates and normalize to local timezone at midnight
+      const startDateStr = leave.startDate.split('T')[0]; // Get YYYY-MM-DD part
+      const endDateStr = leave.endDate.split('T')[0]; // Get YYYY-MM-DD part
       
-      const endDate = new Date(leave.endDate);
-      endDate.setHours(0, 0, 0, 0); // Start of end date (exclusive)
-      
-      const checkDate = new Date(date);
-      checkDate.setHours(0, 0, 0, 0);
+      const startDate = new Date(startDateStr + 'T00:00:00');
+      const endDate = new Date(endDateStr + 'T00:00:00');
       
       // Start date inclusive, end date exclusive
       return checkDate >= startDate && checkDate < endDate;
@@ -141,15 +142,19 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
   const leavesByDate = useMemo(() => {
     const grouped: Record<string, Leave[]> = {};
     leaves.forEach((leave) => {
-      const start = new Date(leave.startDate);
-      start.setHours(0, 0, 0, 0);
+      // Parse dates and normalize to local timezone at midnight
+      const startDateStr = leave.startDate.split('T')[0]; // Get YYYY-MM-DD part
+      const endDateStr = leave.endDate.split('T')[0]; // Get YYYY-MM-DD part
       
-      const end = new Date(leave.endDate);
-      end.setHours(0, 0, 0, 0);
+      const start = new Date(startDateStr + 'T00:00:00');
+      const end = new Date(endDateStr + 'T00:00:00');
+      
       // End date is exclusive, so we subtract 1 day to get the last day of leave
-      end.setDate(end.getDate() - 1);
+      const lastDayOfLeave = subDays(end, 1);
       
-      const days = eachDayOfInterval({ start, end });
+      // Use eachDayOfInterval which includes both start and end dates
+      // This will generate all days from start to lastDayOfLeave (inclusive)
+      const days = eachDayOfInterval({ start, end: lastDayOfLeave });
       days.forEach((day) => {
         const dateStr = format(day, "yyyy-MM-dd");
         if (!grouped[dateStr]) {
@@ -262,20 +267,24 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
                     {format(day, "d")}
                   </div>
                   <div className="space-y-1">
-                    {hasLeaves && (
+                    {uniqueLeaves.slice(0, 3).map((leave) => (
                       <Badge
+                        key={leave.id}
                         className="text-[10px] px-1.5 py-0.5 w-full justify-start cursor-pointer bg-red-100 text-red-700 border-red-200 hover:bg-red-200"
-                        onClick={(e) => {
-                          if (uniqueLeaves[0]) handleLeaveClick(uniqueLeaves[0], e);
-                        }}
+                        onClick={(e) => handleLeaveClick(leave, e)}
                       >
                         <CalendarDays className="h-3 w-3 mr-1" />
                         <span className="truncate">
-                          {uniqueLeaves[0]?.user.name || uniqueLeaves[0]?.user.email.split("@")[0]}: Leave
+                          {leave.user.name || leave.user.email.split("@")[0]}: Leave
                         </span>
                       </Badge>
+                    ))}
+                    {uniqueLeaves.length > 3 && (
+                      <div className="text-xs text-muted-foreground">
+                        +{uniqueLeaves.length - 3} more leave{uniqueLeaves.length - 3 !== 1 ? "s" : ""}
+                      </div>
                     )}
-                    {dayShifts.slice(0, hasLeaves ? 2 : 3).map((shift) => (
+                    {dayShifts.slice(0, hasLeaves ? Math.max(0, 3 - uniqueLeaves.length) : 3).map((shift) => (
                       <Badge
                         key={shift.id}
                         className={cn(
@@ -289,9 +298,9 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
                         </span>
                       </Badge>
                     ))}
-                    {dayShifts.length > (hasLeaves ? 2 : 3) && (
+                    {dayShifts.length > (hasLeaves ? Math.max(0, 3 - uniqueLeaves.length) : 3) && (
                       <div className="text-xs text-muted-foreground">
-                        +{dayShifts.length - (hasLeaves ? 2 : 3)} more
+                        +{dayShifts.length - (hasLeaves ? Math.max(0, 3 - uniqueLeaves.length) : 3)} more shift{dayShifts.length - (hasLeaves ? Math.max(0, 3 - uniqueLeaves.length) : 3) !== 1 ? "s" : ""}
                       </div>
                     )}
                   </div>
