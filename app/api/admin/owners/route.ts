@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
   if (includeUsers && owners.length) {
     const tenantIds = owners
       .map((o: { yachtId: string | null }) => o.yachtId)
-      .filter((v): v is string => Boolean(v));
+      .filter((v: string | null): v is string => Boolean(v));
 
     const users = tenantIds.length
       ? await db.user.findMany({
