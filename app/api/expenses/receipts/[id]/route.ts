@@ -21,18 +21,27 @@ export async function GET(
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
-    const receipt = await db.expenseReceipt.findUnique({
-      where: { id },
+    const receipt = await db.expenseReceipt.findFirst({
+      where: { 
+        id,
+        deletedAt: null, // Exclude soft-deleted receipts
+      },
       include: {
         expense: {
           select: {
             yachtId: true,
+            deletedAt: true, // Check if expense is also not deleted
           },
         },
       },
     });
 
     if (!receipt) {
+      return NextResponse.json({ error: "Receipt not found" }, { status: 404 });
+    }
+
+    // Check if expense is soft-deleted
+    if (receipt.expense.deletedAt) {
       return NextResponse.json({ error: "Receipt not found" }, { status: 404 });
     }
 

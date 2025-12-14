@@ -2,10 +2,8 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ExpenseStatus } from "@prisma/client";
-import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
-import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
+import { ReceiptsView } from "@/components/documents/receipts-view";
 
 export default async function ReceiptsPage() {
   const session = await getSession();
@@ -28,7 +26,9 @@ export default async function ReceiptsPage() {
       expense: {
         yachtId: session.user.yachtId,
         status: ExpenseStatus.APPROVED,
+        deletedAt: null, // Exclude soft-deleted expenses
       },
+      deletedAt: null, // Exclude soft-deleted receipts
     },
     include: {
       expense: {
@@ -56,80 +56,18 @@ export default async function ReceiptsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Financial Documents</CardTitle>
-          <CardDescription>
-            All receipt and invoice scans tied to approved expenses, organized by category.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {receipts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No approved receipts found yet.
-            </p>
-          ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {receipts.map((receipt) => (
-                <Card key={receipt.id} className="overflow-hidden">
-                  <CardContent className="p-3 space-y-2">
-                    <div className="aspect-video w-full overflow-hidden rounded-md bg-muted">
-                      {/* Simple image preview */}
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={`/api/expenses/receipts/${receipt.id}`}
-                        alt="Receipt"
-                        className="h-full w-full object-cover"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <p className="text-sm font-medium">
-                        {receipt.expense.category?.name ?? "Uncategorized"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(
-                          new Date(receipt.expense.date),
-                          "MMM d, yyyy"
-                        )}{" "}
-                        •{" "}
-                        {receipt.expense.amount.toLocaleString("en-US", {
-                          style: "currency",
-                          currency: receipt.expense.currency,
-                        })}
-                      </p>
-                      <p className="text-xs line-clamp-2">
-                        {receipt.expense.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Uploaded{" "}
-                        {format(new Date(receipt.uploadedAt), "MMM d, yyyy")}
-                      </p>
-                    </div>
-                    <div className="flex justify-between items-center pt-1">
-                      <Link
-                        href={`/api/expenses/receipts/${receipt.id}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-xs text-primary hover:underline"
-                      >
-                        Open image
-                      </Link>
-                      <Link
-                        href={`/dashboard/expenses/${receipt.expense.id}`}
-                        className="text-xs text-muted-foreground hover:underline"
-                      >
-                        View expense
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+      <ReceiptsView receipts={receipts.map(receipt => ({
+        id: receipt.id,
+        uploadedAt: receipt.uploadedAt,
+        expense: {
+          id: receipt.expense.id,
+          date: receipt.expense.date,
+          description: receipt.expense.description,
+          amount: receipt.expense.amount,
+          currency: receipt.expense.currency,
+          category: receipt.expense.category,
+        },
+      }))} />
     </div>
   );
 }
