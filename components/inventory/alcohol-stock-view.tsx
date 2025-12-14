@@ -501,7 +501,7 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 );
               })()}
               <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
-                <SelectTrigger className="w-full md:w-[150px]">
+                <SelectTrigger className="w-full md:w-[165px]">
                   <Filter className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                   <SelectValue />
                 </SelectTrigger>
