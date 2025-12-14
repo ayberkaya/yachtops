@@ -209,7 +209,7 @@ export async function PATCH(
               },
             });
 
-            const balance = cashTransactions.reduce((acc, transaction) => {
+            const balance = cashTransactions.reduce((acc: number, transaction: (typeof cashTransactions)[number]) => {
               if (transaction.type === CashTransactionType.DEPOSIT) {
                 return acc + transaction.amount;
               } else {
