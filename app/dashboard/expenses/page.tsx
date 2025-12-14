@@ -17,11 +17,12 @@ export default async function ExpensesPage() {
     redirect("/dashboard");
   }
 
-  // Fetch initial expenses
+  // Fetch initial expenses (exclude soft-deleted)
   const expenses = await db.expense.findMany({
     where: {
       yachtId: session.user.yachtId || undefined,
       status: { not: ExpenseStatus.SUBMITTED },
+      deletedAt: null, // Exclude soft-deleted expenses
     },
     include: {
       createdBy: {

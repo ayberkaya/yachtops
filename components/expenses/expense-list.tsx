@@ -204,7 +204,22 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         });
 
         const response = await fetch(`/api/expenses?${params.toString()}`);
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          console.error("Error fetching expenses:", errorData.error || "Unknown error");
+          setExpenses([]);
+          return;
+        }
+
         const data = await response.json();
+
+        // Ensure data is an array
+        if (!Array.isArray(data)) {
+          console.error("Invalid response format: expected array, got", typeof data);
+          setExpenses([]);
+          return;
+        }
 
         let filtered = data;
         if (filters.search) {
@@ -310,6 +325,9 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
 
   // Sort expenses
   const sortedExpenses = useMemo(() => {
+    if (!Array.isArray(expenses)) {
+      return [];
+    }
     return [...expenses].sort((a, b) => {
       let comparison = 0;
       
@@ -366,6 +384,10 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
 
   // Group expenses
   const groupedExpenses = useMemo(() => {
+    if (!Array.isArray(sortedExpenses)) {
+      return { "All": [] };
+    }
+    
     if (groupBy === "none") {
       return { "All": sortedExpenses };
     }

@@ -22,6 +22,7 @@ export default async function ReimbursableExpensesPage() {
       yachtId: session.user.yachtId || undefined,
       isReimbursable: true,
       status: { not: ExpenseStatus.SUBMITTED },
+      deletedAt: null, // Exclude soft-deleted expenses
     },
     include: {
       createdBy: {

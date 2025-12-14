@@ -22,6 +22,7 @@ export default async function PendingExpensesPage() {
     where: {
       yachtId: session.user.yachtId || undefined,
       status: ExpenseStatus.SUBMITTED,
+      deletedAt: null, // Exclude soft-deleted expenses
     },
     include: {
       createdBy: {
@@ -34,6 +35,7 @@ export default async function PendingExpensesPage() {
         select: { id: true, name: true },
       },
       receipts: {
+        where: { deletedAt: null }, // Exclude soft-deleted receipts
         select: { id: true, fileUrl: true },
       },
     },
