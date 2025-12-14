@@ -53,8 +53,8 @@ export async function POST(
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
-    // Validate file upload security
-    const validation = validateFileUpload(file, "receipt");
+    // Validate file upload security (receipts are typically images)
+    const validation = validateFileUpload(file, "image");
     if (!validation.valid) {
       return NextResponse.json(
         { error: validation.error || "File validation failed" },
