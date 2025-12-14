@@ -40,7 +40,7 @@ export async function POST(
 
     // Check channel access
     if (!message.channel.isGeneral && 
-        !message.channel.members.some((m) => m.id === session.user.id)) {
+        !message.channel.members.some((m: { id: string }) => m.id === session.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
