@@ -211,13 +211,13 @@ export function DashboardNotificationsPanel() {
       </PopoverTrigger>
       <PopoverContent 
         align="end" 
-        className="w-[calc(100vw-2rem)] max-w-96 border border-slate-200 bg-background p-0 shadow-xl md:w-96"
+        className="w-[calc(100vw-2rem)] max-w-96 border border-slate-200 bg-white dark:bg-slate-950 p-0 shadow-xl md:w-96"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         sideOffset={8}
       >
-        <Card className="border-0 bg-background shadow-none">
-          <CardHeader className="space-y-2 border-b border-border/50 bg-background px-4 py-3">
+        <Card className="border-0 bg-white dark:bg-slate-950 shadow-none">
+          <CardHeader className="space-y-2 border-b border-border/50 bg-white dark:bg-slate-950 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <Bell className="h-4 w-4 text-primary flex-shrink-0" />
@@ -253,7 +253,7 @@ export function DashboardNotificationsPanel() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="bg-background p-4">
+          <CardContent className="bg-white dark:bg-slate-950 p-4">
             {showLoading ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Loading notifications…
@@ -273,7 +273,7 @@ export function DashboardNotificationsPanel() {
                         className={`rounded-xl border px-3 py-2.5 text-sm transition-colors shadow-sm ${
                           isLowStock
                             ? "bg-red-600 dark:bg-red-700 border-red-500"
-                            : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                            : "bg-amber-50 dark:bg-amber-950 border-amber-200 dark:border-amber-800"
                         }`}
                       >
                         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -303,7 +303,7 @@ export function DashboardNotificationsPanel() {
                   {filteredNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:bg-accent/40"
+                      className="rounded-xl border border-border bg-white dark:bg-slate-900 px-3 py-2.5 text-sm transition-colors hover:bg-slate-50 dark:hover:bg-slate-800"
                     >
                       <div className="flex items-start justify-between gap-2 flex-wrap">
                         <div className="flex-shrink-0 min-w-0">
