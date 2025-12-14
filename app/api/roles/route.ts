@@ -90,11 +90,11 @@ export async function POST(request: NextRequest) {
     // Validate with better error messages
     const validationResult = createRoleSchema.safeParse(body);
     if (!validationResult.success) {
-      console.error("❌ Validation error:", validationResult.error.errors);
+      console.error("❌ Validation error:", validationResult.error.issues);
       return NextResponse.json(
         { 
           error: "Invalid request data", 
-          details: validationResult.error.errors.map(err => ({
+          details: validationResult.error.issues.map(err => ({
             field: err.path.join('.'),
             message: err.message
           }))
@@ -149,7 +149,7 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Invalid request data", details: error.errors },
+        { error: "Invalid request data", details: error.issues },
         { status: 400 }
       );
     }
