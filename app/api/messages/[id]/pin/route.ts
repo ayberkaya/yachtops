@@ -46,7 +46,7 @@ export async function POST(
 
     // Only channel members can pin/unpin
     const hasAccess = message.channel.isGeneral || 
-                     message.channel.members.some((m) => m.id === session.user.id);
+                     message.channel.members.some((m: { id: string }) => m.id === session.user.id);
     
     if (!hasAccess) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
