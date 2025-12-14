@@ -216,8 +216,8 @@ export function DashboardNotificationsPanel() {
         onMouseLeave={() => setIsHovered(false)}
         sideOffset={8}
       >
-        <div className="bg-popover text-popover-foreground rounded-2xl border border-border shadow-lg flex flex-col">
-          <div className="space-y-2 border-b border-border/50 bg-popover px-4 py-3">
+        <Card className="border-0 shadow-none [backdrop-filter:blur(24px)] [-webkit-backdrop-filter:blur(24px)]">
+          <CardHeader className="space-y-2 border-b border-border/50 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2 min-w-0 flex-1">
                 <Bell className="h-4 w-4 text-primary flex-shrink-0" />
@@ -252,8 +252,8 @@ export function DashboardNotificationsPanel() {
                 </Button>
               </div>
             </div>
-          </div>
-          <div className="bg-popover p-4">
+          </CardHeader>
+          <CardContent className="p-4">
             {showLoading ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Loading notifications…
@@ -342,8 +342,8 @@ export function DashboardNotificationsPanel() {
                 </div>
               </div>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </PopoverContent>
     </Popover>
   );
