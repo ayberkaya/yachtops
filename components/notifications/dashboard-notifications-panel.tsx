@@ -211,21 +211,22 @@ export function DashboardNotificationsPanel() {
       </PopoverTrigger>
       <PopoverContent 
         align="end" 
-        className="w-96 border-none p-0 shadow-xl"
+        className="w-[calc(100vw-2rem)] max-w-96 border border-slate-200 bg-background p-0 shadow-xl md:w-96"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        sideOffset={8}
       >
-        <Card className="border border-slate-200 shadow-none">
-          <CardHeader className="space-y-2">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-primary" />
-                <CardTitle className="text-base">Notifications</CardTitle>
+        <Card className="border-0 bg-background shadow-none">
+          <CardHeader className="space-y-2 border-b border-border/50 bg-background px-4 py-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 flex-1">
+                <Bell className="h-4 w-4 text-primary flex-shrink-0" />
+                <CardTitle className="text-base truncate">Notifications</CardTitle>
                 {filteredUnreadCount > 0 && (
-                  <span className="text-xs font-semibold text-primary">{filteredUnreadCount} new</span>
+                  <span className="text-xs font-semibold text-primary whitespace-nowrap flex-shrink-0">{filteredUnreadCount} new</span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-shrink-0">
                 {filteredUnreadCount > 0 && (
                   <Button
                     size="icon"
@@ -252,7 +253,7 @@ export function DashboardNotificationsPanel() {
               </div>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-background p-4">
             {showLoading ? (
               <div className="py-6 text-center text-sm text-muted-foreground">
                 Loading notifications…
@@ -262,7 +263,7 @@ export function DashboardNotificationsPanel() {
                 You're all caught up! No notifications yet.
               </div>
             ) : (
-              <div className="max-h-[80vh] overflow-y-auto pr-3">
+              <div className="max-h-[calc(100vh-12rem)] overflow-y-auto -mr-2 pr-2">
                 <div className="space-y-3">
                   {financeAlerts.map((alert) => {
                     const isLowStock = alert.id === "inventory-low-stock";
@@ -272,25 +273,25 @@ export function DashboardNotificationsPanel() {
                         className={`rounded-xl border px-3 py-2.5 text-sm transition-colors shadow-sm ${
                           isLowStock
                             ? "bg-red-600 dark:bg-red-700 border-red-500"
-                            : "bg-amber-50/60 border-amber-200"
+                            : "bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
                         }`}
                       >
-                        <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
                           <span
-                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${
+                            className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide flex-shrink-0 ${
                               isLowStock
                                 ? "bg-red-700 text-white"
-                                : "bg-amber-100 text-amber-800"
+                                : "bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200"
                             }`}
                           >
                             {alert.badge}
                           </span>
-                          <Link href={alert.href} className={`text-xs hover:underline ${isLowStock ? "text-white" : "text-blue-600"}`}>
+                          <Link href={alert.href} className={`text-xs hover:underline whitespace-nowrap flex-shrink-0 ${isLowStock ? "text-white" : "text-blue-600 dark:text-blue-400"}`}>
                             Review →
                           </Link>
                         </div>
                         <p
-                          className={`mt-1 text-sm ${
+                          className={`mt-1.5 text-sm break-words ${
                             isLowStock ? "text-white font-medium" : "text-foreground"
                           }`}
                         >
@@ -302,17 +303,19 @@ export function DashboardNotificationsPanel() {
                   {filteredNotifications.map((notification) => (
                     <div
                       key={notification.id}
-                      className="rounded-xl border px-3 py-2.5 text-sm transition-colors hover:bg-accent/40"
+                      className="rounded-xl border border-border bg-card px-3 py-2.5 text-sm transition-colors hover:bg-accent/40"
                     >
-                      <div className="flex items-center justify-between gap-2">
-                        {getBadge(notification.type)}
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">
+                      <div className="flex items-start justify-between gap-2 flex-wrap">
+                        <div className="flex-shrink-0 min-w-0">
+                          {getBadge(notification.type)}
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                          <span className="text-xs text-muted-foreground whitespace-nowrap">
                             {format(new Date(notification.createdAt), "MMM d, HH:mm")}
                           </span>
                           {!notification.read && (
                             <button
-                              className="text-xs text-blue-600 hover:underline"
+                              className="text-xs text-blue-600 dark:text-blue-400 hover:underline whitespace-nowrap"
                               onClick={() => markAsRead(notification.id)}
                             >
                               Mark as read
@@ -320,16 +323,16 @@ export function DashboardNotificationsPanel() {
                           )}
                         </div>
                       </div>
-                      <div className="mt-1">
-                        <p className="text-sm text-foreground">{notification.content}</p>
+                      <div className="mt-1.5 space-y-1">
+                        <p className="text-sm text-foreground break-words">{notification.content}</p>
                         {notification.message?.content && (
-                          <p className="text-xs text-muted-foreground">{notification.message.content}</p>
+                          <p className="text-xs text-muted-foreground break-words">{notification.message.content}</p>
                         )}
                         {notification.task?.title && (
-                          <p className="text-xs text-muted-foreground">Task: {notification.task.title}</p>
+                          <p className="text-xs text-muted-foreground break-words">Task: {notification.task.title}</p>
                         )}
                         {notification.link && (
-                          <Link href={notification.link} className="text-xs text-blue-600 hover:underline">
+                          <Link href={notification.link} className="text-xs text-blue-600 dark:text-blue-400 hover:underline inline-block">
                             View →
                           </Link>
                         )}
