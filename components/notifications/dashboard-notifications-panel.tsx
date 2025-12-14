@@ -228,7 +228,7 @@ export function DashboardNotificationsPanel() {
       >
         <Card 
           className="border-0 shadow-none"
-          style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', backdropSaturate: '150%' }}
+          style={{ backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)', backdropSaturate: '150%' } as React.CSSProperties}
         >
           <CardHeader className="space-y-2 border-b border-border/50 px-4 py-3">
             <div className="flex items-center justify-between gap-2">
