@@ -70,6 +70,17 @@ export function canApproveExpenses(user: SessionUser | null): boolean {
 }
 
 /**
+ * Check if a user can manage roles (OWNER or CAPTAIN)
+ * Admin roles are system-level and cannot be managed by users
+ */
+export function canManageRoles(user: SessionUser | null): boolean {
+  if (!user) return false;
+  // Only OWNER and CAPTAIN can manage roles
+  // ADMIN and SUPER_ADMIN are system-level and not editable
+  return hasAnyRole(user, [UserRole.OWNER, UserRole.CAPTAIN]);
+}
+
+/**
  * Hash a password
  */
 export async function hashPassword(password: string): Promise<string> {

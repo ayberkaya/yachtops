@@ -130,6 +130,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user && token.id) {
         // Fetch fresh user data from database to ensure name and other fields are up-to-date
         try {
+          // Check if db is properly initialized
+          if (!db || typeof db.user?.findUnique !== 'function') {
+            console.warn("⚠️ [AUTH] Prisma client not properly initialized, using token data");
+            session.user.id = token.id as string;
+            session.user.role = token.role as UserRole;
+            session.user.yachtId = token.yachtId as string | null;
+            (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+            session.user.permissions = token.permissions as string | null | undefined;
+            return session;
+          }
+
           const freshUser = await db.user.findUnique({
             where: { id: token.id as string },
             select: {
@@ -162,7 +173,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         } catch (error) {
           console.error("❌ [AUTH] Error fetching fresh user data:", error);
-          // Fallback to token data on error
+          if (error instanceof Error) {
+            console.error("❌ [AUTH] Error details:", error.message, error.stack);
+          }
+          // Fallback to token data on error - don't throw, just use token
           session.user.id = token.id as string;
           session.user.role = token.role as UserRole;
           session.user.yachtId = token.yachtId as string | null;

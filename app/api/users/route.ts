@@ -12,6 +12,7 @@ const userSchema = z.object({
   password: z.string().min(8),
   name: z.string().optional(),
   role: z.nativeEnum(UserRole),
+  customRoleId: z.string().optional().nullable(),
   permissions: z.array(z.string()).optional(),
 });
 
@@ -95,6 +96,23 @@ export async function POST(request: NextRequest) {
     const username = validated.email.split("@")[0];
     const ensuredTenantId = tenantId as string;
 
+    // Validate custom role if provided
+    if (validated.customRoleId) {
+      const customRole = await db.customRole.findFirst({
+        where: {
+          id: validated.customRoleId,
+          yachtId: ensuredTenantId,
+          active: true,
+        },
+      });
+      if (!customRole) {
+        return NextResponse.json(
+          { error: "Custom role not found or inactive" },
+          { status: 400 }
+        );
+      }
+    }
+
     const user = await db.user.create({
       data: {
         email: validated.email,
@@ -102,6 +120,7 @@ export async function POST(request: NextRequest) {
         passwordHash,
         name: validated.name || null,
         role: validated.role,
+        customRoleId: validated.customRoleId || null,
         permissions: validated.permissions ? JSON.stringify(validated.permissions) : null,
         yachtId: ensuredTenantId,
       },

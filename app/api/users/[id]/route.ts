@@ -10,6 +10,7 @@ const updateUserSchema = z.object({
   name: z.string().optional(),
   role: z.nativeEnum(UserRole).optional(),
   permissions: z.array(z.string()).nullable().optional(),
+  customRoleId: z.string().nullable().optional(),
 });
 
 const changePasswordSchema = z.object({
@@ -105,6 +106,24 @@ export async function PATCH(
           : null;
         console.log("🔧 Setting permissions to:", updateData.permissions);
       }
+    }
+    if (validated.customRoleId !== undefined) {
+      // Validate custom role belongs to the same vessel
+      if (validated.customRoleId) {
+        const customRole = await db.customRole.findFirst({
+          where: {
+            id: validated.customRoleId,
+            yachtId: existingUser.yachtId || undefined,
+          },
+        });
+        if (!customRole) {
+          return NextResponse.json(
+            { error: "Custom role not found or does not belong to this vessel" },
+            { status: 400 }
+          );
+        }
+      }
+      updateData.customRoleId = validated.customRoleId;
     }
 
     const user = await db.user.update({

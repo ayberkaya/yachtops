@@ -1,24 +1,56 @@
 import { SessionUser } from "./auth";
 
 export type Permission =
+  // Financial data
   | "expenses.view"
   | "expenses.create"
   | "expenses.edit"
   | "expenses.approve"
   | "expenses.delete"
   | "expenses.categories.manage"
+  // Operational data (maintenance, shifts, leaves)
+  | "operational.view"
+  | "operational.create"
+  | "operational.edit"
+  | "operational.delete"
+  // Tasks
   | "tasks.view"
   | "tasks.create"
   | "tasks.edit"
   | "tasks.delete"
+  // Documents
+  | "documents.view"
+  | "documents.create"
+  | "documents.edit"
+  | "documents.delete"
+  | "documents.receipts.view"
+  | "documents.marina.view"
+  | "documents.vessel.view"
+  | "documents.crew.view"
+  | "documents.upload"
+  // Inventory
+  | "inventory.view"
+  | "inventory.create"
+  | "inventory.edit"
+  | "inventory.delete"
+  | "inventory.alcohol.view"
+  | "inventory.alcohol.manage"
+  // Voyages (Trips)
   | "trips.view"
   | "trips.create"
   | "trips.edit"
   | "trips.delete"
+  // Crew management
   | "users.view"
   | "users.create"
   | "users.edit"
   | "users.delete"
+  // Role management
+  | "roles.view"
+  | "roles.create"
+  | "roles.edit"
+  | "roles.delete"
+  // Other
   | "settings.view"
   | "settings.edit"
   | "messages.view"
@@ -31,22 +63,13 @@ export type Permission =
   | "shopping.edit"
   | "shopping.delete"
   | "performance.view"
-  | "documents.view"
-  | "documents.receipts.view"
-  | "documents.marina.view"
-  | "documents.vessel.view"
-  | "documents.crew.view"
-  | "documents.upload"
-  | "inventory.view"
-  | "inventory.alcohol.view"
-  | "inventory.alcohol.manage"
   | "maintenance.view"
   | "maintenance.create"
   | "maintenance.edit"
   | "maintenance.delete";
 
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
-  Expenses: [
+  "Financial Data": [
     "expenses.view",
     "expenses.create",
     "expenses.edit",
@@ -54,23 +77,58 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
     "expenses.delete",
     "expenses.categories.manage",
   ],
+  "Operational Data": [
+    "operational.view",
+    "operational.create",
+    "operational.edit",
+    "operational.delete",
+    "maintenance.view",
+    "maintenance.create",
+    "maintenance.edit",
+    "maintenance.delete",
+  ],
   Tasks: [
     "tasks.view",
     "tasks.create",
     "tasks.edit",
     "tasks.delete",
   ],
-  Trips: [
+  Documents: [
+    "documents.view",
+    "documents.create",
+    "documents.edit",
+    "documents.delete",
+    "documents.receipts.view",
+    "documents.marina.view",
+    "documents.vessel.view",
+    "documents.crew.view",
+    "documents.upload",
+  ],
+  Inventory: [
+    "inventory.view",
+    "inventory.create",
+    "inventory.edit",
+    "inventory.delete",
+    "inventory.alcohol.view",
+    "inventory.alcohol.manage",
+  ],
+  Voyages: [
     "trips.view",
     "trips.create",
     "trips.edit",
     "trips.delete",
   ],
-  Users: [
+  "Crew Management": [
     "users.view",
     "users.create",
     "users.edit",
     "users.delete",
+  ],
+  "Role Management": [
+    "roles.view",
+    "roles.create",
+    "roles.edit",
+    "roles.delete",
   ],
   Messages: [
     "messages.view",
@@ -88,25 +146,6 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   Performance: [
     "performance.view",
   ],
-  Documents: [
-    "documents.view",
-    "documents.receipts.view",
-    "documents.marina.view",
-    "documents.vessel.view",
-    "documents.crew.view",
-    "documents.upload",
-  ],
-  Inventory: [
-    "inventory.view",
-    "inventory.alcohol.view",
-    "inventory.alcohol.manage",
-  ],
-  Maintenance: [
-    "maintenance.view",
-    "maintenance.create",
-    "maintenance.edit",
-    "maintenance.delete",
-  ],
   Settings: [
     "settings.view",
     "settings.edit",
@@ -121,6 +160,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "expenses.approve",
     "expenses.delete",
     "expenses.categories.manage",
+    "operational.view",
+    "operational.create",
+    "operational.edit",
+    "operational.delete",
     "tasks.view",
     "tasks.create",
     "tasks.edit",
@@ -133,6 +176,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "users.create",
     "users.edit",
     "users.delete",
+    "roles.view",
+    "roles.create",
+    "roles.edit",
+    "roles.delete",
     "messages.view",
     "messages.create",
     "messages.edit",
@@ -144,12 +191,18 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "shopping.delete",
     "performance.view",
     "documents.view",
+    "documents.create",
+    "documents.edit",
+    "documents.delete",
     "documents.receipts.view",
     "documents.marina.view",
     "documents.vessel.view",
     "documents.crew.view",
     "documents.upload",
     "inventory.view",
+    "inventory.create",
+    "inventory.edit",
+    "inventory.delete",
     "inventory.alcohol.view",
     "inventory.alcohol.manage",
     "maintenance.view",
@@ -166,6 +219,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "expenses.approve",
     "expenses.delete",
     "expenses.categories.manage",
+    "operational.view",
+    "operational.create",
+    "operational.edit",
+    "operational.delete",
     "tasks.view",
     "tasks.create",
     "tasks.edit",
@@ -177,6 +234,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "users.view",
     "users.create",
     "users.edit",
+    "roles.view",
+    "roles.create",
+    "roles.edit",
+    "roles.delete",
     "messages.view",
     "messages.create",
     "messages.edit",
@@ -188,12 +249,18 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "shopping.delete",
     "performance.view",
     "documents.view",
+    "documents.create",
+    "documents.edit",
+    "documents.delete",
     "documents.receipts.view",
     "documents.marina.view",
     "documents.vessel.view",
     "documents.crew.view",
     "documents.upload",
     "inventory.view",
+    "inventory.create",
+    "inventory.edit",
+    "inventory.delete",
     "inventory.alcohol.view",
     "inventory.alcohol.manage",
     "maintenance.view",
@@ -228,12 +295,24 @@ export function parsePermissions(permissionsJson: string | null): Permission[] {
 }
 
 /**
- * Get user permissions (from custom permissions or default role permissions)
+ * Get user permissions (from custom role, custom permissions, or default role permissions)
  */
-export function getUserPermissions(user: SessionUser | null, userPermissionsJson?: string | null): Permission[] {
+export function getUserPermissions(
+  user: SessionUser | null, 
+  userPermissionsJson?: string | null,
+  customRolePermissions?: string | null
+): Permission[] {
   if (!user) return [];
 
-  // If user has custom permissions, use those
+  // Priority 1: Custom role permissions (if user is assigned to a custom role)
+  if (customRolePermissions) {
+    const rolePermissions = parsePermissions(customRolePermissions);
+    if (rolePermissions.length > 0) {
+      return rolePermissions;
+    }
+  }
+
+  // Priority 2: User-specific custom permissions
   if (userPermissionsJson) {
     const custom = parsePermissions(userPermissionsJson);
     if (custom.length > 0) {
@@ -241,7 +320,7 @@ export function getUserPermissions(user: SessionUser | null, userPermissionsJson
     }
   }
 
-  // Otherwise use default permissions for role
+  // Priority 3: Default permissions for role
   return DEFAULT_PERMISSIONS[user.role] || [];
 }
 

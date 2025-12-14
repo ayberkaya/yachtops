@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -19,13 +19,14 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { UserRole } from "@prisma/client";
-import { Permission, DEFAULT_PERMISSIONS, PERMISSION_GROUPS } from "@/lib/permissions";
+import { Permission, DEFAULT_PERMISSIONS, PERMISSION_GROUPS, parsePermissions } from "@/lib/permissions";
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().optional(),
   role: z.nativeEnum(UserRole),
+  customRoleId: z.string().optional().nullable(),
   permissions: z.array(z.string()).optional(),
 });
 
@@ -35,10 +36,19 @@ interface UserFormProps {
   onSuccess: () => void;
 }
 
+interface CustomRole {
+  id: string;
+  name: string;
+  permissions: string;
+  active: boolean;
+}
+
 export function UserForm({ onSuccess }: UserFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useCustomPermissions, setUseCustomPermissions] = useState(false);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
 
   const form = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
@@ -47,16 +57,53 @@ export function UserForm({ onSuccess }: UserFormProps) {
       password: "",
       name: "",
       role: UserRole.CREW,
+      customRoleId: null,
       permissions: [],
     },
   });
 
   const selectedRole = form.watch("role");
+  const selectedCustomRoleId = form.watch("customRoleId");
 
-  const handleRoleChange = (role: UserRole) => {
-    form.setValue("role", role);
-    if (!useCustomPermissions) {
-      form.setValue("permissions", DEFAULT_PERMISSIONS[role] || []);
+  // Fetch custom roles on mount
+  useEffect(() => {
+    const fetchCustomRoles = async () => {
+      try {
+        const response = await fetch("/api/roles");
+        if (response.ok) {
+          const roles = await response.json();
+          setCustomRoles(roles.filter((r: CustomRole) => r.active));
+        }
+      } catch (error) {
+        console.error("Error fetching custom roles:", error);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    fetchCustomRoles();
+  }, []);
+
+  const handleRoleChange = (value: string) => {
+    // Check if it's a custom role (starts with "custom_")
+    if (value.startsWith("custom_")) {
+      const customRoleId = value.replace("custom_", "");
+      const customRole = customRoles.find(r => r.id === customRoleId);
+      form.setValue("customRoleId", customRoleId);
+      form.setValue("role", UserRole.CREW); // Default role for custom roles
+      if (customRole) {
+        const rolePermissions = parsePermissions(customRole.permissions);
+        form.setValue("permissions", rolePermissions);
+        // Custom roles have their own permissions, enable custom permissions view so user can edit
+        setUseCustomPermissions(true);
+      }
+    } else {
+      // System role
+      const role = value as UserRole;
+      form.setValue("role", role);
+      form.setValue("customRoleId", null);
+      if (!useCustomPermissions) {
+        form.setValue("permissions", DEFAULT_PERMISSIONS[role] || []);
+      }
     }
   };
 
@@ -71,6 +118,11 @@ export function UserForm({ onSuccess }: UserFormProps) {
         name: data.name,
         role: data.role,
       };
+
+      // Add custom role if selected
+      if (data.customRoleId) {
+        submitData.customRoleId = data.customRoleId;
+      }
 
       if (useCustomPermissions) {
         submitData.permissions = data.permissions || [];
@@ -169,22 +221,29 @@ export function UserForm({ onSuccess }: UserFormProps) {
             <FormItem>
               <FormLabel>Role *</FormLabel>
               <Select
-                onValueChange={(value) => handleRoleChange(value as UserRole)}
-                defaultValue={field.value}
+                onValueChange={handleRoleChange}
+                value={selectedCustomRoleId ? `custom_${selectedCustomRoleId}` : field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value={UserRole.CREW}>Crew</SelectItem>
                   <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
                   <SelectItem value={UserRole.OWNER}>Owner</SelectItem>
+                  {customRoles.map((role) => (
+                    <SelectItem key={role.id} value={`custom_${role.id}`}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
               <FormDescription>
-                Default permissions will be applied based on role
+                {selectedCustomRoleId 
+                  ? "Custom role permissions will be applied"
+                  : "Default permissions will be applied based on role"}
               </FormDescription>
               <FormMessage />
             </FormItem>
@@ -199,7 +258,16 @@ export function UserForm({ onSuccess }: UserFormProps) {
               onCheckedChange={(checked) => {
                 setUseCustomPermissions(checked as boolean);
                 if (!checked) {
-                  form.setValue("permissions", DEFAULT_PERMISSIONS[selectedRole] || []);
+                  // Reset to role defaults
+                  if (selectedCustomRoleId) {
+                    const customRole = customRoles.find(r => r.id === selectedCustomRoleId);
+                    if (customRole) {
+                      const rolePermissions = parsePermissions(customRole.permissions);
+                      form.setValue("permissions", rolePermissions);
+                    }
+                  } else {
+                    form.setValue("permissions", DEFAULT_PERMISSIONS[selectedRole] || []);
+                  }
                 }
               }}
             />
@@ -207,9 +275,16 @@ export function UserForm({ onSuccess }: UserFormProps) {
               htmlFor="custom-permissions"
               className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
             >
-              Use custom permissions (override role defaults)
+              {selectedCustomRoleId 
+                ? "Edit custom role permissions"
+                : "Use custom permissions (override role defaults)"}
             </label>
           </div>
+          {selectedCustomRoleId && (
+            <p className="text-xs text-muted-foreground">
+              Custom role permissions are loaded. You can modify them below.
+            </p>
+          )}
         </div>
 
         {useCustomPermissions && (

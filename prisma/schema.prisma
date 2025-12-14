@@ -50,6 +50,8 @@ model User {
   leaves                  Leave[]               @relation("LeaveAssignee")
   createdLeaves           Leave[]               @relation("LeaveCreator")
   approvedLeaves          Leave[]               @relation("LeaveApprover")
+  customRoleId            String?               @map("custom_role_id")
+  customRole              CustomRole?           @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
 
   @@map("users")
 }
@@ -80,6 +82,7 @@ model Yacht {
   vesselDocuments           VesselDocument[]
   shifts                    Shift[]
   leaves                    Leave[]
+  customRoles               CustomRole[]
 
   @@map("yachts")
 }
@@ -793,4 +796,21 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model CustomRole {
+  id          String    @id @default(cuid())
+  yachtId    String    @map("yacht_id")
+  name        String
+  description String?
+  permissions String   // JSON array of permissions
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  yacht       Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  users       User[]
+
+  @@unique([yachtId, name])
+  @@index([yachtId, active])
+  @@map("custom_roles")
 }
