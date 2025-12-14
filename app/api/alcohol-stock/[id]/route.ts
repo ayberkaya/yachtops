@@ -9,6 +9,7 @@ const updateStockSchema = z.object({
   quantity: z.number().min(0).optional(),
   lowStockThreshold: z.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
+  imageUrl: z.string().optional().nullable(),
 });
 
 export async function PATCH(
@@ -28,8 +29,56 @@ export async function PATCH(
     }
 
     const { id } = await params;
-    const body = await request.json();
-    const validated = updateStockSchema.parse(body);
+    
+    // Check if request has FormData (image upload) or JSON
+    const contentType = request.headers.get("content-type") || "";
+    let validated: z.infer<typeof updateStockSchema>;
+
+    if (contentType.includes("multipart/form-data")) {
+      try {
+        const formData = await request.formData();
+        const file = formData.get("image") as File | null;
+        const category = formData.get("category") as string | null;
+        const quantity = formData.get("quantity") ? parseInt(formData.get("quantity") as string) : undefined;
+        const lowStockThreshold = formData.get("lowStockThreshold") ? parseInt(formData.get("lowStockThreshold") as string) : null;
+        const notes = formData.get("notes") as string | null;
+        const removeImage = formData.get("removeImage") === "true";
+
+        let imageUrl: string | null | undefined = undefined;
+        if (removeImage) {
+          imageUrl = null;
+        } else if (file && file.size > 0) {
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = Buffer.from(arrayBuffer);
+          const mimeType = file.type || "image/jpeg";
+          const base64 = buffer.toString("base64");
+          imageUrl = `data:${mimeType};base64,${base64}`;
+        }
+
+        validated = updateStockSchema.parse({
+          category: category && category !== "NONE" ? category as "WINE" | "SPIRITS" | "BEER" : null,
+          quantity,
+          lowStockThreshold,
+          notes,
+          imageUrl,
+        });
+      } catch (formError) {
+        return NextResponse.json(
+          { error: "Invalid form data" },
+          { status: 400 }
+        );
+      }
+    } else {
+      try {
+        const body = await request.json();
+        validated = updateStockSchema.parse(body);
+      } catch (jsonError) {
+        return NextResponse.json(
+          { error: "Invalid JSON data" },
+          { status: 400 }
+        );
+      }
+    }
 
     const existing = await db.alcoholStock.findUnique({
       where: {
@@ -54,6 +103,9 @@ export async function PATCH(
     }
     if (validated.notes !== undefined) {
       updateData.notes = validated.notes;
+    }
+    if (validated.imageUrl !== undefined) {
+      updateData.imageUrl = validated.imageUrl;
     }
 
     // Track quantity changes in history
