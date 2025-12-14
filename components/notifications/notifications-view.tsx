@@ -3,9 +3,10 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Bell, Check, CheckCheck, X } from "lucide-react";
+import { Bell, Check, CheckCheck, X, Volume2, VolumeX } from "lucide-react";
 import { format } from "date-fns";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,9 +14,21 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNotifications } from "./notifications-provider";
 import { NOTIFICATION_BADGE_META } from "./notification-types";
+import { isNotificationSoundEnabled, setNotificationSoundEnabled } from "@/lib/notification-sound";
 
 export function NotificationsView() {
   const { notifications, unreadCount, isLoading, markAsRead, markAllAsRead } = useNotifications();
+  const [soundEnabled, setSoundEnabled] = useState(true);
+
+  useEffect(() => {
+    setSoundEnabled(isNotificationSoundEnabled());
+  }, []);
+
+  const toggleSound = () => {
+    const newValue = !soundEnabled;
+    setSoundEnabled(newValue);
+    setNotificationSoundEnabled(newValue);
+  };
 
   const getNotificationBadge = (type: keyof typeof NOTIFICATION_BADGE_META) => {
     const meta = NOTIFICATION_BADGE_META[type] ?? { label: type, variant: "default" as const };
@@ -50,12 +63,27 @@ export function NotificationsView() {
               <Badge variant="secondary">{unreadCount} new</Badge>
             )}
           </div>
-          {unreadCount > 0 && (
-            <Button variant="ghost" size="sm" onClick={markAllAsRead}>
-              <CheckCheck className="h-4 w-4 mr-1" />
-              Mark all read
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8"
+              onClick={toggleSound}
+              title={soundEnabled ? "Disable notification sound" : "Enable notification sound"}
+            >
+              {soundEnabled ? (
+                <Volume2 className="h-4 w-4" />
+              ) : (
+                <VolumeX className="h-4 w-4" />
+              )}
             </Button>
-          )}
+            {unreadCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={markAllAsRead}>
+                <CheckCheck className="h-4 w-4 mr-1" />
+                Mark all read
+              </Button>
+            )}
+          </div>
         </div>
         <ScrollArea className="h-[500px]">
           {isLoading ? (

@@ -9,6 +9,7 @@ import {
   useState,
 } from "react";
 import type { DashboardNotification } from "./notification-types";
+import { playNotificationSoundByType } from "@/lib/notification-sound";
 
 type NotificationsContextValue = {
   notifications: DashboardNotification[];
@@ -26,6 +27,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const hasMountedRef = useRef(false);
+  const previousNotificationsRef = useRef<Set<string>>(new Set());
 
   const refresh = useCallback(
     async (options?: { silent?: boolean }) => {
@@ -40,6 +42,24 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
 
         if (response.ok) {
           const data: DashboardNotification[] = await response.json();
+          
+          // Check for new unread notifications and play sound
+          if (!options?.silent && previousNotificationsRef.current.size > 0) {
+            const newUnreadNotifications = data.filter(
+              (notification) => 
+                !notification.read && 
+                !previousNotificationsRef.current.has(notification.id)
+            );
+            
+            // Play sound for each new notification
+            newUnreadNotifications.forEach((notification) => {
+              playNotificationSoundByType(notification.type);
+            });
+          }
+          
+          // Update previous notifications set
+          previousNotificationsRef.current = new Set(data.map((n) => n.id));
+          
           setNotifications(data);
           setUnreadCount(data.filter((notification) => !notification.read).length);
         }

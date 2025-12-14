@@ -200,13 +200,17 @@ export async function POST(request: NextRequest) {
     console.log("POST /api/tasks - Task created successfully:", task.id);
     
     // Create notification if task is assigned
+    // Don't await to avoid blocking the response, but handle errors
     if (task.assigneeId || task.assigneeRole) {
-      await notifyTaskAssignment(
+      notifyTaskAssignment(
         task.id,
         task.assigneeId,
         task.assigneeRole,
         task.title
-      );
+      ).catch((error) => {
+        console.error("Failed to send task assignment notification:", error);
+        // Don't throw - notification failure shouldn't break task creation
+      });
     }
     
     return NextResponse.json(task, { status: 201 });

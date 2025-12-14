@@ -33,14 +33,21 @@ export async function notifyTaskAssignment(
   try {
     if (assigneeId) {
       // Notify specific user
-      await createNotification(
+      console.log(`Notifying user ${assigneeId} about task assignment: ${taskTitle}`);
+      const notification = await createNotification(
         assigneeId,
         NotificationType.TASK_ASSIGNED,
         `You have been assigned to task: ${taskTitle}`,
         taskId
       );
+      if (notification) {
+        console.log(`Notification created successfully for user ${assigneeId}`);
+      } else {
+        console.warn(`Failed to create notification for user ${assigneeId}`);
+      }
     } else if (assigneeRole) {
       // Notify all users with this role in the same yacht
+      console.log(`Notifying all users with role ${assigneeRole} about task assignment: ${taskTitle}`);
       const task = await db.task.findUnique({
         where: { id: taskId },
         select: { yachtId: true },
@@ -51,24 +58,41 @@ export async function notifyTaskAssignment(
           where: {
             yachtId: task.yachtId,
             role: assigneeRole,
+            active: true, // Only notify active users
           },
           select: { id: true },
         });
 
-        await Promise.all(
-          users.map((user: { id: string }) =>
-            createNotification(
-              user.id,
-              NotificationType.TASK_ASSIGNED,
-              `A new task has been assigned to ${assigneeRole} role: ${taskTitle}`,
-              taskId
+        console.log(`Found ${users.length} users with role ${assigneeRole} to notify`);
+
+        if (users.length > 0) {
+          const results = await Promise.allSettled(
+            users.map((user: { id: string }) =>
+              createNotification(
+                user.id,
+                NotificationType.TASK_ASSIGNED,
+                `A new task has been assigned to ${assigneeRole} role: ${taskTitle}`,
+                taskId
+              )
             )
-          )
-        );
+          );
+
+          const successful = results.filter((r) => r.status === "fulfilled" && r.value !== null).length;
+          const failed = results.filter((r) => r.status === "rejected" || r.value === null).length;
+          console.log(`Task assignment notifications: ${successful} successful, ${failed} failed`);
+        } else {
+          console.warn(`No active users found with role ${assigneeRole} in yacht ${task.yachtId}`);
+        }
+      } else {
+        console.error(`Task ${taskId} not found when trying to send role-based notification`);
       }
+    } else {
+      console.log(`Task ${taskId} has no assignee or role, skipping notification`);
     }
   } catch (error) {
     console.error("Error notifying task assignment:", error);
+    // Re-throw to allow caller to handle if needed
+    throw error;
   }
 }
 

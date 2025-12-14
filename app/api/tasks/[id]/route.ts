@@ -325,19 +325,25 @@ export async function PATCH(
     // Create notifications
     // Check if assignment changed
     if (validated.assigneeId !== undefined && validated.assigneeId !== existingTask.assigneeId) {
-      await notifyTaskAssignment(
+      notifyTaskAssignment(
         task.id,
         task.assigneeId,
         task.assigneeRole,
         task.title
-      );
+      ).catch((error) => {
+        console.error("Failed to send task assignment notification:", error);
+        // Don't throw - notification failure shouldn't break task update
+      });
     } else if (validated.assigneeRole !== undefined && validated.assigneeRole !== existingTask.assigneeRole) {
-      await notifyTaskAssignment(
+      notifyTaskAssignment(
         task.id,
         task.assigneeId,
         task.assigneeRole,
         task.title
-      );
+      ).catch((error) => {
+        console.error("Failed to send task assignment notification:", error);
+        // Don't throw - notification failure shouldn't break task update
+      });
     }
 
     // Check if task was completed
