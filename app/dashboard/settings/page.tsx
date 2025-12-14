@@ -82,6 +82,31 @@ export default async function SettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Support & Help</CardTitle>
+            <CardDescription>Get assistance when you need it</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Need Help?</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                If you encounter any issues or have questions, our support team is here to help.
+              </p>
+              <div className="space-y-2">
+                <Button asChild variant="outline" className="w-full justify-start">
+                  <a href="mailto:support@helmops.com?subject=HelmOps Support Request">
+                    Contact Support
+                  </a>
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  Email: support@helmops.com
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

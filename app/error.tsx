@@ -5,6 +5,7 @@ import { AlertCircle, RefreshCw, Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { SupportLink } from "@/components/support/support-link";
 
 export default function Error({
   error,
@@ -38,7 +39,7 @@ export default function Error({
             <CardTitle>Something went wrong</CardTitle>
           </div>
           <CardDescription>
-            We encountered an unexpected error while loading this page. Please try again.
+            We encountered an unexpected error while loading this page. Don't worry - your data is safe. Please try again.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -55,17 +56,25 @@ export default function Error({
               )}
             </div>
           )}
-          <div className="flex gap-2">
-            <Button onClick={reset} variant="outline" className="flex-1">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Try Again
-            </Button>
-            <Button asChild variant="default" className="flex-1">
-              <Link href="/dashboard">
-                <Home className="h-4 w-4 mr-2" />
-                Go Home
-              </Link>
-            </Button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Button onClick={reset} variant="outline" className="flex-1">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Try Again
+              </Button>
+              <Button asChild variant="default" className="flex-1">
+                <Link href="/dashboard">
+                  <Home className="h-4 w-4 mr-2" />
+                  Go Home
+                </Link>
+              </Button>
+            </div>
+            <div className="pt-2 border-t">
+              <p className="text-xs text-muted-foreground mb-2 text-center">
+                Still having issues?
+              </p>
+              <SupportLink variant="outline" size="sm" className="w-full" />
+            </div>
           </div>
         </CardContent>
       </Card>

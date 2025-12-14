@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupportLink } from "@/components/support/support-link";
 
 export default function GlobalError({
   error,
@@ -32,7 +33,7 @@ export default function GlobalError({
                 <CardTitle>Application Error</CardTitle>
               </div>
               <CardDescription>
-                A critical error occurred. Please refresh the page to continue.
+                A critical error occurred. Don't worry - your data is safe. Please refresh the page to continue.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -49,10 +50,18 @@ export default function GlobalError({
                   )}
                 </div>
               )}
-              <Button onClick={reset} variant="default" className="w-full">
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Refresh Application
-              </Button>
+              <div className="space-y-3">
+                <Button onClick={reset} variant="default" className="w-full">
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Refresh Application
+                </Button>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">
+                    Still having issues?
+                  </p>
+                  <SupportLink variant="outline" size="sm" className="w-full" />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </div>

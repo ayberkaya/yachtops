@@ -124,25 +124,72 @@ export function getUserFriendlyError(error: unknown): string {
     if (process.env.NODE_ENV === "production") {
       // Map common error messages to user-friendly ones
       if (error.message.includes("network") || error.message.includes("fetch")) {
-        return "Network error. Please check your connection and try again.";
+        return "Unable to connect. Please check your internet connection and try again.";
       }
       if (error.message.includes("timeout")) {
-        return "Request timed out. Please try again.";
+        return "The request took too long. Please try again.";
       }
       if (error.message.includes("unauthorized") || error.message.includes("401")) {
-        return "You are not authorized to perform this action.";
+        return "Your session has expired. Please sign in again.";
       }
       if (error.message.includes("forbidden") || error.message.includes("403")) {
         return "You don't have permission to perform this action.";
       }
       if (error.message.includes("not found") || error.message.includes("404")) {
-        return "The requested resource was not found.";
+        return "The requested item could not be found.";
       }
-      return "An error occurred. Please try again.";
+      return "Something went wrong. Please try again, or contact support if the issue persists.";
     }
     return error.message;
   }
 
-  return "An unexpected error occurred. Please try again.";
+  return "An unexpected error occurred. Please try again, or contact support if the issue persists.";
+}
+
+/**
+ * Get reassuring error message with recovery guidance
+ */
+export function getReassuringError(error: unknown, action?: string): {
+  message: string;
+  canRetry: boolean;
+  recoveryAction?: string;
+} {
+  const baseMessage = getUserFriendlyError(error);
+  
+  if (error instanceof Error) {
+    // Network errors - can retry
+    if (error.message.includes("network") || error.message.includes("fetch") || error.message.includes("timeout")) {
+      return {
+        message: baseMessage,
+        canRetry: true,
+        recoveryAction: "Check your internet connection and try again.",
+      };
+    }
+    
+    // Auth errors - need to sign in
+    if (error.message.includes("unauthorized") || error.message.includes("401")) {
+      return {
+        message: baseMessage,
+        canRetry: false,
+        recoveryAction: "Please sign in again to continue.",
+      };
+    }
+    
+    // Permission errors - cannot retry
+    if (error.message.includes("forbidden") || error.message.includes("403")) {
+      return {
+        message: baseMessage,
+        canRetry: false,
+        recoveryAction: "Contact your administrator if you believe you should have access.",
+      };
+    }
+  }
+  
+  // Default - can retry
+  return {
+    message: baseMessage,
+    canRetry: true,
+    recoveryAction: action ? `Try ${action} again.` : "Please try again.",
+  };
 }
 

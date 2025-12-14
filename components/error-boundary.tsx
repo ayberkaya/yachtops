@@ -1,9 +1,10 @@
 "use client";
 
 import React, { Component, ErrorInfo, ReactNode } from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SupportLink } from "@/components/support/support-link";
 
 interface Props {
   children: ReactNode;
@@ -85,7 +86,7 @@ export class ErrorBoundary extends Component<Props, State> {
                 <CardTitle>Something went wrong</CardTitle>
               </div>
               <CardDescription>
-                We encountered an unexpected error. Please try refreshing the page.
+                We encountered an unexpected error. Don't worry - your data is safe. Please try refreshing the page.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -107,18 +108,26 @@ export class ErrorBoundary extends Component<Props, State> {
                   )}
                 </div>
               )}
-              <div className="flex gap-2">
-                <Button onClick={this.handleReset} variant="outline" className="flex-1">
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                  Try Again
-                </Button>
-                <Button
-                  onClick={() => window.location.reload()}
-                  variant="default"
-                  className="flex-1"
-                >
-                  Refresh Page
-                </Button>
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <Button onClick={this.handleReset} variant="outline" className="flex-1">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Try Again
+                  </Button>
+                  <Button
+                    onClick={() => window.location.reload()}
+                    variant="default"
+                    className="flex-1"
+                  >
+                    Refresh Page
+                  </Button>
+                </div>
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2 text-center">
+                    Still having issues?
+                  </p>
+                  <SupportLink variant="outline" size="sm" className="w-full" />
+                </div>
               </div>
             </CardContent>
           </Card>
