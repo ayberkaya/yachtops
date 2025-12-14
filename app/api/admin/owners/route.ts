@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
         })
       : [];
 
-    const grouped = users.reduce<Record<string, typeof users>>(
+    const grouped: Record<string, typeof users> = users.reduce(
       (acc: Record<string, typeof users>, user: (typeof users)[number]) => {
         if (user.yachtId) {
           acc[user.yachtId] = acc[user.yachtId] || [];
