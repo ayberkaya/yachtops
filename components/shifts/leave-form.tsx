@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -55,6 +55,8 @@ interface LeaveFormProps {
   users: User[];
   onSuccess: () => void;
   onDelete?: () => void;
+  initialStartDate?: string;
+  initialEndDate?: string;
 }
 
 const leaveTypeLabels: Record<LeaveType, string> = {
@@ -70,7 +72,7 @@ const leaveStatusLabels: Record<LeaveStatus, string> = {
   REJECTED: "Rejected",
 };
 
-export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps) {
+export function LeaveForm({ leave, users, onSuccess, onDelete, initialStartDate, initialEndDate }: LeaveFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -83,12 +85,23 @@ export function LeaveForm({ leave, users, onSuccess, onDelete }: LeaveFormProps)
 
   const [formData, setFormData] = useState({
     userId: leave?.userId || "",
-    startDate: leave?.startDate || "",
-    endDate: leave?.endDate || "",
+    startDate: leave?.startDate || initialStartDate || "",
+    endDate: leave?.endDate || initialEndDate || "",
     type: leave?.type || LeaveType.ANNUAL_LEAVE,
     reason: leave?.reason || "",
     status: leave?.status || LeaveStatus.PENDING,
   });
+
+  // Update form data when initial dates change (for calendar date selection)
+  useEffect(() => {
+    if (!leave && (initialStartDate || initialEndDate)) {
+      setFormData((prev) => ({
+        ...prev,
+        startDate: initialStartDate || prev.startDate,
+        endDate: initialEndDate || prev.endDate,
+      }));
+    }
+  }, [initialStartDate, initialEndDate, leave]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

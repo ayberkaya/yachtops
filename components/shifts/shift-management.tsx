@@ -12,6 +12,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { format } from "date-fns";
+import { useSession } from "next-auth/react";
+import { hasPermission } from "@/lib/permissions";
 import { ShiftCalendar } from "./shift-calendar";
 import { LeaveForm } from "./leave-form";
 import { LeaveType, LeaveStatus } from "@prisma/client";
@@ -87,9 +89,13 @@ type Leave = {
 };
 
 export function ShiftManagement({ initialShifts, initialLeaves = [], users }: ShiftManagementProps) {
+  const { data: session } = useSession();
   const [shifts, setShifts] = useState<Shift[]>(initialShifts);
   const [leaves, setLeaves] = useState<Leave[]>(initialLeaves);
   const [viewMode, setViewMode] = useState<ViewMode>("list");
+  
+  // Check if user has permission to create shifts/leaves
+  const canCreate = session?.user && hasPermission(session.user, "users.view", session.user.permissions);
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
   const crewMembers = users.filter((user) => {
@@ -98,6 +104,7 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
   });
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isLeaveDialogOpen, setIsLeaveDialogOpen] = useState(false);
+  const [selectedDateForAction, setSelectedDateForAction] = useState<Date | null>(null);
   const [editingShift, setEditingShift] = useState<Shift | null>(null);
   const [editingLeave, setEditingLeave] = useState<Leave | null>(null);
   const [filterUserId, setFilterUserId] = useState<string>("all");
@@ -267,6 +274,27 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
     }
   };
 
+  const handleCreateShiftFromDate = () => {
+    if (!selectedDateForAction) return;
+    const dateStr = format(selectedDateForAction, "yyyy-MM-dd");
+    setEditingShift(null);
+    setFormData({
+      userId: "",
+      date: dateStr,
+      startTime: "",
+      endTime: "",
+      type: "MORNING",
+      notes: "",
+    });
+    setIsDialogOpen(true);
+  };
+
+  const handleCreateLeaveFromDate = () => {
+    if (!selectedDateForAction) return;
+    setEditingLeave(null);
+    setIsLeaveDialogOpen(true);
+  };
+
   const filteredShifts = shifts.filter((shift) => {
     if (filterUserId !== "all" && shift.userId !== filterUserId) return false;
     if (filterDate && shift.date !== filterDate) return false;
@@ -329,16 +357,21 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
                 </DialogDescription>
               </DialogHeader>
               <LeaveForm
+                key={editingLeave?.id || selectedDateForAction?.getTime() || 'new-leave'}
                 leave={editingLeave || undefined}
                 users={users}
+                initialStartDate={selectedDateForAction ? format(selectedDateForAction, "yyyy-MM-dd") : undefined}
+                initialEndDate={selectedDateForAction ? format(selectedDateForAction, "yyyy-MM-dd") : undefined}
                 onSuccess={() => {
                   setIsLeaveDialogOpen(false);
                   setEditingLeave(null);
+                  setSelectedDateForAction(null);
                   fetchLeaves();
                 }}
                 onDelete={() => {
                   setIsLeaveDialogOpen(false);
                   setEditingLeave(null);
+                  setSelectedDateForAction(null);
                   fetchLeaves();
                 }}
               />
@@ -519,10 +552,19 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
         <ShiftCalendar
           shifts={filteredShifts}
           leaves={leaves}
+          canCreate={canCreate}
           onShiftClick={(shift) => handleOpenDialog(shift)}
           onLeaveClick={(leave) => {
             setEditingLeave(leave);
             setIsLeaveDialogOpen(true);
+          }}
+          onAddShift={(date) => {
+            setSelectedDateForAction(date);
+            handleCreateShiftFromDate();
+          }}
+          onAddLeave={(date) => {
+            setSelectedDateForAction(date);
+            handleCreateLeaveFromDate();
           }}
         />
       ) : sortedDates.length === 0 ? (

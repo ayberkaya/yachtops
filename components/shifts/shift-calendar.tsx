@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths, isToday, subDays } from "date-fns";
-import { ChevronLeft, ChevronRight, Clock, User, CalendarDays } from "lucide-react";
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, startOfWeek, endOfWeek, addMonths, subMonths, isToday } from "date-fns";
+import { ChevronLeft, ChevronRight, Clock, User, CalendarDays, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -61,6 +61,9 @@ interface ShiftCalendarProps {
   onDateClick?: (date: Date) => void;
   onShiftClick?: (shift: Shift) => void;
   onLeaveClick?: (leave: Leave) => void;
+  onAddShift?: (date: Date) => void;
+  onAddLeave?: (date: Date) => void;
+  canCreate?: boolean;
 }
 
 const shiftTypeColors: Record<Shift["type"], string> = {
@@ -79,7 +82,7 @@ const shiftTypeLabels: Record<Shift["type"], string> = {
   ON_CALL: "On Call",
 };
 
-export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, onLeaveClick }: ShiftCalendarProps) {
+export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, onLeaveClick, onAddShift, onAddLeave, canCreate = false }: ShiftCalendarProps) {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedDateShifts, setSelectedDateShifts] = useState<Shift[]>([]);
@@ -150,7 +153,8 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
       const end = new Date(endDateStr + 'T00:00:00');
       
       // End date is exclusive, so we subtract 1 day to get the last day of leave
-      const lastDayOfLeave = subDays(end, 1);
+      const lastDayOfLeave = new Date(end);
+      lastDayOfLeave.setDate(lastDayOfLeave.getDate() - 1);
       
       // Use eachDayOfInterval which includes both start and end dates
       // This will generate all days from start to lastDayOfLeave (inclusive)
@@ -418,6 +422,31 @@ export function ShiftCalendar({ shifts, leaves = [], onDateClick, onShiftClick, 
                   </div>
                 ))}
               </>
+            )}
+            {canCreate && selectedDate && (
+              <div className="flex flex-col gap-2 pt-4 border-t">
+                <Button 
+                  onClick={() => {
+                    onAddShift?.(selectedDate);
+                    setSelectedDate(null);
+                  }}
+                  className="w-full"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Shift
+                </Button>
+                <Button 
+                  onClick={() => {
+                    onAddLeave?.(selectedDate);
+                    setSelectedDate(null);
+                  }}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <CalendarDays className="mr-2 h-4 w-4" />
+                  Add Leave
+                </Button>
+              </div>
             )}
           </div>
         </DialogContent>
