@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
 
   if (includeUsers && owners.length) {
     const tenantIds = owners
-      .map((o) => o.yachtId)
+      .map((o: { yachtId: string | null }) => o.yachtId)
       .filter((v): v is string => Boolean(v));
 
     const users = tenantIds.length
