@@ -126,65 +126,78 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      console.log("🔄 [AUTH] Session callback called", { hasToken: !!token, tokenId: token.id });
-      if (session.user && token.id) {
-        // Fetch fresh user data from database to ensure name and other fields are up-to-date
-        try {
-          // Check if db is properly initialized
-          if (!db || typeof db.user?.findUnique !== 'function') {
-            console.warn("⚠️ [AUTH] Prisma client not properly initialized, using token data");
+      try {
+        console.log("🔄 [AUTH] Session callback called", { hasToken: !!token, tokenId: token.id });
+        if (session.user && token.id) {
+          // Fetch fresh user data from database to ensure name and other fields are up-to-date
+          try {
+            // Check if db is properly initialized
+            if (!db || typeof db.user?.findUnique !== 'function') {
+              console.warn("⚠️ [AUTH] Prisma client not properly initialized, using token data");
+              session.user.id = token.id as string;
+              session.user.role = token.role as UserRole;
+              session.user.yachtId = token.yachtId as string | null;
+              (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+              session.user.permissions = token.permissions as string | null | undefined;
+              return session;
+            }
+
+            const freshUser = await db.user.findUnique({
+              where: { id: token.id as string },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                yachtId: true,
+                permissions: true,
+              },
+            });
+
+            if (freshUser) {
+              session.user.id = freshUser.id;
+              session.user.name = freshUser.name;
+              session.user.email = freshUser.email;
+              session.user.role = freshUser.role;
+              session.user.yachtId = freshUser.yachtId;
+              (session.user as any).tenantId = freshUser.yachtId;
+              session.user.permissions = freshUser.permissions;
+              console.log("✅ [AUTH] Session updated with fresh user data from database");
+            } else {
+              // Fallback to token data if user not found
+              session.user.id = token.id as string;
+              session.user.role = token.role as UserRole;
+              session.user.yachtId = token.yachtId as string | null;
+              (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+              session.user.permissions = token.permissions as string | null | undefined;
+              console.log("⚠️ [AUTH] User not found in database, using token data");
+            }
+          } catch (error) {
+            console.error("❌ [AUTH] Error fetching fresh user data:", error);
+            if (error instanceof Error) {
+              console.error("❌ [AUTH] Error details:", error.message, error.stack);
+            }
+            // Fallback to token data on error - don't throw, just use token
             session.user.id = token.id as string;
             session.user.role = token.role as UserRole;
             session.user.yachtId = token.yachtId as string | null;
             (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
             session.user.permissions = token.permissions as string | null | undefined;
-            return session;
           }
-
-          const freshUser = await db.user.findUnique({
-            where: { id: token.id as string },
-            select: {
-              id: true,
-              email: true,
-              name: true,
-              role: true,
-              yachtId: true,
-              permissions: true,
-            },
-          });
-
-          if (freshUser) {
-            session.user.id = freshUser.id;
-            session.user.name = freshUser.name;
-            session.user.email = freshUser.email;
-            session.user.role = freshUser.role;
-            session.user.yachtId = freshUser.yachtId;
-            (session.user as any).tenantId = freshUser.yachtId;
-            session.user.permissions = freshUser.permissions;
-            console.log("✅ [AUTH] Session updated with fresh user data from database");
-          } else {
-            // Fallback to token data if user not found
-            session.user.id = token.id as string;
-            session.user.role = token.role as UserRole;
-            session.user.yachtId = token.yachtId as string | null;
-            (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
-            session.user.permissions = token.permissions as string | null | undefined;
-            console.log("⚠️ [AUTH] User not found in database, using token data");
-          }
-        } catch (error) {
-          console.error("❌ [AUTH] Error fetching fresh user data:", error);
-          if (error instanceof Error) {
-            console.error("❌ [AUTH] Error details:", error.message, error.stack);
-          }
-          // Fallback to token data on error - don't throw, just use token
-          session.user.id = token.id as string;
-          session.user.role = token.role as UserRole;
-          session.user.yachtId = token.yachtId as string | null;
-          (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
-          session.user.permissions = token.permissions as string | null | undefined;
         }
+        return session;
+      } catch (error) {
+        // Ultimate fallback - ensure we always return a valid session
+        console.error("❌ [AUTH] Critical error in session callback:", error);
+        if (session.user && token.id) {
+          session.user.id = token.id as string;
+          session.user.role = (token.role as UserRole) || UserRole.CREW;
+          session.user.yachtId = (token.yachtId as string | null) || null;
+          (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+          session.user.permissions = (token.permissions as string | null | undefined) || null;
+        }
+        return session;
       }
-      return session;
     },
   },
   pages: {
