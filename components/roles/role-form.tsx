@@ -72,7 +72,7 @@ export function RoleForm({ role, onSuccess }: RoleFormProps) {
       // Deselect all in group
       form.setValue(
         "permissions",
-        current.filter((p) => !groupPermissions.includes(p))
+        current.filter((p) => !groupPermissions.includes(p as Permission))
       );
     } else {
       // Select all in group
