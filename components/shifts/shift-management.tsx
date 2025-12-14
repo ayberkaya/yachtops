@@ -543,20 +543,20 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {groupedShifts[date].map((shift) => (
                     <div
                       key={shift.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-accent/50 transition-colors"
+                      className="flex items-center justify-between py-1.5 px-2 border rounded-lg hover:bg-accent/50 transition-colors"
                     >
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{shift.user.name || shift.user.email}</span>
+                      <div className="flex items-center gap-2 flex-1">
+                        <div className="flex items-center gap-1.5">
+                          <User className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-medium text-sm">{shift.user.name || shift.user.email}</span>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-xs text-muted-foreground">
                             {format(new Date(shift.startTime), "HH:mm")} - {format(new Date(shift.endTime), "HH:mm")}
                           </span>
                         </div>
@@ -564,10 +564,10 @@ export function ShiftManagement({ initialShifts, initialLeaves = [], users }: Sh
                           {shiftTypeLabels[shift.type]}
                         </Badge>
                         {shift.notes && (
-                          <span className="text-sm text-muted-foreground truncate max-w-xs">{shift.notes}</span>
+                          <span className="text-xs text-muted-foreground truncate max-w-xs">{shift.notes}</span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1">
                         <Button
                           variant="ghost"
                           size="sm"

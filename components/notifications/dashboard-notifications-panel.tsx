@@ -139,9 +139,10 @@ export function DashboardNotificationsPanel() {
     );
   };
 
-  // Filter out task-related notifications for completed tasks
+  // Filter out task-related notifications for completed tasks and remove duplicates
   const filteredNotifications = useMemo(() => {
-    return notifications.filter((notification) => {
+    // First filter out completed tasks
+    const withoutCompleted = notifications.filter((notification) => {
       // If notification has no task, always show it
       if (!notification.task) {
         return true;
@@ -153,6 +154,23 @@ export function DashboardNotificationsPanel() {
       // Otherwise, show all notifications
       return true;
     });
+
+    // Remove duplicates based on type, content, taskId, and messageId
+    // Keep only the most recent one for each unique combination
+    const seen = new Map<string, typeof notifications[0]>();
+    
+    for (const notification of withoutCompleted) {
+      const key = `${notification.type}-${notification.content}-${notification.taskId || ''}-${notification.messageId || ''}`;
+      const existing = seen.get(key);
+      
+      if (!existing || new Date(notification.createdAt) > new Date(existing.createdAt)) {
+        seen.set(key, notification);
+      }
+    }
+    
+    return Array.from(seen.values()).sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   }, [notifications]);
 
   const filteredUnreadCount = filteredNotifications.filter((n) => !n.read).length;
