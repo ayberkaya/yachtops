@@ -2,9 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ExpenseStatus, PaidBy, CashTransactionType } from "@prisma/client";
+import { ExpenseStatus, PaidBy, CashTransactionType, AuditAction } from "@prisma/client";
 import { z } from "zod";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { createAuditLog } from "@/lib/audit-log";
+import { hasPermission } from "@/lib/permissions";
 
 const updateExpenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).optional(),
@@ -40,10 +42,11 @@ export async function GET(
         { status: 400 }
       );
     }
-    const expense = await db.expense.findUnique({
+    const expense = await db.expense.findFirst({
       where: {
         id,
         yachtId: tenantId || undefined,
+        deletedAt: null, // Exclude soft-deleted expenses
       },
       include: {
         createdBy: {
@@ -59,6 +62,7 @@ export async function GET(
           select: { id: true, name: true },
         },
         receipts: {
+          where: { deletedAt: null },
           select: { id: true, fileUrl: true, uploadedAt: true },
         },
       },
@@ -141,11 +145,12 @@ export async function PATCH(
       );
     }
 
-    // Check if expense exists and user has access
-    const existingExpense = await db.expense.findUnique({
+    // Check if expense exists and user has access (exclude soft-deleted)
+    const existingExpense = await db.expense.findFirst({
       where: {
         id,
         yachtId: tenantId || undefined,
+        deletedAt: null, // Exclude soft-deleted expenses
       },
     });
 
@@ -153,8 +158,22 @@ export async function PATCH(
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
+    // Check permissions for editing
+    const canEdit = 
+      existingExpense.createdByUserId === session.user.id ||
+      hasPermission(session.user, "expenses.edit", session.user.permissions);
+
+    if (!canEdit && !canApproveExpenses(session.user)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     // Prepare update data
-    const updateData: any = {};
+    const updateData: any = {
+      updatedByUserId: session.user.id,
+    };
+    
+    // Track changes for audit log
+    const changes: any = {};
 
     // Handle status updates for approval/rejection
     if (validated.status) {
@@ -237,6 +256,12 @@ export async function PATCH(
             ? session.user.id
             : null;
 
+        changes.status = { from: existingExpense.status, to: validated.status };
+        
+        if (validated.status === ExpenseStatus.APPROVED) {
+          changes.approvedBy = session.user.id;
+        }
+
         // If rejecting, add reject reason to notes
         if (validated.status === ExpenseStatus.REJECTED && validated.rejectReason) {
           const existingNotes = existingExpense.notes || "";
@@ -244,12 +269,14 @@ export async function PATCH(
           updateData.notes = existingNotes
             ? `${existingNotes}\n\n${rejectNote}`
             : rejectNote;
+          changes.rejectReason = validated.rejectReason;
         }
       }
     }
 
     // Handle reimbursed status updates
     if (validated.isReimbursed !== undefined) {
+      changes.isReimbursed = { from: existingExpense.isReimbursed, to: validated.isReimbursed };
       updateData.isReimbursed = validated.isReimbursed;
       updateData.reimbursedAt = validated.isReimbursed 
         ? (validated.reimbursedAt ? new Date(validated.reimbursedAt) : new Date())
@@ -290,6 +317,27 @@ export async function PATCH(
           },
         },
       });
+      
+      // Create audit log
+      await createAuditLog({
+        yachtId: tenantId!,
+        userId: session.user.id,
+        action: validated.status === ExpenseStatus.APPROVED 
+          ? AuditAction.APPROVE 
+          : validated.status === ExpenseStatus.REJECTED 
+          ? AuditAction.REJECT 
+          : AuditAction.UPDATE,
+        entityType: "Expense",
+        entityId: id,
+        changes: Object.keys(changes).length > 0 ? changes : undefined,
+        description: validated.status === ExpenseStatus.APPROVED 
+          ? `Expense approved: ${existingExpense.description}`
+          : validated.status === ExpenseStatus.REJECTED
+          ? `Expense rejected: ${existingExpense.description}`
+          : `Expense updated: ${existingExpense.description}`,
+        request,
+      });
+      
       console.log("Expense updated successfully");
     } catch (dbError) {
       console.error("Database error:", dbError);
@@ -335,6 +383,109 @@ export async function PATCH(
     
     console.error("Returning error response:", errorResponse);
     return NextResponse.json(errorResponse, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const tenantIdFromSession = getTenantId(session);
+    const isAdmin = isPlatformAdmin(session);
+
+    const { id } = await params;
+    if (!id || id === "undefined" || id === "null") {
+      return NextResponse.json(
+        { error: "Expense id is required" },
+        { status: 400 }
+      );
+    }
+
+    const tenantId = tenantIdFromSession;
+    if (!tenantId && !isAdmin) {
+      return NextResponse.json(
+        { error: "User must be assigned to a tenant" },
+        { status: 400 }
+      );
+    }
+
+    // Check permissions
+    if (!hasPermission(session.user, "expenses.delete", session.user.permissions)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    // Find the expense (including soft-deleted ones for restore check)
+    const existingExpense = await db.expense.findFirst({
+      where: {
+        id,
+        yachtId: tenantId || undefined,
+      },
+    });
+
+    if (!existingExpense) {
+      return NextResponse.json({ error: "Expense not found" }, { status: 404 });
+    }
+
+    // Check if already deleted
+    if (existingExpense.deletedAt) {
+      return NextResponse.json(
+        { error: "Expense is already deleted" },
+        { status: 400 }
+      );
+    }
+
+    // Prevent deletion of approved expenses with cash transactions (financial integrity)
+    if (existingExpense.status === ExpenseStatus.APPROVED) {
+      const hasCashTransaction = await db.cashTransaction.findFirst({
+        where: {
+          expenseId: existingExpense.id,
+          deletedAt: null,
+        },
+      });
+
+      if (hasCashTransaction) {
+        return NextResponse.json(
+          {
+            error: "Cannot delete approved expense with cash transaction. Please contact an administrator.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Soft delete
+    await db.expense.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        deletedByUserId: session.user.id,
+      },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      yachtId: tenantId!,
+      userId: session.user.id,
+      action: AuditAction.DELETE,
+      entityType: "Expense",
+      entityId: id,
+      description: `Expense deleted: ${existingExpense.description} (${existingExpense.amount} ${existingExpense.currency})`,
+      request,
+    });
+
+    return NextResponse.json({ success: true, message: "Expense deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting expense:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
   }
 }
 

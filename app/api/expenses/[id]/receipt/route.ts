@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { hasPermission } from "@/lib/permissions";
+import { validateFileUpload } from "@/lib/file-upload-security";
+import { createAuditLog } from "@/lib/audit-log";
+import { AuditAction } from "@prisma/client";
 
 export async function POST(
   request: NextRequest,
@@ -21,10 +25,11 @@ export async function POST(
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
-    const expense = await db.expense.findUnique({
+    const expense = await db.expense.findFirst({
       where: {
         id,
         yachtId: tenantId || undefined,
+        deletedAt: null, // Exclude soft-deleted expenses
       },
     });
 
@@ -32,11 +37,29 @@ export async function POST(
       return NextResponse.json({ error: "Expense not found" }, { status: 404 });
     }
 
+    // Check permissions
+    const canUpload = 
+      expense.createdByUserId === session.user.id ||
+      hasPermission(session.user, "documents.upload", session.user.permissions);
+
+    if (!canUpload) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
+    }
+
+    // Validate file upload security
+    const validation = validateFileUpload(file, "receipt");
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || "File validation failed" },
+        { status: 400 }
+      );
     }
 
     const arrayBuffer = await file.arrayBuffer();
@@ -49,7 +72,19 @@ export async function POST(
       data: {
         expenseId: id,
         fileUrl: dataUrl,
+        createdByUserId: session.user.id,
       },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      yachtId: tenantId!,
+      userId: session.user.id,
+      action: AuditAction.CREATE,
+      entityType: "ExpenseReceipt",
+      entityId: receipt.id,
+      description: `Receipt uploaded for expense: ${expense.description}`,
+      request,
     });
 
     return NextResponse.json(receipt, { status: 201 });

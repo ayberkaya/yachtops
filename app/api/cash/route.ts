@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { CashTransactionType } from "@prisma/client";
+import { CashTransactionType, AuditAction } from "@prisma/client";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { createAuditLog } from "@/lib/audit-log";
+import { hasPermission } from "@/lib/permissions";
 
 const cashTransactionSchema = z.object({
   type: z.nativeEnum(CashTransactionType),
@@ -40,10 +42,11 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Get all cash transactions (tenant resolved above)
+      // Get all cash transactions (tenant resolved above) - exclude soft-deleted
       const transactions = await db.cashTransaction.findMany({
         where: {
           yachtId: tenantId || undefined,
+          deletedAt: null, // Exclude soft-deleted transactions
         },
         include: {
           createdBy: {
@@ -56,7 +59,7 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
       });
 
-      // Calculate current balance
+      // Calculate current balance (only non-deleted transactions)
       const balance = transactions.reduce((acc, transaction) => {
         if (transaction.type === CashTransactionType.DEPOSIT) {
           return acc + transaction.amount;
@@ -117,6 +120,11 @@ export async function POST(request: NextRequest) {
       }
       const ensuredTenantId = tenantId as string;
 
+      // Check permissions - cash transactions should be restricted
+      if (!hasPermission(session.user, "expenses.create", session.user.permissions)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
       let body;
       try {
         body = await request.json();
@@ -168,6 +176,17 @@ export async function POST(request: NextRequest) {
             select: { id: true, name: true, email: true },
           },
         },
+      });
+
+      // Create audit log
+      await createAuditLog({
+        yachtId: ensuredTenantId,
+        userId: session.user.id,
+        action: AuditAction.CREATE,
+        entityType: "CashTransaction",
+        entityId: transaction.id,
+        description: `Cash transaction created: ${validated.type} ${validated.amount} ${validated.currency}`,
+        request,
       });
 
       console.log("POST /api/cash - Transaction created:", transaction);

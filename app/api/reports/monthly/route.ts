@@ -80,6 +80,7 @@ export async function GET(request: NextRequest) {
       where: {
         yachtId: tenantId || undefined,
         status: ExpenseStatus.APPROVED,
+        deletedAt: null, // Exclude soft-deleted expenses
         date: {
           gte: startDate,
           lte: endDate,

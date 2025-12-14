@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { ExpenseStatus, PaymentMethod, PaidBy, CashTransactionType } from "@prisma/client";
+import { ExpenseStatus, PaymentMethod, PaidBy, CashTransactionType, AuditAction } from "@prisma/client";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { createAuditLog } from "@/lib/audit-log";
+import { hasPermission } from "@/lib/permissions";
 
 const expenseSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -60,6 +62,7 @@ export async function GET(request: NextRequest) {
 
     const where: any = {
       yachtId: effectiveTenantId,
+      deletedAt: null, // Exclude soft-deleted expenses
     };
 
     if (status) {
@@ -128,6 +131,7 @@ export async function GET(request: NextRequest) {
           select: { id: true, name: true },
         },
         receipts: {
+          where: { deletedAt: null },
           select: { id: true, fileUrl: true },
         },
       },
@@ -159,6 +163,11 @@ export async function POST(request: NextRequest) {
       );
     }
     const ensuredTenantId = tenantId as string;
+
+    // Check permissions
+    if (!hasPermission(session.user, "expenses.create", session.user.permissions)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const body = await request.json();
     const validated = expenseSchema.parse(body);
@@ -200,6 +209,17 @@ export async function POST(request: NextRequest) {
           select: { id: true, name: true },
         },
       },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      yachtId: ensuredTenantId,
+      userId: session.user.id,
+      action: AuditAction.CREATE,
+      entityType: "Expense",
+      entityId: expense.id,
+      description: `Expense created: ${expense.description} (${expense.amount} ${expense.currency})`,
+      request,
     });
 
     return NextResponse.json(expense, { status: 201 });

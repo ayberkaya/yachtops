@@ -3,6 +3,9 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId } from "@/lib/tenant";
+import { createAuditLog } from "@/lib/audit-log";
+import { AuditAction } from "@prisma/client";
+import { validateFileUpload, sanitizeFileName } from "@/lib/file-upload-security";
 
 export async function GET(request: NextRequest) {
   try {
@@ -27,9 +30,17 @@ export async function GET(request: NextRequest) {
     const docs = await db.crewDocument.findMany({
       where: {
         yachtId: ensuredTenantId,
+        deletedAt: null, // Exclude soft-deleted documents
       },
       include: {
         user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        createdBy: {
           select: {
             id: true,
             name: true,
@@ -82,6 +93,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
+    // Validate file upload security
+    const validation = validateFileUpload(file, "document");
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || "File validation failed" },
+        { status: 400 }
+      );
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const mimeType = file.type || "application/pdf";
@@ -96,6 +116,7 @@ export async function POST(request: NextRequest) {
         fileUrl: dataUrl,
         notes,
         expiryDate,
+        createdByUserId: session.user.id,
       },
       include: {
         user: {
@@ -105,7 +126,25 @@ export async function POST(request: NextRequest) {
             email: true,
           },
         },
+        createdBy: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
       },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      yachtId: ensuredTenantId,
+      userId: session.user.id,
+      action: AuditAction.CREATE,
+      entityType: "CrewDocument",
+      entityId: doc.id,
+      description: `Crew document uploaded: ${doc.title}`,
+      request,
     });
 
     return NextResponse.json(doc, { status: 201 });

@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { validateFileUpload, sanitizeFileName } from "@/lib/file-upload-security";
+import { createAuditLog } from "@/lib/audit-log";
+import { AuditAction } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,6 +30,12 @@ export async function GET(request: NextRequest) {
     const docs = await db.vesselDocument.findMany({
       where: {
         yachtId: tenantId || undefined,
+        deletedAt: null, // Exclude soft-deleted documents
+      },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -98,7 +106,24 @@ export async function POST(request: NextRequest) {
         fileUrl: dataUrl,
         notes,
         expiryDate,
+        createdByUserId: session.user.id,
       },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      yachtId: ensuredTenantId,
+      userId: session.user.id,
+      action: AuditAction.CREATE,
+      entityType: "VesselDocument",
+      entityId: doc.id,
+      description: `Vessel document uploaded: ${doc.title}`,
+      request,
     });
 
     return NextResponse.json(doc, { status: 201 });

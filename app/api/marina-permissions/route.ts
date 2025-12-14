@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { hasPermission } from "@/lib/permissions";
+import { validateFileUpload, sanitizeFileName } from "@/lib/file-upload-security";
+import { createAuditLog } from "@/lib/audit-log";
+import { AuditAction } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,9 +23,19 @@ export async function GET(request: NextRequest) {
     }
     const ensuredTenantId = tenantId as string;
 
+    if (!hasPermission(session.user, "documents.marina.view", session.user.permissions)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const docs = await db.marinaPermissionDocument.findMany({
       where: {
         yachtId: tenantId || undefined,
+        deletedAt: null, // Exclude soft-deleted documents
+      },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -52,6 +66,10 @@ export async function POST(request: NextRequest) {
     }
     const ensuredTenantId = tenantId as string;
 
+    if (!hasPermission(session.user, "documents.upload", session.user.permissions)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
     const title = (formData.get("title") as string | null) || "Marina / Port Permission";
@@ -63,20 +81,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
     }
 
+    // Validate file upload security
+    const validation = validateFileUpload(file, "document");
+    if (!validation.valid) {
+      return NextResponse.json(
+        { error: validation.error || "File validation failed" },
+        { status: 400 }
+      );
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
     const mimeType = file.type || "application/pdf";
     const base64 = buffer.toString("base64");
     const dataUrl = `data:${mimeType};base64,${base64}`;
 
+    // Sanitize file name
+    const sanitizedFileName = sanitizeFileName(file.name);
+
     const doc = await db.marinaPermissionDocument.create({
       data: {
         yachtId: ensuredTenantId,
-        title,
+        title: title || sanitizedFileName,
         fileUrl: dataUrl,
         notes,
         expiryDate,
+        createdByUserId: session.user.id,
       },
+      include: {
+        createdBy: {
+          select: { id: true, name: true, email: true },
+        },
+      },
+    });
+
+    // Create audit log
+    await createAuditLog({
+      yachtId: ensuredTenantId,
+      userId: session.user.id,
+      action: AuditAction.CREATE,
+      entityType: "MarinaPermissionDocument",
+      entityId: doc.id,
+      description: `Marina permission document uploaded: ${doc.title}`,
+      request,
     });
 
     return NextResponse.json(doc, { status: 201 });

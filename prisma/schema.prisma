@@ -23,9 +23,20 @@ model User {
   yachtId                 String?               @map("yacht_id")
   alcoholStockHistory     AlcoholStockHistory[]
   createdCashTransactions CashTransaction[]     @relation("CashTransactionCreator")
+  deletedCashTransactions CashTransaction[]     @relation("CashTransactionDeleter")
   crewDocuments           CrewDocument[]        @relation("CrewDocumentOwner")
+  createdCrewDocuments    CrewDocument[]       @relation("CrewDocumentCreator")
+  deletedCrewDocuments    CrewDocument[]       @relation("CrewDocumentDeleter")
   approvedExpenses        Expense[]             @relation("ExpenseApprover")
   createdExpenses         Expense[]             @relation("ExpenseCreator")
+  updatedExpenses         Expense[]             @relation("ExpenseUpdater")
+  deletedExpenses         Expense[]             @relation("ExpenseDeleter")
+  createdExpenseReceipts  ExpenseReceipt[]      @relation("ExpenseReceiptCreator")
+  deletedExpenseReceipts  ExpenseReceipt[]      @relation("ExpenseReceiptDeleter")
+  createdVesselDocuments  VesselDocument[]      @relation("VesselDocumentCreator")
+  deletedVesselDocuments  VesselDocument[]     @relation("VesselDocumentDeleter")
+  createdMarinaPermissions MarinaPermissionDocument[] @relation("MarinaPermissionCreator")
+  deletedMarinaPermissions MarinaPermissionDocument[] @relation("MarinaPermissionDeleter")
   createdMaintenanceLogs  MaintenanceLog[]      @relation("MaintenanceCreator")
   messageAttachments      MessageAttachment[]   @relation("MessageAttachmentUploader")
   createdChannels         MessageChannel[]      @relation("ChannelCreator")
@@ -52,6 +63,7 @@ model User {
   approvedLeaves          Leave[]               @relation("LeaveApprover")
   customRoleId            String?               @map("custom_role_id")
   customRole              CustomRole?           @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
+  auditLogs               AuditLog[]
 
   @@map("users")
 }
@@ -83,6 +95,7 @@ model Yacht {
   shifts                    Shift[]
   leaves                    Leave[]
   customRoles               CustomRole[]
+  auditLogs                 AuditLog[]
 
   @@map("yachts")
 }
@@ -277,6 +290,8 @@ model Expense {
   tripId             String?           @map("trip_id")
   createdByUserId    String            @map("created_by_user_id")
   approvedByUserId   String?           @map("approved_by_user_id")
+  updatedByUserId    String?           @map("updated_by_user_id")
+  deletedByUserId    String?           @map("deleted_by_user_id")
   status             ExpenseStatus     @default(DRAFT)
   date               DateTime
   categoryId         String            @map("category_id")
@@ -296,26 +311,36 @@ model Expense {
   isReimbursed       Boolean           @default(false) @map("is_reimbursed")
   reimbursedAt       DateTime?         @map("reimbursed_at")
   notes              String?
+  deletedAt          DateTime?         @map("deleted_at")
   createdAt          DateTime          @default(now()) @map("created_at")
   updatedAt          DateTime          @updatedAt @map("updated_at")
   cashTransactions   CashTransaction[]
   receipts           ExpenseReceipt[]
   approvedBy         User?             @relation("ExpenseApprover", fields: [approvedByUserId], references: [id])
+  updatedBy          User?             @relation("ExpenseUpdater", fields: [updatedByUserId], references: [id])
+  deletedBy          User?             @relation("ExpenseDeleter", fields: [deletedByUserId], references: [id])
   category           ExpenseCategory   @relation(fields: [categoryId], references: [id])
   createdBy          User              @relation("ExpenseCreator", fields: [createdByUserId], references: [id])
   trip               Trip?             @relation(fields: [tripId], references: [id])
   yacht              Yacht             @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
+  @@index([deletedAt])
   @@map("expenses")
 }
 
 model ExpenseReceipt {
-  id         String   @id @default(cuid())
-  expenseId  String   @map("expense_id")
-  fileUrl    String   @map("file_url")
-  uploadedAt DateTime @default(now()) @map("uploaded_at")
-  expense    Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  expenseId     String    @map("expense_id")
+  fileUrl       String    @map("file_url")
+  uploadedAt    DateTime  @default(now()) @map("uploaded_at")
+  createdByUserId String? @map("created_by_user_id")
+  deletedByUserId String? @map("deleted_by_user_id")
+  deletedAt     DateTime? @map("deleted_at")
+  expense       Expense   @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  createdBy     User?     @relation("ExpenseReceiptCreator", fields: [createdByUserId], references: [id])
+  deletedBy     User?     @relation("ExpenseReceiptDeleter", fields: [deletedByUserId], references: [id])
 
+  @@index([deletedAt])
   @@map("expense_receipts")
 }
 
@@ -328,37 +353,53 @@ model CashTransaction {
   description     String?
   expenseId       String?             @map("expense_id")
   createdByUserId String              @map("created_by_user_id")
+  deletedByUserId String?             @map("deleted_by_user_id")
+  deletedAt       DateTime?           @map("deleted_at")
   createdAt       DateTime            @default(now()) @map("created_at")
   createdBy       User                @relation("CashTransactionCreator", fields: [createdByUserId], references: [id])
+  deletedBy       User?               @relation("CashTransactionDeleter", fields: [deletedByUserId], references: [id])
   expense         Expense?            @relation(fields: [expenseId], references: [id])
   yacht           Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
+  @@index([deletedAt])
   @@map("cash_transactions")
 }
 
 model MarinaPermissionDocument {
-  id         String    @id @default(cuid())
-  yachtId    String    @map("yacht_id")
-  title      String
-  fileUrl    String    @map("file_url")
-  notes      String?
-  expiryDate DateTime? @map("expiry_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  yachtId       String    @map("yacht_id")
+  title         String
+  fileUrl       String    @map("file_url")
+  notes         String?
+  expiryDate    DateTime? @map("expiry_date")
+  createdByUserId String? @map("created_by_user_id")
+  deletedByUserId String? @map("deleted_by_user_id")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  yacht         Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  createdBy     User?     @relation("MarinaPermissionCreator", fields: [createdByUserId], references: [id])
+  deletedBy     User?     @relation("MarinaPermissionDeleter", fields: [deletedByUserId], references: [id])
 
+  @@index([deletedAt])
   @@map("marina_permission_documents")
 }
 
 model VesselDocument {
-  id         String    @id @default(cuid())
-  yachtId    String    @map("yacht_id")
-  title      String
-  fileUrl    String    @map("file_url")
-  notes      String?
-  expiryDate DateTime? @map("expiry_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  yachtId       String    @map("yacht_id")
+  title         String
+  fileUrl       String    @map("file_url")
+  notes         String?
+  expiryDate    DateTime? @map("expiry_date")
+  createdByUserId String? @map("created_by_user_id")
+  deletedByUserId String? @map("deleted_by_user_id")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  yacht         Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  createdBy     User?     @relation("VesselDocumentCreator", fields: [createdByUserId], references: [id])
+  deletedBy     User?     @relation("VesselDocumentDeleter", fields: [deletedByUserId], references: [id])
 
+  @@index([deletedAt])
   @@map("vessel_documents")
 }
 
@@ -390,17 +431,23 @@ model UserNoteChecklistItem {
 }
 
 model CrewDocument {
-  id         String    @id @default(cuid())
-  yachtId    String    @map("yacht_id")
-  userId     String?   @map("user_id")
-  title      String
-  fileUrl    String    @map("file_url")
-  notes      String?
-  expiryDate DateTime? @map("expiry_date")
-  createdAt  DateTime  @default(now()) @map("created_at")
-  user       User?     @relation("CrewDocumentOwner", fields: [userId], references: [id])
-  yacht      Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  id            String    @id @default(cuid())
+  yachtId       String    @map("yacht_id")
+  userId        String?   @map("user_id")
+  title         String
+  fileUrl       String    @map("file_url")
+  notes         String?
+  expiryDate    DateTime? @map("expiry_date")
+  createdByUserId String? @map("created_by_user_id")
+  deletedByUserId String? @map("deleted_by_user_id")
+  deletedAt     DateTime? @map("deleted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  user          User?     @relation("CrewDocumentOwner", fields: [userId], references: [id])
+  createdBy     User?     @relation("CrewDocumentCreator", fields: [createdByUserId], references: [id])
+  deletedBy     User?     @relation("CrewDocumentDeleter", fields: [deletedByUserId], references: [id])
+  yacht         Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
+  @@index([deletedAt])
   @@map("crew_documents")
 }
 
@@ -813,4 +860,34 @@ model CustomRole {
   @@unique([yachtId, name])
   @@index([yachtId, active])
   @@map("custom_roles")
+}
+
+model AuditLog {
+  id            String      @id @default(cuid())
+  yachtId       String      @map("yacht_id")
+  userId        String      @map("user_id")
+  action        AuditAction
+  entityType    String      @map("entity_type")
+  entityId      String      @map("entity_id")
+  changes       Json?       @db.JsonB
+  description   String?
+  ipAddress     String?     @map("ip_address")
+  userAgent     String?     @map("user_agent")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  yacht         Yacht       @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@index([yachtId, entityType, entityId])
+  @@index([yachtId, createdAt])
+  @@index([userId, createdAt])
+  @@map("audit_logs")
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  RESTORE
+  APPROVE
+  REJECT
 }
