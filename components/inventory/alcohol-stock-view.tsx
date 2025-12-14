@@ -317,16 +317,16 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
       {/* Stock List */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div>
-              <CardTitle>Current Stock</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg md:text-xl">Current Stock</CardTitle>
+              <CardDescription className="text-xs md:text-sm">
                 Manage quantities and set low stock alerts
               </CardDescription>
             </div>
             <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
-              <SelectTrigger className="w-[150px]">
-                <Filter className="mr-2 h-4 w-4" />
+              <SelectTrigger className="w-full md:w-[150px]">
+                <Filter className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -346,13 +346,13 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                 : "No stock items found for selected category."}
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
               {filteredStocks.map((stock) => {
                 const isLow = isLowStock(stock);
                 return (
                   <div
                     key={stock.id}
-                    className={`relative flex items-center justify-between py-3 px-4 border rounded-lg ${
+                    className={`relative flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-3 px-3 md:px-4 border rounded-lg ${
                       isLow
                         ? "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
                         : ""
@@ -367,32 +367,32 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                     }
                   >
                     {getCategoryBadge(stock.category) && (
-                      <div className="absolute -top-[14px] left-0 z-10">
+                      <div className="absolute -top-[12px] left-2 md:left-0 z-10">
                         {getCategoryBadge(stock.category)}
                       </div>
                     )}
-                    <div className={`flex-1 ${!isLow ? "!text-black" : ""}`} style={!isLow ? { color: '#000000' } : undefined}>
-                      <div className="flex items-center gap-2 mb-0.5">
+                    <div className={`flex-1 min-w-0 ${!isLow ? "!text-black" : ""}`} style={!isLow ? { color: '#000000' } : undefined}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h3
-                          className={`font-semibold text-base ${isLow ? "text-white" : "!text-black"}`}
+                          className={`font-semibold text-sm md:text-base truncate ${isLow ? "text-white" : "!text-black"}`}
                           style={!isLow ? { color: '#000000' } : undefined}
                         >
                           {stock.name}
                         </h3>
                         {isLow && (
-                          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800 text-[10px] px-1.5 py-0.5">
-                            <AlertTriangle className="h-2.5 w-2.5" />
+                          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800 text-[9px] md:text-[10px] px-1.5 py-0.5 flex-shrink-0">
+                            <AlertTriangle className="h-2 w-2 md:h-2.5 md:w-2.5" />
                             Low Stock
                           </Badge>
                         )}
                       </div>
                       <div
-                        className={`flex items-center gap-4 text-sm font-medium ${isLow ? "text-white" : "!text-black"}`}
+                        className={`flex items-center gap-2 md:gap-4 text-xs md:text-sm font-medium ${isLow ? "text-white" : "!text-black"}`}
                         style={!isLow ? { color: '#000000' } : undefined}
                       >
-                        <span>
+                        <span className="whitespace-nowrap">
                           Quantity: <strong
-                            className={`font-semibold text-sm ${isLow ? "text-white" : "!text-black"}`}
+                            className={`font-semibold text-xs md:text-sm ${isLow ? "text-white" : "!text-black"}`}
                             style={!isLow ? { color: '#000000' } : undefined}
                           >
                             {stock.quantity}
@@ -401,21 +401,21 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         </span>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2" style={!isLow ? { color: '#000000' } : undefined}>
+                    <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0" style={!isLow ? { color: '#000000' } : undefined}>
                       <Button
                         variant="outline"
                         size="icon"
                         onClick={() => handleUpdateQuantity(stock, -1)}
-                        className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                        className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
                         style={!isLow ? { color: '#000000' } : undefined}
                       >
                         <Minus
-                          className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                          className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
                           style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
                         />
                       </Button>
                       <span
-                        className={`w-12 text-center font-semibold ${!isLow ? "!text-black" : ""}`}
+                        className={`w-10 md:w-12 text-center font-semibold text-xs md:text-sm ${!isLow ? "!text-black" : ""}`}
                         style={!isLow ? { color: '#000000' } : { color: '#ffffff' }}
                       >
                         {stock.quantity}
@@ -424,11 +424,11 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         variant="outline"
                         size="icon"
                         onClick={() => handleUpdateQuantity(stock, 1)}
-                        className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                        className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
                         style={!isLow ? { color: '#000000' } : undefined}
                       >
                         <Plus
-                          className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                          className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
                           style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
                         />
                       </Button>
@@ -447,11 +447,11 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                          className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
                           style={!isLow ? { color: '#000000' } : undefined}
                         >
                           <History
-                            className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                            className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
                             style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
                           />
                         </Button>
@@ -523,11 +523,11 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                         <Button
                           variant="outline"
                           size="icon"
-                          className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                          className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
                           style={!isLow ? { color: '#000000' } : undefined}
                         >
                           <Settings
-                            className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                            className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
                             style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
                           />
                         </Button>
@@ -593,11 +593,11 @@ export function AlcoholStockView({ initialStocks }: AlcoholStockViewProps) {
                       variant="outline"
                       size="icon"
                       onClick={() => handleDeleteStock(stock.id)}
-                      className={`h-8 w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                      className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
                       style={!isLow ? { color: '#000000' } : undefined}
                     >
                       <Trash2
-                        className={`h-4 w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
+                        className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`}
                         style={!isLow ? { color: '#000000', stroke: '#000000' } : { color: '#ffffff', stroke: '#ffffff' }}
                       />
                     </Button>
