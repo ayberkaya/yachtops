@@ -105,7 +105,7 @@ function getNotificationTitle(type: NotificationType): string {
     TASK_DUE_SOON: "Task Due Soon",
     TASK_OVERDUE: "Task Overdue",
     MESSAGE_MENTION: "You Were Mentioned",
-    MESSAGE_REPLY: "New Reply",
+    MESSAGE_RECEIVED: "New Message",
     SHOPPING_LIST_COMPLETED: "Shopping List Completed",
   };
   return titles[type] || "HelmOps Notification";
