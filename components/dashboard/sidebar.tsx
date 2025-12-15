@@ -732,6 +732,7 @@ export function Sidebar() {
             children: [
               { href: "/admin", label: "Create User", permission: null },
               { href: "/admin/owners", label: "Owners", permission: null },
+              { href: "/admin/usage", label: "Usage Insights", permission: null },
             ],
           },
         ]

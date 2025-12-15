@@ -111,7 +111,9 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const paidBy = form.watch("paidBy");
   const crewPersonalId = form.watch("crewPersonalId");
   const paymentMethod = form.watch("paymentMethod");
-  const [receiptFile, setReceiptFile] = useState<File | null>(null);
+  const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
+  const [existingReceipts, setExistingReceipts] = useState<any[]>([]);
+  const [deletingReceiptId, setDeletingReceiptId] = useState<string | null>(null);
 
   // Load crew users (for PaidBy = CREW_PERSONAL dropdown)
   // Include all users except OWNER, SUPER_ADMIN, and ADMIN
@@ -136,6 +138,24 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     };
     loadCrew();
   }, []);
+
+  // Load existing receipts if editing
+  React.useEffect(() => {
+    if (initialData?.id) {
+      const loadReceipts = async () => {
+        try {
+          const response = await fetch(`/api/expenses/${initialData.id}`);
+          if (response.ok) {
+            const expense = await response.json();
+            setExistingReceipts(expense.receipts || []);
+          }
+        } catch (err) {
+          console.error("Failed to load receipts:", err);
+        }
+      };
+      loadReceipts();
+    }
+  }, [initialData?.id]);
 
   const performSave = async (payload: ExpenseFormData, url: string, method: "POST" | "PATCH") => {
     try {
@@ -174,20 +194,34 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
       const result = response.data as any;
 
-      // Upload receipt if provided (only when online and saved successfully)
-      if (receiptFile && result?.id && !response.queued) {
+      // Upload receipts if provided (only when online and saved successfully)
+      if (receiptFiles.length > 0 && result?.id && !response.queued) {
         try {
-          const receiptFormData = new FormData();
-          receiptFormData.append("file", receiptFile);
-          await fetch(`/api/expenses/${result.id}/receipt`, {
-            method: "POST",
-            body: receiptFormData,
-          });
+          // Upload each receipt file
+          for (const file of receiptFiles) {
+            const receiptFormData = new FormData();
+            receiptFormData.append("file", file);
+            await fetch(`/api/expenses/${result.id}/receipt`, {
+              method: "POST",
+              body: receiptFormData,
+            });
+          }
         } catch (uploadError) {
-          console.error("Failed to upload receipt image", uploadError);
-          // Don't fail the whole operation if receipt upload fails
+          console.error("Failed to upload receipt images", uploadError);
+          toast({
+            title: "Receipt Upload Warning",
+            description: "The expense was saved, but some receipts could not be uploaded. They will retry when online.",
+            variant: "destructive",
+          });
         }
       }
+
+      // Track successful expense creation/update
+      const { trackAction } = await import("@/lib/usage-tracking");
+      trackAction(method === "POST" ? "expense.create" : "expense.update", {
+        expenseId: result?.id,
+        categoryId: payload.categoryId,
+      });
 
       router.push("/dashboard/expenses");
       router.refresh();
@@ -672,22 +706,99 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 )}
               />
 
-              {/* Optional receipt photo upload */}
+              {/* Optional receipt photos upload */}
               <div className="space-y-2">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Receipt Photo (optional)
+                  Receipt Photos (optional)
                 </p>
                 <Input
                   type="file"
-                  accept="image/*"
-                  onChange={(e) =>
-                    setReceiptFile(e.target.files?.[0] ?? null)
-                  }
+                  accept="image/*,application/pdf"
+                  multiple
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    setReceiptFiles(files);
+                  }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  You can attach a photo of the receipt for this expense.
+                  You can attach multiple receipt photos or PDFs for this expense.
                 </p>
+                {receiptFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {receiptFiles.map((file, index) => (
+                      <div key={index} className="text-xs text-muted-foreground flex items-center gap-2">
+                        <span>• {file.name}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setReceiptFiles(receiptFiles.filter((_, i) => i !== index));
+                          }}
+                          className="text-red-600 hover:text-red-700"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
+              {/* Existing receipts (edit mode) */}
+              {initialData?.id && existingReceipts.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    Existing Receipts
+                  </p>
+                  <div className="space-y-2">
+                    {existingReceipts.map((receipt: any) => (
+                      <div
+                        key={receipt.id}
+                        className="flex items-center justify-between p-2 border rounded-lg"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">Receipt {new Date(receipt.uploadedAt).toLocaleDateString()}</span>
+                          <a
+                            href={`/api/expenses/receipts/${receipt.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:underline"
+                          >
+                            View
+                          </a>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (confirm("Delete this receipt?")) {
+                              setDeletingReceiptId(receipt.id);
+                              try {
+                                const response = await fetch(`/api/expenses/${initialData.id}/receipt/${receipt.id}`, {
+                                  method: "DELETE",
+                                });
+                                if (response.ok) {
+                                  setExistingReceipts(existingReceipts.filter((r: any) => r.id !== receipt.id));
+                                } else {
+                                  const error = await response.json();
+                                  alert(error.error || "Failed to delete receipt");
+                                }
+                              } catch (err) {
+                                console.error("Failed to delete receipt:", err);
+                                alert("Failed to delete receipt");
+                              } finally {
+                                setDeletingReceiptId(null);
+                              }
+                            }
+                          }}
+                          disabled={deletingReceiptId === receipt.id}
+                          className="text-xs text-red-600 hover:text-red-700 disabled:opacity-50"
+                        >
+                          {deletingReceiptId === receipt.id ? "Deleting..." : "Delete"}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <FormField
                 control={form.control}

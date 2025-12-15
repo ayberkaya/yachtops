@@ -171,6 +171,14 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
         }
       }
 
+      // Track successful task creation/update
+      const { trackAction } = await import("@/lib/usage-tracking");
+      trackAction(method === "POST" ? "task.create" : "task.update", {
+        taskId: result?.id,
+        assigneeId: cleanedData.assigneeId,
+        priority: cleanedData.priority,
+      });
+
       setPhotoFile(null);
       onSuccess(result);
     } catch (err) {

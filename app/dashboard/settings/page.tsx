@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { FeedbackButton } from "@/components/feedback/feedback-button";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -85,11 +86,20 @@ export default async function SettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Support & Help</CardTitle>
-            <CardDescription>Get assistance when you need it</CardDescription>
+            <CardTitle>Support & Feedback</CardTitle>
+            <CardDescription>Get assistance or share your thoughts</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
+              <p className="text-sm font-medium text-muted-foreground mb-2">Share Feedback</p>
+              <p className="text-sm text-muted-foreground mb-4">
+                Help us improve HelmOps. Report bugs, suggest features, or ask questions.
+              </p>
+              <div className="mb-4">
+                <FeedbackButton />
+              </div>
+            </div>
+            <div className="pt-4 border-t">
               <p className="text-sm font-medium text-muted-foreground mb-2">Need Help?</p>
               <p className="text-sm text-muted-foreground mb-4">
                 If you encounter any issues or have questions, our support team is here to help.

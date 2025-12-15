@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { Sidebar, MobileMenuButton } from "@/components/dashboard/sidebar";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
+import { PageTracker } from "@/components/dashboard/page-tracker";
 
 // Force dynamic rendering for all dashboard routes to avoid static pre-render during build
 // Session is already cached by NextAuth, so we don't need to disable fetchCache
@@ -21,6 +22,7 @@ export default async function DashboardLayout({
 
   return (
     <NotificationsProvider>
+      <PageTracker />
       <div className="min-h-screen bg-background flex flex-col md:flex-row transition-colors">
         <Sidebar />
         <main className="flex-1 overflow-y-auto bg-background md:p-8 lg:p-10 xl:p-12 transition-colors">

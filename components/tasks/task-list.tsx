@@ -147,6 +147,13 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         setTasks((prev) =>
           prev.map((t) => (t.id === taskId ? updatedTask : t))
         );
+        
+        // Track task completion
+        if (newStatus === TaskStatus.DONE) {
+          const { trackAction } = await import("@/lib/usage-tracking");
+          trackAction("task.complete", { taskId });
+        }
+        
         router.refresh();
       }
     } catch (error) {

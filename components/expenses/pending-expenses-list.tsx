@@ -67,6 +67,11 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
 
       // Optimistically remove the approved expense for instant feedback
       setExpenses((prev) => prev.filter((exp) => exp.id !== id));
+      
+      // Track expense approval
+      const { trackAction } = await import("@/lib/usage-tracking");
+      trackAction("expense.approve", { expenseId: id });
+      
       router.refresh();
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -114,6 +119,11 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
 
       // Optimistically remove the rejected expense for instant feedback
       setExpenses((prev) => prev.filter((exp) => exp.id !== rejectingExpenseId));
+      
+      // Track expense rejection
+      const { trackAction } = await import("@/lib/usage-tracking");
+      trackAction("expense.reject", { expenseId: rejectingExpenseId });
+      
       router.refresh();
     } catch (error) {
       alert("An error occurred. Please try again.");
