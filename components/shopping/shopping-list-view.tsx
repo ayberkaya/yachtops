@@ -115,6 +115,14 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
     }
   }, [selectedList]);
 
+  // Separate lists into active and completed
+  const activeLists = lists.filter(
+    (list) => list.status !== ShoppingListStatus.COMPLETED
+  );
+  const completedLists = lists.filter(
+    (list) => list.status === ShoppingListStatus.COMPLETED
+  );
+
   return (
     <div className="space-y-6">
       {/* Lists Section */}
@@ -161,56 +169,108 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
               No shopping lists yet. Create your first list.
             </p>
           ) : (
-            <div className="space-y-2">
-              {lists.map((list) => {
-                const isCompleted = list.status === ShoppingListStatus.COMPLETED;
-                return (
-                  <div
-                    key={list.id}
-                    className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors shadow-[2px_4px_6px_0px_rgba(0,0,0,0.3)] ${
-                      selectedList === list.id ? "bg-muted" : ""
-                    } ${
-                      isCompleted 
-                        ? "border-green-600 bg-green-600 text-white" 
-                        : ""
-                    }`}
-                    onClick={() => setSelectedList(list.id === selectedList ? null : list.id)}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          {isCompleted && (
-                            <CheckCircle2 className="h-5 w-5 text-green-200 flex-shrink-0" />
-                          )}
-                          <span className={`${isCompleted ? "text-white font-bold" : "font-medium"}`}>
-                            {list.name}
-                          </span>
-                          {getStatusBadge(list.status)}
+            <div className="space-y-6">
+              {/* Active Lists Section */}
+              {activeLists.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold mb-3">Active</h2>
+                  <div className="space-y-2">
+                    {activeLists.map((list) => {
+                      return (
+                        <div
+                          key={list.id}
+                          className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors shadow-[2px_4px_6px_0px_rgba(0,0,0,0.3)] ${
+                            selectedList === list.id ? "bg-muted" : ""
+                          }`}
+                          onClick={() => setSelectedList(list.id === selectedList ? null : list.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium">
+                                  {list.name}
+                                </span>
+                                {getStatusBadge(list.status)}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
+                                {" • Created by "}
+                                {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
+                              </div>
+                              {list.description && (
+                                <div className="text-xs mt-1 text-muted-foreground">{list.description}</div>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingList(list);
+                                setIsListDialogOpen(true);
+                              }}
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className={`text-sm ${isCompleted ? "text-white" : "text-muted-foreground"}`}>
-                          {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
-                          {" • Created by "}
-                          {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
-                        </div>
-                        {list.description && (
-                          <div className={`text-xs mt-1 ${isCompleted ? "text-white/90" : "text-muted-foreground"}`}>{list.description}</div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingList(list);
-                          setIsListDialogOpen(true);
-                        }}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              )}
+
+              {/* Completed Lists Section */}
+              {completedLists.length > 0 && (
+                <div>
+                  <h2 className="text-lg font-semibold mb-3">Completed</h2>
+                  <div className="space-y-2">
+                    {completedLists.map((list) => {
+                      return (
+                        <div
+                          key={list.id}
+                          className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors shadow-[2px_4px_6px_0px_rgba(0,0,0,0.3)] border-green-600 bg-green-600 text-white ${
+                            selectedList === list.id ? "bg-green-700" : ""
+                          }`}
+                          onClick={() => setSelectedList(list.id === selectedList ? null : list.id)}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <CheckCircle2 className="h-5 w-5 text-green-200 flex-shrink-0" />
+                                <span className="text-white font-bold">
+                                  {list.name}
+                                </span>
+                                {getStatusBadge(list.status)}
+                              </div>
+                              <div className="text-sm text-white">
+                                {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
+                                {" • Created by "}
+                                {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
+                              </div>
+                              {list.description && (
+                                <div className="text-xs mt-1 text-white/90">{list.description}</div>
+                              )}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setEditingList(list);
+                                setIsListDialogOpen(true);
+                              }}
+                              className="text-white hover:bg-green-700"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </CardContent>
