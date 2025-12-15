@@ -8,7 +8,7 @@ const feedbackSchema = z.object({
   message: z.string().min(1, "Message is required"),
   page: z.string().optional(),
   action: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
 });
 
 export async function POST(request: NextRequest) {

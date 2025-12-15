@@ -7,7 +7,7 @@ const trackEventSchema = z.object({
   eventType: z.enum(["page_view", "action", "error"]),
   page: z.string().optional(),
   action: z.string().optional(),
-  metadata: z.record(z.any()).optional(),
+  metadata: z.record(z.string(), z.any()).optional(),
   timestamp: z.string().optional(),
 });
 
