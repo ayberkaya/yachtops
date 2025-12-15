@@ -36,7 +36,6 @@ export default async function UsersPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Users</h1>
-        <p className="text-muted-foreground">Manage yacht users and roles</p>
       </div>
       <UserList 
         initialUsers={users.map((user: { createdAt: Date }) => ({

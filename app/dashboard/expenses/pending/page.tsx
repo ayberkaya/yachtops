@@ -46,7 +46,6 @@ export default async function PendingExpensesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Approval Queue</h1>
-        <p className="text-muted-foreground">Review, approve, or reject submitted expenses</p>
       </div>
       <PendingExpensesList 
         expenses={pendingExpenses.map((exp: { date: Date; createdAt: Date; updatedAt: Date }) => ({

@@ -30,9 +30,6 @@ export default async function UserNotesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Personal Notes</h1>
-        <p className="text-muted-foreground">
-          Only you can view these notes. Add private checklists for daily reminders or quick logs.
-        </p>
       </div>
       <UserNotes
         initialNotes={notes.map((note: { content: unknown; createdAt: Date; updatedAt: Date }) => ({

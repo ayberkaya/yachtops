@@ -98,9 +98,6 @@ export default async function ShiftsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Shift Management</h1>
-        <p className="text-muted-foreground">
-          Track, create, and manage crew member shifts
-        </p>
       </div>
 
       <ShiftManagement

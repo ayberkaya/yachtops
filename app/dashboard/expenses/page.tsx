@@ -71,7 +71,6 @@ export default async function ExpensesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">All Expenses</h1>
-          <p className="text-muted-foreground">Full ledger of every recorded expense</p>
         </div>
       </div>
       <ExpenseList

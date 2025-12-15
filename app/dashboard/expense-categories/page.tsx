@@ -28,7 +28,6 @@ export default async function ExpenseCategoriesPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Expense Categories</h1>
-        <p className="text-muted-foreground">Manage expense categories for your yacht</p>
       </div>
       <ExpenseCategoryManager initialCategories={categories} />
     </div>

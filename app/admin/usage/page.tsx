@@ -135,7 +135,6 @@ export default async function UsageInsightsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Usage Insights</h1>
-        <p className="text-muted-foreground">Understand how the app is being used</p>
       </div>
 
       {/* Summary Cards */}

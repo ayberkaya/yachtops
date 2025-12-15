@@ -85,7 +85,6 @@ export default async function NewExpensePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">New Expense</h1>
-        <p className="text-muted-foreground">Create a new expense entry</p>
       </div>
       <ExpenseForm categories={categories} trips={trips} />
     </div>

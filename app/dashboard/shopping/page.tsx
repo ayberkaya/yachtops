@@ -44,9 +44,6 @@ export default async function ShoppingPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold">Shopping Lists</h1>
-        <p className="text-muted-foreground">
-          Create and manage your shopping lists
-        </p>
       </div>
       <ShoppingListView 
         initialLists={lists.map((list: { createdAt: Date; updatedAt: Date }) => ({
