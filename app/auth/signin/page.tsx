@@ -97,15 +97,15 @@ export default function SignInPage() {
             HelmOps
           </h1>
           <p className="text-lg text-slate-600 font-medium">
-            Complete helm operations management system
+            Manage expenses, tasks, and operations for your yacht
           </p>
         </div>
 
         <Card className="border-2 border-slate-200 shadow-2xl bg-white" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s forwards', opacity: 0 }}>
           <CardHeader className="space-y-2 pb-6">
-            <CardTitle className="text-3xl font-bold text-slate-900">Welcome back</CardTitle>
+            <CardTitle className="text-3xl font-bold text-slate-900">Sign In</CardTitle>
             <CardDescription className="text-base text-slate-600">
-              Sign in to your account to continue
+              Access your yacht operations dashboard
             </CardDescription>
           </CardHeader>
           <Form {...form}>

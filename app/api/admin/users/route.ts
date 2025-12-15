@@ -80,6 +80,46 @@ export async function POST(req: NextRequest) {
       },
     });
 
+    // Create default expense categories for the vessel
+    const defaultCategories = [
+      "Fuel",
+      "Marina & Port Fees",
+      "Provisions",
+      "Cleaning & Laundry",
+      "Maintenance & Repairs",
+      "Crew",
+      "Tender & Toys",
+      "Miscellaneous",
+      "Insurance",
+      "Communications & IT",
+      "Safety Equipment",
+      "Crew Training",
+      "Guest Services",
+      "Waste Disposal",
+      "Dockage & Utilities",
+      "Transport & Logistics",
+      "Permits & Customs",
+      "Fuel Additives",
+    ];
+
+    await Promise.all(
+      defaultCategories.map((categoryName) =>
+        db.expenseCategory.upsert({
+          where: {
+            yachtId_name: {
+              yachtId: vessel.id,
+              name: categoryName,
+            },
+          },
+          update: {},
+          create: {
+            name: categoryName,
+            yachtId: vessel.id,
+          },
+        })
+      )
+    );
+
     return NextResponse.json({ user, vessel }, { status: 201 });
   } catch (error: any) {
     console.error("Create user error", error);

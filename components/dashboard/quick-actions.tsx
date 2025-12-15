@@ -91,9 +91,10 @@ export function QuickActions() {
         variant="outline"
         size="sm"
         className="relative z-10 transition-all duration-200 hover:scale-105"
+        aria-label="Quick actions menu"
       >
         <Plus className="h-4 w-4 mr-2" />
-        Quick Actions
+        Add New
       </Button>
 
       {/* Dropdown Menu */}

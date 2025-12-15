@@ -16,29 +16,24 @@ async function main() {
   const password = "TempPass123!";
   const username = "admin";
 
-  // Check if user already exists
-  const existingUser = await prisma.user.findUnique({
+  const passwordHash = await bcrypt.hash(password, 10);
+
+  // Check if user already exists by email
+  let existingUser = await prisma.user.findUnique({
     where: { email },
   });
 
-  const passwordHash = await bcrypt.hash(password, 10);
+  // If not found by email, check by username
+  if (!existingUser) {
+    existingUser = await prisma.user.findUnique({
+      where: { username },
+    });
+  }
 
   if (existingUser) {
     console.log("⚠️  User already exists, updating password and role...");
     const user = await prisma.user.update({
-      where: { email },
-      data: {
-        passwordHash,
-        role: UserRole.SUPER_ADMIN,
-        username,
-        active: true,
-        yachtId: null, // Super admin doesn't need a yacht
-      },
-    });
-    console.log("✅ User updated:", user.email);
-  } else {
-    console.log("📝 Creating new super admin user...");
-    const user = await prisma.user.create({
+      where: { id: existingUser.id },
       data: {
         email,
         username,
@@ -49,7 +44,56 @@ async function main() {
         yachtId: null, // Super admin doesn't need a yacht
       },
     });
-    console.log("✅ User created:", user.email);
+    console.log("✅ User updated:", user.email);
+  } else {
+    console.log("📝 Creating new super admin user...");
+    try {
+      const user = await prisma.user.create({
+        data: {
+          email,
+          username,
+          passwordHash,
+          name: "Super Admin",
+          role: UserRole.SUPER_ADMIN,
+          active: true,
+          yachtId: null, // Super admin doesn't need a yacht
+        },
+      });
+      console.log("✅ User created:", user.email);
+    } catch (error: any) {
+      // If username or email conflict, try to update existing user
+      if (error?.code === "P2002") {
+        console.log("⚠️  Conflict detected, attempting to update existing user...");
+        const conflictUser = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email },
+              { username },
+            ],
+          },
+        });
+        
+        if (conflictUser) {
+          const user = await prisma.user.update({
+            where: { id: conflictUser.id },
+            data: {
+              email,
+              username: conflictUser.username === username ? username : `admin_${Date.now()}`,
+              passwordHash,
+              name: "Super Admin",
+              role: UserRole.SUPER_ADMIN,
+              active: true,
+              yachtId: null,
+            },
+          });
+          console.log("✅ User updated:", user.email);
+        } else {
+          throw error;
+        }
+      } else {
+        throw error;
+      }
+    }
   }
 
   console.log("\n📝 Super Admin Login credentials:");

@@ -18,6 +18,7 @@ model User {
   active                  Boolean               @default(true)
   permissions             String?
   notificationPreferences String?               @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences")
+  pushSubscription        String?               @map("push_subscription") // JSON string of PushSubscription
   createdAt               DateTime              @default(now()) @map("created_at")
   updatedAt               DateTime              @updatedAt @map("updated_at")
   yachtId                 String?               @map("yacht_id")

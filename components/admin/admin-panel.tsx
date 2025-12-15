@@ -105,7 +105,7 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
         }
         setMessage(serverMsg || "User creation failed");
       } else {
-        setMessage("User and vessel created.");
+        setMessage("Customer created successfully. They can now sign in and start using the app.");
         setForm({
           name: "",
           email: "",
@@ -202,7 +202,10 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
         {view === "create" && (
           <Card>
             <CardHeader>
-              <CardTitle>Create New User + Vessel</CardTitle>
+              <CardTitle>Create New Customer</CardTitle>
+              <p className="text-sm text-muted-foreground mt-2">
+                Creates a new vessel and owner account. Default expense categories will be set up automatically.
+              </p>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="grid gap-3 sm:grid-cols-2">
@@ -245,7 +248,7 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
                 </div>
               </div>
               <Button onClick={handleCreate} disabled={submitting}>
-                {submitting ? "Creating..." : "Create User"}
+                {submitting ? "Creating..." : "Create Customer"}
               </Button>
               {message && <p className="text-sm text-muted-foreground">{message}</p>}
             </CardContent>

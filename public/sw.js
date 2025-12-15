@@ -367,6 +367,60 @@ async function syncQueue() {
   }
 }
 
+// Push event - handle push notifications
+self.addEventListener("push", (event) => {
+  let data = {};
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: "HelmOps", body: event.data.text() || "You have a new notification" };
+    }
+  } else {
+    data = { title: "HelmOps", body: "You have a new notification" };
+  }
+
+  const options = {
+    title: data.title || "HelmOps",
+    body: data.body || "You have a new notification",
+    icon: data.icon || "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || "notification",
+    data: data.data || {},
+    requireInteraction: data.requireInteraction || false,
+    vibrate: data.vibrate || [200, 100, 200],
+    actions: data.actions || [],
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(options.title, options)
+  );
+});
+
+// Notification click event - handle when user clicks on notification
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const data = event.notification.data || {};
+  const urlToOpen = data.url || "/dashboard";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Check if there's already a window/tab open with the target URL
+      for (const client of clientList) {
+        if (client.url === urlToOpen && "focus" in client) {
+          return client.focus();
+        }
+      }
+      // If not, open a new window/tab
+      if (clients.openWindow) {
+        return clients.openWindow(urlToOpen);
+      }
+    })
+  );
+});
+
 // Message event - handle messages from clients
 self.addEventListener("message", (event) => {
   if (event.data && event.data.type === "SKIP_WAITING") {

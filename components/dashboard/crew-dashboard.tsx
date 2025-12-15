@@ -168,7 +168,9 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         <div>
           <h1 className="text-3xl font-bold">My Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user.name || user.email}
+            {myTasks.length > 0 || roleAssignedTasks.length > 0
+              ? `Welcome back, ${user.name || user.email}`
+              : `Welcome, ${user.name || user.email}. Start by checking your tasks or creating an expense.`}
           </p>
         </div>
         <QuickActions />
@@ -182,15 +184,15 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
               <div className="flex items-center gap-3">
                 <Bell className="h-6 w-6 text-red-600 dark:text-red-400 animate-bounce" />
                 <CardTitle className="text-red-900 dark:text-red-100 text-lg font-bold">
-                  New Tasks Assigned to {user.role}
+                  Tasks Requiring Your Attention
                 </CardTitle>
               </div>
               <Button asChild variant="outline" size="sm" className="border-red-300 hover:bg-red-100 dark:hover:bg-red-900">
-                <Link href="/dashboard/tasks">View Tasks</Link>
+                <Link href="/dashboard/tasks">View All Tasks</Link>
               </Button>
             </div>
             <CardDescription className="text-red-700 dark:text-red-300 font-medium">
-              {roleAssignedTasks.length} task{roleAssignedTasks.length > 1 ? "s" : ""} assigned to your role that need{roleAssignedTasks.length === 1 ? "s" : ""} attention
+              {roleAssignedTasks.length} task{roleAssignedTasks.length > 1 ? "s" : ""} {roleAssignedTasks.length === 1 ? "needs" : "need"} your review or action
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -398,14 +400,19 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
                 <CardTitle>My Tasks</CardTitle>
                 <CardDescription>Tasks assigned to you</CardDescription>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/tasks">View All</Link>
-              </Button>
+              {myTasks.length > 0 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/tasks">View All Tasks</Link>
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
             {myTasks.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No tasks assigned</p>
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground mb-2">No tasks assigned to you</p>
+                <p className="text-xs text-muted-foreground">Tasks assigned to you will appear here</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {myTasks.map((task: { id: string; title: string; trip: { name: string } | null; status: string; dueDate: string | Date | null }) => (
@@ -435,14 +442,21 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
                 <CardTitle>My Expenses</CardTitle>
                 <CardDescription>Your expense submissions</CardDescription>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/expenses">View All</Link>
-              </Button>
+              {myExpenses.length > 0 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/expenses">View All Expenses</Link>
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
             {myExpenses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No expenses yet</p>
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground mb-2">No expenses recorded yet</p>
+                <Button asChild variant="outline" size="sm" className="mt-2">
+                  <Link href="/dashboard/expenses/new">Create First Expense</Link>
+                </Button>
+              </div>
             ) : (
               <div className="space-y-4">
                 {myExpenses.map((expense: { id: string; description: string | null; category: { name: string }; status: string; baseAmount: string | number | null; amount: string | number; currency: string; date: string | Date }) => (

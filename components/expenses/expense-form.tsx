@@ -139,21 +139,43 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
   const performSave = async (payload: ExpenseFormData, url: string, method: "POST" | "PATCH") => {
     try {
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
+      // Use offline-aware API client for reliable offline support
+      const { apiClient } = await import("@/lib/api-client");
+      
+      const response = await method === "POST" 
+        ? await apiClient.post(url, payload, { queueOnOffline: true })
+        : await apiClient.patch(url, payload, { queueOnOffline: true });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        setError(result.error || "Failed to save expense");
+      // If queued (offline), show success message and stay on form
+      if (response.queued) {
+        setError(null);
+        // Store form state locally so user can see it was saved
+        if (typeof window !== "undefined") {
+          localStorage.setItem(`expense-queued-${Date.now()}`, JSON.stringify({
+            payload,
+            url,
+            method,
+            timestamp: Date.now(),
+          }));
+        }
+        // Don't navigate - let user know it's queued
+        alert("Expense saved offline. It will sync automatically when you're back online.");
         setIsLoading(false);
         return;
       }
 
-      if (receiptFile && result?.id) {
+      // Check for errors
+      if (response.status >= 400) {
+        const errorData = response.data as any;
+        setError(errorData?.error || errorData?.message || "Failed to save expense");
+        setIsLoading(false);
+        return;
+      }
+
+      const result = response.data as any;
+
+      // Upload receipt if provided (only when online and saved successfully)
+      if (receiptFile && result?.id && !response.queued) {
         try {
           const receiptFormData = new FormData();
           receiptFormData.append("file", receiptFile);
@@ -163,13 +185,15 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
           });
         } catch (uploadError) {
           console.error("Failed to upload receipt image", uploadError);
+          // Don't fail the whole operation if receipt upload fails
         }
       }
 
       router.push("/dashboard/expenses");
       router.refresh();
     } catch (err) {
-      setError("An error occurred. Please try again.");
+      const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
+      setError(errorMessage);
       setIsLoading(false);
     }
   };

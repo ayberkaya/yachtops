@@ -196,7 +196,9 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome back, {user.name || user.email}
+            {pendingExpenses.length > 0 || roleAssignedTasks.length > 0 
+              ? `Welcome back, ${user.name || user.email}`
+              : `Welcome, ${user.name || user.email}. Start by reviewing expenses or creating a task.`}
           </p>
         </div>
         <QuickActions />
@@ -210,15 +212,15 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
               <div className="flex items-center gap-3">
                 <Bell className="h-6 w-6 text-red-600 dark:text-red-400 animate-bounce" />
                 <CardTitle className="text-red-900 dark:text-red-100 text-lg font-bold">
-                  New Tasks Assigned to {user.role}
+                  Tasks Requiring Your Attention
                 </CardTitle>
               </div>
               <Button asChild variant="outline" size="sm" className="border-red-300 hover:bg-red-100 dark:hover:bg-red-900">
-                <Link href="/dashboard/tasks">View Tasks</Link>
+                <Link href="/dashboard/tasks">View All Tasks</Link>
               </Button>
             </div>
             <CardDescription className="text-red-700 dark:text-red-300 font-medium">
-              {roleAssignedTasks.length} task{roleAssignedTasks.length > 1 ? "s" : ""} assigned to your role that need{roleAssignedTasks.length === 1 ? "s" : ""} attention
+              {roleAssignedTasks.length} task{roleAssignedTasks.length > 1 ? "s" : ""} {roleAssignedTasks.length === 1 ? "needs" : "need"} your review or action
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -239,8 +241,8 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
                       <div className="flex-1">
                         <p className="font-semibold text-sm text-red-900 dark:text-red-100">{task.title}</p>
                         <p className="text-xs text-red-700 dark:text-red-300 mt-1">
-                          {task.trip?.name || "General"} • {task.status.replace("_", " ")}
-                          {task.dueDate && ` • Due: ${format(new Date(task.dueDate), "MMM d, yyyy")}`}
+                          {task.trip?.name || "General"} • {task.status.replace("_", " ").toLowerCase()}
+                          {task.dueDate && ` • Due ${format(new Date(task.dueDate), "MMM d, yyyy")}`}
                         </p>
                       </div>
                     </div>
@@ -388,15 +390,14 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Expenses</CardTitle>
+            <CardTitle className="text-sm font-medium">Awaiting Approval</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{pendingExpenses.length}</div>
             <p className="text-xs text-muted-foreground">
-              {totalPendingAmount.toLocaleString("en-US", {
-                style: "currency",
-                currency: "EUR",
-              })}
+              {pendingExpenses.length > 0 
+                ? `${totalPendingAmount.toLocaleString("en-US", { style: "currency", currency: "EUR" })} total`
+                : "All reviewed"}
             </p>
           </CardContent>
         </Card>
@@ -416,17 +417,22 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div>
-                <CardTitle>Pending Expenses</CardTitle>
-                <CardDescription>Expenses awaiting your approval</CardDescription>
+                <CardTitle>Awaiting Approval</CardTitle>
+                <CardDescription>Expenses that need your review</CardDescription>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/expenses/pending">View All</Link>
-              </Button>
+              {pendingExpenses.length > 0 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/expenses/pending">Review All</Link>
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
             {pendingExpenses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No pending expenses</p>
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground mb-2">No expenses awaiting approval</p>
+                <p className="text-xs text-muted-foreground">All submitted expenses have been reviewed</p>
+              </div>
             ) : (
               <div className="space-y-4">
                 {pendingExpenses.map((expense: { id: string; description: string | null; category: { name: string }; createdBy: { name: string | null; email: string }; baseAmount: string | number | null; amount: string | number; currency: string; date: string | Date }) => (
@@ -462,14 +468,21 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
                 <CardTitle>Recent Expenses</CardTitle>
                 <CardDescription>Latest expense entries</CardDescription>
               </div>
-              <Button asChild variant="outline" size="sm">
-                <Link href="/dashboard/expenses">View All</Link>
-              </Button>
+              {recentExpenses.length > 0 && (
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/dashboard/expenses">View All Expenses</Link>
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
             {recentExpenses.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No expenses yet</p>
+              <div className="text-center py-6">
+                <p className="text-sm text-muted-foreground mb-2">No expenses recorded yet</p>
+                <Button asChild variant="outline" size="sm" className="mt-2">
+                  <Link href="/dashboard/expenses/new">Create First Expense</Link>
+                </Button>
+              </div>
             ) : (
               <div className="space-y-4">
                 {recentExpenses.map((expense: { id: string; description: string | null; category: { name: string }; createdBy: { name: string | null; email: string }; baseAmount: string | number | null; amount: string | number; currency: string; date: string | Date }) => (

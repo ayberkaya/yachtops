@@ -7,9 +7,11 @@ import { Button } from "@/components/ui/button";
 
 export function SyncStatus() {
   const [pendingCount, setPendingCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<Date | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [failedItems, setFailedItems] = useState<any[]>([]);
 
   useEffect(() => {
     // Initial load
@@ -31,8 +33,12 @@ export function SyncStatus() {
 
   const updateStatus = async () => {
     try {
-      const count = await apiClient.getPendingCount();
-      setPendingCount(count);
+      const { offlineQueue } = await import("@/lib/offline-queue");
+      const pending = await offlineQueue.getPendingCount();
+      const failed = await offlineQueue.getFailedItems();
+      setPendingCount(pending);
+      setFailedCount(failed.length);
+      setFailedItems(failed);
       setIsSyncing(apiClient.isSyncing);
     } catch (error) {
       console.error("Failed to update sync status:", error);
@@ -51,12 +57,21 @@ export function SyncStatus() {
         },
         onSuccess: () => {
           setLastSync(new Date());
+          setSyncError(null);
         },
         onError: (item, error) => {
-          setSyncError(error.message);
+          // Store error but don't block sync
+          const errorMessage = error.message || "Sync error occurred";
+          setSyncError(errorMessage);
+          // Update status to refresh failed count
+          updateStatus();
         },
       });
       setLastSync(new Date());
+      // Clear error if sync completed successfully
+      if (pendingCount === 0) {
+        setSyncError(null);
+      }
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Sync failed");
     } finally {
@@ -65,8 +80,33 @@ export function SyncStatus() {
     }
   };
 
-  // Don't show if no pending items and not syncing
-  if (pendingCount === 0 && !isSyncing && !syncError) {
+  const handleRetryFailed = async () => {
+    setIsSyncing(true);
+    setSyncError(null);
+    try {
+      const { offlineQueue } = await import("@/lib/offline-queue");
+      await offlineQueue.retryFailed();
+      await apiClient.sync({
+        onProgress: updateStatus,
+        onSuccess: () => {
+          setLastSync(new Date());
+          setSyncError(null);
+        },
+        onError: (item, error) => {
+          setSyncError(error.message);
+          updateStatus();
+        },
+      });
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "Retry failed");
+    } finally {
+      setIsSyncing(false);
+      updateStatus();
+    }
+  };
+
+  // Don't show if no pending/failed items and not syncing
+  if (pendingCount === 0 && failedCount === 0 && !isSyncing && !syncError) {
     return null;
   }
 
@@ -98,12 +138,21 @@ export function SyncStatus() {
                   Syncing {pendingCount} pending {pendingCount === 1 ? "item" : "items"}
                 </p>
               </>
+            ) : failedCount > 0 ? (
+              <>
+                <p className="font-semibold text-sm text-red-600 dark:text-red-400">
+                  {failedCount} Failed {failedCount === 1 ? "Item" : "Items"}
+                </p>
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                  {syncError || "Some items failed to sync. Check and retry."}
+                </p>
+              </>
             ) : syncError ? (
               <>
                 <p className="font-semibold text-sm text-red-600 dark:text-red-400">
                   Sync Error
                 </p>
-                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">
+                <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 break-words">
                   {syncError}
                 </p>
               </>
@@ -143,7 +192,20 @@ export function SyncStatus() {
               </Button>
             )}
 
-            {syncError && (
+            {failedCount > 0 && !isSyncing && (
+              <Button
+                onClick={handleRetryFailed}
+                size="sm"
+                variant="outline"
+                className="mt-2 w-full"
+                disabled={!apiClient.isOnline}
+              >
+                <RefreshCw className="mr-2 h-3 w-3" />
+                Retry Failed
+              </Button>
+            )}
+
+            {syncError && failedCount === 0 && (
               <Button
                 onClick={handleSync}
                 size="sm"

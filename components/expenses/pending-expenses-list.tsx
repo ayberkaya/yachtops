@@ -127,8 +127,21 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
   if (expenses.length === 0) {
     return (
       <Card>
-        <CardContent className="p-8 text-center text-muted-foreground">
-          No pending expenses
+        <CardContent className="p-12 text-center">
+          <div className="max-w-md mx-auto space-y-4">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-50 dark:bg-green-950/20">
+              <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold mb-2">All caught up!</h3>
+              <p className="text-sm text-muted-foreground">
+                There are no expenses awaiting your approval. All submitted expenses have been reviewed.
+              </p>
+            </div>
+            <Button asChild variant="outline" className="mt-4">
+              <Link href="/dashboard/expenses">View All Expenses</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
     );

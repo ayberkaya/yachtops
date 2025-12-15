@@ -12,9 +12,9 @@ export default function Home() {
           <Anchor className="text-white w-8 h-8" />
         </div>
         <p className="text-xs font-semibold uppercase tracking-[0.3em] text-blue-600">HelmOps</p>
-        <h1 className="text-4xl font-bold text-slate-900">Helm Operations Management</h1>
+        <h1 className="text-4xl font-bold text-slate-900">Yacht Operations Management</h1>
         <p className="text-lg text-slate-600">
-          Complete operations management system for private and charter yachts
+          Track expenses, manage tasks, and run your yacht operations efficiently
         </p>
         <div className="pt-4">
           <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">

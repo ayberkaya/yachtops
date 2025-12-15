@@ -9,7 +9,7 @@ export async function createNotification(
   messageId?: string
 ) {
   try {
-    return await db.notification.create({
+    const notification = await db.notification.create({
       data: {
         userId,
         type,
@@ -18,10 +18,111 @@ export async function createNotification(
         messageId: messageId || null,
       },
     });
+
+    // Send push notification if user has subscription
+    sendPushNotification(userId, {
+      title: getNotificationTitle(type),
+      body: content,
+      tag: notification.id,
+      data: {
+        url: getNotificationUrl(type, taskId, messageId),
+        notificationId: notification.id,
+      },
+      requireInteraction: type === "TASK_ASSIGNED" || type === "MESSAGE_MENTION",
+    }).catch((error) => {
+      console.error("Error sending push notification:", error);
+      // Don't fail if push notification fails
+    });
+
+    return notification;
   } catch (error) {
     console.error("Error creating notification:", error);
     return null;
   }
+}
+
+async function sendPushNotification(
+  userId: string,
+  payload: {
+    title: string;
+    body: string;
+    tag?: string;
+    data?: any;
+    requireInteraction?: boolean;
+  }
+) {
+  try {
+    const user = await db.user.findUnique({
+      where: { id: userId },
+      select: { pushSubscription: true },
+    });
+
+    if (!user?.pushSubscription) {
+      return; // User doesn't have push subscription
+    }
+
+    const subscription = JSON.parse(user.pushSubscription);
+
+    // Dynamically import web-push to avoid issues if not installed
+    let webpush: typeof import("web-push");
+    try {
+      webpush = await import("web-push");
+    } catch (error) {
+      console.warn("web-push is not installed. Install it with: npm install web-push");
+      return;
+    }
+
+    const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+    const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
+    const vapidEmail = process.env.VAPID_EMAIL || "mailto:admin@helmops.com";
+
+    if (!vapidPublicKey || !vapidPrivateKey) {
+      console.warn("VAPID keys are not configured. Push notifications will not work.");
+      return;
+    }
+
+    // Set VAPID details (only need to do this once, but it's safe to do multiple times)
+    webpush.setVapidDetails(vapidEmail, vapidPublicKey, vapidPrivateKey);
+
+    // Send push notification
+    await webpush.sendNotification(subscription, JSON.stringify(payload));
+  } catch (error) {
+    // If subscription is invalid, remove it from database
+    if (error instanceof Error && error.message.includes("410")) {
+      await db.user.update({
+        where: { id: userId },
+        data: { pushSubscription: null },
+      });
+    }
+    throw error;
+  }
+}
+
+function getNotificationTitle(type: NotificationType): string {
+  const titles: Record<NotificationType, string> = {
+    TASK_ASSIGNED: "New Task Assigned",
+    TASK_COMPLETED: "Task Completed",
+    TASK_DUE_SOON: "Task Due Soon",
+    TASK_OVERDUE: "Task Overdue",
+    MESSAGE_MENTION: "You Were Mentioned",
+    MESSAGE_REPLY: "New Reply",
+    SHOPPING_LIST_COMPLETED: "Shopping List Completed",
+  };
+  return titles[type] || "HelmOps Notification";
+}
+
+function getNotificationUrl(
+  type: NotificationType,
+  taskId?: string,
+  messageId?: string
+): string {
+  if (taskId) {
+    return `/dashboard/tasks/${taskId}`;
+  }
+  if (messageId) {
+    return `/dashboard/messages`;
+  }
+  return "/dashboard";
 }
 
 export async function notifyTaskAssignment(

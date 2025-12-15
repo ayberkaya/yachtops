@@ -86,6 +86,11 @@ export async function PATCH(
         id,
         yachtId: tenantId || undefined,
       },
+      select: {
+        status: true,
+        createdByUserId: true,
+        name: true,
+      },
     });
 
     if (!existingList) {
@@ -110,16 +115,32 @@ export async function PATCH(
       },
     });
 
+    // Send notification to creator when list is marked as completed
     if (
       validated.status === ShoppingListStatus.COMPLETED &&
-      existingList.status !== ShoppingListStatus.COMPLETED &&
-      list.createdBy?.id
+      existingList.status !== ShoppingListStatus.COMPLETED
     ) {
-      await createNotification(
-        list.createdBy.id,
-        NotificationType.SHOPPING_LIST_COMPLETED,
-        `Shopping list "${list.name}" has been marked as completed.`
-      );
+      // Use createdBy.id if available, otherwise fallback to createdByUserId
+      const creatorId = list.createdBy?.id || existingList.createdByUserId;
+      
+      if (creatorId) {
+        // Only send notification if creator is different from the person completing
+        if (creatorId !== session.user.id) {
+          try {
+            const completedByName = session.user.name || session.user.email || "Someone";
+            await createNotification(
+              creatorId,
+              NotificationType.SHOPPING_LIST_COMPLETED,
+              `Shopping list "${list.name}" has been marked as completed by ${completedByName}.`
+            );
+          } catch (error) {
+            console.error("Error sending shopping list completion notification:", error);
+            // Don't fail the request if notification fails
+          }
+        }
+      } else {
+        console.warn(`Shopping list ${id} marked as completed but no creator found`);
+      }
     }
 
     return NextResponse.json(list);

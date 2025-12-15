@@ -168,6 +168,7 @@ class OfflineStorage {
 
   /**
    * Add item to sync queue
+   * Prevents duplicates by checking for existing pending items with same URL/method/body
    */
   async addToQueue(
     url: string,
@@ -176,13 +177,29 @@ class OfflineStorage {
     body: any
   ): Promise<string> {
     const db = await this.getDB();
+    
+    // Check for duplicate pending items (same URL, method, and body)
+    // This prevents multiple queue entries for the same operation
+    const existingItems = await this.getQueueItems("pending");
+    const bodyString = body ? JSON.stringify(body) : null;
+    
+    const duplicate = existingItems.find(
+      (item) => item.url === url && item.method === method && item.body === bodyString
+    );
+    
+    if (duplicate) {
+      // Return existing item ID instead of creating duplicate
+      console.log(`Duplicate queue item detected, reusing existing: ${duplicate.id}`);
+      return duplicate.id;
+    }
+    
     const id = `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const item: QueueItem = {
       id,
       url,
       method,
       headers,
-      body: body ? JSON.stringify(body) : null,
+      body: bodyString,
       timestamp: Date.now(),
       retries: 0,
       status: "pending",

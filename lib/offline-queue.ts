@@ -159,15 +159,36 @@ class OfflineQueue {
         });
 
         try {
-          // Execute request
-          const response = await fetch(item.url, {
-            method: item.method,
-            headers: {
-              "Content-Type": "application/json",
-              ...item.headers,
-            },
-            body: item.body,
-          });
+          // Parse request body to check for potential conflicts
+          let requestBody: any = null;
+          try {
+            if (item.body) {
+              requestBody = JSON.parse(item.body);
+            }
+          } catch {
+            // Body might not be JSON, that's okay
+          }
+
+          // Execute request with timeout
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+
+          let response: Response;
+          try {
+            response = await fetch(item.url, {
+              method: item.method,
+              headers: {
+                "Content-Type": "application/json",
+                ...item.headers,
+              },
+              body: item.body,
+              signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+          } catch (fetchError) {
+            clearTimeout(timeoutId);
+            throw fetchError;
+          }
 
           if (response.ok) {
             // Success - remove from queue
@@ -176,22 +197,67 @@ class OfflineQueue {
             processed++;
             onProgress?.(processed, total);
           } else {
-            // Failed - increment retries
-            const retries = item.retries + 1;
-            await offlineStorage.updateQueueItem(item.id, {
-              status: retries >= maxRetries ? "failed" : "pending",
-              retries,
-            });
-
-            if (retries >= maxRetries) {
-              onError?.(item, new Error(`HTTP ${response.status}: ${response.statusText}`));
+            // Parse error response to check for conflict/duplicate errors
+            let errorData: any = {};
+            try {
+              const contentType = response.headers.get("content-type");
+              if (contentType && contentType.includes("application/json")) {
+                errorData = await response.json();
+              }
+            } catch {
+              // Couldn't parse error response
             }
 
-            processed++;
-            onProgress?.(processed, total);
+            // Check for specific error types
+            const isConflict = response.status === 409 || errorData.error?.toLowerCase().includes("conflict");
+            const isDuplicate = response.status === 400 && (
+              errorData.error?.toLowerCase().includes("duplicate") ||
+              errorData.error?.toLowerCase().includes("already exists") ||
+              errorData.message?.toLowerCase().includes("duplicate") ||
+              errorData.message?.toLowerCase().includes("already exists")
+            );
+            const isValidationError = response.status === 400 && errorData.details;
+
+            // For conflicts/duplicates, remove from queue (data already exists server-side)
+            // For validation errors, mark as failed (user needs to fix data)
+            if (isConflict || isDuplicate) {
+              // Data already exists on server - safe to remove from queue
+              console.warn(`Queue item ${item.id} conflicts with existing data. Removing from queue.`);
+              await offlineStorage.removeFromQueue(item.id);
+              onSuccess?.(item); // Treat as success since data exists
+              processed++;
+              onProgress?.(processed, total);
+            } else if (isValidationError) {
+              // Validation error - mark as failed immediately (no retries)
+              await offlineStorage.updateQueueItem(item.id, {
+                status: "failed",
+                retries: maxRetries, // Mark as max retries to prevent further attempts
+              });
+              const errorMessage = errorData.details 
+                ? `Validation error: ${JSON.stringify(errorData.details)}`
+                : errorData.error || errorData.message || `HTTP ${response.status}`;
+              onError?.(item, new Error(errorMessage));
+              processed++;
+              onProgress?.(processed, total);
+            } else {
+              // Other errors - retry
+              const retries = item.retries + 1;
+              await offlineStorage.updateQueueItem(item.id, {
+                status: retries >= maxRetries ? "failed" : "pending",
+                retries,
+              });
+
+              if (retries >= maxRetries) {
+                const errorMessage = errorData.error || errorData.message || `HTTP ${response.status}: ${response.statusText}`;
+                onError?.(item, new Error(errorMessage));
+              }
+
+              processed++;
+              onProgress?.(processed, total);
+            }
           }
         } catch (error) {
-          // Network error - increment retries
+          // Network error or timeout - increment retries
           const retries = item.retries + 1;
           await offlineStorage.updateQueueItem(item.id, {
             status: retries >= maxRetries ? "failed" : "pending",
@@ -199,7 +265,10 @@ class OfflineQueue {
           });
 
           if (retries >= maxRetries) {
-            onError?.(item, error instanceof Error ? error : new Error(String(error)));
+            const errorMessage = error instanceof Error 
+              ? error.message 
+              : String(error);
+            onError?.(item, new Error(`Network error: ${errorMessage}`));
           }
 
           processed++;
@@ -209,6 +278,11 @@ class OfflineQueue {
           if (error instanceof TypeError && error.message.includes("fetch")) {
             this.isOnline = false;
             break;
+          }
+          // If timeout, continue with next item
+          if (error instanceof Error && error.name === "AbortError") {
+            console.warn(`Sync timeout for item ${item.id}, will retry later`);
+            continue;
           }
         }
 

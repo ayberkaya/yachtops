@@ -5,6 +5,7 @@ import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register"
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 import { SyncStatus } from "@/components/pwa/sync-status";
+import { PushNotificationRegister } from "@/components/pwa/push-notification-register";
 import { ErrorBoundary } from "@/components/error-boundary";
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -13,8 +14,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 // This allows static optimization for public pages while keeping dynamic rendering for authenticated routes
 
 export const metadata: Metadata = {
-  title: "HelmOps - Helm Operations Management",
-  description: "Complete helm operations management system",
+  title: "HelmOps - Yacht Operations Management",
+  description: "Manage expenses, tasks, and operations for your yacht",
   manifest: "/manifest",
   appleWebApp: {
     capable: true,
@@ -57,6 +58,7 @@ export default function RootLayout({
           <Providers>
             {children}
             <ServiceWorkerRegister />
+            <PushNotificationRegister />
             <InstallPrompt />
             <OfflineIndicator />
             <SyncStatus />
