@@ -208,11 +208,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
           }
         } catch (uploadError) {
           console.error("Failed to upload receipt images", uploadError);
-          toast({
-            title: "Receipt Upload Warning",
-            description: "The expense was saved, but some receipts could not be uploaded. They will retry when online.",
-            variant: "destructive",
-          });
+          // Expense was saved successfully, receipt upload failures will retry when online
         }
       }
 
