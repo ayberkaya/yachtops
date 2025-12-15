@@ -26,14 +26,14 @@ export default async function UsageInsightsPage() {
 
   try {
     // Safe wrapper for database queries
-    const safeQuery = async <T>(query: () => Promise<T>, defaultValue: T): Promise<T> => {
+    async function safeQuery<T>(query: () => Promise<T>, defaultValue: T): Promise<T> {
       try {
         return await query();
       } catch (error) {
         console.error("Database query error:", error);
         return defaultValue;
       }
-    };
+    }
 
     const [
       totalEventsResult,
