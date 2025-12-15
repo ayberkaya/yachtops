@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Users, UserPlus } from "lucide-react";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
+import { Users, UserPlus, ChevronDown } from "lucide-react";
 
 type UserForm = {
   name: string;
@@ -267,58 +268,64 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
         )}
 
         {view === "owners" && selectedOwner && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Owner Details</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="font-semibold">{selectedOwner.name || "Unnamed"}</div>
-                  <div className="text-sm text-muted-foreground">{selectedOwner.email}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Tenant: {selectedOwner.yachtId || "-"}
-                  </div>
-                </div>
-                <Button
-                  variant={selectedOwner.active ? "secondary" : "default"}
-                  onClick={() => toggleOwnerActive(selectedOwner.id, !selectedOwner.active)}
-                >
-                  {selectedOwner.active ? "Deactivate Owner" : "Activate Owner"}
-                </Button>
-              </div>
-
-              {selectedOwner.users && selectedOwner.users.length > 0 && (
-                <div className="space-y-2">
-                  <div className="text-sm font-semibold">Users</div>
-                  <div className="space-y-2">
-                    {selectedOwner.users.map((u) => (
-                      <div
-                        key={u.id}
-                        className="flex items-center justify-between rounded border p-2"
-                      >
-                        <div>
-                          <div className="font-medium text-sm">
-                            {u.name || u.username || u.email}
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {u.email} • {u.role}
-                          </div>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant={u.active ? "secondary" : "default"}
-                          onClick={() => toggleUserActive(u.id, !u.active)}
-                        >
-                          {u.active ? "Deactivate" : "Activate"}
-                        </Button>
+          <Collapsible defaultOpen={false}>
+            <Card className="gap-1.5 p-3">
+              <CollapsibleTrigger className="w-full">
+                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between py-1.5 px-0 min-h-0">
+                  <CardTitle className="m-0 text-base">{selectedOwner.name || "Unnamed"}</CardTitle>
+                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+                </CardHeader>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <CardContent className="space-y-2 pt-0 px-0">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm text-muted-foreground">{selectedOwner.email}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Tenant: {selectedOwner.yachtId || "-"}
                       </div>
-                    ))}
+                    </div>
+                    <Button
+                      variant={selectedOwner.active ? "secondary" : "default"}
+                      onClick={() => toggleOwnerActive(selectedOwner.id, !selectedOwner.active)}
+                    >
+                      {selectedOwner.active ? "Deactivate Owner" : "Activate Owner"}
+                    </Button>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+
+                  {selectedOwner.users && selectedOwner.users.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="text-sm font-semibold">Users</div>
+                      <div className="space-y-2">
+                        {selectedOwner.users.map((u) => (
+                          <div
+                            key={u.id}
+                            className="flex items-center justify-between rounded border p-2"
+                          >
+                            <div>
+                              <div className="font-medium text-sm">
+                                {u.name || u.username || u.email}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {u.email} • {u.role}
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              variant={u.active ? "secondary" : "default"}
+                              onClick={() => toggleUserActive(u.id, !u.active)}
+                            >
+                              {u.active ? "Deactivate" : "Activate"}
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </CollapsibleContent>
+            </Card>
+          </Collapsible>
         )}
       </div>
     </div>

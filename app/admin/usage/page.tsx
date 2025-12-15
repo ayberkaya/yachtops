@@ -14,122 +14,176 @@ export default async function UsageInsightsPage() {
   const sevenDaysAgo = subDays(new Date(), 7);
   const thirtyDaysAgo = subDays(new Date(), 30);
 
-  // Get usage statistics
-  const [
-    totalEvents,
-    pageViews,
-    actions,
-    errors,
-    recentEvents,
-    topPages,
-    topActions,
-    recentFeedback,
-  ] = await Promise.all([
-    // Total events (last 30 days)
-    db.usageEvent.count({
-      where: {
-        createdAt: { gte: thirtyDaysAgo },
-      },
-    }),
-    // Page views (last 7 days)
-    db.usageEvent.count({
-      where: {
-        eventType: "page_view",
-        createdAt: { gte: sevenDaysAgo },
-      },
-    }),
-    // Actions (last 7 days)
-    db.usageEvent.count({
-      where: {
-        eventType: "action",
-        createdAt: { gte: sevenDaysAgo },
-      },
-    }),
-    // Errors (last 7 days)
-    db.usageEvent.count({
-      where: {
-        eventType: "error",
-        createdAt: { gte: sevenDaysAgo },
-      },
-    }),
-    // Recent events
-    db.usageEvent.findMany({
-      take: 20,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
+  // Get usage statistics with error handling
+  let totalEvents = 0;
+  let pageViews = 0;
+  let actions = 0;
+  let errors = 0;
+  let recentEvents: any[] = [];
+  let topPages: any[] = [];
+  let topActions: any[] = [];
+  let recentFeedback: any[] = [];
+
+  try {
+    // Safe wrapper for database queries
+    const safeQuery = async <T>(query: () => Promise<T>, defaultValue: T): Promise<T> => {
+      try {
+        return await query();
+      } catch (error) {
+        console.error("Database query error:", error);
+        return defaultValue;
+      }
+    };
+
+    const [
+      totalEventsResult,
+      pageViewsResult,
+      actionsResult,
+      errorsResult,
+      recentEventsResult,
+      topPagesResult,
+      topActionsResult,
+      recentFeedbackResult,
+    ] = await Promise.all([
+      // Total events (last 30 days)
+      safeQuery(() => db.usageEvent.count({
+        where: {
+          createdAt: { gte: thirtyDaysAgo },
+        },
+      }), 0),
+      // Page views (last 7 days)
+      safeQuery(() => db.usageEvent.count({
+        where: {
+          eventType: "page_view",
+          createdAt: { gte: sevenDaysAgo },
+        },
+      }), 0),
+      // Actions (last 7 days)
+      safeQuery(() => db.usageEvent.count({
+        where: {
+          eventType: "action",
+          createdAt: { gte: sevenDaysAgo },
+        },
+      }), 0),
+      // Errors (last 7 days)
+      safeQuery(() => db.usageEvent.count({
+        where: {
+          eventType: "error",
+          createdAt: { gte: sevenDaysAgo },
+        },
+      }), 0),
+      // Recent events
+      safeQuery(() => db.usageEvent.findMany({
+        take: 20,
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              role: true,
+            },
+          },
+          yacht: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-        yacht: {
-          select: {
-            id: true,
-            name: true,
-          },
+      }), []),
+      // Top pages (last 7 days)
+      safeQuery(() => db.usageEvent.groupBy({
+        by: ["page"],
+        where: {
+          eventType: "page_view",
+          createdAt: { gte: sevenDaysAgo },
+          page: { not: null },
         },
-      },
-    }),
-    // Top pages (last 7 days)
-    db.usageEvent.groupBy({
-      by: ["page"],
-      where: {
-        eventType: "page_view",
-        createdAt: { gte: sevenDaysAgo },
-        page: { not: null },
-      },
-      _count: {
-        id: true,
-      },
-      orderBy: {
         _count: {
-          id: "desc",
+          id: true,
         },
-      },
-      take: 10,
-    }),
-    // Top actions (last 7 days)
-    db.usageEvent.groupBy({
-      by: ["action"],
-      where: {
-        eventType: "action",
-        createdAt: { gte: sevenDaysAgo },
-        action: { not: null },
-      },
-      _count: {
-        id: true,
-      },
-      orderBy: {
+        orderBy: {
+          _count: {
+            id: "desc",
+          },
+        },
+        take: 10,
+      }), []),
+      // Top actions (last 7 days)
+      safeQuery(() => db.usageEvent.groupBy({
+        by: ["action"],
+        where: {
+          eventType: "action",
+          createdAt: { gte: sevenDaysAgo },
+          action: { not: null },
+        },
         _count: {
-          id: "desc",
+          id: true,
         },
-      },
-      take: 10,
-    }),
-    // Recent feedback
-    db.feedback.findMany({
-      take: 10,
-      orderBy: { createdAt: "desc" },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
+        orderBy: {
+          _count: {
+            id: "desc",
           },
         },
-        yacht: {
-          select: {
-            id: true,
-            name: true,
+        take: 10,
+      }), []),
+      // Recent feedback
+      safeQuery(() => db.feedback.findMany({
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: {
+          user: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
+          yacht: {
+            select: {
+              id: true,
+              name: true,
+            },
           },
         },
-      },
-    }),
-  ]);
+      }), []),
+    ]);
+
+    totalEvents = typeof totalEventsResult === "number" ? totalEventsResult : 0;
+    pageViews = typeof pageViewsResult === "number" ? pageViewsResult : 0;
+    actions = typeof actionsResult === "number" ? actionsResult : 0;
+    errors = typeof errorsResult === "number" ? errorsResult : 0;
+    recentEvents = Array.isArray(recentEventsResult) ? recentEventsResult : [];
+    topPages = Array.isArray(topPagesResult) ? topPagesResult.map((item: any) => ({
+      page: item?.page || null,
+      _count: item?._count ? { id: typeof item._count.id === "number" ? item._count.id : (typeof item._count === "number" ? item._count : 0) } : { id: 0 },
+    })) : [];
+    topActions = Array.isArray(topActionsResult) ? topActionsResult.map((item: any) => ({
+      action: item?.action || null,
+      _count: item?._count ? { id: typeof item._count.id === "number" ? item._count.id : (typeof item._count === "number" ? item._count : 0) } : { id: 0 },
+    })) : [];
+    recentFeedback = Array.isArray(recentFeedbackResult) ? recentFeedbackResult : [];
+
+    totalEvents = typeof totalEventsResult === "number" ? totalEventsResult : 0;
+    pageViews = typeof pageViewsResult === "number" ? pageViewsResult : 0;
+    actions = typeof actionsResult === "number" ? actionsResult : 0;
+    errors = typeof errorsResult === "number" ? errorsResult : 0;
+    recentEvents = Array.isArray(recentEventsResult) ? recentEventsResult : [];
+    topPages = Array.isArray(topPagesResult) ? topPagesResult.map((item: any) => ({
+      ...item,
+      _count: item._count || { id: 0 },
+    })) : [];
+    topActions = Array.isArray(topActionsResult) ? topActionsResult.map((item: any) => ({
+      ...item,
+      _count: item._count || { id: 0 },
+    })) : [];
+    recentFeedback = Array.isArray(recentFeedbackResult) ? recentFeedbackResult : [];
+  } catch (error) {
+    console.error("Error fetching usage statistics:", error);
+    // Continue with default values
+  }
 
   return (
     <div className="space-y-6">
@@ -181,16 +235,19 @@ export default async function UsageInsightsPage() {
             <CardDescription>Pages users visit most frequently</CardDescription>
           </CardHeader>
           <CardContent>
-            {topPages.length === 0 ? (
+            {!topPages || topPages.length === 0 ? (
               <p className="text-sm text-muted-foreground">No page views recorded yet</p>
             ) : (
               <div className="space-y-2">
-                {topPages.map((item) => (
-                  <div key={item.page} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{item.page || "Unknown"}</span>
-                    <span className="text-sm text-muted-foreground">{item._count.id}</span>
-                  </div>
-                ))}
+                {topPages.map((item: any) => {
+                  const count = item?._count?.id ?? item?._count ?? 0;
+                  return (
+                    <div key={item?.page || "unknown"} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{item?.page || "Unknown"}</span>
+                      <span className="text-sm text-muted-foreground">{typeof count === "number" ? count : 0}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -203,16 +260,19 @@ export default async function UsageInsightsPage() {
             <CardDescription>Actions users perform most frequently</CardDescription>
           </CardHeader>
           <CardContent>
-            {topActions.length === 0 ? (
+            {!topActions || topActions.length === 0 ? (
               <p className="text-sm text-muted-foreground">No actions recorded yet</p>
             ) : (
               <div className="space-y-2">
-                {topActions.map((item) => (
-                  <div key={item.action} className="flex items-center justify-between">
-                    <span className="text-sm font-medium">{item.action || "Unknown"}</span>
-                    <span className="text-sm text-muted-foreground">{item._count.id}</span>
-                  </div>
-                ))}
+                {topActions.map((item: any) => {
+                  const count = item?._count?.id ?? item?._count ?? 0;
+                  return (
+                    <div key={item?.action || "unknown"} className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{item?.action || "Unknown"}</span>
+                      <span className="text-sm text-muted-foreground">{typeof count === "number" ? count : 0}</span>
+                    </div>
+                  );
+                })}
               </div>
             )}
           </CardContent>
@@ -230,15 +290,15 @@ export default async function UsageInsightsPage() {
             <p className="text-sm text-muted-foreground">No feedback submitted yet</p>
           ) : (
             <div className="space-y-4">
-              {recentFeedback.map((feedback) => (
+              {recentFeedback.map((feedback: any) => (
                 <div key={feedback.id} className="border-b pb-4 last:border-0">
                   <div className="flex items-start justify-between mb-2">
                     <div>
                       <p className="text-sm font-medium">
-                        {feedback.user.name || feedback.user.email}
+                        {feedback.user?.name || feedback.user?.email || "Unknown"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        {feedback.yacht?.name} • {format(new Date(feedback.createdAt), "MMM d, yyyy HH:mm")}
+                        {feedback.yacht?.name || "No yacht"} • {format(new Date(feedback.createdAt), "MMM d, yyyy HH:mm")}
                       </p>
                     </div>
                     <span className="text-xs px-2 py-1 rounded bg-muted capitalize">
@@ -268,10 +328,10 @@ export default async function UsageInsightsPage() {
             <p className="text-sm text-muted-foreground">No events recorded yet</p>
           ) : (
             <div className="space-y-2">
-              {recentEvents.map((event) => (
+              {recentEvents.map((event: any) => (
                 <div key={event.id} className="flex items-center justify-between text-sm">
                   <div className="flex-1">
-                    <span className="font-medium">{event.user.name || event.user.email}</span>
+                    <span className="font-medium">{event.user?.name || event.user?.email || "Unknown"}</span>
                     <span className="text-muted-foreground ml-2">
                       {event.eventType}
                       {event.page && ` • ${event.page}`}
@@ -290,4 +350,3 @@ export default async function UsageInsightsPage() {
     </div>
   );
 }
-
