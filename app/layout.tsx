@@ -9,9 +9,8 @@ import { ErrorBoundary } from "@/components/error-boundary";
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
 
-// Force dynamic rendering globally to avoid build-time prerender hangs
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+// Note: Dynamic rendering is handled at route level where needed (auth, dashboard, admin layouts)
+// This allows static optimization for public pages while keeping dynamic rendering for authenticated routes
 
 export const metadata: Metadata = {
   title: "HelmOps - Helm Operations Management",

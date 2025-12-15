@@ -5,8 +5,8 @@ import { NotificationsProvider } from "@/components/notifications/notifications-
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 
 // Force dynamic rendering for all dashboard routes to avoid static pre-render during build
+// Session is already cached by NextAuth, so we don't need to disable fetchCache
 export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
 
 export default async function DashboardLayout({
   children,

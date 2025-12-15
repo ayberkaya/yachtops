@@ -1,6 +1,10 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 
+// Force dynamic rendering to avoid performance measurement timing issues with redirects
+// Session is already cached by NextAuth, so we don't need to disable fetchCache
+export const dynamic = "force-dynamic";
+
 export default async function AuthLayout({
   children,
 }: {
