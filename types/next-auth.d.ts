@@ -29,6 +29,13 @@ declare module "next-auth/jwt" {
     role: UserRole;
     yachtId: string | null;
     permissions?: string | null;
+    rememberMe?: boolean;
+  }
+}
+
+declare module "next-auth" {
+  interface User {
+    rememberMe?: boolean;
   }
 }
 

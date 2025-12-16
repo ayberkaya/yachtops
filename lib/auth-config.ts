@@ -12,6 +12,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       credentials: {
         email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
+        rememberMe: { label: "Remember Me", type: "text" },
       },
       async authorize(credentials) {
         try {
@@ -108,6 +109,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             yachtId: resolvedUser.yachtId,
             tenantId: resolvedUser.yachtId, // alias tenant to yacht for multi-tenant isolation
             permissions: resolvedUser.permissions,
+            rememberMe: credentials.rememberMe === "true" || credentials.rememberMe === true,
           };
           return userObject;
         } catch (error) {
@@ -123,7 +125,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -132,6 +134,28 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.yachtId = user.yachtId;
         token.tenantId = (user as any).tenantId ?? user.yachtId;
         token.permissions = user.permissions;
+        // Get rememberMe from user object (passed via credentials in signIn)
+        const rememberMe = (user as any).rememberMe ?? false;
+        token.rememberMe = rememberMe;
+        // Set token expiration based on rememberMe
+        // If rememberMe is false, token expires in 24 hours (session cookie)
+        // If rememberMe is true, token expires in 30 days (persistent cookie)
+        if (rememberMe) {
+          token.exp = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 days
+        } else {
+          token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours
+        }
+      }
+      // Handle session updates
+      if (trigger === "update" && session) {
+        if (session.rememberMe !== undefined) {
+          token.rememberMe = session.rememberMe;
+          if (session.rememberMe) {
+            token.exp = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
+          } else {
+            token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+          }
+        }
       }
       return token;
     },
@@ -203,6 +227,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: "jwt",
+    // maxAge will be set dynamically based on rememberMe in jwt callback
+    maxAge: 30 * 24 * 60 * 60, // 30 days default (for remember me)
+    updateAge: 24 * 60 * 60, // Update session every 24 hours
   },
   secret: (() => {
     const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
