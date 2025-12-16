@@ -96,8 +96,8 @@ class ApiClient {
       }
     }
 
-    // If online, try to make request
-    if (this.isOnline && !skipQueue) {
+    // If online, try to make request (skipQueue only controls queuing fallback, not fetch)
+    if (this.isOnline) {
       try {
         // Add timeout to fetch requests (30 seconds default)
         const timeout = 30000;
@@ -168,7 +168,7 @@ class ApiClient {
         }
       } catch (error) {
         // Network error - check if we should queue
-        if (queueOnOffline && !skipQueue && (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE")) {
+        if (!skipQueue && queueOnOffline && (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE")) {
           // Queue the request
           const headers: Record<string, string> = {};
           if (fetchOptions.headers) {
@@ -199,8 +199,8 @@ class ApiClient {
       }
     }
 
-    // Offline - queue if enabled
-    if (queueOnOffline && !skipQueue && (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE")) {
+    // Offline - queue if enabled (skipQueue disables queuing)
+    if (!skipQueue && queueOnOffline && (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE")) {
       const headers: Record<string, string> = {};
       if (fetchOptions.headers) {
         Object.entries(fetchOptions.headers).forEach(([key, value]) => {
