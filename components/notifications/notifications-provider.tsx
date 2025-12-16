@@ -87,21 +87,34 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   }, []);
 
   useEffect(() => {
+    // Only run once on mount
     if (hasMountedRef.current) {
       return;
     }
     hasMountedRef.current = true;
 
-    refresh();
-    checkDueDates();
+    // Initial load
+    refresh().catch(() => {
+      // Silently handle errors
+      setIsLoading(false);
+    });
+    checkDueDates().catch(() => {
+      // Silently handle errors
+    });
 
+    // Set up polling interval
     const interval = setInterval(() => {
-      refresh({ silent: true });
-      checkDueDates();
+      refresh({ silent: true }).catch(() => {
+        // Silently handle errors
+      });
+      checkDueDates().catch(() => {
+        // Silently handle errors
+      });
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [refresh, checkDueDates]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty deps - only run once on mount
 
   const markAsRead = useCallback(
     async (id: string) => {

@@ -472,8 +472,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       href={item.href}
                       onClick={(e) => {
                         e.stopPropagation();
+                        // Close menu immediately, let Link handle navigation
                         setMobileMenuOpen(false);
                       }}
+                      prefetch={true}
                       className={`relative flex items-center space-x-2 sm:space-x-3 w-full p-3 sm:p-3.5 rounded-xl transition-all duration-200 group ${
                         isActive
                           ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
@@ -529,8 +531,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                               href={child.href}
                               onClick={(e) => {
                                 e.stopPropagation();
+                                // Close menu immediately, let Link handle navigation
                                 setMobileMenuOpen(false);
                               }}
+                              prefetch={true}
                               className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
                                 childActive
                                   ? "sidebar-child-active text-primary bg-accent"
@@ -627,6 +631,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                             e.stopPropagation();
                             setMobileMenuOpen(false);
                           }}
+                          prefetch={true}
                           className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                         >
                           <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
@@ -638,6 +643,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                             e.stopPropagation();
                             setMobileMenuOpen(false);
                           }}
+                          prefetch={true}
                           className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                         >
                           <Clock size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
@@ -654,6 +660,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       e.stopPropagation();
                       setMobileMenuOpen(false);
                     }}
+                    prefetch={true}
                     className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                   >
                     <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
@@ -666,6 +673,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     e.stopPropagation();
                     setMobileMenuOpen(false);
                   }}
+                  prefetch={true}
                   className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                 >
                   <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
@@ -677,6 +685,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     e.stopPropagation();
                     setMobileMenuOpen(false);
                   }}
+                  prefetch={true}
                   className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                 >
                   <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
