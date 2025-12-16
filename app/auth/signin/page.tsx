@@ -18,7 +18,7 @@ import { Anchor, Loader2 } from "lucide-react";
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
-  rememberMe: z.boolean().default(false),
+  rememberMe: z.boolean(),
 });
 
 type SignInForm = z.infer<typeof signInSchema>;
@@ -164,7 +164,7 @@ export default function SignInPage() {
                       <FormControl>
                         <Checkbox
                           checked={field.value}
-                          onCheckedChange={field.onChange}
+                          onCheckedChange={(checked) => field.onChange(checked === true)}
                           className="mt-0.5"
                         />
                       </FormControl>
