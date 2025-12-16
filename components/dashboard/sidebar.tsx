@@ -565,124 +565,125 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               );
             })}
           </nav>
-            <div className="p-4 border-t border-slate-200 bg-white">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setSettingsOpen((prev) => !prev);
-                }}
-                className="w-full flex items-center justify-between space-x-3 mb-2 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
-              >
-                <div className="flex items-center space-x-3">
-                  <Avatar className="h-10 w-10 border-2 border-primary/50">
-                    <AvatarFallback className="bg-primary text-white font-semibold">
-                      {initials}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0 text-left">
-                    <p className="text-sm font-semibold text-slate-900 truncate" style={{ color: '#0f172a' }}>
-                      {user.name || "User"}
-                    </p>
-                    <p className="text-xs text-slate-700 truncate capitalize font-medium" style={{ color: '#334155' }}>
-                      {user.role.toLowerCase()}
-                    </p>
-                  </div>
+          </div>
+          {/* Settings Section - Outside scroll container */}
+          <div className="flex-shrink-0 border-t border-slate-200 bg-white p-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSettingsOpen((prev) => !prev);
+              }}
+              className="w-full flex items-center justify-between space-x-3 mb-2 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
+            >
+              <div className="flex items-center space-x-3">
+                <Avatar className="h-10 w-10 border-2 border-primary/50">
+                  <AvatarFallback className="bg-primary text-white font-semibold">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0 text-left">
+                  <p className="text-sm font-semibold text-slate-900 truncate" style={{ color: '#0f172a' }}>
+                    {user.name || "User"}
+                  </p>
+                  <p className="text-xs text-slate-700 truncate capitalize font-medium" style={{ color: '#334155' }}>
+                    {user.role.toLowerCase()}
+                  </p>
                 </div>
-                <ChevronRight
-                  size={16}
-                  className={`transition-transform duration-200 ${settingsOpen ? "rotate-90" : "rotate-0"} text-slate-700`}
-                />
-              </button>
+              </div>
+              <ChevronRight
+                size={16}
+                className={`transition-transform duration-200 ${settingsOpen ? "rotate-90" : "rotate-0"} text-slate-700`}
+              />
+            </button>
 
-              {settingsOpen && (
-                <div className="space-y-2">
-                  {hasPermission(user, "users.view", user.permissions) && (
-                    <div className="space-y-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUsersMenuOpen((prev) => !prev);
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-900 hover:bg-accent rounded-lg transition-colors"
-                        style={{ color: '#0f172a' }}
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Users size={16} className="text-slate-600" />
-                          <span>Users</span>
-                        </div>
-                        <ChevronRight
-                          size={16}
-                          className={`transition-transform duration-200 text-slate-600 ${usersMenuOpen ? "rotate-90" : ""}`}
-                        />
-                      </button>
-                      {usersMenuOpen && (
-                        <div className="space-y-1 ml-4">
-                          <Link
-                            href="/dashboard/users"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMobileMenuOpen(false);
-                            }}
-                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                          >
-                            <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>User Management</span>
-                          </Link>
-                          <Link
-                            href="/dashboard/users/shifts"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMobileMenuOpen(false);
-                            }}
-                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                          >
-                            <Clock size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Shift Management</span>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  {hasPermission(user, "performance.view", user.permissions) && (
-                    <Link
-                      href="/dashboard/performance"
+            {settingsOpen && (
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                {hasPermission(user, "users.view", user.permissions) && (
+                  <div className="space-y-1">
+                    <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        setMobileMenuOpen(false);
+                        setUsersMenuOpen((prev) => !prev);
                       }}
-                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                      className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-900 hover:bg-accent rounded-lg transition-colors"
+                      style={{ color: '#0f172a' }}
                     >
-                      <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                      <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Performance</span>
-                    </Link>
-                  )}
+                      <div className="flex items-center space-x-2">
+                        <Users size={16} className="text-slate-600" />
+                        <span>Users</span>
+                      </div>
+                      <ChevronRight
+                        size={16}
+                        className={`transition-transform duration-200 text-slate-600 ${usersMenuOpen ? "rotate-90" : ""}`}
+                      />
+                    </button>
+                    {usersMenuOpen && (
+                      <div className="space-y-1 ml-4">
+                        <Link
+                          href="/dashboard/users"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMobileMenuOpen(false);
+                          }}
+                          className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                        >
+                          <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                          <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>User Management</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/users/shifts"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setMobileMenuOpen(false);
+                          }}
+                          className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                        >
+                          <Clock size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                          <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Shift Management</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+                )}
+                {hasPermission(user, "performance.view", user.permissions) && (
                   <Link
-                    href="/dashboard/my-documents"
+                    href="/dashboard/performance"
                     onClick={(e) => {
                       e.stopPropagation();
                       setMobileMenuOpen(false);
                     }}
                     className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                   >
-                    <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
+                    <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Performance</span>
                   </Link>
-                  <Link
-                    href="/dashboard/users/notes"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setMobileMenuOpen(false);
-                    }}
-                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
-                  </Link>
-                </div>
-              )}
-            </div>
+                )}
+                <Link
+                  href="/dashboard/my-documents"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                >
+                  <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
+                </Link>
+                <Link
+                  href="/dashboard/users/notes"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                >
+                  <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
+                </Link>
+              </div>
+            )}
           </div>
-          {/* Sign Out Button - Fixed at bottom, always visible */}
+          {/* Sign Out Button - Always visible at bottom */}
           <div className="flex-shrink-0 border-t border-slate-200 bg-white p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
             <button
               onClick={(e) => {
