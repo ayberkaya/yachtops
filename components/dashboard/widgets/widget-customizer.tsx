@@ -26,10 +26,10 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-// WidgetWrapper is not needed in customizer
 import { WidgetConfig, WidgetType, DEFAULT_WIDGETS } from "@/types/widgets";
 import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
+import { SortableWidgetItem } from "./sortable-widget-item";
 
 interface WidgetCustomizerProps {
   currentWidgets: WidgetConfig[];
