@@ -108,6 +108,7 @@ class ApiClient {
           const response = await fetch(fullUrl, {
             ...fetchOptions,
             signal: controller.signal,
+            credentials: "include", // Include cookies for NextAuth session
             headers: {
               "Content-Type": "application/json",
               ...fetchOptions.headers,

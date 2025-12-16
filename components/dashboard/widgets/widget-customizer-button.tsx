@@ -13,22 +13,26 @@ export function WidgetCustomizerButton() {
 
   useEffect(() => {
     async function loadWidgets() {
+      if (!session?.user) {
+        setLoading(false);
+        return;
+      }
+
       try {
         const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets");
         setWidgets(response.data.widgets || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error loading widgets:", error);
         // Fallback to defaults
         if (session?.user?.role) {
-          setWidgets(DEFAULT_WIDGETS[session.user.role] || []);
+          const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
+          setWidgets(defaultWidgets);
         }
       } finally {
         setLoading(false);
       }
     }
-    if (session?.user) {
-      loadWidgets();
-    }
+    loadWidgets();
   }, [session]);
 
   if (loading || !session?.user) {
