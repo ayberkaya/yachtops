@@ -115,6 +115,21 @@ export function SyncStatus() {
     }
   };
 
+  const handleDismissFailed = async () => {
+    try {
+      const { offlineQueue } = await import("@/lib/offline-queue");
+      const failed = await offlineQueue.getFailedItems();
+      // Remove all failed items from queue
+      for (const item of failed) {
+        await offlineQueue.remove(item.id);
+      }
+      setSyncError(null);
+      updateStatus();
+    } catch (error) {
+      console.error("Failed to dismiss failed items:", error);
+    }
+  };
+
   // Don't show if no pending/failed items and not syncing
   if (pendingCount === 0 && failedCount === 0 && !isSyncing && !syncError) {
     return null;
