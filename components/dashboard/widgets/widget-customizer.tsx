@@ -107,7 +107,8 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
       
       // Check if request was successful
       if (response.status >= 400) {
-        throw new Error(response.data?.error || "Failed to save widget preferences");
+        const errorMsg = response.data?.error || response.data?.message || "Failed to save widget preferences";
+        throw new Error(errorMsg);
       }
       
       onSave(widgets);

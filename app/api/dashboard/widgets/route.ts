@@ -7,7 +7,21 @@ import { z } from "zod";
 const updateWidgetsSchema = z.object({
   widgets: z.array(
     z.object({
-      id: z.string() as z.ZodType<WidgetType>,
+      id: z.custom<WidgetType>((val) => {
+        const validWidgetTypes: WidgetType[] = [
+          "pending_expenses",
+          "recent_expenses",
+          "upcoming_trips",
+          "my_tasks",
+          "role_tasks_alert",
+          "upcoming_maintenance",
+          "expiring_permissions",
+          "low_stock_alert",
+          "monthly_report",
+          "quick_stats",
+        ];
+        return typeof val === "string" && validWidgetTypes.includes(val as WidgetType);
+      }),
       enabled: z.boolean(),
       order: z.number(),
       size: z.enum(["small", "medium", "large", "full"]).optional(),
@@ -82,6 +96,7 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ success: true, widgets: dashboardWidgets.widgets });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.error("Zod validation error:", error.issues);
       return NextResponse.json(
         { error: "Invalid request data", details: error.issues },
         { status: 400 }
@@ -89,8 +104,9 @@ export async function PUT(request: NextRequest) {
     }
 
     console.error("Error updating dashboard widgets:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Failed to update dashboard widgets" },
+      { error: "Failed to update dashboard widgets", message: errorMessage },
       { status: 500 }
     );
   }
