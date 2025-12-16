@@ -5,8 +5,6 @@ import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
 import { WidgetConfig, DEFAULT_WIDGETS } from "@/types/widgets";
 import { WidgetCustomizer } from "./widget-customizer";
-import { Button } from "@/components/ui/button";
-import { Settings2, Loader2 } from "lucide-react";
 
 export function WidgetCustomizerButton() {
   const { data: session, status } = useSession();
@@ -42,20 +40,14 @@ export function WidgetCustomizerButton() {
     loadWidgets();
   }, [session, status]);
 
-  // Show button even while loading, but disable it
-  if (status === "loading" || loading) {
-    return (
-      <Button variant="outline" size="sm" disabled>
-        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        Customize Dashboard
-      </Button>
-    );
-  }
+  // Always show the button, WidgetCustomizer will handle the loading state
+  // If no session or widgets not loaded yet, use defaults based on role
+  const widgetsToUse = widgets.length > 0 
+    ? widgets 
+    : (session?.user?.role 
+        ? DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [] 
+        : []);
 
-  if (!session?.user) {
-    return null;
-  }
-
-  return <WidgetCustomizer currentWidgets={widgets} onSave={setWidgets} />;
+  return <WidgetCustomizer currentWidgets={widgetsToUse} onSave={setWidgets} />;
 }
 
