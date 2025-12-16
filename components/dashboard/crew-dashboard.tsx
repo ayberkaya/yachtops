@@ -168,9 +168,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         <div>
           <h1 className="text-3xl font-bold">My Dashboard</h1>
           <p className="text-muted-foreground">
-            {myTasks.length > 0 || roleAssignedTasks.length > 0
-              ? `Welcome back, ${user.name || user.email}`
-              : `Welcome, ${user.name || user.email}. Start by checking your tasks or creating an expense.`}
+            Welcome, {user.name || user.email}
           </p>
         </div>
         <QuickActions />

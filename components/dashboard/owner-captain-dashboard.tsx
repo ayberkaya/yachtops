@@ -196,9 +196,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            {pendingExpenses.length > 0 || roleAssignedTasks.length > 0 
-              ? `Welcome back, ${user.name || user.email}`
-              : `Welcome, ${user.name || user.email}. Start by reviewing expenses or creating a task.`}
+            Welcome, {user.name || user.email}
           </p>
         </div>
         <QuickActions />
