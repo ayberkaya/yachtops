@@ -218,16 +218,26 @@ export function SyncStatus() {
             )}
 
             {failedCount > 0 && !isSyncing && (
-              <Button
-                onClick={handleRetryFailed}
-                size="sm"
-                variant="outline"
-                className="mt-2 w-full"
-                disabled={!apiClient.isOnline}
-              >
-                <RefreshCw className="mr-2 h-3 w-3" />
-                Retry Failed
-              </Button>
+              <div className="flex gap-2 mt-2">
+                <Button
+                  onClick={handleRetryFailed}
+                  size="sm"
+                  variant="outline"
+                  className="flex-1"
+                  disabled={!apiClient.isOnline}
+                >
+                  <RefreshCw className="mr-2 h-3 w-3" />
+                  Retry Failed
+                </Button>
+                <Button
+                  onClick={handleDismissFailed}
+                  size="sm"
+                  variant="ghost"
+                  className="flex-1"
+                >
+                  Dismiss
+                </Button>
+              </div>
             )}
 
             {syncError && failedCount === 0 && (
