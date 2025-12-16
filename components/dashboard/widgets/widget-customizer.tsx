@@ -88,6 +88,12 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
   };
 
   const handleSave = async () => {
+    // If offline, avoid throwing and show friendly message
+    if (!apiClient.isOnline) {
+      alert("You are offline. Please reconnect to save dashboard widgets.");
+      return;
+    }
+
     setSaving(true);
     try {
       // Widget preferences should not be queued offline - they're not critical
@@ -108,7 +114,12 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
       setOpen(false);
     } catch (error) {
       console.error("Error saving widgets:", error);
-      const errorMessage = error instanceof Error ? error.message : "Failed to save widget preferences. Please try again.";
+      const errorMessage =
+        error instanceof Error
+          ? error.message === "Network request failed and no offline fallback available"
+            ? "Network error while saving widgets. Please check your connection and try again."
+            : error.message
+          : "Failed to save widget preferences. Please try again.";
       alert(errorMessage);
     } finally {
       setSaving(false);
