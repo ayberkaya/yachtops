@@ -46,9 +46,12 @@ export function WidgetRenderer({
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Extract role to keep dependency array stable
+  const userRole = session?.user?.role;
+
   useEffect(() => {
     async function loadWidgets() {
-      if (!session?.user?.role) {
+      if (!userRole) {
         setLoading(false);
         return;
       }
@@ -60,21 +63,21 @@ export function WidgetRenderer({
         } else {
           // Fallback to defaults if no widgets found
           const { DEFAULT_WIDGETS } = await import("@/types/widgets");
-          const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
+          const defaultWidgets = DEFAULT_WIDGETS[userRole as keyof typeof DEFAULT_WIDGETS] || [];
           setWidgets(defaultWidgets);
         }
       } catch (error) {
         console.error("Error loading widgets:", error);
         // Fallback to defaults on error
         const { DEFAULT_WIDGETS } = await import("@/types/widgets");
-        const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
+        const defaultWidgets = DEFAULT_WIDGETS[userRole as keyof typeof DEFAULT_WIDGETS] || [];
         setWidgets(defaultWidgets);
       } finally {
         setLoading(false);
       }
     }
     loadWidgets();
-  }, [session]);
+  }, [userRole]);
 
   if (loading) {
     return <div>Loading widgets...</div>;
