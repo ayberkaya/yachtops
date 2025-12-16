@@ -398,8 +398,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </div>
           </div>
           {/* Mobile Navigation - Always expanded */}
-          <div className="flex-1 overflow-y-auto">
-            <nav className="px-3 pt-4 pb-0 space-y-1 bg-white">
+          <div className="flex-1 overflow-y-auto min-h-0">
+            <nav className="px-3 pt-4 pb-4 space-y-1 bg-white">
             {filteredNavItems.map((item) => {
               const isActive = mobileExpandedItems.has(item.href);
               const Icon = item.icon;
@@ -678,19 +678,21 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   </Link>
                 </div>
               )}
-
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMobileMenuOpen(false);
-                  signOut({ callbackUrl: "/" });
-                }}
-                className="mt-3 flex items-center space-x-2 text-slate-700 hover:text-red-600 w-full text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
-              >
-                <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
-                <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
-              </button>
             </div>
+          </div>
+          {/* Sign Out Button - Fixed at bottom, always visible */}
+          <div className="border-t border-slate-200 bg-white p-4">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setMobileMenuOpen(false);
+                signOut({ callbackUrl: "/" });
+              }}
+              className="w-full flex items-center space-x-2 text-slate-700 hover:text-red-600 text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
+            >
+              <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
+              <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
+            </button>
           </div>
         </div>
         </SheetContent>
