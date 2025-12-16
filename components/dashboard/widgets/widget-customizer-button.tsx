@@ -23,26 +23,22 @@ export function WidgetCustomizerButton() {
         return;
       }
 
+      // Always set defaults first, then try to load from API
+      if (session?.user?.role) {
+        const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
+        setWidgets(defaultWidgets);
+        setLoading(false);
+      }
+
+      // Try to load from API in background (non-blocking)
       try {
         const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets");
-        if (response.data?.widgets) {
+        if (response.data?.widgets && response.data.widgets.length > 0) {
           setWidgets(response.data.widgets);
-        } else {
-          // Fallback to defaults if no widgets in response
-          if (session?.user?.role) {
-            const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
-            setWidgets(defaultWidgets);
-          }
         }
       } catch (error: any) {
-        console.error("Error loading widgets:", error);
-        // Always fallback to defaults on error
-        if (session?.user?.role) {
-          const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
-          setWidgets(defaultWidgets);
-        }
-      } finally {
-        setLoading(false);
+        // Silently fail - we already have defaults set above
+        console.warn("Could not load widget preferences from API, using defaults:", error);
       }
     }
     loadWidgets();
