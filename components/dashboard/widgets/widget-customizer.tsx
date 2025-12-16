@@ -90,15 +90,26 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
   const handleSave = async () => {
     setSaving(true);
     try {
-      await apiClient.request("/api/dashboard/widgets", {
+      // Widget preferences should not be queued offline - they're not critical
+      // Use skipQueue to prevent offline queue and show error immediately if offline
+      const response = await apiClient.request("/api/dashboard/widgets", {
         method: "PUT",
         body: JSON.stringify({ widgets }),
+        skipQueue: true, // Don't queue widget preferences offline
+        queueOnOffline: false, // Explicitly disable offline queue
       });
+      
+      // Check if request was successful
+      if (response.status >= 400) {
+        throw new Error(response.data?.error || "Failed to save widget preferences");
+      }
+      
       onSave(widgets);
       setOpen(false);
     } catch (error) {
       console.error("Error saving widgets:", error);
-      alert("Failed to save widget preferences. Please try again.");
+      const errorMessage = error instanceof Error ? error.message : "Failed to save widget preferences. Please try again.";
+      alert(errorMessage);
     } finally {
       setSaving(false);
     }
