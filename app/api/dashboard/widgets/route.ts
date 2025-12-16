@@ -44,7 +44,7 @@ export async function GET() {
 
     // If no widgets configured, return defaults for user role
     if (widgets.length === 0) {
-      widgets = DEFAULT_WIDGETS[user.role] || [];
+      widgets = DEFAULT_WIDGETS[user.role as keyof typeof DEFAULT_WIDGETS] || [];
     }
 
     return NextResponse.json({ widgets });
