@@ -32,15 +32,21 @@ export function WidgetCustomizerButton() {
         setLoading(false);
       }
 
-      // Try to load from API in background (non-blocking)
+      // Try to load from API in background (non-blocking) with cache
       try {
-        const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets");
+        const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets", {
+          useCache: true,
+          cacheTTL: 300000, // 5 minutes cache
+        });
         if (response.data?.widgets && response.data.widgets.length > 0) {
           setWidgets(response.data.widgets);
         }
       } catch (error: any) {
         // Silently fail - we already have defaults set above
-        console.warn("Could not load widget preferences from API, using defaults:", error);
+        // Only log in development
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Could not load widget preferences from API, using defaults:", error);
+        }
       }
     }
     loadWidgets();

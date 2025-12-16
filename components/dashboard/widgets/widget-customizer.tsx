@@ -10,7 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Settings2 } from "lucide-react";
+import { Settings } from "lucide-react";
 import {
   DndContext,
   closestCenter,
@@ -139,9 +139,13 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Settings2 className="h-4 w-4 mr-2" />
-          Customize Dashboard
+        <Button 
+          variant="outline" 
+          size="icon" 
+          className="h-10 w-10"
+          aria-label="Customize Dashboard"
+        >
+          <Settings className="h-5 w-5" />
         </Button>
       </DialogTrigger>
       <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
     }
 
     const status = searchParams.get("status");
+    // Pagination support
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 500); // Max 500, default 100
+    const skip = (page - 1) * limit;
 
     const where: any = {
       yachtId: tenantId || undefined,
@@ -60,9 +64,40 @@ export async function GET(request: NextRequest) {
           },
       },
       orderBy: { startDate: "desc" },
+      skip,
+      take: limit,
     });
 
-    return NextResponse.json(trips);
+    // Backward compatibility: if no pagination params, return array directly
+    const hasPagination = page > 1 || limit !== 100 || searchParams.has("limit");
+    
+    if (!hasPagination) {
+      return NextResponse.json(trips, {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      });
+    }
+
+    // Get total count for pagination
+    const totalCount = await db.trip.count({ where });
+
+    return NextResponse.json(
+      {
+        data: trips,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching trips:", error);
     return NextResponse.json(

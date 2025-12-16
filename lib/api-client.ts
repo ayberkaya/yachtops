@@ -8,9 +8,10 @@ import { offlineStorage } from "./offline-storage";
 
 export interface ApiRequestOptions extends RequestInit {
   queueOnOffline?: boolean; // Queue request if offline (default: true)
-  useCache?: boolean; // Use cache for GET requests (default: false)
-  cacheTTL?: number; // Cache TTL in milliseconds (default: 1 hour)
+  useCache?: boolean; // Use cache for GET requests (default: true for GET requests)
+  cacheTTL?: number; // Cache TTL in milliseconds (default: 5 minutes)
   skipQueue?: boolean; // Skip queue even if offline (default: false)
+  skipDeduplication?: boolean; // Skip request deduplication (default: false)
 }
 
 export interface ApiResponse<T = any> {
@@ -24,6 +25,7 @@ export interface ApiResponse<T = any> {
 
 class ApiClient {
   private baseURL: string = "";
+  private pendingRequests = new Map<string, Promise<ApiResponse<any>>>();
 
   /**
    * Set base URL
@@ -71,18 +73,27 @@ class ApiClient {
   ): Promise<ApiResponse<T>> {
     const {
       queueOnOffline = true,
-      useCache = false,
-      cacheTTL = 3600000, // 1 hour
+      useCache = undefined, // Auto-enable for GET requests
+      cacheTTL = 300000, // 5 minutes default (reduced from 1 hour)
       skipQueue = false,
+      skipDeduplication = false,
       ...fetchOptions
     } = options;
 
     const fullUrl = url.startsWith("http") ? url : `${this.baseURL}${url}`;
     const method = fetchOptions.method || "GET";
     const isGetRequest = method === "GET";
+    // Auto-enable cache for GET requests unless explicitly disabled
+    const shouldUseCache = useCache !== false && isGetRequest;
+
+    // Request deduplication: if same request is already pending, return that promise
+    const requestKey = skipDeduplication ? null : `${method}:${fullUrl}:${fetchOptions.body || ""}`;
+    if (requestKey && this.pendingRequests.has(requestKey)) {
+      return this.pendingRequests.get(requestKey)! as Promise<ApiResponse<T>>;
+    }
 
     // Try cache first for GET requests
-    if (isGetRequest && useCache) {
+    if (isGetRequest && shouldUseCache) {
       const cacheKey = this.getCacheKey(fullUrl, fetchOptions);
       const cached = await offlineStorage.getCache<T>(cacheKey);
       if (cached) {
@@ -96,11 +107,58 @@ class ApiClient {
       }
     }
 
+    // Create request promise
+    const requestPromise = this.executeRequest<T>(fullUrl, {
+      method,
+      isGetRequest,
+      shouldUseCache,
+      cacheTTL,
+      queueOnOffline,
+      skipQueue,
+      fetchOptions,
+    });
+
+    // Store pending request for deduplication
+    if (requestKey) {
+      this.pendingRequests.set(requestKey, requestPromise);
+      requestPromise.finally(() => {
+        this.pendingRequests.delete(requestKey);
+      });
+    }
+
+    return requestPromise;
+  }
+
+  /**
+   * Execute the actual request
+   */
+  private async executeRequest<T = any>(
+    fullUrl: string,
+    options: {
+      method: string;
+      isGetRequest: boolean;
+      shouldUseCache: boolean;
+      cacheTTL: number;
+      queueOnOffline: boolean;
+      skipQueue: boolean;
+      fetchOptions: RequestInit;
+    }
+  ): Promise<ApiResponse<T>> {
+    const {
+      method,
+      isGetRequest,
+      shouldUseCache,
+      cacheTTL,
+      queueOnOffline,
+      skipQueue,
+      fetchOptions,
+    } = options;
+
     // If online, try to make request (skipQueue only controls queuing fallback, not fetch)
     if (this.isOnline) {
       try {
-        // Add timeout to fetch requests (30 seconds default)
-        const timeout = 30000;
+        // Reduced timeout for mobile/slow networks: 8 seconds (was 15)
+        const timeout = 8000;
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
@@ -151,7 +209,7 @@ class ApiClient {
           }
 
           // Cache successful GET responses
-          if (isGetRequest && useCache && response.ok) {
+          if (isGetRequest && shouldUseCache && response.ok) {
             const cacheKey = this.getCacheKey(fullUrl, fetchOptions);
             await offlineStorage.setCache(cacheKey, data, cacheTTL);
           }
@@ -164,9 +222,18 @@ class ApiClient {
           };
         } catch (fetchError) {
           clearTimeout(timeoutId);
+          // Don't throw AbortError - it's expected when request is cancelled
+          if (fetchError instanceof Error && fetchError.name === "AbortError") {
+            // Silently handle abort - request was cancelled (timeout or component unmount)
+            throw new Error("Request was cancelled");
+          }
           throw fetchError;
         }
       } catch (error) {
+        // Don't queue aborted requests
+        if (error instanceof Error && error.message === "Request was cancelled") {
+          throw error;
+        }
         // Network error - check if we should queue
         if (!skipQueue && queueOnOffline && (method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE")) {
           // Queue the request
@@ -226,7 +293,7 @@ class ApiClient {
     }
 
     // For GET requests when offline, try cache
-    if (isGetRequest && useCache) {
+    if (isGetRequest && shouldUseCache) {
       const cacheKey = this.getCacheKey(fullUrl, fetchOptions);
       const cached = await offlineStorage.getCache<T>(cacheKey);
       if (cached) {

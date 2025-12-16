@@ -59,6 +59,10 @@ export async function GET(request: NextRequest) {
     const maxAmount = searchParams.get("maxAmount");
     const isReimbursable = searchParams.get("isReimbursable");
     const isReimbursed = searchParams.get("isReimbursed");
+    // Pagination support
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "200", 10), 500); // Max 500, default 200 (reduced from 1000)
+    const skip = (page - 1) * limit;
 
     const where: any = {
       yachtId: effectiveTenantId,
@@ -136,15 +140,42 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { date: "desc" },
-      take: 1000, // Limit results to prevent huge payloads
+      skip,
+      take: limit,
     });
 
+    // Backward compatibility: if no pagination params, return array directly
+    const hasPagination = page > 1 || limit !== 200 || searchParams.has("limit");
+    
+    if (!hasPagination) {
+      // Cache for 30 seconds - expenses change frequently but not instantly
+      return NextResponse.json(expenses, {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      });
+    }
+
+    // Get total count for pagination
+    const totalCount = await db.expense.count({ where });
+
     // Cache for 30 seconds - expenses change frequently but not instantly
-    return NextResponse.json(expenses, {
-      headers: {
-        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+    return NextResponse.json(
+      {
+        data: expenses,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching expenses:", error);
     return NextResponse.json(

@@ -31,7 +31,7 @@ interface WidgetRendererProps {
   showCustomizerButton?: boolean;
 }
 
-export function WidgetRenderer({
+export const WidgetRenderer = memo(function WidgetRenderer({
   pendingExpenses = [],
   recentExpenses = [],
   upcomingTrips = [],
@@ -51,39 +51,59 @@ export function WidgetRenderer({
   const userRole = session?.user?.role;
 
   useEffect(() => {
+    let isMounted = true;
+    
     async function loadWidgets() {
       if (!userRole) {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
         return;
       }
 
+      // Immediately set defaults to show dashboard quickly
+      const { DEFAULT_WIDGETS } = await import("@/types/widgets");
+      const defaultWidgets = DEFAULT_WIDGETS[userRole as keyof typeof DEFAULT_WIDGETS] || [];
+      if (isMounted) {
+        setWidgets(defaultWidgets);
+        setLoading(false); // Show dashboard immediately with defaults
+      }
+
+      // Try to load from API in background (non-blocking)
+      // Cache is now enabled by default for GET requests
       try {
-        const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets");
+        const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets", {
+          cacheTTL: 300000, // 5 minutes cache
+        });
+        if (!isMounted) return; // Component unmounted, don't update state
+        
         if (response.data?.widgets && response.data.widgets.length > 0) {
           setWidgets(response.data.widgets);
-        } else {
-          // Fallback to defaults if no widgets found
-          const { DEFAULT_WIDGETS } = await import("@/types/widgets");
-          const defaultWidgets = DEFAULT_WIDGETS[userRole as keyof typeof DEFAULT_WIDGETS] || [];
-          setWidgets(defaultWidgets);
         }
       } catch (error) {
-        console.error("Error loading widgets:", error);
-        // Fallback to defaults on error
-        const { DEFAULT_WIDGETS } = await import("@/types/widgets");
-        const defaultWidgets = DEFAULT_WIDGETS[userRole as keyof typeof DEFAULT_WIDGETS] || [];
-        setWidgets(defaultWidgets);
-      } finally {
-        setLoading(false);
+        // Silently handle abort/cancellation errors
+        if (error instanceof Error && (error.name === "AbortError" || error.message === "Request was cancelled")) {
+          return; // Request was cancelled, don't update state
+        }
+        
+        if (!isMounted) return; // Component unmounted
+        
+        // Silently fail - we already have defaults set above
+        // Only log in development
+        if (process.env.NODE_ENV === "development") {
+          console.warn("Could not load widget preferences from API, using defaults:", error);
+        }
       }
     }
+    
     loadWidgets();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [userRole]);
 
-  if (loading) {
-    return <div>Loading widgets...</div>;
-  }
-
+  // All hooks must be called before any conditional returns
   const enabledWidgets = useMemo(
     () => widgets.filter((w) => w.enabled).sort((a, b) => a.order - b.order),
     [widgets]
@@ -160,6 +180,17 @@ export function WidgetRenderer({
     ]
   );
 
+  // Early return after all hooks are called
+  if (loading) {
+    return (
+      <div className="space-y-4">
+        <div className="h-32 animate-pulse bg-muted rounded-lg" />
+        <div className="h-32 animate-pulse bg-muted rounded-lg" />
+        <div className="h-32 animate-pulse bg-muted rounded-lg" />
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {showCustomizerButton && (
@@ -174,5 +205,19 @@ export function WidgetRenderer({
       </div>
     </div>
   );
-}
+}, (prevProps, nextProps) => {
+  // Custom comparison function for better performance
+  return (
+    prevProps.pendingExpenses === nextProps.pendingExpenses &&
+    prevProps.recentExpenses === nextProps.recentExpenses &&
+    prevProps.upcomingTrips === nextProps.upcomingTrips &&
+    prevProps.totalPendingAmount === nextProps.totalPendingAmount &&
+    prevProps.roleAssignedTasks === nextProps.roleAssignedTasks &&
+    prevProps.upcomingMaintenance === nextProps.upcomingMaintenance &&
+    prevProps.expiringPermissions === nextProps.expiringPermissions &&
+    prevProps.lowStockItems === nextProps.lowStockItems &&
+    prevProps.myTasks === nextProps.myTasks &&
+    prevProps.showCustomizerButton === nextProps.showCustomizerButton
+  );
+});
 

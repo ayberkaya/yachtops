@@ -52,7 +52,7 @@ export const ExpiringPermissionsWidget = memo(function ExpiringPermissionsWidget
                   <Eye className="h-4 w-4 text-yellow-700 dark:text-yellow-300" />
                   <div>
                     <p className="font-medium text-sm">{perm.title || "Permission"}</p>
-                    <p className="text-xs text-muted-foreground">{perm.category || perm.type || "Document"}</p>
+                    <p className="text-xs text-muted-foreground">Marina Permission</p>
                   </div>
                 </div>
                 <div className="text-xs text-muted-foreground">

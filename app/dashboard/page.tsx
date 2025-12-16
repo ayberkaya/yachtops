@@ -4,6 +4,8 @@ import { hasAnyRole } from "@/lib/auth";
 import { UserRole } from "@prisma/client";
 import { OwnerCaptainDashboard } from "@/components/dashboard/owner-captain-dashboard";
 import { CrewDashboard } from "@/components/dashboard/crew-dashboard";
+import { Suspense } from "react";
+import DashboardLoading from "./loading";
 
 export default async function DashboardPage() {
   const session = await getSession();
@@ -17,11 +19,13 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      {isOwnerOrCaptain ? (
-        <OwnerCaptainDashboard user={user} />
-      ) : (
-        <CrewDashboard user={user} />
-      )}
+      <Suspense fallback={<DashboardLoading />}>
+        {isOwnerOrCaptain ? (
+          <OwnerCaptainDashboard user={user} />
+        ) : (
+          <CrewDashboard user={user} />
+        )}
+      </Suspense>
     </div>
   );
 }

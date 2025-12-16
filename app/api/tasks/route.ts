@@ -38,6 +38,10 @@ export async function GET(request: NextRequest) {
     const status = searchParams.get("status");
     const assigneeId = searchParams.get("assigneeId");
     const tripId = searchParams.get("tripId");
+    // Pagination support
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "200", 10), 500); // Max 500, default 200 (reduced from 500)
+    const skip = (page - 1) * limit;
 
     const where: any = {
       yachtId: tenantId || undefined,
@@ -79,15 +83,42 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { dueDate: "asc" },
-      take: 500, // Limit to prevent huge payloads
+      skip,
+      take: limit,
     });
 
+    // Backward compatibility: if no pagination params, return array directly
+    const hasPagination = page > 1 || limit !== 200 || searchParams.has("limit");
+    
+    if (!hasPagination) {
+      // Cache for 30 seconds - tasks change frequently but not instantly
+      return NextResponse.json(tasks, {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      });
+    }
+
+    // Get total count for pagination
+    const totalCount = await db.task.count({ where });
+
     // Cache for 30 seconds - tasks change frequently but not instantly
-    return NextResponse.json(tasks, {
-      headers: {
-        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+    return NextResponse.json(
+      {
+        data: tasks,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
       },
-    });
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+        },
+      }
+    );
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(
