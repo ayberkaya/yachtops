@@ -114,8 +114,8 @@ export async function GET(request: NextRequest) {
           userId: session.user.id,
         },
         select: { messageId: true },
-      }).then((existingReads) => {
-        const alreadyReadIds = new Set(existingReads.map((r: { messageId: string }) => r.messageId));
+      }).then((existingReads: Array<{ messageId: string }>) => {
+        const alreadyReadIds = new Set(existingReads.map((r) => r.messageId));
         const toMarkAsRead = messageIds.filter((id: string) => !alreadyReadIds.has(id));
 
         // Mark unread messages as read (fire and forget)
