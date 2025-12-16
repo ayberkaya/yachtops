@@ -189,6 +189,14 @@ export async function DELETE(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    // Ensure user belongs to the same yacht
+    if (user.yachtId !== session.user.yachtId) {
+      return NextResponse.json(
+        { error: "Cannot delete user from another yacht" },
+        { status: 403 }
+      );
+    }
+
     if (user.role === "OWNER") {
       return NextResponse.json(
         { error: "Cannot delete owner user" },

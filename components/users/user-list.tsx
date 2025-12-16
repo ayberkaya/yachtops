@@ -28,7 +28,7 @@ import { Plus, Pencil, Trash2, Shield } from "lucide-react";
 import { UserForm } from "./user-form";
 import { UserEditForm } from "./user-edit-form";
 import { RoleForm } from "@/components/roles/role-form";
-import { canManageRoles } from "@/lib/auth";
+import { canManageRoles, canManageUsers } from "@/lib/auth";
 import { useSession } from "next-auth/react";
 
 interface User {
@@ -54,6 +54,7 @@ export function UserList({ initialUsers }: UserListProps) {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
   const canManage = session?.user ? canManageRoles(session.user) : false;
+  const canDeleteUsers = session?.user ? canManageUsers(session.user) : false;
 
   const handleDelete = async (id: string, email: string) => {
     if (!confirm(`Delete user ${email}?\n\nThis action cannot be undone. The user will be permanently removed from the system.`)) {
@@ -71,6 +72,8 @@ export function UserList({ initialUsers }: UserListProps) {
         return;
       }
 
+      // Update local state to remove deleted user
+      setUsers(users.filter((u) => u.id !== id));
       router.refresh();
     } catch (error) {
       alert("An error occurred. Please try again.");
@@ -171,7 +174,7 @@ export function UserList({ initialUsers }: UserListProps) {
                           variant="ghost"
                           size="icon"
                           onClick={() => handleDelete(user.id, user.email)}
-                          disabled={user.role === "OWNER"}
+                          disabled={!canDeleteUsers || user.role === "OWNER" || user.id === session?.user?.id}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
