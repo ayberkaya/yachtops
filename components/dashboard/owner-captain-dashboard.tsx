@@ -10,6 +10,7 @@ import { DollarSign, Calendar, AlertCircle, TrendingUp, Clock, AlertTriangle, Pa
 import { hasPermission } from "@/lib/permissions";
 import { MonthlyReportDownload } from "./monthly-report-download";
 import { QuickActions } from "./quick-actions";
+import { WidgetCustomizerButton } from "./widgets/widget-customizer-button";
 
 type DashboardUser = NonNullable<Session["user"]>;
 
@@ -199,7 +200,10 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
             Welcome aboard, <span className="font-bold">{user.name || user.email}</span>
           </p>
         </div>
-        <QuickActions />
+        <div className="flex gap-2">
+          <WidgetCustomizerButton />
+          <QuickActions />
+        </div>
       </div>
 
       {/* Role-Assigned Tasks Alert - Dikkat çekici bildirim */}

@@ -19,6 +19,7 @@ model User {
   permissions              String?
   notificationPreferences  String?                    @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences")
   pushSubscription         String?                    @map("push_subscription") // JSON string of PushSubscription
+  dashboardWidgets         String?                    @map("dashboard_widgets") // JSON string of dashboard widget preferences
   createdAt                DateTime                   @default(now()) @map("created_at")
   updatedAt                DateTime                   @updatedAt @map("updated_at")
   yachtId                  String?                    @map("yacht_id")
