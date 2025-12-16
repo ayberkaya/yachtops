@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { WidgetConfig, DEFAULT_WIDGETS } from "@/types/widgets";
 import { WidgetCustomizer } from "./widget-customizer";
 
 export function WidgetCustomizerButton() {
   const { data: session, status } = useSession();
+  const router = useRouter();
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +59,13 @@ export function WidgetCustomizerButton() {
 
   const widgetsToUse = getWidgetsToUse();
 
+  const handleSave = (savedWidgets: WidgetConfig[]) => {
+    setWidgets(savedWidgets);
+    // Refresh the page to reload widgets
+    router.refresh();
+  };
+
   // Always render WidgetCustomizer - it will show the button
-  return <WidgetCustomizer currentWidgets={widgetsToUse} onSave={setWidgets} />;
+  return <WidgetCustomizer currentWidgets={widgetsToUse} onSave={handleSave} />;
 }
 
