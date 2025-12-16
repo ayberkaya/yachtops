@@ -378,13 +378,15 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           backgroundColor: '#ffffff',
           backdropFilter: 'none',
           background: '#ffffff',
-          height: '100vh',
-          maxHeight: '100vh'
+          height: '100dvh', // Dynamic viewport height for mobile
+          maxHeight: '100dvh',
+          paddingTop: 'env(safe-area-inset-top, 0)',
+          paddingBottom: 'env(safe-area-inset-bottom, 0)'
         }}
       >
         <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-        <div className="h-full w-full bg-white flex flex-col overflow-hidden">
-          <div className="flex-shrink-0 p-6 border-b border-slate-200 bg-white">
+        <div className="h-full w-full bg-white flex flex-col overflow-hidden" style={{ minHeight: 0 }}>
+          <div className="flex-shrink-0 p-4 sm:p-6 border-b border-slate-200 bg-white" style={{ paddingTop: 'max(1rem, env(safe-area-inset-top, 0))' }}>
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
                 <Anchor className="text-primary-foreground w-6 h-6" />
@@ -400,7 +402,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </div>
           </div>
           {/* Mobile Navigation - Always expanded */}
-          <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
+          <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
             <nav className="px-3 pt-4 pb-4 space-y-1 bg-white">
             {filteredNavItems.map((item) => {
               const isActive = mobileExpandedItems.has(item.href);
@@ -436,7 +438,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                           prev.has(item.href) ? new Set() : new Set([item.href])
                         );
                       }}
-                      className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
+                      className={`relative flex items-center space-x-2 sm:space-x-3 w-full p-3 sm:p-3.5 rounded-xl transition-all duration-200 group ${
                         isActive
                           ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                           : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -472,7 +474,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                         e.stopPropagation();
                         setMobileMenuOpen(false);
                       }}
-                      className={`relative flex items-center space-x-3 w-full p-3.5 rounded-xl transition-all duration-200 group ${
+                      className={`relative flex items-center space-x-2 sm:space-x-3 w-full p-3 sm:p-3.5 rounded-xl transition-all duration-200 group ${
                         isActive
                           ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                           : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -567,13 +569,13 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           </nav>
           </div>
           {/* Settings Section - Outside scroll container */}
-          <div className="flex-shrink-0 border-t border-slate-200 bg-white p-4">
+          <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 sm:p-4">
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setSettingsOpen((prev) => !prev);
               }}
-              className="w-full flex items-center justify-between space-x-3 mb-2 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors"
+              className="w-full flex items-center justify-between space-x-2 sm:space-x-3 mb-2 p-2.5 sm:p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors touch-manipulation"
             >
               <div className="flex items-center space-x-3">
                 <Avatar className="h-10 w-10 border-2 border-primary/50">
@@ -597,7 +599,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </button>
 
             {settingsOpen && (
-              <div className="space-y-2 max-h-[200px] overflow-y-auto">
+              <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'min(200px, 30vh)' }}>
                 {hasPermission(user, "users.view", user.permissions) && (
                   <div className="space-y-1">
                     <button
@@ -684,14 +686,20 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             )}
           </div>
           {/* Sign Out Button - Always visible at bottom */}
-          <div className="flex-shrink-0 border-t border-slate-200 bg-white p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div 
+            className="flex-shrink-0 border-t border-slate-200 bg-white p-3 sm:p-4" 
+            style={{ 
+              paddingBottom: 'max(1rem, env(safe-area-inset-bottom, 0))',
+              paddingTop: '1rem'
+            }}
+          >
             <button
               onClick={(e) => {
                 e.stopPropagation();
                 setMobileMenuOpen(false);
                 signOut({ callbackUrl: "/" });
               }}
-              className="w-full flex items-center space-x-2 text-slate-700 hover:text-red-600 text-sm p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group"
+              className="w-full flex items-center space-x-2 sm:space-x-3 text-slate-700 hover:text-red-600 text-sm p-3 sm:p-3.5 rounded-xl hover:bg-slate-100 transition-all duration-200 group touch-manipulation min-h-[44px]"
             >
               <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
               <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
