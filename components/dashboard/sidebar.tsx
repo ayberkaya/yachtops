@@ -1410,16 +1410,15 @@ export function Sidebar() {
                     <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">Personal Notes</span>
                   </Link>
+                  <button
+                    onClick={() => signOut({ callbackUrl: "/" })}
+                    className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
+                    <span className="transition-colors duration-200">Sign Out</span>
+                  </button>
                 </div>
               )}
-
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="mt-3 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-              >
-                <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
-                <span className="transition-colors duration-200">Sign Out</span>
-              </button>
             </>
           ) : (
             <div className="flex flex-col items-center space-y-3">
