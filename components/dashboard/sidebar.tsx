@@ -7,6 +7,17 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import {
   Menu,
@@ -691,17 +702,40 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
                   <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
                 </Link>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuOpen(false);
-                    signOut({ callbackUrl: "/" });
-                  }}
-                  className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group touch-manipulation min-h-[44px]"
-                >
-                  <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
-                </button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                      }}
+                      className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group touch-manipulation min-h-[44px]"
+                    >
+                      <LogOut size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-red-600" />
+                      <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
+                    </button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Sign Out</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Are you sure you want to sign out? You will need to sign in again to access your account.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMobileMenuOpen(false);
+                          signOut({ callbackUrl: "/" });
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Sign Out
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </div>
@@ -1401,13 +1435,33 @@ export function Sidebar() {
                     <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">Personal Notes</span>
                   </Link>
-                  <button
-                    onClick={() => signOut({ callbackUrl: "/" })}
-                    className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
-                    <span className="transition-colors duration-200">Sign Out</span>
-                  </button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <button
+                        className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                      >
+                        <LogOut size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-destructive" />
+                        <span className="transition-colors duration-200">Sign Out</span>
+                      </button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Sign Out</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          Are you sure you want to sign out? You will need to sign in again to access your account.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => signOut({ callbackUrl: "/" })}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          Sign Out
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               )}
             </>
@@ -1425,13 +1479,33 @@ export function Sidebar() {
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              <button
-                onClick={() => signOut({ callbackUrl: "/" })}
-                className="p-2 rounded-lg hover:bg-accent transition-colors"
-                title="Sign Out"
-              >
-                <LogOut size={16} className="text-muted-foreground hover:text-destructive" />
-              </button>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <button
+                    className="p-2 rounded-lg hover:bg-accent transition-colors"
+                    title="Sign Out"
+                  >
+                    <LogOut size={16} className="text-muted-foreground hover:text-destructive" />
+                  </button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Sign Out</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Are you sure you want to sign out? You will need to sign in again to access your account.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => signOut({ callbackUrl: "/" })}
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                    >
+                      Sign Out
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </div>
