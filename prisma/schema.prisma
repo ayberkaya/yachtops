@@ -132,6 +132,8 @@ model Trip {
   createdBy       User?               @relation("TripCreator", fields: [createdByUserId], references: [id])
   yacht           Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
+  @@index([yachtId, startDate])
+  @@index([yachtId, status])
   @@map("trips")
 }
 
@@ -230,6 +232,10 @@ model Task {
   trip            Trip?            @relation(fields: [tripId], references: [id])
   yacht           Yacht            @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
+  @@index([yachtId, status])
+  @@index([yachtId, assigneeRole, status])
+  @@index([assigneeId, status])
+  @@index([dueDate])
   @@map("tasks")
 }
 
@@ -331,6 +337,10 @@ model Expense {
   yacht              Yacht             @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
   @@index([deletedAt])
+  @@index([yachtId, status, deletedAt])
+  @@index([yachtId, date, deletedAt])
+  @@index([createdByUserId, status])
+  @@index([isReimbursable, isReimbursed])
   @@map("expenses")
 }
 
@@ -387,6 +397,7 @@ model MarinaPermissionDocument {
   deletedBy       User?     @relation("MarinaPermissionDeleter", fields: [deletedByUserId], references: [id])
 
   @@index([deletedAt])
+  @@index([yachtId, expiryDate, deletedAt])
   @@map("marina_permission_documents")
 }
 
@@ -494,6 +505,8 @@ model Message {
   user            User                @relation("MessageSender", fields: [userId], references: [id], onDelete: Cascade)
   notifications   Notification[]
 
+  @@index([channelId, deletedAt, createdAt])
+  @@index([channelId, parentMessageId])
   @@map("messages")
 }
 
@@ -649,6 +662,8 @@ model MaintenanceLog {
   createdBy       User?                 @relation("MaintenanceCreator", fields: [createdByUserId], references: [id])
   yacht           Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
+  @@index([yachtId, nextDueDate])
+  @@index([yachtId, date])
   @@map("maintenance_logs")
 }
 

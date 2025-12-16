@@ -66,6 +66,12 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         where: {
           yachtId: user.yachtId || undefined,
         },
+        select: {
+          id: true,
+          name: true,
+          quantity: true,
+          lowStockThreshold: true,
+        },
       })
     : Promise.resolve([]);
 
@@ -78,6 +84,14 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
           },
           deletedAt: null,
         },
+        select: {
+          id: true,
+          title: true,
+          expiryDate: true,
+          category: true,
+          type: true,
+        },
+        take: 50, // Limit to prevent huge payloads
       })
     : Promise.resolve([]);
 
@@ -89,6 +103,13 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
             not: null,
           },
         },
+        select: {
+          id: true,
+          title: true,
+          nextDueDate: true,
+          component: true,
+        },
+        take: 50, // Limit to prevent huge payloads
       })
     : Promise.resolve([]);
 
@@ -101,12 +122,17 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
             not: TaskStatus.DONE,
           },
         },
-        include: {
+        select: {
+          id: true,
+          title: true,
+          dueDate: true,
+          status: true,
           trip: {
             select: { name: true },
           },
         },
         orderBy: { dueDate: "asc" },
+        take: 100, // Limit to prevent huge payloads
       })
     : Promise.resolve([]);
 

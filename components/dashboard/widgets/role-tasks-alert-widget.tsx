@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,7 +11,7 @@ interface RoleTasksAlertWidgetProps {
   tasks?: any[];
 }
 
-export function RoleTasksAlertWidget({ tasks = [] }: RoleTasksAlertWidgetProps) {
+export const RoleTasksAlertWidget = memo(function RoleTasksAlertWidget({ tasks = [] }: RoleTasksAlertWidgetProps) {
   if (tasks.length === 0) {
     return null; // Don't show if no tasks
   }
@@ -77,5 +78,5 @@ export function RoleTasksAlertWidget({ tasks = [] }: RoleTasksAlertWidgetProps) 
       </CardContent>
     </Card>
   );
-}
+});
 

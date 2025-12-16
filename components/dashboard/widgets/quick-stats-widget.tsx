@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface QuickStatsWidgetProps {
@@ -8,7 +9,7 @@ interface QuickStatsWidgetProps {
   }>;
 }
 
-export function QuickStatsWidget({ stats }: QuickStatsWidgetProps) {
+export const QuickStatsWidget = memo(function QuickStatsWidget({ stats }: QuickStatsWidgetProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, index) => (
@@ -26,5 +27,5 @@ export function QuickStatsWidget({ stats }: QuickStatsWidgetProps) {
       ))}
     </div>
   );
-}
+});
 

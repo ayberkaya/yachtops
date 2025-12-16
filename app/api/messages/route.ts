@@ -97,81 +97,49 @@ export async function GET(request: NextRequest) {
       take: 100, // Limit to last 100 messages
     });
 
-    // Mark messages as read for current user when fetching
+    // Mark messages as read for current user when fetching (non-blocking)
     // Only mark messages that are not sent by current user
     const unreadMessages = messages.filter(
       (msg: { userId: string }) => msg.userId !== session.user.id
     );
 
+    // Mark as read in background - don't block response
     if (unreadMessages.length > 0) {
       const messageIds = unreadMessages.map((msg: { id: string }) => msg.id);
       
       // Check which messages are already read
-      const existingReads = await db.messageRead.findMany({
+      db.messageRead.findMany({
         where: {
           messageId: { in: messageIds },
           userId: session.user.id,
         },
         select: { messageId: true },
+      }).then((existingReads) => {
+        const alreadyReadIds = new Set(existingReads.map((r: { messageId: string }) => r.messageId));
+        const toMarkAsRead = messageIds.filter((id: string) => !alreadyReadIds.has(id));
+
+        // Mark unread messages as read (fire and forget)
+        if (toMarkAsRead.length > 0) {
+          db.messageRead.createMany({
+            data: toMarkAsRead.map((messageId: string) => ({
+              messageId,
+              userId: session.user.id,
+            })),
+          }).catch(() => {
+            // Silently fail - not critical
+          });
+        }
+      }).catch(() => {
+        // Silently fail - not critical
       });
-
-      const alreadyReadIds = new Set(existingReads.map((r: { messageId: string }) => r.messageId));
-      const toMarkAsRead = messageIds.filter((id: string) => !alreadyReadIds.has(id));
-
-      // Mark unread messages as read
-      if (toMarkAsRead.length > 0) {
-        await db.messageRead.createMany({
-          data: toMarkAsRead.map((messageId: string) => ({
-            messageId,
-            userId: session.user.id,
-          })),
-        });
-      }
     }
 
-    // Re-fetch messages to include newly created reads
-    const updatedMessages = await db.message.findMany({
-      where: {
-        channelId,
-        deletedAt: null,
-        parentMessageId: null,
+    // Cache for 10 seconds - messages are very dynamic
+    return NextResponse.json(messages, {
+      headers: {
+        'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
       },
-      include: {
-        user: {
-          select: { id: true, name: true, email: true },
-        },
-        reads: {
-          select: {
-            userId: true,
-            readAt: true,
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        },
-        replies: {
-          where: { deletedAt: null },
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-          orderBy: { createdAt: "asc" },
-          take: 10,
-        },
-        attachments: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
-          },
-        },
-      },
-      orderBy: { createdAt: "asc" },
-      take: 100,
     });
-
-    return NextResponse.json(updatedMessages);
   } catch (error) {
     console.error("Error fetching messages:", error);
     return NextResponse.json(

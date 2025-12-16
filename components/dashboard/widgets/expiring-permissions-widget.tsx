@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,7 +11,7 @@ interface ExpiringPermissionsWidgetProps {
   permissions?: any[];
 }
 
-export function ExpiringPermissionsWidget({ permissions = [] }: ExpiringPermissionsWidgetProps) {
+export const ExpiringPermissionsWidget = memo(function ExpiringPermissionsWidget({ permissions = [] }: ExpiringPermissionsWidgetProps) {
   if (permissions.length === 0) {
     return null; // Don't show if no expiring permissions
   }
@@ -64,5 +65,5 @@ export function ExpiringPermissionsWidget({ permissions = [] }: ExpiringPermissi
       </CardContent>
     </Card>
   );
-}
+});
 

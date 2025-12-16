@@ -79,9 +79,15 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { dueDate: "asc" },
+      take: 500, // Limit to prevent huge payloads
     });
 
-    return NextResponse.json(tasks);
+    // Cache for 30 seconds - tasks change frequently but not instantly
+    return NextResponse.json(tasks, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+      },
+    });
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(

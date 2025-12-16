@@ -102,17 +102,47 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       // Silently handle errors
     });
 
-    // Set up polling interval
-    const interval = setInterval(() => {
-      refresh({ silent: true }).catch(() => {
-        // Silently handle errors
-      });
-      checkDueDates().catch(() => {
-        // Silently handle errors
-      });
-    }, 30000);
+    // Set up smart polling - only when tab is visible
+    let interval: NodeJS.Timeout | null = null;
+    
+    const startPolling = () => {
+      if (interval) clearInterval(interval);
+      
+      const poll = () => {
+        // Only poll if tab is visible
+        if (document.hidden) return;
+        
+        refresh({ silent: true }).catch(() => {
+          // Silently handle errors
+        });
+        checkDueDates().catch(() => {
+          // Silently handle errors
+        });
+      };
+      
+      poll(); // Initial poll
+      interval = setInterval(poll, 45000); // 45 seconds - reduced frequency
+    };
+    
+    // Handle visibility change
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (interval) {
+          clearInterval(interval);
+          interval = null;
+        }
+      } else {
+        startPolling();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    startPolling();
 
-    return () => clearInterval(interval);
+    return () => {
+      if (interval) clearInterval(interval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Empty deps - only run once on mount
 

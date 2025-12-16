@@ -1,18 +1,19 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, memo, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
 import { WidgetConfig } from "@/types/widgets";
 import { PendingExpensesWidget } from "./pending-expenses-widget";
 import { RecentExpensesWidget } from "./recent-expenses-widget";
 import { QuickStatsWidget } from "./quick-stats-widget";
-import { UpcomingTripsWidget } from "./upcoming-trips-widget";
-import { MyTasksWidget } from "./my-tasks-widget";
-import { RoleTasksAlertWidget } from "./role-tasks-alert-widget";
-import { UpcomingMaintenanceWidget } from "./upcoming-maintenance-widget";
-import { ExpiringPermissionsWidget } from "./expiring-permissions-widget";
-import { LowStockAlertWidget } from "./low-stock-alert-widget";
+// Lazy load less critical widgets - using dynamic imports for code splitting
+const UpcomingTripsWidget = lazy(() => import("./upcoming-trips-widget").then(m => ({ default: m.UpcomingTripsWidget })));
+const MyTasksWidget = lazy(() => import("./my-tasks-widget").then(m => ({ default: m.MyTasksWidget })));
+const RoleTasksAlertWidget = lazy(() => import("./role-tasks-alert-widget").then(m => ({ default: m.RoleTasksAlertWidget })));
+const UpcomingMaintenanceWidget = lazy(() => import("./upcoming-maintenance-widget").then(m => ({ default: m.UpcomingMaintenanceWidget })));
+const ExpiringPermissionsWidget = lazy(() => import("./expiring-permissions-widget").then(m => ({ default: m.ExpiringPermissionsWidget })));
+const LowStockAlertWidget = lazy(() => import("./low-stock-alert-widget").then(m => ({ default: m.LowStockAlertWidget })));
 import { WidgetCustomizer } from "./widget-customizer";
 import { MonthlyReportDownload } from "../monthly-report-download";
 
@@ -83,26 +84,54 @@ export function WidgetRenderer({
     return <div>Loading widgets...</div>;
   }
 
-  const enabledWidgets = widgets.filter((w) => w.enabled).sort((a, b) => a.order - b.order);
+  const enabledWidgets = useMemo(
+    () => widgets.filter((w) => w.enabled).sort((a, b) => a.order - b.order),
+    [widgets]
+  );
 
-  const renderWidget = (widget: WidgetConfig) => {
+  const renderWidget = useMemo(
+    () => (widget: WidgetConfig) => {
     switch (widget.id) {
       case "pending_expenses":
         return <PendingExpensesWidget expenses={pendingExpenses} totalAmount={totalPendingAmount} />;
       case "recent_expenses":
         return <RecentExpensesWidget expenses={recentExpenses} />;
       case "upcoming_trips":
-        return <UpcomingTripsWidget trips={upcomingTrips} />;
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <UpcomingTripsWidget trips={upcomingTrips} />
+          </Suspense>
+        );
       case "my_tasks":
-        return <MyTasksWidget tasks={myTasks} />;
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <MyTasksWidget tasks={myTasks} />
+          </Suspense>
+        );
       case "role_tasks_alert":
-        return <RoleTasksAlertWidget tasks={roleAssignedTasks} />;
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <RoleTasksAlertWidget tasks={roleAssignedTasks} />
+          </Suspense>
+        );
       case "upcoming_maintenance":
-        return <UpcomingMaintenanceWidget maintenance={upcomingMaintenance} />;
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <UpcomingMaintenanceWidget maintenance={upcomingMaintenance} />
+          </Suspense>
+        );
       case "expiring_permissions":
-        return <ExpiringPermissionsWidget permissions={expiringPermissions} />;
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <ExpiringPermissionsWidget permissions={expiringPermissions} />
+          </Suspense>
+        );
       case "low_stock_alert":
-        return <LowStockAlertWidget items={lowStockItems} />;
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <LowStockAlertWidget items={lowStockItems} />
+          </Suspense>
+        );
       case "monthly_report":
         return <MonthlyReportDownload />;
       case "quick_stats":
@@ -116,8 +145,20 @@ export function WidgetRenderer({
         );
       default:
         return null;
-    }
-  };
+    };
+    },
+    [
+      pendingExpenses,
+      totalPendingAmount,
+      recentExpenses,
+      upcomingTrips,
+      myTasks,
+      roleAssignedTasks,
+      upcomingMaintenance,
+      expiringPermissions,
+      lowStockItems,
+    ]
+  );
 
   return (
     <div className="space-y-6">

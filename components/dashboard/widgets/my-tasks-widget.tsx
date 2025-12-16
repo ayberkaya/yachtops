@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,7 +11,7 @@ interface MyTasksWidgetProps {
   tasks?: any[];
 }
 
-export function MyTasksWidget({ tasks = [] }: MyTasksWidgetProps) {
+export const MyTasksWidget = memo(function MyTasksWidget({ tasks = [] }: MyTasksWidgetProps) {
   return (
     <Card>
       <CardHeader>
@@ -61,5 +62,5 @@ export function MyTasksWidget({ tasks = [] }: MyTasksWidgetProps) {
       </CardContent>
     </Card>
   );
-}
+});
 

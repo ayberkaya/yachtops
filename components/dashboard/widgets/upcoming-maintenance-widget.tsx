@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,7 +11,7 @@ interface UpcomingMaintenanceWidgetProps {
   maintenance?: any[];
 }
 
-export function UpcomingMaintenanceWidget({ maintenance = [] }: UpcomingMaintenanceWidgetProps) {
+export const UpcomingMaintenanceWidget = memo(function UpcomingMaintenanceWidget({ maintenance = [] }: UpcomingMaintenanceWidgetProps) {
   if (maintenance.length === 0) {
     return null; // Don't show if no maintenance
   }
@@ -66,5 +67,5 @@ export function UpcomingMaintenanceWidget({ maintenance = [] }: UpcomingMaintena
       </CardContent>
     </Card>
   );
-}
+});
 

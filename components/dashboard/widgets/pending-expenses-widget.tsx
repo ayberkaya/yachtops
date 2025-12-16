@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -18,7 +19,7 @@ interface PendingExpensesWidgetProps {
   totalAmount: number;
 }
 
-export function PendingExpensesWidget({ expenses, totalAmount }: PendingExpensesWidgetProps) {
+export const PendingExpensesWidget = memo(function PendingExpensesWidget({ expenses, totalAmount }: PendingExpensesWidgetProps) {
   return (
     <Card>
       <CardHeader>
@@ -68,5 +69,5 @@ export function PendingExpensesWidget({ expenses, totalAmount }: PendingExpenses
       </CardContent>
     </Card>
   );
-}
+});
 

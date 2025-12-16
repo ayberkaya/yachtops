@@ -61,7 +61,12 @@ export async function GET() {
       widgets = DEFAULT_WIDGETS[user.role as keyof typeof DEFAULT_WIDGETS] || [];
     }
 
-    return NextResponse.json({ widgets });
+    // Cache for 5 minutes - widgets don't change frequently
+    return NextResponse.json({ widgets }, {
+      headers: {
+        'Cache-Control': 'private, max-age=300, stale-while-revalidate=600',
+      },
+    });
   } catch (error) {
     console.error("Error fetching dashboard widgets:", error);
     return NextResponse.json(

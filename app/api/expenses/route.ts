@@ -136,9 +136,15 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { date: "desc" },
+      take: 1000, // Limit results to prevent huge payloads
     });
 
-    return NextResponse.json(expenses);
+    // Cache for 30 seconds - expenses change frequently but not instantly
+    return NextResponse.json(expenses, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+      },
+    });
   } catch (error) {
     console.error("Error fetching expenses:", error);
     return NextResponse.json(

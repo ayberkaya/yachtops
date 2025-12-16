@@ -186,28 +186,64 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   }, []);
 
-  // Poll for new messages - less frequently to reduce load
+  // Poll for new messages - smart polling: only when tab is visible and user is active
   useEffect(() => {
     // Only poll if messages view is visible (user is on messages page)
     if (!selectedChannel && channels.length === 0) {
       return;
     }
 
-    const interval = setInterval(() => {
-      // Update all channels' unread counts
-      channels.forEach((channel) => {
-        if (channel.id !== selectedChannel?.id) {
-          fetchUnreadCount(channel.id);
-        }
-      });
-      
-      // Update current channel messages if selected
-      if (selectedChannel) {
-        fetchMessages(selectedChannel.id, true);
-      }
-    }, 15000); // 15 seconds instead of 5
+    let interval: NodeJS.Timeout | null = null;
+    let lastActivity = Date.now();
+    const POLL_INTERVAL = 20000; // 20 seconds - reduced frequency
+    const INACTIVE_POLL_INTERVAL = 60000; // 1 minute when inactive
 
-    return () => clearInterval(interval);
+    const handleActivity = () => {
+      lastActivity = Date.now();
+    };
+
+    const startPolling = () => {
+      if (interval) clearInterval(interval);
+      
+      const poll = () => {
+        // Only poll if tab is visible
+        if (document.hidden) return;
+        
+        const isActive = Date.now() - lastActivity < 30000; // Active if user interacted in last 30s
+        const currentInterval = isActive ? POLL_INTERVAL : INACTIVE_POLL_INTERVAL;
+        
+        // Update all channels' unread counts
+        channels.forEach((channel) => {
+          if (channel.id !== selectedChannel?.id) {
+            fetchUnreadCount(channel.id);
+          }
+        });
+        
+        // Update current channel messages if selected
+        if (selectedChannel) {
+          fetchMessages(selectedChannel.id, true);
+        }
+      };
+
+      poll(); // Initial poll
+      interval = setInterval(poll, POLL_INTERVAL);
+    };
+
+    // Track user activity
+    window.addEventListener('mousedown', handleActivity);
+    window.addEventListener('keydown', handleActivity);
+    window.addEventListener('scroll', handleActivity);
+    window.addEventListener('touchstart', handleActivity);
+
+    startPolling();
+
+    return () => {
+      if (interval) clearInterval(interval);
+      window.removeEventListener('mousedown', handleActivity);
+      window.removeEventListener('keydown', handleActivity);
+      window.removeEventListener('scroll', handleActivity);
+      window.removeEventListener('touchstart', handleActivity);
+    };
   }, [selectedChannel, channels]);
 
   // Check for new messages and show notifications

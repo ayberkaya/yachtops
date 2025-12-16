@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -16,7 +17,7 @@ interface RecentExpensesWidgetProps {
   }>;
 }
 
-export function RecentExpensesWidget({ expenses }: RecentExpensesWidgetProps) {
+export const RecentExpensesWidget = memo(function RecentExpensesWidget({ expenses }: RecentExpensesWidgetProps) {
   return (
     <Card>
       <CardHeader>
@@ -68,5 +69,5 @@ export function RecentExpensesWidget({ expenses }: RecentExpensesWidgetProps) {
       </CardContent>
     </Card>
   );
-}
+});
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package } from "lucide-react";
 
@@ -7,7 +8,7 @@ interface LowStockAlertWidgetProps {
   items?: any[];
 }
 
-export function LowStockAlertWidget({ items = [] }: LowStockAlertWidgetProps) {
+export const LowStockAlertWidget = memo(function LowStockAlertWidget({ items = [] }: LowStockAlertWidgetProps) {
   if (items.length === 0) {
     return null; // Don't show if no low stock items
   }
@@ -42,5 +43,5 @@ export function LowStockAlertWidget({ items = [] }: LowStockAlertWidgetProps) {
       </CardContent>
     </Card>
   );
-}
+});
 

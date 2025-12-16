@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -10,7 +11,7 @@ interface UpcomingTripsWidgetProps {
   trips?: any[];
 }
 
-export function UpcomingTripsWidget({ trips = [] }: UpcomingTripsWidgetProps) {
+export const UpcomingTripsWidget = memo(function UpcomingTripsWidget({ trips = [] }: UpcomingTripsWidgetProps) {
   return (
     <Card>
       <CardHeader>
@@ -54,5 +55,5 @@ export function UpcomingTripsWidget({ trips = [] }: UpcomingTripsWidgetProps) {
       </CardContent>
     </Card>
   );
-}
+});
 
