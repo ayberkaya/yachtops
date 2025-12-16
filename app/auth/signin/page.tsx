@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Anchor, Loader2 } from "lucide-react";
@@ -17,6 +18,7 @@ import { Anchor, Loader2 } from "lucide-react";
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
+  rememberMe: z.boolean().default(false),
 });
 
 type SignInForm = z.infer<typeof signInSchema>;
@@ -31,6 +33,7 @@ export default function SignInPage() {
     defaultValues: {
       email: "",
       password: "",
+      rememberMe: false,
     },
   });
 
@@ -42,6 +45,7 @@ export default function SignInPage() {
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
+        rememberMe: data.rememberMe.toString(),
         redirect: false,
       });
 
@@ -102,11 +106,8 @@ export default function SignInPage() {
         </div>
 
         <Card className="border-2 border-slate-200 shadow-2xl bg-white" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s forwards', opacity: 0 }}>
-          <CardHeader className="space-y-2 pb-6">
+          <CardHeader className="space-y-2 pb-0">
             <CardTitle className="text-3xl font-bold text-slate-900">Sign In</CardTitle>
-            <CardDescription className="text-base text-slate-600">
-              Access your yacht operations dashboard
-            </CardDescription>
           </CardHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -149,6 +150,35 @@ export default function SignInPage() {
                         />
                       </FormControl>
                       <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="rememberMe"
+                  render={({ field }) => (
+                    <FormItem 
+                      className="flex flex-row items-start space-x-3 space-y-0 pt-2"
+                      style={{ animation: 'fadeInLeft 0.6s ease-out 0.9s forwards', opacity: 0 }}
+                    >
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          className="mt-0.5"
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none flex-1">
+                        <FormLabel 
+                          className="text-sm font-normal text-slate-700 cursor-pointer"
+                          onClick={() => field.onChange(!field.value)}
+                        >
+                          Remember me
+                        </FormLabel>
+                        <p className="text-xs text-slate-500">
+                          Keep me signed in for 30 days
+                        </p>
+                      </div>
                     </FormItem>
                   )}
                 />

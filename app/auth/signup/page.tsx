@@ -111,7 +111,7 @@ export default function SignUpPage() {
         </div>
 
         <Card className="border-2 border-slate-200 shadow-2xl bg-white" style={{ animation: 'fadeInUp 0.8s ease-out 0.3s forwards', opacity: 0 }}>
-          <CardHeader className="space-y-2 pb-6">
+          <CardHeader className="space-y-2 pb-0">
             <CardTitle className="text-3xl font-bold text-slate-900">Create Account</CardTitle>
             <CardDescription className="text-base text-slate-600">
               Set up your helm operations management system
