@@ -373,16 +373,18 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
       <SheetContent
         side="left"
-        className="w-[280px] h-screen max-h-screen p-0 border-slate-200 z-[100] !bg-white !backdrop-blur-none"
+        className="w-[280px] h-full max-h-screen p-0 border-slate-200 z-[100] !bg-white !backdrop-blur-none flex flex-col"
         style={{ 
           backgroundColor: '#ffffff',
           backdropFilter: 'none',
-          background: '#ffffff'
+          background: '#ffffff',
+          height: '100vh',
+          maxHeight: '100vh'
         }}
       >
         <SheetTitle className="sr-only">Navigation menu</SheetTitle>
-        <div className="h-full w-full bg-white flex flex-col">
-          <div className="p-6 border-b border-slate-200 bg-white">
+        <div className="h-full w-full bg-white flex flex-col overflow-hidden">
+          <div className="flex-shrink-0 p-6 border-b border-slate-200 bg-white">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
                 <Anchor className="text-primary-foreground w-6 h-6" />
@@ -398,7 +400,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </div>
           </div>
           {/* Mobile Navigation - Always expanded */}
-          <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain">
             <nav className="px-3 pt-4 pb-4 space-y-1 bg-white">
             {filteredNavItems.map((item) => {
               const isActive = mobileExpandedItems.has(item.href);
@@ -681,7 +683,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             </div>
           </div>
           {/* Sign Out Button - Fixed at bottom, always visible */}
-          <div className="border-t border-slate-200 bg-white p-4">
+          <div className="flex-shrink-0 border-t border-slate-200 bg-white p-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
             <button
               onClick={(e) => {
                 e.stopPropagation();
