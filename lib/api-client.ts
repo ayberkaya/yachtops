@@ -105,13 +105,15 @@ class ApiClient {
         const timeoutId = setTimeout(() => controller.abort(), timeout);
 
         try {
+          // Ensure credentials are always included for NextAuth session
+          const { credentials: _, ...restFetchOptions } = fetchOptions;
           const response = await fetch(fullUrl, {
-            ...fetchOptions,
+            ...restFetchOptions,
             signal: controller.signal,
-            credentials: "include", // Include cookies for NextAuth session
+            credentials: "include", // Always include cookies for NextAuth session
             headers: {
               "Content-Type": "application/json",
-              ...fetchOptions.headers,
+              ...restFetchOptions.headers,
             },
           });
 
