@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { DashboardWidgets, WidgetConfig, DEFAULT_WIDGETS } from "@/types/widgets";
+import { DashboardWidgets, WidgetConfig, DEFAULT_WIDGETS, WidgetType } from "@/types/widgets";
 import { z } from "zod";
 
 const updateWidgetsSchema = z.object({
   widgets: z.array(
     z.object({
-      id: z.string(),
+      id: z.string() as z.ZodType<WidgetType>,
       enabled: z.boolean(),
       order: z.number(),
       size: z.enum(["small", "medium", "large", "full"]).optional(),
