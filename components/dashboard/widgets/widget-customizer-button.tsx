@@ -40,14 +40,20 @@ export function WidgetCustomizerButton() {
     loadWidgets();
   }, [session, status]);
 
-  // Always show the button, WidgetCustomizer will handle the loading state
-  // If no session or widgets not loaded yet, use defaults based on role
-  const widgetsToUse = widgets.length > 0 
-    ? widgets 
-    : (session?.user?.role 
-        ? DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [] 
-        : []);
+  // Get widgets to use - prefer loaded widgets, fallback to defaults based on role
+  const getWidgetsToUse = (): WidgetConfig[] => {
+    if (widgets.length > 0) {
+      return widgets;
+    }
+    if (session?.user?.role) {
+      return DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
+    }
+    return [];
+  };
 
+  const widgetsToUse = getWidgetsToUse();
+
+  // Always render WidgetCustomizer - it will show the button
   return <WidgetCustomizer currentWidgets={widgetsToUse} onSave={setWidgets} />;
 }
 
