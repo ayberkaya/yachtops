@@ -171,7 +171,25 @@ export function Navbar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => signOut({ callbackUrl: "/" })}
+                onClick={async () => {
+                  try {
+                    // Sign out without redirect first to clear session
+                    await signOut({ 
+                      redirect: false 
+                    });
+                    // Clear all caches and force hard redirect
+                    if (typeof window !== 'undefined') {
+                      // Clear Next.js router cache
+                      window.location.href = "/auth/signin";
+                    }
+                  } catch (error) {
+                    console.error("Sign out error:", error);
+                    // Force redirect even on error
+                    if (typeof window !== 'undefined') {
+                      window.location.href = "/auth/signin";
+                    }
+                  }
+                }}
                 className="text-destructive"
               >
                 Sign Out

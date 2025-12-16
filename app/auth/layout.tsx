@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 
 // Force dynamic rendering to avoid performance measurement timing issues with redirects
-// Session is already cached by NextAuth, so we don't need to disable fetchCache
+// Disable cache to ensure fresh session check after sign out
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function AuthLayout({
   children,
@@ -11,6 +12,7 @@ export default async function AuthLayout({
   children: React.ReactNode;
 }) {
   try {
+    // Force fresh session check - bypass cache
     const session = await getSession();
 
     // Redirect to dashboard if already logged in

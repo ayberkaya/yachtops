@@ -724,10 +724,26 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     <AlertDialogFooter>
                       <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
                       <AlertDialogAction
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           setMobileMenuOpen(false);
-                          signOut({ callbackUrl: "/" });
+                          try {
+                            // Sign out without redirect first to clear session
+                            await signOut({ 
+                              redirect: false 
+                            });
+                            // Clear all caches and force hard redirect
+                            if (typeof window !== 'undefined') {
+                              // Clear Next.js router cache
+                              window.location.href = "/auth/signin";
+                            }
+                          } catch (error) {
+                            console.error("Sign out error:", error);
+                            // Force redirect even on error
+                            if (typeof window !== 'undefined') {
+                              window.location.href = "/auth/signin";
+                            }
+                          }
                         }}
                         className="bg-red-600 hover:bg-red-700 text-white"
                       >
@@ -1454,7 +1470,25 @@ export function Sidebar() {
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => signOut({ callbackUrl: "/" })}
+                          onClick={async () => {
+                            try {
+                              // Sign out without redirect first to clear session
+                              await signOut({ 
+                                redirect: false 
+                              });
+                              // Clear all caches and force hard redirect
+                              if (typeof window !== 'undefined') {
+                                // Clear Next.js router cache
+                                window.location.href = "/auth/signin";
+                              }
+                            } catch (error) {
+                              console.error("Sign out error:", error);
+                              // Force redirect even on error
+                              if (typeof window !== 'undefined') {
+                                window.location.href = "/auth/signin";
+                              }
+                            }
+                          }}
                           className="bg-red-600 hover:bg-red-700 text-white"
                         >
                           Sign Out
@@ -1495,15 +1529,33 @@ export function Sidebar() {
                       Are you sure you want to sign out? You will need to sign in again to access your account.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => signOut({ callbackUrl: "/" })}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      Sign Out
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={async () => {
+                          try {
+                            // Sign out without redirect first to clear session
+                            await signOut({ 
+                              redirect: false 
+                            });
+                            // Clear all caches and force hard redirect
+                            if (typeof window !== 'undefined') {
+                              // Clear Next.js router cache
+                              window.location.href = "/auth/signin";
+                            }
+                          } catch (error) {
+                            console.error("Sign out error:", error);
+                            // Force redirect even on error
+                            if (typeof window !== 'undefined') {
+                              window.location.href = "/auth/signin";
+                            }
+                          }
+                        }}
+                        className="bg-red-600 hover:bg-red-700 text-white"
+                      >
+                        Sign Out
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
             </div>
