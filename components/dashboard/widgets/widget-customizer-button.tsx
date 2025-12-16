@@ -25,10 +25,18 @@ export function WidgetCustomizerButton() {
 
       try {
         const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets");
-        setWidgets(response.data.widgets || []);
+        if (response.data?.widgets) {
+          setWidgets(response.data.widgets);
+        } else {
+          // Fallback to defaults if no widgets in response
+          if (session?.user?.role) {
+            const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
+            setWidgets(defaultWidgets);
+          }
+        }
       } catch (error: any) {
         console.error("Error loading widgets:", error);
-        // Fallback to defaults
+        // Always fallback to defaults on error
         if (session?.user?.role) {
           const defaultWidgets = DEFAULT_WIDGETS[session.user.role as keyof typeof DEFAULT_WIDGETS] || [];
           setWidgets(defaultWidgets);
