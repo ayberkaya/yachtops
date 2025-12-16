@@ -13,6 +13,25 @@ export function SyncStatus() {
   const [syncError, setSyncError] = useState<string | null>(null);
   const [failedItems, setFailedItems] = useState<any[]>([]);
 
+  const updateStatus = async () => {
+    try {
+      const { offlineQueue } = await import("@/lib/offline-queue");
+      const pending = await offlineQueue.getPendingCount();
+      const failed = await offlineQueue.getFailedItems();
+      setPendingCount(pending);
+      setFailedCount(failed.length);
+      setFailedItems(failed);
+      setIsSyncing(apiClient.isSyncing);
+      
+      // Clear syncError if no failed items and not syncing
+      if (failed.length === 0 && pending === 0 && !apiClient.isSyncing) {
+        setSyncError(null);
+      }
+    } catch (error) {
+      console.error("Failed to update sync status:", error);
+    }
+  };
+
   useEffect(() => {
     // Initial load
     updateStatus();
@@ -30,20 +49,6 @@ export function SyncStatus() {
       clearInterval(interval);
     };
   }, []);
-
-  const updateStatus = async () => {
-    try {
-      const { offlineQueue } = await import("@/lib/offline-queue");
-      const pending = await offlineQueue.getPendingCount();
-      const failed = await offlineQueue.getFailedItems();
-      setPendingCount(pending);
-      setFailedCount(failed.length);
-      setFailedItems(failed);
-      setIsSyncing(apiClient.isSyncing);
-    } catch (error) {
-      console.error("Failed to update sync status:", error);
-    }
-  };
 
   const handleSync = async () => {
     setIsSyncing(true);
@@ -91,17 +96,22 @@ export function SyncStatus() {
         onSuccess: () => {
           setLastSync(new Date());
           setSyncError(null);
+          // Force update to check if all items are now synced
+          setTimeout(updateStatus, 500);
         },
         onError: (item, error) => {
           setSyncError(error.message);
           updateStatus();
         },
       });
+      // Final check after sync completes
+      setTimeout(updateStatus, 1000);
     } catch (error) {
       setSyncError(error instanceof Error ? error.message : "Retry failed");
     } finally {
       setIsSyncing(false);
-      updateStatus();
+      // Final status update
+      setTimeout(updateStatus, 500);
     }
   };
 
