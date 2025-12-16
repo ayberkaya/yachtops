@@ -5,14 +5,21 @@ import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
 import { WidgetConfig, DEFAULT_WIDGETS } from "@/types/widgets";
 import { WidgetCustomizer } from "./widget-customizer";
+import { Button } from "@/components/ui/button";
+import { Settings2, Loader2 } from "lucide-react";
 
 export function WidgetCustomizerButton() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadWidgets() {
+      // Wait for session to be loaded
+      if (status === "loading") {
+        return;
+      }
+
       if (!session?.user) {
         setLoading(false);
         return;
@@ -33,9 +40,19 @@ export function WidgetCustomizerButton() {
       }
     }
     loadWidgets();
-  }, [session]);
+  }, [session, status]);
 
-  if (loading || !session?.user) {
+  // Show button even while loading, but disable it
+  if (status === "loading" || loading) {
+    return (
+      <Button variant="outline" size="sm" disabled>
+        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        Customize Dashboard
+      </Button>
+    );
+  }
+
+  if (!session?.user) {
     return null;
   }
 
