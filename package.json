@@ -11,6 +11,7 @@
     "lint": "eslint",
     "db:seed": "tsx prisma/seed.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
+    "cleanup-duplicate-channels": "tsx scripts/cleanup-duplicate-channels.ts",
     "create-icons": "./scripts/create-icons.sh",
     "deploy": "./scripts/deploy.sh",
     "postinstall": "prisma generate && (npm run create-icons || echo 'Icon creation skipped (ImageMagick not found)')"

@@ -89,6 +89,21 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = channelSchema.parse(body);
 
+    // Check if channel with same name already exists for this yacht
+    const existingChannel = await db.messageChannel.findFirst({
+      where: {
+        yachtId: ensuredTenantId,
+        name: validated.name,
+      },
+    });
+
+    if (existingChannel) {
+      return NextResponse.json(
+        { error: `A channel with the name "${validated.name}" already exists` },
+        { status: 409 } // Conflict
+      );
+    }
+
     const channel = await db.messageChannel.create({
       data: {
         yachtId: ensuredTenantId,

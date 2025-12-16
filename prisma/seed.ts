@@ -315,23 +315,34 @@ async function main() {
 
   console.log("✅ Created trip:", trip.name);
 
-  // Create general message channel (only if we have users)
+  // Create general message channel (only if we have users and it doesn't exist)
   if (owner || captain || crew) {
     const memberIds = [owner, captain, crew].filter(Boolean).map((u) => u!.id);
     if (memberIds.length > 0) {
-      const generalChannel = await prisma.messageChannel.create({
-        data: {
+      const existingGeneralChannel = await prisma.messageChannel.findFirst({
+        where: {
           yachtId: yacht.id,
           name: "General",
-          description: "General discussion channel for all crew members",
-          isGeneral: true,
-          createdByUserId: owner?.id || captain?.id || crew?.id || null,
-          members: {
-            connect: memberIds.map((id) => ({ id })),
-          },
         },
       });
-      console.log("✅ Created general message channel");
+
+      if (!existingGeneralChannel) {
+        const generalChannel = await prisma.messageChannel.create({
+          data: {
+            yachtId: yacht.id,
+            name: "General",
+            description: "General discussion channel for all crew members",
+            isGeneral: true,
+            createdByUserId: owner?.id || captain?.id || crew?.id || null,
+            members: {
+              connect: memberIds.map((id) => ({ id })),
+            },
+          },
+        });
+        console.log("✅ Created general message channel");
+      } else {
+        console.log("ℹ️  General message channel already exists");
+      }
     }
   }
 

@@ -482,6 +482,7 @@ model MessageChannel {
   messages        Message[]
   members         User[]    @relation("ChannelMembers")
 
+  @@unique([yachtId, name])
   @@map("message_channels")
 }
 

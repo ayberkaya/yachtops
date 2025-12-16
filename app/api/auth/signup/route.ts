@@ -127,19 +127,28 @@ export async function POST(request: NextRequest) {
       )
     );
 
-    // Create general message channel
-    await db.messageChannel.create({
-      data: {
+    // Create general message channel (only if it doesn't exist)
+    const existingGeneralChannel = await db.messageChannel.findFirst({
+      where: {
         yachtId: yacht.id,
         name: "General",
-        description: "General discussion channel for all crew members",
-        isGeneral: true,
-        createdByUserId: user.id,
-        members: {
-          connect: { id: user.id },
-        },
       },
     });
+
+    if (!existingGeneralChannel) {
+      await db.messageChannel.create({
+        data: {
+          yachtId: yacht.id,
+          name: "General",
+          description: "General discussion channel for all crew members",
+          isGeneral: true,
+          createdByUserId: user.id,
+          members: {
+            connect: { id: user.id },
+          },
+        },
+      });
+    }
 
     return NextResponse.json(
       {
