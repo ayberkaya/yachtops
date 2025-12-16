@@ -41,8 +41,9 @@ export function SyncStatus() {
       updateStatus();
     });
 
-    // Poll for updates
-    const interval = setInterval(updateStatus, 5000);
+    // Poll less frequently - only when needed
+    // Use longer interval to reduce load
+    const interval = setInterval(updateStatus, 30000); // 30 seconds
 
     return () => {
       unsubscribe();

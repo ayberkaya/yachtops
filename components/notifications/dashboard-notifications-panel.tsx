@@ -80,7 +80,8 @@ export function DashboardNotificationsPanel() {
 
   useEffect(() => {
     fetchFinanceAlerts();
-    const interval = setInterval(fetchFinanceAlerts, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchFinanceAlerts, 60000);
     return () => clearInterval(interval);
   }, [fetchFinanceAlerts]);
 

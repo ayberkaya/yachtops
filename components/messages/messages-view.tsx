@@ -186,8 +186,13 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   }, []);
 
-  // Poll for new messages every 5 seconds
+  // Poll for new messages - less frequently to reduce load
   useEffect(() => {
+    // Only poll if messages view is visible (user is on messages page)
+    if (!selectedChannel && channels.length === 0) {
+      return;
+    }
+
     const interval = setInterval(() => {
       // Update all channels' unread counts
       channels.forEach((channel) => {
@@ -200,7 +205,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       if (selectedChannel) {
         fetchMessages(selectedChannel.id, true);
       }
-    }, 5000);
+    }, 15000); // 15 seconds instead of 5
 
     return () => clearInterval(interval);
   }, [selectedChannel, channels]);

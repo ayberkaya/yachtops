@@ -269,7 +269,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     };
 
     fetchPendingTasksCount();
-    const interval = setInterval(fetchPendingTasksCount, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchPendingTasksCount, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -298,7 +299,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     };
 
     fetchPendingExpensesCount();
-    const interval = setInterval(fetchPendingExpensesCount, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchPendingExpensesCount, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -327,7 +329,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     };
 
     fetchReimbursableCount();
-    const interval = setInterval(fetchReimbursableCount, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchReimbursableCount, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -361,7 +364,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     };
 
     fetchLowStock();
-    const interval = setInterval(fetchLowStock, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchLowStock, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -994,8 +998,8 @@ export function Sidebar() {
     };
 
     fetchPendingTasksCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingTasksCount, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchPendingTasksCount, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -1025,8 +1029,8 @@ export function Sidebar() {
     };
 
     fetchPendingExpensesCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingExpensesCount, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchPendingExpensesCount, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -1055,7 +1059,8 @@ export function Sidebar() {
     };
 
     fetchReimbursableCount();
-    const interval = setInterval(fetchReimbursableCount, 30000);
+    // Increased interval to reduce load - 60 seconds instead of 30
+    const interval = setInterval(fetchReimbursableCount, 60000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
