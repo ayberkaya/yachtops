@@ -196,7 +196,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome, {user.name || user.email}
+            Welcome aboard, <span className="font-bold">{user.name || user.email}</span>
           </p>
         </div>
         <QuickActions />

@@ -168,7 +168,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         <div>
           <h1 className="text-3xl font-bold">My Dashboard</h1>
           <p className="text-muted-foreground">
-            Welcome, {user.name || user.email}
+            Welcome aboard, <span className="font-bold">{user.name || user.email}</span>
           </p>
         </div>
         <QuickActions />
