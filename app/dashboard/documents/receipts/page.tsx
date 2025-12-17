@@ -23,22 +23,30 @@ export default async function ReceiptsPage() {
 
   const receipts = await db.expenseReceipt.findMany({
     where: {
-      expense: {
-        yachtId: session.user.yachtId,
-        status: ExpenseStatus.APPROVED,
-        deletedAt: null, // Exclude soft-deleted expenses
-      },
-      deletedAt: null, // Exclude soft-deleted receipts
-      // Include receipts that have either storage (new) or fileUrl (legacy)
-      // Note: New receipts have storageBucket/storagePath, legacy have fileUrl
-      OR: [
+      AND: [
         {
-          AND: [
-            { storageBucket: { not: null } },
-            { storagePath: { not: null } },
+          expense: {
+            yachtId: session.user.yachtId,
+            status: ExpenseStatus.APPROVED,
+            deletedAt: null, // Exclude soft-deleted expenses
+          },
+        },
+        {
+          deletedAt: null, // Exclude soft-deleted receipts
+        },
+        {
+          // Include receipts that have either storage (new) or fileUrl (legacy)
+          // Note: New receipts have storageBucket/storagePath, legacy have fileUrl
+          OR: [
+            {
+              AND: [
+                { storageBucket: { not: null } },
+                { storagePath: { not: null } },
+              ],
+            },
+            { fileUrl: { not: null } },
           ],
         },
-        { fileUrl: { not: null } },
       ],
     },
     include: {
