@@ -14,11 +14,14 @@ export default async function AdminLayout({
   children: React.ReactNode;
 }) {
   const session = await getSession();
-  if (!session?.user) {
+  
+  // Strict validation: session must have valid user with id, email, and role
+  if (!session?.user?.id || !session?.user?.email || !session?.user?.role) {
     redirect("/auth/signin");
   }
+  
   if (session.user.role !== "SUPER_ADMIN") {
-    redirect("/");
+    redirect("/dashboard");
   }
 
   return (

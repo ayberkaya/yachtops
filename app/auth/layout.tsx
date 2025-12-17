@@ -19,11 +19,14 @@ export default async function AuthLayout({
   // This prevents Next.js performance measurement from getting negative timestamps
   const session = await getSession();
   
-  // Redirect to dashboard if already logged in
+  // Redirect to dashboard if already logged in (with valid session)
   // Note: redirect() throws a NEXT_REDIRECT error that Next.js catches
   // This is expected behavior, not a real error
-  if (session?.user) {
-    redirect("/dashboard");
+  // Only redirect if session has valid user with id and role
+  if (session?.user?.id && session?.user?.role) {
+    // Redirect SUPER_ADMIN to /admin, others to /dashboard
+    const target = session.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
+    redirect(target);
   }
 
   return <>{children}</>;
