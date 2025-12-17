@@ -23,18 +23,28 @@ export async function middleware(request: NextRequest) {
     try {
       const session = await auth();
       
-      // If no session or invalid session, redirect to signin
-      if (!session?.user?.id) {
-        const signInUrl = new URL("/auth/signin", request.url);
-        signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-        return NextResponse.redirect(signInUrl);
+      // Strict validation: session must have user with id, email, and role
+      if (!session?.user?.id || !session?.user?.email || !session?.user?.role) {
+        // Clear any invalid session cookies
+        const response = NextResponse.redirect(new URL("/auth/signin", request.url));
+        response.cookies.delete("next-auth.session-token");
+        response.cookies.delete("__Secure-next-auth.session-token");
+        response.cookies.delete("next-auth.csrf-token");
+        response.cookies.delete("__Host-next-auth.csrf-token");
+        return response;
       }
     } catch (error) {
-      // If auth check fails, redirect to signin
-      console.error("Middleware auth check failed:", error);
+      // If auth check fails, redirect to signin and clear cookies
+      console.error("❌ [AUTH] Middleware auth check failed:", error);
       const signInUrl = new URL("/auth/signin", request.url);
       signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-      return NextResponse.redirect(signInUrl);
+      const response = NextResponse.redirect(signInUrl);
+      // Clear any invalid session cookies
+      response.cookies.delete("next-auth.session-token");
+      response.cookies.delete("__Secure-next-auth.session-token");
+      response.cookies.delete("next-auth.csrf-token");
+      response.cookies.delete("__Host-next-auth.csrf-token");
+      return response;
     }
   }
 
