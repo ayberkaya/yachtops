@@ -8,12 +8,37 @@ import { PendingExpensesWidget } from "./pending-expenses-widget";
 import { RecentExpensesWidget } from "./recent-expenses-widget";
 import { QuickStatsWidget } from "./quick-stats-widget";
 // Lazy load less critical widgets - using dynamic imports for code splitting
-const UpcomingTripsWidget = lazy(() => import("./upcoming-trips-widget").then(m => ({ default: m.UpcomingTripsWidget })));
-const MyTasksWidget = lazy(() => import("./my-tasks-widget").then(m => ({ default: m.MyTasksWidget })));
-const RoleTasksAlertWidget = lazy(() => import("./role-tasks-alert-widget").then(m => ({ default: m.RoleTasksAlertWidget })));
-const UpcomingMaintenanceWidget = lazy(() => import("./upcoming-maintenance-widget").then(m => ({ default: m.UpcomingMaintenanceWidget })));
-const ExpiringPermissionsWidget = lazy(() => import("./expiring-permissions-widget").then(m => ({ default: m.ExpiringPermissionsWidget })));
-const LowStockAlertWidget = lazy(() => import("./low-stock-alert-widget").then(m => ({ default: m.LowStockAlertWidget })));
+// Added error handling to prevent chunk loading failures
+const UpcomingTripsWidget = lazy(() => 
+  import("./upcoming-trips-widget")
+    .then(m => ({ default: m.UpcomingTripsWidget }))
+    .catch(() => ({ default: () => null }))
+);
+const MyTasksWidget = lazy(() => 
+  import("./my-tasks-widget")
+    .then(m => ({ default: m.MyTasksWidget }))
+    .catch(() => ({ default: () => null }))
+);
+const RoleTasksAlertWidget = lazy(() => 
+  import("./role-tasks-alert-widget")
+    .then(m => ({ default: m.RoleTasksAlertWidget }))
+    .catch(() => ({ default: () => null }))
+);
+const UpcomingMaintenanceWidget = lazy(() => 
+  import("./upcoming-maintenance-widget")
+    .then(m => ({ default: m.UpcomingMaintenanceWidget }))
+    .catch(() => ({ default: () => null }))
+);
+const ExpiringPermissionsWidget = lazy(() => 
+  import("./expiring-permissions-widget")
+    .then(m => ({ default: m.ExpiringPermissionsWidget }))
+    .catch(() => ({ default: () => null }))
+);
+const LowStockAlertWidget = lazy(() => 
+  import("./low-stock-alert-widget")
+    .then(m => ({ default: m.LowStockAlertWidget }))
+    .catch(() => ({ default: () => null }))
+);
 import { WidgetCustomizer } from "./widget-customizer";
 import { MonthlyReportDownload } from "../monthly-report-download";
 

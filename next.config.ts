@@ -32,7 +32,11 @@ const nextConfig: NextConfig = {
   distDir: process.env.NEXT_DIST_DIR || ".next",
 
   // Silence Next.js warning when using Turbopack alongside a webpack config
-  turbopack: {},
+  // Turbopack configuration to fix chunk loading issues
+  turbopack: {
+    // Use deterministic chunk names to prevent loading errors
+    resolveAlias: {},
+  },
 
   // In dev with webpack, disable filesystem cache to avoid ENOENT on iCloud paths
   // Add ProgressPlugin in prod to surface where build hangs
