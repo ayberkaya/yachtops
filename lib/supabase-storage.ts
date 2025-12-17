@@ -114,7 +114,16 @@ export async function uploadFile(
 
   if (error) {
     console.error(`Error uploading to ${bucket}/${path}:`, error);
-    throw new Error(`Failed to upload file: ${error.message}`);
+    const errorMessage = error.message || "Unknown error";
+    // Provide more specific error messages
+    if (errorMessage.includes("Bucket not found")) {
+      throw new Error(`Storage bucket "${bucket}" not found. Please create it in Supabase Storage dashboard.`);
+    } else if (errorMessage.includes("File size")) {
+      throw new Error(`File too large. Maximum size is 50MB.`);
+    } else if (errorMessage.includes("Invalid API key")) {
+      throw new Error(`Invalid Supabase service role key. Please check your SUPABASE_SERVICE_ROLE_KEY environment variable.`);
+    }
+    throw new Error(`Failed to upload file to storage: ${errorMessage}`);
   }
 
   return {
