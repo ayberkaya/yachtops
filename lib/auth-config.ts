@@ -170,7 +170,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       try {
-          if (session.user && token.id) {
+        // If token is null or expired, return null session
+        if (!token || !token.id) {
+          return null as any;
+        }
+
+        // Check if token is expired
+        if (token.exp && typeof token.exp === 'number') {
+          const now = Math.floor(Date.now() / 1000);
+          if (token.exp < now) {
+            return null as any;
+          }
+        }
+
+        if (session.user && token.id) {
           // Use token data directly - no DB query needed for performance
           // Token already contains all necessary user data from JWT callback
           session.user.id = token.id as string;
