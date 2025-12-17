@@ -11,12 +11,6 @@ export function AuthRedirect() {
   const [hasRedirected, setHasRedirected] = useState(false);
 
   useEffect(() => {
-    // Don't redirect if we're already on an auth page (signin/signup)
-    // This prevents redirect loops
-    if (pathname?.startsWith("/auth/")) {
-      return;
-    }
-
     // Wait for session to load
     if (status === "loading") {
       return;
@@ -26,8 +20,15 @@ export function AuthRedirect() {
     if (!hasRedirected && session?.user?.id && session?.user?.role) {
       setHasRedirected(true);
       const target = session.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
-      // Use window.location.href for hard redirect to ensure fresh session
-      // This is more reliable than router.push after login
+      
+      // If we're on an auth page and have a valid session, redirect
+      if (pathname?.startsWith("/auth/")) {
+        // Use router.push for client-side navigation (more reliable than window.location)
+        router.push(target);
+        return;
+      }
+      
+      // For non-auth pages, use window.location.href for hard redirect
       window.location.href = target;
     }
   }, [session, status, router, hasRedirected, pathname]);

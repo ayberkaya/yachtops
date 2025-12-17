@@ -57,12 +57,30 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        // Login successful - let NextAuth handle the redirect via AuthRedirect component
-        // Small delay to ensure session cookie is set before redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
+        // Login successful - wait for session to be set
+        await new Promise(resolve => setTimeout(resolve, 200));
         
-        // Use window.location.reload() to trigger AuthRedirect component
-        // This ensures session is loaded and redirect happens client-side
+        // Fetch session to determine redirect target
+        try {
+          const sessionRes = await fetch("/api/auth/session", { 
+            cache: "no-store",
+            credentials: "include" 
+          });
+          
+          if (sessionRes.ok) {
+            const sessionData = await sessionRes.json();
+            if (sessionData?.user?.id && sessionData?.user?.role) {
+              const target = sessionData.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
+              // Use router.push for client-side navigation
+              router.push(target);
+              return;
+            }
+          }
+        } catch (e) {
+          console.error("Session fetch error:", e);
+        }
+        
+        // Fallback: reload page to trigger AuthRedirect
         window.location.reload();
         return;
       }
