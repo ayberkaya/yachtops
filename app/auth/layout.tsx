@@ -6,10 +6,6 @@ import { getSession } from "@/lib/get-session";
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
-// Disable performance measurement for this layout to avoid negative timestamp errors
-// when redirect() is called, as it interrupts the render cycle
-export const experimental_ppr = false;
-
 export default async function AuthLayout({
   children,
 }: {
