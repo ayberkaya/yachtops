@@ -17,6 +17,18 @@ export default async function DashboardLayout({
   const session = await getSession();
 
   if (!session) {
+    // Log for debugging
+    if (process.env.NODE_ENV === "development") {
+      console.error("❌ [DASHBOARD] No session, redirecting to signin");
+    }
+    redirect("/auth/signin");
+  }
+
+  // Additional validation for owner users - ensure yachtId exists
+  if (session.user.role === "OWNER" && !session.user.yachtId) {
+    if (process.env.NODE_ENV === "development") {
+      console.error("❌ [DASHBOARD] Owner user missing yachtId:", session.user);
+    }
     redirect("/auth/signin");
   }
 
