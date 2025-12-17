@@ -251,7 +251,16 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       try {
         const response = await fetch("/api/tasks");
         if (response.ok) {
-          const tasks = await response.json();
+          const result = await response.json();
+          // Handle paginated response: { data: [...], pagination: {...} }
+          const tasks = Array.isArray(result) ? result : (result.data || []);
+          
+          if (!Array.isArray(tasks)) {
+            console.error("Tasks response is not an array:", tasks);
+            setPendingTasksCount(0);
+            return;
+          }
+          
           const pendingCount = tasks.filter((task: any) => {
             const isAssignedToUser = task.assigneeId === session.user.id;
             const isAssignedToRole = task.assigneeRole === session.user.role;
@@ -265,6 +274,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
         }
       } catch (error) {
         console.error("Error fetching pending tasks count:", error);
+        setPendingTasksCount(0);
       }
     };
 
