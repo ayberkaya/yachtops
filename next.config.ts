@@ -37,6 +37,22 @@ const nextConfig: NextConfig = {
     // Use deterministic chunk names to prevent loading errors
     resolveAlias: {},
   },
+  
+  // Disable automatic code splitting for admin routes to prevent chunk loading errors
+  // This ensures all admin page code is bundled together
+  experimental: {
+    ...nextConfig.experimental,
+    // Force all admin routes to be in the same chunk
+    optimizePackageImports: [
+      'lucide-react',
+      '@radix-ui/react-dialog',
+      '@radix-ui/react-dropdown-menu',
+      '@radix-ui/react-select',
+      '@radix-ui/react-popover',
+      '@radix-ui/react-alert-dialog',
+      'date-fns',
+    ],
+  },
 
   // In dev with webpack, disable filesystem cache to avoid ENOENT on iCloud paths
   // Add ProgressPlugin in prod to surface where build hangs
