@@ -26,6 +26,7 @@ export function AuthRedirect() {
   }, [session, status, router, hasRedirected]);
 
   // This component doesn't render anything
+  // Note: useSession requires SessionProvider in parent tree (provided by app/layout.tsx)
   return null;
 }
 
