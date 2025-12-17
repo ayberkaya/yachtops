@@ -173,10 +173,18 @@ export function Navbar() {
               <DropdownMenuItem
                 onClick={async () => {
                   try {
+                    // Clear all local storage and session storage
+                    if (typeof window !== 'undefined') {
+                      localStorage.clear();
+                      sessionStorage.clear();
+                    }
+                    
                     // Sign out without redirect first to clear session
                     await signOut({ 
-                      redirect: false 
+                      redirect: false,
+                      callbackUrl: "/auth/signin"
                     });
+                    
                     // Clear all caches and force hard redirect
                     if (typeof window !== 'undefined') {
                       // Clear Next.js router cache
@@ -186,6 +194,8 @@ export function Navbar() {
                     console.error("Sign out error:", error);
                     // Force redirect even on error
                     if (typeof window !== 'undefined') {
+                      localStorage.clear();
+                      sessionStorage.clear();
                       window.location.href = "/auth/signin";
                     }
                   }

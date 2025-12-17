@@ -126,6 +126,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
+      // Check if token is expired
+      if (token.exp && typeof token.exp === 'number') {
+        const now = Math.floor(Date.now() / 1000);
+        if (token.exp < now) {
+          // Token expired, return null to invalidate session
+          return null as any;
+        }
+      }
+
       if (user) {
         token.id = user.id;
         token.email = user.email;
