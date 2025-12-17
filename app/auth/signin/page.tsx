@@ -57,17 +57,26 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        // Login successful - let AuthRedirect component handle the redirect
-        // It will detect the new session and redirect appropriately
-        // Force session refresh by calling useSession's refetch
-        setIsLoading(false);
-        
-        // Small delay to ensure session is set in cookies before redirect
-        setTimeout(() => {
-          // Trigger a page refresh to ensure session is loaded
-          // AuthRedirect will handle the actual redirect based on role
-          window.location.reload();
-        }, 100);
+        // Login successful - fetch session to determine redirect target
+        // Then redirect directly (AuthRedirect won't run on auth pages)
+        try {
+          // Small delay to ensure session cookie is set
+          await new Promise(resolve => setTimeout(resolve, 200));
+          
+          const sessionRes = await fetch("/api/auth/session", { 
+            cache: "no-store",
+            credentials: "include" 
+          });
+          const sessionData = await sessionRes.json();
+          const role = sessionData?.user?.role;
+          const target = role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
+          
+          // Hard redirect to ensure fresh session
+          window.location.href = target;
+        } catch (e) {
+          // Fallback redirect if session fetch fails
+          window.location.href = "/dashboard";
+        }
         return;
       }
 
