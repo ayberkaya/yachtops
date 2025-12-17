@@ -57,20 +57,17 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        // Fetch session to determine role-based landing page
-        try {
-          const sessionRes = await fetch("/api/auth/session", { cache: "no-store" });
-          const sessionData = await sessionRes.json();
-          const role = sessionData?.user?.role;
-          const target = role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
-          
-          // Hard redirect to ensure fresh session
-          // NextAuth will automatically refresh the session on the new page
-          window.location.href = target;
-        } catch (e) {
-          // Fallback redirect if session fetch fails
-          window.location.href = "/dashboard";
-        }
+        // Login successful - let AuthRedirect component handle the redirect
+        // It will detect the new session and redirect appropriately
+        // Force session refresh by calling useSession's refetch
+        setIsLoading(false);
+        
+        // Small delay to ensure session is set in cookies before redirect
+        setTimeout(() => {
+          // Trigger a page refresh to ensure session is loaded
+          // AuthRedirect will handle the actual redirect based on role
+          window.location.reload();
+        }, 100);
         return;
       }
 
