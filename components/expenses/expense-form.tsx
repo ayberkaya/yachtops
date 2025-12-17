@@ -201,13 +201,24 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
           for (const file of receiptFiles) {
             const receiptFormData = new FormData();
             receiptFormData.append("file", file);
-            await fetch(`/api/expenses/${result.id}/receipt`, {
+            const receiptResponse = await fetch(`/api/expenses/${result.id}/receipt`, {
               method: "POST",
               body: receiptFormData,
             });
+            
+            if (!receiptResponse.ok) {
+              const errorData = await receiptResponse.json().catch(() => ({}));
+              console.error("Failed to upload receipt:", errorData.error || "Unknown error");
+              throw new Error(errorData.error || `Failed to upload receipt: ${file.name}`);
+            }
+            
+            const receiptResult = await receiptResponse.json();
+            console.log("Receipt uploaded successfully:", receiptResult.id);
           }
         } catch (uploadError) {
           console.error("Failed to upload receipt images", uploadError);
+          const errorMessage = uploadError instanceof Error ? uploadError.message : "Failed to upload receipt images";
+          alert(`Expense saved, but receipt upload failed: ${errorMessage}. Please try uploading receipts again from the expense detail page.`);
           // Expense was saved successfully, receipt upload failures will retry when online
         }
       }
