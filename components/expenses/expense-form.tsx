@@ -207,8 +207,20 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
             });
             
             if (!receiptResponse.ok) {
-              const errorData = await receiptResponse.json().catch(() => ({}));
-              const errorMessage = errorData.error || errorData.message || `HTTP ${receiptResponse.status}: ${receiptResponse.statusText}`;
+              // Try to get error message from response
+              let errorMessage = `HTTP ${receiptResponse.status}: ${receiptResponse.statusText}`;
+              let errorData: any = {};
+              
+              try {
+                const responseText = await receiptResponse.text();
+                if (responseText) {
+                  errorData = JSON.parse(responseText);
+                  errorMessage = errorData.error || errorData.message || errorMessage;
+                }
+              } catch (parseError) {
+                console.error("Failed to parse error response:", parseError);
+              }
+              
               console.error("Failed to upload receipt:", {
                 error: errorMessage,
                 details: errorData.details,
@@ -216,6 +228,8 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                 size: file.size,
                 type: file.type,
                 status: receiptResponse.status,
+                statusText: receiptResponse.statusText,
+                fullError: errorData,
               });
               throw new Error(errorMessage);
             }
