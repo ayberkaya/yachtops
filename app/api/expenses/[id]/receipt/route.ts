@@ -64,15 +64,35 @@ export async function POST(
     }
 
     // Upload file to Supabase Storage
-    const filePath = generateFilePath('receipts', file.name);
-    const storageMetadata = await uploadFile(
-      STORAGE_BUCKETS.RECEIPTS,
-      filePath,
-      file,
-      {
-        contentType: file.type || 'image/jpeg',
-      }
-    );
+    console.log(`[Receipt Upload] Starting upload for expense ${id}, file: ${file.name}, size: ${file.size}, type: ${file.type}`);
+    
+    let storageMetadata;
+    try {
+      const filePath = generateFilePath('receipts', file.name);
+      console.log(`[Receipt Upload] Generated file path: ${filePath}`);
+      
+      storageMetadata = await uploadFile(
+        STORAGE_BUCKETS.RECEIPTS,
+        filePath,
+        file,
+        {
+          contentType: file.type || 'image/jpeg',
+        }
+      );
+      
+      console.log(`[Receipt Upload] Upload successful:`, storageMetadata);
+    } catch (uploadError) {
+      console.error(`[Receipt Upload] Upload failed:`, uploadError);
+      const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
+      return NextResponse.json(
+        { 
+          error: "Failed to upload receipt to storage",
+          message: errorMessage,
+          details: process.env.NODE_ENV === "development" ? String(uploadError) : undefined
+        },
+        { status: 500 }
+      );
+    }
 
     // Store only metadata in database (bucket, path, mimeType, size)
     // fileUrl is kept null for new uploads, or can store legacy base64 for backward compatibility

@@ -208,8 +208,16 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
             
             if (!receiptResponse.ok) {
               const errorData = await receiptResponse.json().catch(() => ({}));
-              console.error("Failed to upload receipt:", errorData.error || "Unknown error");
-              throw new Error(errorData.error || `Failed to upload receipt: ${file.name}`);
+              const errorMessage = errorData.error || errorData.message || `HTTP ${receiptResponse.status}: ${receiptResponse.statusText}`;
+              console.error("Failed to upload receipt:", {
+                error: errorMessage,
+                details: errorData.details,
+                file: file.name,
+                size: file.size,
+                type: file.type,
+                status: receiptResponse.status,
+              });
+              throw new Error(errorMessage);
             }
             
             const receiptResult = await receiptResponse.json();
