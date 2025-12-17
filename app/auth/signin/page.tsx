@@ -63,11 +63,18 @@ export default function SignInPage() {
           const sessionData = await sessionRes.json();
           const role = sessionData?.user?.role;
           const target = role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
-          router.push(target);
-          router.refresh();
+          
+          // Force session refresh by updating it
+          const { update } = await import("next-auth/react");
+          await update();
+          
+          // Hard redirect to ensure fresh session
+          window.location.href = target;
         } catch (e) {
-          router.push("/dashboard");
-          router.refresh();
+          // Force session refresh
+          const { update } = await import("next-auth/react");
+          await update();
+          window.location.href = "/dashboard";
         }
         return;
       }
