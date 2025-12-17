@@ -1,62 +1,40 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { auth } from "@/lib/auth-config";
 
 export async function middleware(request: NextRequest) {
-  // Skip middleware for static files and API routes (except auth)
+  // Skip middleware for static files and API routes
   if (
     request.nextUrl.pathname.startsWith("/_next") ||
-    request.nextUrl.pathname.startsWith("/api/auth") ||
-    request.nextUrl.pathname.startsWith("/api/expenses/receipts") ||
-    request.nextUrl.pathname.startsWith("/api/messages") ||
-    request.nextUrl.pathname.startsWith("/api/vessel-documents") ||
-    request.nextUrl.pathname.startsWith("/api/crew-documents") ||
+    request.nextUrl.pathname.startsWith("/api/") ||
     request.nextUrl.pathname.startsWith("/favicon.ico") ||
-    request.nextUrl.pathname.startsWith("/public")
+    request.nextUrl.pathname.startsWith("/public") ||
+    request.nextUrl.pathname.startsWith("/manifest") ||
+    request.nextUrl.pathname.startsWith("/offline")
   ) {
     return NextResponse.next();
   }
 
-  // Check authentication for protected routes
+  // Lightweight cookie check for protected routes
+  // Full auth validation happens in layout components (server-side)
+  const sessionToken = request.cookies.get("next-auth.session-token") || 
+                       request.cookies.get("__Secure-next-auth.session-token");
+
+  // Protected routes: require session cookie
   if (request.nextUrl.pathname.startsWith("/dashboard") || 
       request.nextUrl.pathname.startsWith("/admin")) {
-    try {
-      const session = await auth();
-      
-      // Strict validation: session must have user with id, email, and role
-      if (!session?.user?.id || !session?.user?.email || !session?.user?.role) {
-        // Clear any invalid session cookies
-        const response = NextResponse.redirect(new URL("/auth/signin", request.url));
-        response.cookies.delete("next-auth.session-token");
-        response.cookies.delete("__Secure-next-auth.session-token");
-        response.cookies.delete("next-auth.csrf-token");
-        response.cookies.delete("__Host-next-auth.csrf-token");
-        return response;
-      }
-    } catch (error) {
-      // If auth check fails, redirect to signin and clear cookies
-      console.error("❌ [AUTH] Middleware auth check failed:", error);
+    if (!sessionToken) {
       const signInUrl = new URL("/auth/signin", request.url);
       signInUrl.searchParams.set("callbackUrl", request.nextUrl.pathname);
-      const response = NextResponse.redirect(signInUrl);
-      // Clear any invalid session cookies
-      response.cookies.delete("next-auth.session-token");
-      response.cookies.delete("__Secure-next-auth.session-token");
-      response.cookies.delete("next-auth.csrf-token");
-      response.cookies.delete("__Host-next-auth.csrf-token");
-      return response;
+      return NextResponse.redirect(signInUrl);
     }
   }
 
-  // Redirect authenticated users away from auth pages
-  if (request.nextUrl.pathname.startsWith("/auth/signin")) {
-    try {
-      const session = await auth();
-      if (session?.user?.id) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-    } catch (error) {
-      // If auth check fails, allow access to signin page
+  // Auth pages: redirect if session cookie exists (lightweight check)
+  // Full validation happens in AuthLayout
+  if (request.nextUrl.pathname.startsWith("/auth/signin") || 
+      request.nextUrl.pathname.startsWith("/auth/signup")) {
+    if (sessionToken) {
+      return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
