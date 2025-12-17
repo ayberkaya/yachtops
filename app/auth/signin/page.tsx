@@ -61,21 +61,49 @@ export default function SignInPage() {
         // Then redirect directly (AuthRedirect won't run on auth pages)
         try {
           // Small delay to ensure session cookie is set
-          await new Promise(resolve => setTimeout(resolve, 200));
+          await new Promise(resolve => setTimeout(resolve, 300));
           
           const sessionRes = await fetch("/api/auth/session", { 
             cache: "no-store",
             credentials: "include" 
           });
+          
+          if (!sessionRes.ok) {
+            console.error("Session fetch failed:", sessionRes.status, sessionRes.statusText);
+            setError("Session error. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+          
           const sessionData = await sessionRes.json();
-          const role = sessionData?.user?.role;
+          
+          // Validate session data
+          if (!sessionData?.user?.id || !sessionData?.user?.role) {
+            console.error("Invalid session data:", sessionData);
+            setError("Session validation failed. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+          
+          const role = sessionData.user.role;
           const target = role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
           
-          // Hard redirect to ensure fresh session
-          window.location.href = target;
+          // Use router.push instead of window.location.href for better compatibility
+          // Then refresh to ensure session is loaded
+          router.push(target);
+          router.refresh();
+          
+          // Fallback: if router.push doesn't work, use window.location after a delay
+          setTimeout(() => {
+            if (window.location.pathname.startsWith("/auth/")) {
+              window.location.href = target;
+            }
+          }, 500);
         } catch (e) {
+          console.error("Redirect error:", e);
           // Fallback redirect if session fetch fails
-          window.location.href = "/dashboard";
+          router.push("/dashboard");
+          router.refresh();
         }
         return;
       }
