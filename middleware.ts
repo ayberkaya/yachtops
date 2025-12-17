@@ -29,14 +29,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Auth pages: redirect if session cookie exists (lightweight check)
-  // Full validation happens in AuthLayout
-  if (request.nextUrl.pathname.startsWith("/auth/signin") || 
-      request.nextUrl.pathname.startsWith("/auth/signup")) {
-    if (sessionToken) {
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-  }
+  // Auth pages: Let AuthLayout handle session validation
+  // Don't redirect here - AuthLayout will check if session is valid and redirect if needed
+  // This prevents redirect loops when cookie exists but session is expired/invalid
 
   return NextResponse.next();
 }
