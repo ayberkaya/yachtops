@@ -64,16 +64,11 @@ export default function SignInPage() {
           const role = sessionData?.user?.role;
           const target = role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
           
-          // Force session refresh by updating it
-          const { update } = await import("next-auth/react");
-          await update();
-          
           // Hard redirect to ensure fresh session
+          // NextAuth will automatically refresh the session on the new page
           window.location.href = target;
         } catch (e) {
-          // Force session refresh
-          const { update } = await import("next-auth/react");
-          await update();
+          // Fallback redirect if session fetch fails
           window.location.href = "/dashboard";
         }
         return;
