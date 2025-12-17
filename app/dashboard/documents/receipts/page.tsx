@@ -29,6 +29,17 @@ export default async function ReceiptsPage() {
         deletedAt: null, // Exclude soft-deleted expenses
       },
       deletedAt: null, // Exclude soft-deleted receipts
+      // Include receipts that have either storage (new) or fileUrl (legacy)
+      // Note: New receipts have storageBucket/storagePath, legacy have fileUrl
+      OR: [
+        {
+          AND: [
+            { storageBucket: { not: null } },
+            { storagePath: { not: null } },
+          ],
+        },
+        { fileUrl: { not: null } },
+      ],
     },
     include: {
       expense: {
