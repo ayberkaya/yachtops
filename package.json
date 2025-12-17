@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
+    "dev:turbo": "next dev",
     "dev:webpack": "next dev --webpack",
-    "dev:mobile": "next dev -H 0.0.0.0",
+    "dev:mobile": "next dev -H 0.0.0.0 --webpack",
     "build": "NEXT_TURBOPACK=1 prisma generate && next build --turbo",
     "start": "next start",
     "lint": "eslint",
