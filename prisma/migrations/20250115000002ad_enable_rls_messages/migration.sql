@@ -1,3 +1,0 @@
-ALTER TABLE public.messages ENABLE ROW LEVEL SECURITY;
-
-

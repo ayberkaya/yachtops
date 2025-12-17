@@ -1,3 +1,0 @@
-ALTER TABLE public.crew_documents ENABLE ROW LEVEL SECURITY;
-
-

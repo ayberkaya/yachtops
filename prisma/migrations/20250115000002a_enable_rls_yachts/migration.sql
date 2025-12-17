@@ -1,3 +1,0 @@
-ALTER TABLE public.yachts ENABLE ROW LEVEL SECURITY;
-
-

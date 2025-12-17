@@ -1,3 +1,0 @@
-ALTER TABLE public.expense_receipts ENABLE ROW LEVEL SECURITY;
-
-

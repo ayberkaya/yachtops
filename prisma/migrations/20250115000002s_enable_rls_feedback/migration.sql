@@ -1,3 +1,0 @@
-ALTER TABLE public.feedback ENABLE ROW LEVEL SECURITY;
-
-

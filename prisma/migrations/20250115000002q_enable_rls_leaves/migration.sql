@@ -1,3 +1,0 @@
-ALTER TABLE public.leaves ENABLE ROW LEVEL SECURITY;
-
-

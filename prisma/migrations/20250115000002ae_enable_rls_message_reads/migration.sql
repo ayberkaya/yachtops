@@ -1,3 +1,0 @@
-ALTER TABLE public.message_reads ENABLE ROW LEVEL SECURITY;
-
-

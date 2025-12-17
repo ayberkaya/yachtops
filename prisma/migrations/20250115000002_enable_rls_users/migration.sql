@@ -1,3 +1,0 @@
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-
-

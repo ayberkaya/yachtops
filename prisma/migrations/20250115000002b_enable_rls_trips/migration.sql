@@ -1,3 +1,0 @@
-ALTER TABLE public.trips ENABLE ROW LEVEL SECURITY;
-
-
