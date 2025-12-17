@@ -944,7 +944,16 @@ export function Sidebar() {
       try {
         const response = await fetch("/api/tasks");
         if (response.ok) {
-          const tasks = await response.json();
+          const result = await response.json();
+          // Handle paginated response: { data: [...], pagination: {...} }
+          const tasks = Array.isArray(result) ? result : (result.data || []);
+          
+          if (!Array.isArray(tasks)) {
+            console.error("Tasks response is not an array:", tasks);
+            setPendingTasksCount(0);
+            return;
+          }
+          
           // Filter tasks: assigned to user, assigned to user's role, or unassigned, and not completed
           const pendingCount = tasks.filter((task: any) => {
             const isAssignedToUser = task.assigneeId === session.user.id;
@@ -959,6 +968,7 @@ export function Sidebar() {
         }
       } catch (error) {
         console.error("Error fetching pending tasks count:", error);
+        setPendingTasksCount(0);
       }
     };
 
