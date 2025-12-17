@@ -11,7 +11,7 @@ Implemented external file storage using Supabase Storage to eliminate base64 fil
 
 The following Supabase Storage buckets are created automatically on first upload:
 
-1. **`expense-receipts`** - Receipt images for expenses
+1. **`receipts`** - Receipt images for expenses
 2. **`message-images`** - Images attached to messages
 3. **`message-attachments`** - File attachments to messages (future use)
 4. **`vessel-documents`** - Vessel-related documents (PDFs, etc.)
@@ -25,7 +25,7 @@ All buckets are **private** (not publicly accessible) and require signed URLs fo
 ### Upload Endpoints (Re-enabled with Supabase Storage)
 
 1. **`POST /api/expenses/[id]/receipt`**
-   - ✅ Uploads receipt images to `expense-receipts` bucket
+   - ✅ Uploads receipt images to `receipts` bucket
    - ✅ Stores `{bucket, path, mimeType, size}` in database
    - ✅ `fileUrl` set to `null` for new uploads
 
@@ -135,7 +135,7 @@ npx prisma db push
   "id": "clx123abc",
   "expenseId": "clx456def",
   "fileUrl": null,
-  "storageBucket": "expense-receipts",
+  "storageBucket": "receipts",
   "storagePath": "receipts/1736899200000-abc123-receipt_2024_01_15.jpg",
   "mimeType": "image/jpeg",
   "fileSize": 245760,

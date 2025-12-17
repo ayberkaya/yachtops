@@ -37,7 +37,7 @@ Buckets are created automatically on first file upload. Or create manually:
 
 1. Supabase Dashboard → Storage
 2. Create bucket for each:
-   - `expense-receipts` (private)
+   - `receipts` (private)
    - `message-images` (private)
    - `vessel-documents` (private)
    - `crew-documents` (private)

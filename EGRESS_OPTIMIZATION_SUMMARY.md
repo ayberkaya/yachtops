@@ -65,7 +65,7 @@ npx prisma generate
 ## Bucket'lar
 
 Otomatik oluşturulacak:
-- `expense-receipts` - Receipt görselleri
+- `receipts` - Receipt görselleri
 - `message-images` - Mesaj görselleri
 - `vessel-documents` - Vessel dokümanları
 - `crew-documents` - Crew dokümanları

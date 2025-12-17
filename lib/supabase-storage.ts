@@ -6,8 +6,9 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Bucket names for different file types
+// NOTE: These must match the bucket names in Supabase Storage dashboard
 export const STORAGE_BUCKETS = {
-  RECEIPTS: 'expense-receipts',
+  RECEIPTS: 'receipts', // Changed from 'expense-receipts' to match Supabase
   MESSAGE_IMAGES: 'message-images',
   MESSAGE_ATTACHMENTS: 'message-attachments',
   VESSEL_DOCUMENTS: 'vessel-documents',

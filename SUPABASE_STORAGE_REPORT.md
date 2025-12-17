@@ -13,7 +13,7 @@ The following Supabase Storage buckets are automatically created on first upload
 
 | Bucket Name | Purpose | Privacy |
 |-------------|---------|---------|
-| `expense-receipts` | Receipt images for expenses | Private |
+| `receipts` | Receipt images for expenses | Private |
 | `message-images` | Images attached to messages/replies | Private |
 | `message-attachments` | File attachments to messages (reserved) | Private |
 | `vessel-documents` | Vessel-related documents (PDFs, etc.) | Private |
@@ -27,7 +27,7 @@ The following Supabase Storage buckets are automatically created on first upload
 ### Upload Endpoints (5 endpoints)
 
 1. **`POST /api/expenses/[id]/receipt`**
-   - ✅ Uploads to `expense-receipts` bucket
+   - ✅ Uploads to `receipts` bucket
    - ✅ Stores: `{storageBucket, storagePath, mimeType, fileSize}`
    - ✅ `fileUrl` = `null` for new uploads
 
@@ -82,7 +82,7 @@ The following Supabase Storage buckets are automatically created on first upload
   "id": "clx123abc456",
   "expenseId": "clx789def012",
   "fileUrl": null,
-  "storageBucket": "expense-receipts",
+  "storageBucket": "receipts",
   "storagePath": "receipts/1736899200000-abc123-receipt_2024_01_15.jpg",
   "mimeType": "image/jpeg",
   "fileSize": 245760,
@@ -94,7 +94,7 @@ The following Supabase Storage buckets are automatically created on first upload
 
 **Key Points:**
 - `fileUrl` is `null` (no base64)
-- `storageBucket` = `"expense-receipts"`
+- `storageBucket` = `"receipts"`
 - `storagePath` = unique path with timestamp and random ID
 - `mimeType` and `fileSize` stored for metadata
 
@@ -151,7 +151,7 @@ The following Supabase Storage buckets are automatically created on first upload
 **Example cache entry:**
 ```typescript
 {
-  "expense-receipts/receipts/1736899200000-abc123-receipt.jpg": {
+  "receipts/receipts/1736899200000-abc123-receipt.jpg": {
     url: "https://...supabase.co/storage/v1/object/sign/...",
     expiresAt: 1736902800000 // 1 hour - 60 seconds
   }
