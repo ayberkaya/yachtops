@@ -304,7 +304,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           setReimbursableCount(0);
         }
 
-        if (lowStockRes.ok) {
+        if (lowStockRes.ok && 'json' in lowStockRes) {
           const data = await lowStockRes.json();
           setLowStockCount(data.count || 0);
         } else {
@@ -985,7 +985,7 @@ export function Sidebar() {
           setReimbursableCount(0);
         }
 
-        if (lowStockRes.ok) {
+        if (lowStockRes.ok && 'json' in lowStockRes) {
           const data = await lowStockRes.json();
           setLowStockCount(data.count || 0);
         } else {

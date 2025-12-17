@@ -168,22 +168,6 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   }, [selectedChannel]);
 
-  // Initialize unread counts for all channels on mount - use batch endpoint
-  useEffect(() => {
-    if (channels.length > 0) {
-      fetchAllUnreadCounts();
-    }
-  }, [channels.length, fetchAllUnreadCounts]); // Only run when channels change
-
-  // Fetch notification preferences on mount
-  useEffect(() => {
-    fetchNotificationPreferences();
-    // Request notification permission
-    if ("Notification" in window && Notification.permission === "default") {
-      Notification.requestPermission();
-    }
-  }, []);
-
   // Batch fetch unread counts for all channels
   const fetchAllUnreadCounts = useCallback(async () => {
     if (channels.length === 0) return;
@@ -209,6 +193,22 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       console.error("Error fetching unread counts:", error);
     }
   }, [channels, selectedChannel?.id]);
+
+  // Initialize unread counts for all channels on mount - use batch endpoint
+  useEffect(() => {
+    if (channels.length > 0) {
+      fetchAllUnreadCounts();
+    }
+  }, [channels.length, fetchAllUnreadCounts]); // Only run when channels change
+
+  // Fetch notification preferences on mount
+  useEffect(() => {
+    fetchNotificationPreferences();
+    // Request notification permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+  }, []);
 
   // Poll for new messages - OPTIMIZED: reduced frequency and batched requests
   useEffect(() => {

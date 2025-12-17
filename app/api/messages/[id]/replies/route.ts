@@ -97,6 +97,12 @@ export async function POST(
     // Check if request has FormData (image upload) or JSON
     const contentType = request.headers.get("content-type") || "";
     let validated: z.infer<typeof replySchema>;
+    
+    // Storage fields for Supabase Storage (declared at function scope)
+    let imageBucket: string | null = null;
+    let imagePath: string | null = null;
+    let imageMimeType: string | null = null;
+    let imageSize: number | null = null;
 
     if (contentType.includes("multipart/form-data")) {
       try {

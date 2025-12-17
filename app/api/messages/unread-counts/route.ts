@@ -37,12 +37,12 @@ export async function POST(request: NextRequest) {
     });
 
     // Filter channels user can access
-    const accessibleChannels = channels.filter((channel) => {
+    const accessibleChannels = channels.filter((channel: { isGeneral: boolean; members: Array<{ id: string }> }) => {
       if (channel.isGeneral) return true;
-      return channel.members.some((m) => m.id === session.user.id);
+      return channel.members.some((m: { id: string }) => m.id === session.user.id);
     });
 
-    const accessibleChannelIds = accessibleChannels.map((c) => c.id);
+    const accessibleChannelIds = accessibleChannels.map((c: { id: string }) => c.id);
 
     // Get unread counts for accessible channels only
     // Count messages that:
@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const unreadCounts: Record<string, number> = {};
 
     // Batch count queries for better performance
-    const countPromises = accessibleChannelIds.map(async (channelId) => {
+    const countPromises = accessibleChannelIds.map(async (channelId: string) => {
       const count = await db.message.count({
         where: {
           channelId,

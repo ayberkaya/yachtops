@@ -37,7 +37,7 @@ export async function GET(request: NextRequest) {
 
     // Count low stock items
     const count = stocks.filter(
-      (stock) =>
+      (stock: { quantity: number | null; lowStockThreshold: number | null }) =>
         stock.lowStockThreshold !== null &&
         stock.lowStockThreshold !== undefined &&
         Number(stock.quantity) <= Number(stock.lowStockThreshold)
