@@ -212,11 +212,13 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
           return;
         }
 
-        const data = await response.json();
+        const result = await response.json();
 
-        // Ensure data is an array
+        // Handle paginated response: { data: [...], pagination: {...} }
+        const data = Array.isArray(result) ? result : (result.data || []);
+        
         if (!Array.isArray(data)) {
-          console.error("Invalid response format: expected array, got", typeof data);
+          console.error("Invalid response format: expected array, got", typeof result);
           setExpenses([]);
           return;
         }
