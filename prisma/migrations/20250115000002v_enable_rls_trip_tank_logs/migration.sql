@@ -1,0 +1,3 @@
+ALTER TABLE public.trip_tank_logs ENABLE ROW LEVEL SECURITY;
+
+

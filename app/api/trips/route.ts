@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
     }
 
     const status = searchParams.get("status");
-    // Pagination support
+    // Pagination support - ENFORCED: low defaults to reduce egress
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10), 500); // Max 500, default 100
+    const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100); // Max 100, default 25 (reduced from 100)
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -68,16 +68,8 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Backward compatibility: if no pagination params, return array directly
-    const hasPagination = page > 1 || limit !== 100 || searchParams.has("limit");
-    
-    if (!hasPagination) {
-      return NextResponse.json(trips, {
-        headers: {
-          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
-        },
-      });
-    }
+    // Always return paginated response for consistency and egress control
+    const hasPagination = true; // Always paginated now
 
     // Get total count for pagination
     const totalCount = await db.trip.count({ where });

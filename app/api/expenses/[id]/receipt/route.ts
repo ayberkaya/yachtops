@@ -6,6 +6,7 @@ import { hasPermission } from "@/lib/permissions";
 import { validateFileUpload } from "@/lib/file-upload-security";
 import { createAuditLog } from "@/lib/audit-log";
 import { AuditAction } from "@prisma/client";
+import { uploadFile, STORAGE_BUCKETS, generateFilePath } from "@/lib/supabase-storage";
 
 export async function POST(
   request: NextRequest,
@@ -62,16 +63,27 @@ export async function POST(
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const mimeType = file.type || "image/jpeg";
-    const base64 = buffer.toString("base64");
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    // Upload file to Supabase Storage
+    const filePath = generateFilePath('receipts', file.name);
+    const storageMetadata = await uploadFile(
+      STORAGE_BUCKETS.RECEIPTS,
+      filePath,
+      file,
+      {
+        contentType: file.type || 'image/jpeg',
+      }
+    );
 
+    // Store only metadata in database (bucket, path, mimeType, size)
+    // fileUrl is kept null for new uploads, or can store legacy base64 for backward compatibility
     const receipt = await db.expenseReceipt.create({
       data: {
         expenseId: id,
-        fileUrl: dataUrl,
+        fileUrl: null, // No base64 - file is in Supabase Storage
+        storageBucket: storageMetadata.bucket,
+        storagePath: storageMetadata.path,
+        mimeType: storageMetadata.mimeType,
+        fileSize: storageMetadata.size,
         createdByUserId: session.user.id,
       },
     });

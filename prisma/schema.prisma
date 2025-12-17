@@ -347,7 +347,11 @@ model Expense {
 model ExpenseReceipt {
   id              String    @id @default(cuid())
   expenseId       String    @map("expense_id")
-  fileUrl         String    @map("file_url")
+  fileUrl         String?   @map("file_url") // Nullable for new uploads (legacy base64 fallback)
+  storageBucket   String?   @map("storage_bucket") // Supabase Storage bucket name
+  storagePath     String?   @map("storage_path") // File path in bucket
+  mimeType        String?   @map("mime_type") // MIME type
+  fileSize        Int?      @map("file_size") // File size in bytes
   uploadedAt      DateTime  @default(now()) @map("uploaded_at")
   createdByUserId String?   @map("created_by_user_id")
   deletedByUserId String?   @map("deleted_by_user_id")
@@ -357,6 +361,7 @@ model ExpenseReceipt {
   deletedBy       User?     @relation("ExpenseReceiptDeleter", fields: [deletedByUserId], references: [id])
 
   @@index([deletedAt])
+  @@index([storageBucket, storagePath])
   @@map("expense_receipts")
 }
 
@@ -405,7 +410,11 @@ model VesselDocument {
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   title           String
-  fileUrl         String    @map("file_url")
+  fileUrl         String?   @map("file_url") // Nullable for new uploads (legacy base64 fallback)
+  storageBucket   String?   @map("storage_bucket") // Supabase Storage bucket name
+  storagePath     String?   @map("storage_path") // File path in bucket
+  mimeType        String?   @map("mime_type") // MIME type
+  fileSize        Int?      @map("file_size") // File size in bytes
   notes           String?
   expiryDate      DateTime? @map("expiry_date")
   createdByUserId String?   @map("created_by_user_id")
@@ -417,6 +426,7 @@ model VesselDocument {
   deletedBy       User?     @relation("VesselDocumentDeleter", fields: [deletedByUserId], references: [id])
 
   @@index([deletedAt])
+  @@index([storageBucket, storagePath])
   @@map("vessel_documents")
 }
 
@@ -452,7 +462,11 @@ model CrewDocument {
   yachtId         String    @map("yacht_id")
   userId          String?   @map("user_id")
   title           String
-  fileUrl         String    @map("file_url")
+  fileUrl         String?   @map("file_url") // Nullable for new uploads (legacy base64 fallback)
+  storageBucket   String?   @map("storage_bucket") // Supabase Storage bucket name
+  storagePath     String?   @map("storage_path") // File path in bucket
+  mimeType        String?   @map("mime_type") // MIME type
+  fileSize        Int?      @map("file_size") // File size in bytes
   notes           String?
   expiryDate      DateTime? @map("expiry_date")
   createdByUserId String?   @map("created_by_user_id")
@@ -465,6 +479,7 @@ model CrewDocument {
   yacht           Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
   @@index([deletedAt])
+  @@index([storageBucket, storagePath])
   @@map("crew_documents")
 }
 
@@ -491,7 +506,11 @@ model Message {
   channelId       String              @map("channel_id")
   userId          String              @map("user_id")
   content         String?
-  imageUrl        String?             @map("image_url")
+  imageUrl        String?             @map("image_url") // Nullable for new uploads (legacy base64 fallback)
+  imageBucket     String?             @map("image_bucket") // Supabase Storage bucket name
+  imagePath       String?             @map("image_path") // File path in bucket
+  imageMimeType   String?             @map("image_mime_type") // MIME type
+  imageSize       Int?                @map("image_size") // File size in bytes
   parentMessageId String?             @map("parent_message_id")
   isPinned        Boolean             @default(false) @map("is_pinned")
   editedAt        DateTime?           @map("edited_at")
@@ -508,6 +527,7 @@ model Message {
 
   @@index([channelId, deletedAt, createdAt])
   @@index([channelId, parentMessageId])
+  @@index([imageBucket, imagePath])
   @@map("messages")
 }
 
@@ -524,17 +544,20 @@ model MessageRead {
 }
 
 model MessageAttachment {
-  id        String   @id @default(cuid())
-  messageId String   @map("message_id")
-  userId    String   @map("user_id")
-  fileName  String   @map("file_name")
-  fileUrl   String   @map("file_url")
-  fileSize  Int?     @map("file_size")
-  mimeType  String?  @map("mime_type")
-  createdAt DateTime @default(now()) @map("created_at")
-  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user      User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
+  id           String   @id @default(cuid())
+  messageId    String   @map("message_id")
+  userId       String   @map("user_id")
+  fileName     String   @map("file_name")
+  fileUrl      String?  @map("file_url") // Nullable for new uploads (legacy base64 fallback)
+  storageBucket String?  @map("storage_bucket") // Supabase Storage bucket name
+  storagePath   String?  @map("storage_path") // File path in bucket
+  fileSize     Int?     @map("file_size")
+  mimeType     String?  @map("mime_type")
+  createdAt    DateTime @default(now()) @map("created_at")
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user         User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([storageBucket, storagePath])
   @@map("message_attachments")
 }
 

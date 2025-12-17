@@ -42,7 +42,13 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // Get all cash transactions (tenant resolved above) - exclude soft-deleted
+      // Pagination support - ENFORCED: low defaults to reduce egress
+      const { searchParams } = new URL(request.url);
+      const page = parseInt(searchParams.get("page") || "1", 10);
+      const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100);
+      const skip = (page - 1) * limit;
+
+      // Get cash transactions (tenant resolved above) - exclude soft-deleted
       const transactions = await db.cashTransaction.findMany({
         where: {
           yachtId: tenantId || undefined,
@@ -57,6 +63,15 @@ export async function GET(request: NextRequest) {
           },
         },
         orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      });
+
+      const totalCount = await db.cashTransaction.count({
+        where: {
+          yachtId: tenantId || undefined,
+          deletedAt: null,
+        },
       });
 
       // Calculate current balance (only non-deleted transactions)
@@ -69,8 +84,14 @@ export async function GET(request: NextRequest) {
       }, 0);
 
       return NextResponse.json({
-        transactions: transactions || [],
+        data: transactions || [],
         balance: balance || 0,
+        pagination: {
+          page,
+          limit,
+          total: totalCount,
+          totalPages: Math.ceil(totalCount / limit),
+        },
       });
     } catch (innerError) {
       // Catch any errors from the inner try block

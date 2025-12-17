@@ -1,0 +1,3 @@
+ALTER TABLE public.shifts ENABLE ROW LEVEL SECURITY;
+
+

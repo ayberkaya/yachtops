@@ -59,9 +59,9 @@ export async function GET(request: NextRequest) {
     const maxAmount = searchParams.get("maxAmount");
     const isReimbursable = searchParams.get("isReimbursable");
     const isReimbursed = searchParams.get("isReimbursed");
-    // Pagination support
+    // Pagination support - ENFORCED: low defaults to reduce egress
     const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = Math.min(parseInt(searchParams.get("limit") || "200", 10), 500); // Max 500, default 200 (reduced from 1000)
+    const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100); // Max 100, default 25 (reduced from 200)
     const skip = (page - 1) * limit;
 
     const where: any = {
@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
         },
         receipts: {
           where: { deletedAt: null },
-          select: { id: true, fileUrl: true },
+          select: { id: true }, // REMOVED: fileUrl to prevent base64 egress in list responses
         },
       },
       orderBy: { date: "desc" },
@@ -144,8 +144,8 @@ export async function GET(request: NextRequest) {
       take: limit,
     });
 
-    // Backward compatibility: if no pagination params, return array directly
-    const hasPagination = page > 1 || limit !== 200 || searchParams.has("limit");
+    // Always return paginated response for consistency and egress control
+    const hasPagination = true; // Always paginated now
     
     if (!hasPagination) {
       // Cache for 30 seconds - expenses change frequently but not instantly

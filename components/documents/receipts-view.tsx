@@ -166,7 +166,7 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
               <div className="px-6 pb-6 overflow-auto max-h-[calc(90vh-120px)]">
                 <div className="rounded-lg overflow-hidden border bg-muted flex items-center justify-center min-h-[200px]">
                   <img
-                    src={`/api/expenses/receipts/${previewReceipt.id}?t=${Date.now()}`}
+                    src={`/api/expenses/receipts/${previewReceipt.id}`}
                     alt="Receipt"
                     className="w-full h-auto max-w-full object-contain"
                     style={{ display: "block" }}

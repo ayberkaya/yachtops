@@ -269,103 +269,58 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     };
 
     fetchPendingTasksCount();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchPendingTasksCount, 60000);
+    // OPTIMIZED: Increased interval to 2 minutes to reduce bandwidth
+    const interval = setInterval(fetchPendingTasksCount, 120000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
-  // Fetch pending expenses count
+  // OPTIMIZED: Combined all counts into single request using count-only endpoint
   useEffect(() => {
     if (!session?.user) return;
     
-    const fetchPendingExpensesCount = async () => {
+    const fetchAllCounts = async () => {
       try {
-        if (!hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+        // Use count-only endpoint instead of fetching full lists
+        const [countsRes, lowStockRes] = await Promise.all([
+          fetch("/api/expenses/counts", { 
+            cache: "no-store",
+            // Use cache from api-client if available
+          }),
+          hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)
+            ? fetch("/api/alcohol-stock/low-stock-count", { cache: "no-store" })
+            : Promise.resolve({ ok: false }),
+        ]);
+
+        if (countsRes.ok) {
+          const counts = await countsRes.json();
+          if (hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+            setPendingExpensesCount(counts.pending || 0);
+          }
+          if (hasPermission(session.user, "expenses.view", session.user.permissions)) {
+            setReimbursableCount(counts.reimbursable || 0);
+          }
+        } else {
           setPendingExpensesCount(0);
-          return;
+          setReimbursableCount(0);
         }
 
-        const response = await fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" });
-        if (!response.ok) {
-          setPendingExpensesCount(0);
-          return;
+        if (lowStockRes.ok) {
+          const data = await lowStockRes.json();
+          setLowStockCount(data.count || 0);
+        } else {
+          setLowStockCount(0);
         }
-        const expenses = await response.json();
-        setPendingExpensesCount(expenses.length);
       } catch (error) {
-        console.error("Error fetching pending expenses count:", error);
+        console.error("Error fetching counts:", error);
         setPendingExpensesCount(0);
-      }
-    };
-
-    fetchPendingExpensesCount();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchPendingExpensesCount, 60000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // Fetch reimbursable expenses count
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchReimbursableCount = async () => {
-      try {
-        if (!hasPermission(session.user, "expenses.view", session.user.permissions)) {
-          setReimbursableCount(0);
-          return;
-        }
-
-        const response = await fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" });
-        if (!response.ok) {
-          setReimbursableCount(0);
-          return;
-        }
-        const expenses = await response.json();
-        setReimbursableCount(expenses.length);
-      } catch (error) {
-        console.error("Error fetching reimbursable expenses count:", error);
         setReimbursableCount(0);
-      }
-    };
-
-    fetchReimbursableCount();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchReimbursableCount, 60000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // Fetch low stock count (alcohol)
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchLowStock = async () => {
-      try {
-        if (!hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)) {
-          setLowStockCount(0);
-          return;
-        }
-        const response = await fetch("/api/alcohol-stock", { cache: "no-store" });
-        if (!response.ok) {
-          setLowStockCount(0);
-          return;
-        }
-        const items = await response.json();
-        const count = (items ?? []).filter(
-          (item: any) =>
-            item?.lowStockThreshold !== null &&
-            item?.lowStockThreshold !== undefined &&
-            Number(item.quantity) <= Number(item.lowStockThreshold)
-        ).length;
-        setLowStockCount(count);
-      } catch (error) {
-        console.error("Error fetching low stock count:", error);
         setLowStockCount(0);
       }
     };
 
-    fetchLowStock();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchLowStock, 60000);
+    fetchAllCounts();
+    // OPTIMIZED: Single interval for all counts, increased to 2 minutes
+    const interval = setInterval(fetchAllCounts, 120000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
@@ -998,69 +953,55 @@ export function Sidebar() {
     };
 
     fetchPendingTasksCount();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchPendingTasksCount, 60000);
+    // OPTIMIZED: Increased interval to 2 minutes to reduce bandwidth
+    const interval = setInterval(fetchPendingTasksCount, 120000);
     return () => clearInterval(interval);
   }, [session?.user]);
 
-  // Fetch pending expenses count
+  // OPTIMIZED: Combined all counts into single request using count-only endpoint (desktop version)
   useEffect(() => {
     if (!session?.user) return;
-
-    const fetchPendingExpensesCount = async () => {
+    
+    const fetchAllCounts = async () => {
       try {
-        // Only fetch if user has permission to approve expenses
-        if (!hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+        // Use count-only endpoint instead of fetching full lists
+        const [countsRes, lowStockRes] = await Promise.all([
+          fetch("/api/expenses/counts", { cache: "no-store" }),
+          hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)
+            ? fetch("/api/alcohol-stock/low-stock-count", { cache: "no-store" })
+            : Promise.resolve({ ok: false }),
+        ]);
+
+        if (countsRes.ok) {
+          const counts = await countsRes.json();
+          if (hasPermission(session.user, "expenses.approve", session.user.permissions)) {
+            setPendingExpensesCount(counts.pending || 0);
+          }
+          if (hasPermission(session.user, "expenses.view", session.user.permissions)) {
+            setReimbursableCount(counts.reimbursable || 0);
+          }
+        } else {
           setPendingExpensesCount(0);
-          return;
+          setReimbursableCount(0);
         }
 
-        const response = await fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" });
-        if (!response.ok) {
-          setPendingExpensesCount(0);
-          return;
+        if (lowStockRes.ok) {
+          const data = await lowStockRes.json();
+          setLowStockCount(data.count || 0);
+        } else {
+          setLowStockCount(0);
         }
-        const expenses = await response.json();
-        setPendingExpensesCount(expenses.length);
       } catch (error) {
-        console.error("Error fetching pending expenses count:", error);
+        console.error("Error fetching counts:", error);
         setPendingExpensesCount(0);
-      }
-    };
-
-    fetchPendingExpensesCount();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchPendingExpensesCount, 60000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // Fetch reimbursable expenses count
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchReimbursableCount = async () => {
-      try {
-        if (!hasPermission(session.user, "expenses.view", session.user.permissions)) {
-          setReimbursableCount(0);
-          return;
-        }
-
-        const response = await fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" });
-        if (!response.ok) {
-          setReimbursableCount(0);
-          return;
-        }
-        const expenses = await response.json();
-        setReimbursableCount(expenses.length);
-      } catch (error) {
-        console.error("Error fetching reimbursable expenses count:", error);
         setReimbursableCount(0);
+        setLowStockCount(0);
       }
     };
 
-    fetchReimbursableCount();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchReimbursableCount, 60000);
+    fetchAllCounts();
+    // OPTIMIZED: Single interval for all counts, increased to 2 minutes
+    const interval = setInterval(fetchAllCounts, 120000);
     return () => clearInterval(interval);
   }, [session?.user]);
 

@@ -104,18 +104,36 @@ export async function POST(
         const file = formData.get("image") as File | null;
         const content = formData.get("content") as string | null;
 
+        // Upload image to Supabase Storage
         let imageUrl: string | null = null;
+
         if (file && file.size > 0) {
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const mimeType = file.type || "image/jpeg";
-          const base64 = buffer.toString("base64");
-          imageUrl = `data:${mimeType};base64,${base64}`;
+          try {
+            const { uploadFile, STORAGE_BUCKETS, generateFilePath } = await import("@/lib/supabase-storage");
+            const filePath = generateFilePath('message-images', file.name);
+            const storageMetadata = await uploadFile(
+              STORAGE_BUCKETS.MESSAGE_IMAGES,
+              filePath,
+              file,
+              {
+                contentType: file.type || 'image/jpeg',
+              }
+            );
+            imageBucket = storageMetadata.bucket;
+            imagePath = storageMetadata.path;
+            imageMimeType = storageMetadata.mimeType;
+            imageSize = storageMetadata.size;
+            // imageUrl remains null for new uploads
+          } catch (error) {
+            console.error("Error uploading reply image to Supabase Storage:", error);
+            throw new Error("Failed to upload image");
+          }
         }
 
+        // Note: imageUrl is set to null for new uploads, storage fields are set separately
         validated = replySchema.parse({
           content: content || null,
-          imageUrl,
+          imageUrl: null, // No base64 for new uploads
         });
       } catch (formError) {
         return NextResponse.json(
@@ -136,7 +154,7 @@ export async function POST(
     }
 
     const hasContent = validated.content && validated.content.trim().length > 0;
-    const hasImage = validated.imageUrl && validated.imageUrl.length > 0;
+    const hasImage = (imageBucket && imagePath) || (validated.imageUrl && validated.imageUrl.length > 0);
     
     if (!hasContent && !hasImage) {
       return NextResponse.json(
@@ -175,16 +193,21 @@ export async function POST(
       parentMessageId: string;
       content: string | null;
       imageUrl?: string | null;
+      imageBucket?: string | null;
+      imagePath?: string | null;
+      imageMimeType?: string | null;
+      imageSize?: number | null;
     } = {
       channelId: parentMessage.channelId,
       userId: session.user.id,
       parentMessageId: id,
       content: hasContent ? validated.content!.trim() : null,
+      imageUrl: null, // No base64 for new uploads
+      imageBucket: imageBucket,
+      imagePath: imagePath,
+      imageMimeType: imageMimeType,
+      imageSize: imageSize,
     };
-
-    if (hasImage) {
-      replyData.imageUrl = validated.imageUrl!;
-    }
 
     const reply = await db.message.create({
       data: replyData,

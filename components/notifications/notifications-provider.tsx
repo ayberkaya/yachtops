@@ -121,7 +121,8 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       };
       
       poll(); // Initial poll
-      interval = setInterval(poll, 45000); // 45 seconds - reduced frequency
+      // OPTIMIZED: Increased interval to 2 minutes to reduce bandwidth
+      interval = setInterval(poll, 120000); // 2 minutes (was 45 seconds)
     };
     
     // Handle visibility change

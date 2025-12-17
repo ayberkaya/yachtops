@@ -41,9 +41,9 @@ export function SyncStatus() {
       updateStatus();
     });
 
-    // Poll less frequently - only when needed
-    // Use longer interval to reduce load
-    const interval = setInterval(updateStatus, 30000); // 30 seconds
+    // OPTIMIZED: Poll less frequently to reduce bandwidth
+    // Use longer interval - 2 minutes instead of 30 seconds
+    const interval = setInterval(updateStatus, 120000); // 2 minutes
 
     return () => {
       unsubscribe();

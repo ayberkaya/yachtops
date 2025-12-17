@@ -1,0 +1,3 @@
+ALTER TABLE public.alcohol_stocks ENABLE ROW LEVEL SECURITY;
+
+

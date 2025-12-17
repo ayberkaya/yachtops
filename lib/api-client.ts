@@ -203,7 +203,57 @@ class ApiClient {
           let data: T;
 
           if (contentType && contentType.includes("application/json")) {
-            data = await response.json();
+            const text = await response.text();
+            data = JSON.parse(text) as T;
+            
+            // Instrument request (async to not block response)
+            if (typeof window !== "undefined") {
+              // Use setTimeout to avoid blocking
+              setTimeout(() => {
+                Promise.all([
+                  import("./request-instrumentation").catch(() => null),
+                  import("./egress-logger").catch(() => null),
+                ]).then(([requestInstrumentationModule, egressLoggerModule]) => {
+                  const estimatedSize = text.length;
+                  const url = new URL(fullUrl);
+                  
+                  // Log to request instrumentation (existing)
+                  if (requestInstrumentationModule?.requestInstrumentation) {
+                    requestInstrumentationModule.requestInstrumentation.logRequest(
+                      url.pathname,
+                      method,
+                      {
+                        estimatedPayloadSize: estimatedSize,
+                        operation: method,
+                      }
+                    );
+                  }
+
+                  // Log to egress logger (new, controlled by EGRESS_DEBUG)
+                  if (egressLoggerModule?.egressLogger) {
+                    try {
+                      const data = JSON.parse(text);
+                      const recordCount = Array.isArray(data) 
+                        ? data.length 
+                        : data?.data && Array.isArray(data.data)
+                        ? data.data.length
+                        : 1;
+                      
+                      egressLoggerModule.egressLogger.logResponse({
+                        route: url.pathname,
+                        method,
+                        estimatedBytes: estimatedSize,
+                        recordCount,
+                      });
+                    } catch {
+                      // Not JSON, skip
+                    }
+                  }
+                }).catch(() => {
+                  // Silently fail if instrumentation fails
+                });
+              }, 0);
+            }
           } else {
             data = (await response.text()) as any;
           }

@@ -1,0 +1,3 @@
+ALTER TABLE public.custom_roles ENABLE ROW LEVEL SECURITY;
+
+

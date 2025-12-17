@@ -27,12 +27,28 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    // Pagination support - ENFORCED: low defaults to reduce egress
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100);
+    const skip = (page - 1) * limit;
+
     const docs = await db.crewDocument.findMany({
       where: {
         yachtId: ensuredTenantId,
         deletedAt: null, // Exclude soft-deleted documents
       },
-      include: {
+      select: {
+        id: true,
+        title: true,
+        notes: true,
+        expiryDate: true,
+        createdAt: true,
+        updatedAt: true,
+        yachtId: true,
+        userId: true,
+        createdByUserId: true,
+        // REMOVED: fileUrl to prevent base64 egress - use /api/crew-documents/[id]/file for file data
         user: {
           select: {
             id: true,
@@ -49,6 +65,25 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
+    });
+
+    const totalCount = await db.crewDocument.count({
+      where: {
+        yachtId: ensuredTenantId,
+        deletedAt: null,
+      },
+    });
+
+    return NextResponse.json({
+      data: docs,
+      pagination: {
+        page,
+        limit,
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
+      },
     });
 
     return NextResponse.json(docs);
@@ -102,18 +137,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const mimeType = file.type || "application/pdf";
-    const base64 = buffer.toString("base64");
-    const dataUrl = `data:${mimeType};base64,${base64}`;
+    // Upload file to Supabase Storage
+    const { uploadFile, STORAGE_BUCKETS, generateFilePath } = await import("@/lib/supabase-storage");
+    const filePath = generateFilePath('crew-documents', file.name);
+    const storageMetadata = await uploadFile(
+      STORAGE_BUCKETS.CREW_DOCUMENTS,
+      filePath,
+      file,
+      {
+        contentType: file.type || 'application/pdf',
+      }
+    );
 
+    // Store only metadata in database (bucket, path, mimeType, size)
     const doc = await db.crewDocument.create({
       data: {
         yachtId: ensuredTenantId,
         userId: userId || null,
         title,
-        fileUrl: dataUrl,
+        fileUrl: null, // No base64 - file is in Supabase Storage
+        storageBucket: storageMetadata.bucket,
+        storagePath: storageMetadata.path,
+        mimeType: storageMetadata.mimeType,
+        fileSize: storageMetadata.size,
         notes,
         expiryDate,
         createdByUserId: session.user.id,

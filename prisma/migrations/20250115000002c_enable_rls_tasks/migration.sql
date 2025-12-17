@@ -1,0 +1,3 @@
+ALTER TABLE public.tasks ENABLE ROW LEVEL SECURITY;
+
+

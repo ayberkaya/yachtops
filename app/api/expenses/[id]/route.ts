@@ -63,7 +63,7 @@ export async function GET(
         },
         receipts: {
           where: { deletedAt: null },
-          select: { id: true, fileUrl: true, uploadedAt: true },
+          select: { id: true, uploadedAt: true }, // REMOVED: fileUrl - use /api/expenses/receipts/[id] for file data
         },
       },
     });

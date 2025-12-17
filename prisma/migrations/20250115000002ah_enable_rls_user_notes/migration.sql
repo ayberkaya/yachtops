@@ -1,0 +1,3 @@
+ALTER TABLE public.user_notes ENABLE ROW LEVEL SECURITY;
+
+

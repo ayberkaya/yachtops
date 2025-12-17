@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -168,14 +168,12 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   }, [selectedChannel]);
 
-  // Initialize unread counts for all channels on mount
+  // Initialize unread counts for all channels on mount - use batch endpoint
   useEffect(() => {
-    channels.forEach((channel) => {
-      if (channel.id !== selectedChannel?.id) {
-        fetchUnreadCount(channel.id);
-      }
-    });
-  }, [channels.length]); // Only run when channels change
+    if (channels.length > 0) {
+      fetchAllUnreadCounts();
+    }
+  }, [channels.length, fetchAllUnreadCounts]); // Only run when channels change
 
   // Fetch notification preferences on mount
   useEffect(() => {
@@ -186,7 +184,33 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   }, []);
 
-  // Poll for new messages - smart polling: only when tab is visible and user is active
+  // Batch fetch unread counts for all channels
+  const fetchAllUnreadCounts = useCallback(async () => {
+    if (channels.length === 0) return;
+    
+    try {
+      const channelIds = channels
+        .filter((ch) => ch.id !== selectedChannel?.id)
+        .map((ch) => ch.id);
+      
+      if (channelIds.length === 0) return;
+
+      const response = await fetch("/api/messages/unread-counts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelIds }),
+      });
+
+      if (response.ok) {
+        const counts = await response.json();
+        setUnreadCounts((prev) => ({ ...prev, ...counts }));
+      }
+    } catch (error) {
+      console.error("Error fetching unread counts:", error);
+    }
+  }, [channels, selectedChannel?.id]);
+
+  // Poll for new messages - OPTIMIZED: reduced frequency and batched requests
   useEffect(() => {
     // Only poll if messages view is visible (user is on messages page)
     if (!selectedChannel && channels.length === 0) {
@@ -195,8 +219,9 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
     let interval: NodeJS.Timeout | null = null;
     let lastActivity = Date.now();
-    const POLL_INTERVAL = 20000; // 20 seconds - reduced frequency
-    const INACTIVE_POLL_INTERVAL = 60000; // 1 minute when inactive
+    // INCREASED intervals to reduce bandwidth: 60s active, 180s inactive
+    const POLL_INTERVAL = 60000; // 60 seconds (was 20s) - only poll selected channel
+    const UNREAD_COUNTS_INTERVAL = 120000; // 2 minutes for unread counts (was every 20s)
 
     const handleActivity = () => {
       lastActivity = Date.now();
@@ -209,24 +234,34 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         // Only poll if tab is visible
         if (document.hidden) return;
         
-        const isActive = Date.now() - lastActivity < 30000; // Active if user interacted in last 30s
-        const currentInterval = isActive ? POLL_INTERVAL : INACTIVE_POLL_INTERVAL;
+        const isActive = Date.now() - lastActivity < 60000; // Active if user interacted in last 60s
         
-        // Update all channels' unread counts
-        channels.forEach((channel) => {
-          if (channel.id !== selectedChannel?.id) {
-            fetchUnreadCount(channel.id);
-          }
-        });
-        
-        // Update current channel messages if selected
-        if (selectedChannel) {
+        // Only poll selected channel messages (not all channels)
+        if (selectedChannel && isActive) {
           fetchMessages(selectedChannel.id, true);
         }
       };
 
-      poll(); // Initial poll
+      // Initial poll only if active
+      if (!document.hidden && selectedChannel) {
+        poll();
+      }
+      
       interval = setInterval(poll, POLL_INTERVAL);
+    };
+
+    // Separate interval for unread counts (less frequent)
+    let unreadInterval: NodeJS.Timeout | null = null;
+    const startUnreadPolling = () => {
+      if (unreadInterval) clearInterval(unreadInterval);
+      
+      const pollUnread = () => {
+        if (document.hidden) return;
+        fetchAllUnreadCounts();
+      };
+
+      pollUnread(); // Initial fetch
+      unreadInterval = setInterval(pollUnread, UNREAD_COUNTS_INTERVAL);
     };
 
     // Track user activity
@@ -236,15 +271,17 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     window.addEventListener('touchstart', handleActivity);
 
     startPolling();
+    startUnreadPolling();
 
     return () => {
       if (interval) clearInterval(interval);
+      if (unreadInterval) clearInterval(unreadInterval);
       window.removeEventListener('mousedown', handleActivity);
       window.removeEventListener('keydown', handleActivity);
       window.removeEventListener('scroll', handleActivity);
       window.removeEventListener('touchstart', handleActivity);
     };
-  }, [selectedChannel, channels]);
+  }, [selectedChannel, channels, fetchAllUnreadCounts]);
 
   // Check for new messages and show notifications
   useEffect(() => {
@@ -392,7 +429,29 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
     }
   };
 
+  // DEPRECATED: Use fetchAllUnreadCounts instead for batch requests
+  // Keeping for backward compatibility but should not be called frequently
   const fetchUnreadCount = async (channelId: string) => {
+    try {
+      const response = await fetch("/api/messages/unread-counts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelIds: [channelId] }),
+      });
+      if (response.ok) {
+        const counts = await response.json();
+        setUnreadCounts((prev) => ({
+          ...prev,
+          [channelId]: counts[channelId] || 0,
+        }));
+      }
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+  
+  // Legacy code kept for reference but optimized path uses fetchAllUnreadCounts
+  const _fetchUnreadCountLegacy = async (channelId: string) => {
     try {
       const response = await fetch(`/api/messages?channelId=${channelId}`);
       if (response.ok) {

@@ -1,0 +1,3 @@
+ALTER TABLE public.shopping_lists ENABLE ROW LEVEL SECURITY;
+
+

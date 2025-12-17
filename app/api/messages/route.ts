@@ -70,9 +70,7 @@ export async function GET(request: NextRequest) {
           select: {
             userId: true,
             readAt: true,
-            user: {
-              select: { id: true, name: true, email: true },
-            },
+            // Removed user object from reads - not needed, saves bandwidth
           },
         },
         replies: {
@@ -86,20 +84,31 @@ export async function GET(request: NextRequest) {
           take: 10, // Limit replies per message
         },
         attachments: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
+          select: {
+            id: true,
+            fileName: true,
+            // REMOVED: fileUrl to prevent base64 egress - use /api/messages/[id]/attachments/[attachmentId] for file data
+            fileSize: true,
+            mimeType: true,
+            createdAt: true,
+            userId: true, // Only ID, not full user object - saves bandwidth
           },
         },
       },
       orderBy: { createdAt: "asc" },
-      take: 100, // Limit to last 100 messages
+      take: 50, // Reduced from 100 to limit egress
+    });
+
+    // REMOVE imageUrl from response to prevent base64 egress in list endpoints
+    // Use /api/messages/[id]/image endpoint for lazy loading
+    const messagesWithoutImages = messages.map((msg: any) => {
+      const { imageUrl, ...rest } = msg;
+      return rest;
     });
 
     // Mark messages as read for current user when fetching (non-blocking)
     // Only mark messages that are not sent by current user
-    const unreadMessages = messages.filter(
+    const unreadMessages = messagesWithoutImages.filter(
       (msg: { userId: string }) => msg.userId !== session.user.id
     );
 
@@ -135,7 +144,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Cache for 10 seconds - messages are very dynamic
-    return NextResponse.json(messages, {
+    return NextResponse.json(messagesWithoutImages, {
       headers: {
         'Cache-Control': 'private, max-age=10, stale-while-revalidate=30',
       },
@@ -165,6 +174,12 @@ export async function POST(request: NextRequest) {
     console.log("Content-Type:", contentType);
     let validated: z.infer<typeof messageSchema>;
     let hasFiles = false;
+    
+    // Storage fields for Supabase Storage (declared at function scope)
+    let imageBucket: string | null = null;
+    let imagePath: string | null = null;
+    let imageMimeType: string | null = null;
+    let imageSize: number | null = null;
 
     // Try to parse as FormData first (for image/uploads)
     if (contentType.includes("multipart/form-data")) {
@@ -190,13 +205,30 @@ export async function POST(request: NextRequest) {
         hasFiles = files.some((f) => f && f.size > 0);
         console.log("hasFiles:", hasFiles);
 
+        // Upload image to Supabase Storage
         let imageUrl: string | null = null;
+
         if (file && file.size > 0) {
-          const arrayBuffer = await file.arrayBuffer();
-          const buffer = Buffer.from(arrayBuffer);
-          const mimeType = file.type || "image/jpeg";
-          const base64 = buffer.toString("base64");
-          imageUrl = `data:${mimeType};base64,${base64}`;
+          try {
+            const { uploadFile, STORAGE_BUCKETS, generateFilePath } = await import("@/lib/supabase-storage");
+            const filePath = generateFilePath('message-images', file.name);
+            const storageMetadata = await uploadFile(
+              STORAGE_BUCKETS.MESSAGE_IMAGES,
+              filePath,
+              file,
+              {
+                contentType: file.type || 'image/jpeg',
+              }
+            );
+            imageBucket = storageMetadata.bucket;
+            imagePath = storageMetadata.path;
+            imageMimeType = storageMetadata.mimeType;
+            imageSize = storageMetadata.size;
+            // imageUrl remains null for new uploads
+          } catch (error) {
+            console.error("Error uploading message image to Supabase Storage:", error);
+            throw new Error("Failed to upload image");
+          }
         }
 
         validated = messageSchema.parse({
@@ -237,9 +269,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate that at least content, imageUrl, or files are provided
+    // Validate that at least content, image, or files are provided
     const hasContent = validated.content && validated.content.trim().length > 0;
-    const hasImage = validated.imageUrl && validated.imageUrl.length > 0;
+    const hasImage = (imageBucket && imagePath) || (validated.imageUrl && validated.imageUrl.length > 0);
     
     console.log("Validation - hasContent:", hasContent, "hasImage:", hasImage, "hasFiles:", hasFiles);
     
@@ -279,15 +311,20 @@ export async function POST(request: NextRequest) {
       userId: string;
       content: string | null;
       imageUrl?: string | null;
+      imageBucket?: string | null;
+      imagePath?: string | null;
+      imageMimeType?: string | null;
+      imageSize?: number | null;
     } = {
       channelId: validated.channelId,
       userId: session.user.id,
       content: hasContent ? validated.content!.trim() : null,
+      imageUrl: null, // No base64 for new uploads
+      imageBucket: imageBucket,
+      imagePath: imagePath,
+      imageMimeType: imageMimeType,
+      imageSize: imageSize,
     };
-
-    if (hasImage) {
-      messageData.imageUrl = validated.imageUrl!;
-    }
 
     console.log("Creating message...");
     const message = await db.message.create({
@@ -300,16 +337,18 @@ export async function POST(request: NextRequest) {
           select: {
             userId: true,
             readAt: true,
-            user: {
-              select: { id: true, name: true, email: true },
-            },
+            // Removed user object - not needed for message display, saves bandwidth
           },
         },
         attachments: {
-          include: {
-            user: {
-              select: { id: true, name: true, email: true },
-            },
+          select: {
+            id: true,
+            fileName: true,
+            // REMOVED: fileUrl to prevent base64 egress - use /api/messages/[id]/attachments/[attachmentId] for file data
+            fileSize: true,
+            mimeType: true,
+            createdAt: true,
+            userId: true, // Only ID, not full user object - saves bandwidth
           },
         },
       },

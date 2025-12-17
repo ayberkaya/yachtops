@@ -33,38 +33,27 @@ export function DashboardNotificationsPanel() {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
+  // OPTIMIZED: Use count-only endpoints instead of fetching full lists
   const fetchFinanceAlerts = useCallback(async () => {
     setIsFinanceLoading(true);
     try {
-      const [pendingRes, reimbRes, stockRes] = await Promise.all([
-        fetch("/api/expenses?status=SUBMITTED", { cache: "no-store" }),
-        fetch("/api/expenses?isReimbursable=true&isReimbursed=false", { cache: "no-store" }),
-        fetch("/api/alcohol-stock", { cache: "no-store" }),
+      const [countsRes, lowStockRes] = await Promise.all([
+        fetch("/api/expenses/counts", { cache: "no-store" }),
+        fetch("/api/alcohol-stock/low-stock-count", { cache: "no-store" }),
       ]);
 
-      if (pendingRes.ok) {
-        const pendingData = await pendingRes.json();
-        setPendingExpensesCount(Array.isArray(pendingData) ? pendingData.length : 0);
+      if (countsRes.ok) {
+        const counts = await countsRes.json();
+        setPendingExpensesCount(counts.pending || 0);
+        setReimbursableCount(counts.reimbursable || 0);
       } else {
         setPendingExpensesCount(0);
-      }
-
-      if (reimbRes.ok) {
-        const reimbData = await reimbRes.json();
-        setReimbursableCount(Array.isArray(reimbData) ? reimbData.length : 0);
-      } else {
         setReimbursableCount(0);
       }
 
-      if (stockRes.ok) {
-        const stockData = await stockRes.json();
-        const count = (stockData ?? []).filter(
-          (item: any) =>
-            item?.lowStockThreshold !== null &&
-            item?.lowStockThreshold !== undefined &&
-            Number(item.quantity) <= Number(item.lowStockThreshold)
-        ).length;
-        setLowStockCount(count);
+      if (lowStockRes.ok) {
+        const data = await lowStockRes.json();
+        setLowStockCount(data.count || 0);
       } else {
         setLowStockCount(0);
       }
@@ -80,8 +69,8 @@ export function DashboardNotificationsPanel() {
 
   useEffect(() => {
     fetchFinanceAlerts();
-    // Increased interval to reduce load - 60 seconds instead of 30
-    const interval = setInterval(fetchFinanceAlerts, 60000);
+    // OPTIMIZED: Increased interval to 2 minutes to reduce bandwidth
+    const interval = setInterval(fetchFinanceAlerts, 120000);
     return () => clearInterval(interval);
   }, [fetchFinanceAlerts]);
 
