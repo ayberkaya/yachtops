@@ -102,8 +102,13 @@ export async function POST(
     return NextResponse.json(receipt, { status: 201 });
   } catch (error) {
     console.error("Error uploading expense receipt:", error);
+    const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return NextResponse.json(
-      { error: "Internal server error" },
+      { 
+        error: "Failed to upload receipt",
+        message: errorMessage,
+        details: process.env.NODE_ENV === "development" ? String(error) : undefined
+      },
       { status: 500 }
     );
   }
