@@ -40,7 +40,14 @@ export default async function ExpenseDetailPage({
         select: { id: true, name: true, code: true },
       },
       receipts: {
-        select: { id: true, fileUrl: true, uploadedAt: true },
+        where: { deletedAt: null },
+        select: { 
+          id: true, 
+          fileUrl: true, 
+          storageBucket: true,
+          storagePath: true,
+          uploadedAt: true 
+        },
         orderBy: { uploadedAt: "desc" },
       },
     },

@@ -28,7 +28,9 @@ interface ExpenseDetailProps {
 
 interface Receipt {
   id: string;
-  fileUrl: string;
+  fileUrl: string | null;
+  storageBucket: string | null;
+  storagePath: string | null;
   uploadedAt: string;
 }
 
