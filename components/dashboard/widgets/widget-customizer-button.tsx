@@ -8,25 +8,24 @@ import { WidgetConfig, DEFAULT_WIDGETS } from "@/types/widgets";
 import { WidgetCustomizer } from "./widget-customizer";
 
 export function WidgetCustomizerButton() {
-  // Only render on client-side after mount to ensure SessionProvider is available
+  // Always call hooks in the same order (Rules of Hooks)
+  // Don't conditionally call hooks - this violates React's Rules of Hooks
   const [mounted, setMounted] = useState(false);
+  const { data: session, status } = useSession(); // Always call, even if not mounted yet
+  const router = useRouter();
+  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
+  const [loading, setLoading] = useState(true);
   
   useEffect(() => {
     setMounted(true);
   }, []);
 
-  // Don't render during SSR or before mount
-  if (!mounted) {
-    return null;
-  }
-
-  // Now safe to use useSession - component is client-side and mounted
-  const { data: session, status } = useSession();
-  const router = useRouter();
-  const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
-  const [loading, setLoading] = useState(true);
-
   useEffect(() => {
+    // Don't load widgets until component is mounted (client-side only)
+    if (!mounted) {
+      return;
+    }
+
     async function loadWidgets() {
       // Wait for session to be loaded
       if (status === "loading") {
@@ -63,7 +62,7 @@ export function WidgetCustomizerButton() {
       }
     }
     loadWidgets();
-  }, [session, status]);
+  }, [mounted, session, status]);
 
   // Get widgets to use - prefer loaded widgets, fallback to defaults based on role
   const getWidgetsToUse = (): WidgetConfig[] => {
@@ -83,6 +82,11 @@ export function WidgetCustomizerButton() {
     // Refresh the page to reload widgets
     router.refresh();
   };
+
+  // Don't render during SSR or before mount
+  if (!mounted) {
+    return null;
+  }
 
   // Always render WidgetCustomizer - it will show the button
   return <WidgetCustomizer currentWidgets={widgetsToUse} onSave={handleSave} />;
