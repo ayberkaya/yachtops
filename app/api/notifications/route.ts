@@ -19,7 +19,10 @@ export async function GET(request: NextRequest) {
     const cacheKey = `notifications-${userId}-${unreadOnly}`;
     const getNotifications = unstable_cache(
       async (userIdParam: string, unreadOnlyParam: boolean) => {
+        // Import all dependencies inside closure to avoid external references
         const { db } = await import("@/lib/db");
+        const { TaskStatus } = await import("@prisma/client");
+        
         const where: any = {
           userId: userIdParam,
           // Filter out notifications for completed tasks directly in database
