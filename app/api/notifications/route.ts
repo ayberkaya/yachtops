@@ -13,13 +13,14 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
+    const userId = session.user.id; // Extract to avoid closure issues
 
     // Cache notifications for 30 seconds to reduce database load
-    const cacheKey = `notifications-${session.user.id}-${unreadOnly}`;
+    const cacheKey = `notifications-${userId}-${unreadOnly}`;
     const getNotifications = unstable_cache(
-      async () => {
+      async (userIdParam: string, unreadOnlyParam: boolean) => {
         const where: any = {
-          userId: session.user.id,
+          userId: userIdParam,
           // Filter out notifications for completed tasks directly in database
           OR: [
             { taskId: null }, // Notifications without tasks
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
           ],
         };
 
-        if (unreadOnly) {
+        if (unreadOnlyParam) {
           where.read = false;
         }
 
@@ -67,10 +68,10 @@ export async function GET(request: NextRequest) {
         });
       },
       [cacheKey],
-      { revalidate: 30, tags: [`notifications-${session.user.id}`] }
+      { revalidate: 30, tags: [`notifications-${userId}`] }
     );
 
-    const notifications = await getNotifications();
+    const notifications = await getNotifications(userId, unreadOnly);
 
     return NextResponse.json(notifications, {
       headers: {

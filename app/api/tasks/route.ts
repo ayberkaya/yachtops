@@ -60,17 +60,53 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const finalWhere = withTenantScope(scopedSession, baseWhere);
     const tenantId = tenantResult.tenantId || 'admin';
+    const userRole = session!.user.role;
+    const userId = session!.user.id; // Extract for closure
 
-    // Build cache key from query parameters
-    const cacheKey = `tasks-${tenantId}-${status || 'all'}-${assigneeId || 'all'}-${tripId || 'all'}-${page}-${limit}`;
+    // Build cache key from query parameters (must include all parameters that affect the query)
+    const cacheKey = `tasks-${tenantId}-${userRole}-${userId}-${status || 'all'}-${assigneeId || 'all'}-${tripId || 'all'}-${page}-${limit}`;
 
     // Cache tasks query for 30 seconds
+    // Rebuild where clause inside closure to avoid closure issues
     const getTasks = unstable_cache(
-      async () => {
+      async (
+        tenantIdParam: string | null,
+        userRoleParam: string,
+        userIdParam: string,
+        statusParam: string | null,
+        assigneeIdParam: string | null,
+        tripIdParam: string | null,
+        skipParam: number,
+        limitParam: number
+      ) => {
+        const baseWhereParam: any = {};
+        if (statusParam) baseWhereParam.status = statusParam;
+        if (assigneeIdParam) baseWhereParam.assigneeId = assigneeIdParam;
+        if (tripIdParam) baseWhereParam.tripId = tripIdParam;
+
+        // CREW can see their own tasks, unassigned tasks, or tasks assigned to their role
+        if (userRoleParam === "CREW") {
+          baseWhereParam.OR = [
+            { assigneeId: userIdParam },
+            { assigneeId: null },
+            { assigneeRole: userRoleParam },
+          ];
+        }
+
+        // Rebuild scoped session for withTenantScope
+        const mockScopedSession = {
+          ...scopedSession!,
+          user: {
+            ...scopedSession!.user,
+            yachtId: tenantIdParam || undefined,
+          },
+        } as typeof scopedSession;
+
+        const finalWhereParam = withTenantScope(mockScopedSession, baseWhereParam);
+
         return db.task.findMany({
-          where: finalWhere,
+          where: finalWhereParam,
           include: {
             assignee: {
               select: { id: true, name: true, email: true },
@@ -86,8 +122,8 @@ export async function GET(request: NextRequest) {
             },
           },
           orderBy: { dueDate: "asc" },
-          skip,
-          take: limit,
+          skip: skipParam,
+          take: limitParam,
         });
       },
       [cacheKey],
@@ -96,9 +132,39 @@ export async function GET(request: NextRequest) {
 
     // Cache count query separately
     const getTotalCount = unstable_cache(
-      async () => {
+      async (
+        tenantIdParam: string | null,
+        userRoleParam: string,
+        userIdParam: string,
+        statusParam: string | null,
+        assigneeIdParam: string | null,
+        tripIdParam: string | null
+      ) => {
+        const baseWhereParam: any = {};
+        if (statusParam) baseWhereParam.status = statusParam;
+        if (assigneeIdParam) baseWhereParam.assigneeId = assigneeIdParam;
+        if (tripIdParam) baseWhereParam.tripId = tripIdParam;
+
+        if (userRoleParam === "CREW") {
+          baseWhereParam.OR = [
+            { assigneeId: userIdParam },
+            { assigneeId: null },
+            { assigneeRole: userRoleParam },
+          ];
+        }
+
+        const mockScopedSession = {
+          ...scopedSession!,
+          user: {
+            ...scopedSession!.user,
+            yachtId: tenantIdParam || undefined,
+          },
+        } as typeof scopedSession;
+
+        const finalWhereParam = withTenantScope(mockScopedSession, baseWhereParam);
+
         return db.task.count({ 
-          where: finalWhere 
+          where: finalWhereParam 
         });
       },
       [`${cacheKey}-count`],
@@ -106,8 +172,8 @@ export async function GET(request: NextRequest) {
     );
 
     const [tasks, totalCount] = await Promise.all([
-      getTasks(),
-      getTotalCount(),
+      getTasks(tenantId, userRole, userId, status, assigneeId, tripId, skip, limit),
+      getTotalCount(tenantId, userRole, userId, status, assigneeId, tripId),
     ]);
 
     // Always return paginated response for consistency and egress control
