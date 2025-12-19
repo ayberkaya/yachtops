@@ -63,9 +63,17 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
     })
   );
 
+  // Update widgets when currentWidgets changes
   useEffect(() => {
     setWidgets(currentWidgets);
   }, [currentWidgets]);
+
+  // Reset widgets when dialog opens to ensure fresh state
+  useEffect(() => {
+    if (open) {
+      setWidgets(currentWidgets);
+    }
+  }, [open, currentWidgets]);
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -97,11 +105,24 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
 
     setSaving(true);
     try {
+      // Ensure all widgets have required fields
+      const widgetsToSave = widgets.map((widget, index) => ({
+        id: widget.id,
+        enabled: widget.enabled,
+        order: widget.order ?? index,
+        size: widget.size,
+      }));
+
+      // Log for debugging
+      if (process.env.NODE_ENV === "development") {
+        console.log("Saving widgets:", widgetsToSave);
+      }
+
       // Widget preferences should not be queued offline - they're not critical
       // Use skipQueue to prevent offline queue and show error immediately if offline
       const response = await apiClient.request("/api/dashboard/widgets", {
         method: "PUT",
-        body: JSON.stringify({ widgets }),
+        body: JSON.stringify({ widgets: widgetsToSave }),
         skipQueue: true, // Don't queue widget preferences offline
         queueOnOffline: false, // Explicitly disable offline queue
       });
@@ -109,6 +130,9 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
       // Check if request was successful
       if (response.status >= 400) {
         const errorMsg = response.data?.error || response.data?.message || "Failed to save widget preferences";
+        if (process.env.NODE_ENV === "development") {
+          console.error("Save failed:", response.data);
+        }
         throw new Error(errorMsg);
       }
       
@@ -118,7 +142,9 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
       const cacheKey = `GET:${origin}/api/dashboard/widgets:`;
       await offlineStorage.deleteCache(cacheKey).catch(() => {}); // Ignore errors if key doesn't exist
       
-      onSave(widgets);
+      // Use the saved widgets from response if available, otherwise use what we sent
+      const savedWidgets = response.data?.widgets || widgetsToSave;
+      onSave(savedWidgets);
       setOpen(false);
     } catch (error) {
       console.error("Error saving widgets:", error);
