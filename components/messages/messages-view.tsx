@@ -1041,12 +1041,26 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           </SheetContent>
         </Sheet>
 
+        {/* Mobile Header with Menu Button */}
+        <div className="md:hidden border-b p-3 bg-background flex items-center justify-between flex-shrink-0">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 px-3">
+            <h2 className="font-semibold text-sm">Messages</h2>
+          </div>
+        </div>
+
         {/* Empty State - Right Side */}
         <div className="flex-1 flex flex-col items-center justify-center bg-background">
           <div className="text-center text-muted-foreground p-4">
             {canManage ? (
               <div className="space-y-4">
-                <p className="md:hidden">Tap the menu button to select a channel or create a new one.</p>
+                <p className="md:hidden">Tap the menu button above to select a channel or create a new one.</p>
                 <p className="hidden md:block">No channel selected. Select a channel or create a new one.</p>
               </div>
             ) : (
