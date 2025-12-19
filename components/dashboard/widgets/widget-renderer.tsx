@@ -89,15 +89,28 @@ export const WidgetRenderer = memo(function WidgetRenderer({
       }
 
       // Try to load from API in background (non-blocking)
-      // Cache is now enabled by default for GET requests
+      // Use cache by default, but allow refresh via query param or storage event
       try {
+        // Check if we should bypass cache (e.g., after save)
+        const shouldBypassCache = typeof window !== "undefined" && 
+          (sessionStorage.getItem("widgets-refresh") === "true" || 
+           new URLSearchParams(window.location.search).get("refresh") === "widgets");
+        
+        if (shouldBypassCache) {
+          sessionStorage.removeItem("widgets-refresh");
+        }
+        
         const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets", {
+          useCache: !shouldBypassCache,
           cacheTTL: 300000, // 5 minutes cache
         });
         if (!isMounted) return; // Component unmounted, don't update state
         
         if (response.data?.widgets && response.data.widgets.length > 0) {
           setWidgets(response.data.widgets);
+        } else {
+          // If API returns empty, keep defaults
+          console.warn("API returned empty widgets, using defaults");
         }
       } catch (error) {
         // Silently handle abort/cancellation errors
@@ -121,8 +134,29 @@ export const WidgetRenderer = memo(function WidgetRenderer({
     
     loadWidgets();
     
+    // Listen for storage events to refresh widgets when saved from another tab/component
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === "widgets-refresh" && e.newValue === "true") {
+        loadWidgets();
+      }
+    };
+    
+    // Also listen for custom event for same-tab refresh
+    const handleWidgetRefresh = () => {
+      loadWidgets();
+    };
+    
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", handleStorageChange);
+      window.addEventListener("widgets-refresh", handleWidgetRefresh);
+    }
+    
     return () => {
       isMounted = false;
+      if (typeof window !== "undefined") {
+        window.removeEventListener("storage", handleStorageChange);
+        window.removeEventListener("widgets-refresh", handleWidgetRefresh);
+      }
     };
   }, [userRole]);
 
