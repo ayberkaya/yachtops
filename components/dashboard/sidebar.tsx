@@ -1176,6 +1176,7 @@ export function Sidebar() {
               <Link
                 href={item.href}
                 onClick={handleToggle}
+                prefetch={true}
                 className={`relative flex items-center ${containerExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
                   isActive
                     ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"

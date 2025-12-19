@@ -231,11 +231,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigation/page requests: cache-first for better offline support
+  // Navigation/page requests: network-first for fresh content, fallback to cache for offline
+  // Next.js pages are dynamically rendered, so we need fresh content on each navigation
   if (isNavigation || event.request.destination === "document") {
-    // Use cache-first for navigation to allow offline browsing
-    // This will cache pages as users visit them
-    event.respondWith(cacheFirstWithNetwork(event.request, CACHE_NAME, true));
+    // Use network-first to ensure fresh content on navigation
+    // Falls back to cache only if network fails (offline scenario)
+    event.respondWith(networkFirst(event.request, CACHE_NAME, true));
     return;
   }
 
