@@ -23,6 +23,24 @@ export interface ApiResponse<T = any> {
   queued?: boolean;
 }
 
+/**
+ * Special error class for cancelled requests
+ * This error should be silently handled - it's expected when:
+ * - Request timeout occurs
+ * - Component unmounts before request completes
+ * - User navigates away
+ */
+export class CancelledRequestError extends Error {
+  constructor(message: string = "Request was cancelled") {
+    super(message);
+    this.name = "CancelledRequestError";
+    // Maintains proper stack trace for where our error was thrown (only available on V8)
+    if (Error.captureStackTrace) {
+      Error.captureStackTrace(this, CancelledRequestError);
+    }
+  }
+}
+
 class ApiClient {
   private baseURL: string = "";
   private pendingRequests = new Map<string, Promise<ApiResponse<any>>>();
@@ -275,13 +293,13 @@ class ApiClient {
           // Don't throw AbortError - it's expected when request is cancelled
           if (fetchError instanceof Error && fetchError.name === "AbortError") {
             // Silently handle abort - request was cancelled (timeout or component unmount)
-            throw new Error("Request was cancelled");
+            throw new CancelledRequestError("Request was cancelled");
           }
           throw fetchError;
         }
       } catch (error) {
         // Don't queue aborted requests
-        if (error instanceof Error && error.message === "Request was cancelled") {
+        if (error instanceof CancelledRequestError) {
           throw error;
         }
         // Network error - check if we should queue

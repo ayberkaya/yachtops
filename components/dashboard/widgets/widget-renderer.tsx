@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo, memo, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
-import { apiClient } from "@/lib/api-client";
+import { apiClient, CancelledRequestError } from "@/lib/api-client";
 import { WidgetConfig } from "@/types/widgets";
 import { PendingExpensesWidget } from "./pending-expenses-widget";
 import { RecentExpensesWidget } from "./recent-expenses-widget";
@@ -101,7 +101,11 @@ export const WidgetRenderer = memo(function WidgetRenderer({
         }
       } catch (error) {
         // Silently handle abort/cancellation errors
-        if (error instanceof Error && (error.name === "AbortError" || error.message === "Request was cancelled")) {
+        if (
+          error instanceof CancelledRequestError ||
+          (error instanceof Error && error.name === "AbortError") ||
+          (error instanceof Error && error.message === "Request was cancelled")
+        ) {
           return; // Request was cancelled, don't update state
         }
         

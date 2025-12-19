@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback } from "react";
-import { apiClient, ApiResponse } from "@/lib/api-client";
+import { apiClient, ApiResponse, CancelledRequestError } from "@/lib/api-client";
 
 export interface UseOfflineApiOptions {
   queueOnOffline?: boolean;
@@ -65,6 +65,12 @@ export function useOfflineAPI(): UseOfflineApiReturn {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
         }
       } catch (err) {
+        // Silently handle cancelled requests - they're expected
+        if (err instanceof CancelledRequestError) {
+          setIsLoading(false);
+          return null;
+        }
+        
         const error = err instanceof Error ? err : new Error(String(err));
         setError(error);
         options.onError?.(error);

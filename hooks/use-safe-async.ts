@@ -65,8 +65,11 @@ export function useSafeAsync<T extends (...args: any[]) => Promise<any>>(
           return null;
         }
 
-        // Don't set error if request was aborted
-        if (err instanceof Error && err.name === "AbortError") {
+        // Don't set error if request was aborted or cancelled
+        if (
+          (err instanceof Error && err.name === "AbortError") ||
+          (err instanceof Error && err.message === "Request was cancelled")
+        ) {
           return null;
         }
 
