@@ -8,6 +8,19 @@ import { WidgetConfig, DEFAULT_WIDGETS } from "@/types/widgets";
 import { WidgetCustomizer } from "./widget-customizer";
 
 export function WidgetCustomizerButton() {
+  // Only render on client-side after mount to ensure SessionProvider is available
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Don't render during SSR or before mount
+  if (!mounted) {
+    return null;
+  }
+
+  // Now safe to use useSession - component is client-side and mounted
   const { data: session, status } = useSession();
   const router = useRouter();
   const [widgets, setWidgets] = useState<WidgetConfig[]>([]);
