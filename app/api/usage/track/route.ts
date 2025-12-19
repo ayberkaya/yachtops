@@ -27,6 +27,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
+    // Verify user exists before creating usage event (prevent foreign key constraint errors)
+    // This can happen if user was deleted but session still has old userId
+    const userExists = await db.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+
+    if (!userExists) {
+      // User doesn't exist - skip tracking silently
+      console.debug(`Usage tracking skipped: user ${userId} not found in database`);
+      return NextResponse.json({ success: true }, { status: 200 });
+    }
+
     // Create usage event (non-blocking)
     await db.usageEvent.create({
       data: {
