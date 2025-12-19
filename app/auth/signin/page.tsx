@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -15,6 +15,22 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Anchor, Loader2 } from "lucide-react";
 
+// Chunk loading error handling - log only, no auto-reload to prevent loops
+// If chunks fail to load, it's usually a middleware/config issue that needs fixing
+if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
+  window.addEventListener("error", (event) => {
+    const errorMessage = event.message || "";
+    const isChunkError = errorMessage.includes("Failed to load chunk") || 
+                         errorMessage.includes("turbopack");
+    
+    if (isChunkError) {
+      console.error("[CHUNK ERROR] Chunk loading failed. This may indicate middleware is intercepting /_next/* paths.");
+      console.error("[CHUNK ERROR] Check middleware.ts matcher excludes all /_next/* paths.");
+      // Don't auto-reload - let user manually refresh after fix
+    }
+  }, true);
+}
+
 const signInSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(1, "Password is required"),
@@ -25,8 +41,40 @@ type SignInForm = z.infer<typeof signInSchema>;
 
 export default function SignInPage() {
   const router = useRouter();
+  // DISABLED: useSession to prevent redirect loops
+  // Server-side redirect in auth/layout.tsx handles authenticated users
+  // const { data: session, status, update } = useSession();
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [debugLogs, setDebugLogs] = useState<string[]>([]);
+  const hasRedirectedRef = useRef(false); // Prevent infinite redirects
+  
+  // Get callbackUrl from query params
+  const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
+  
+  useEffect(() => {
+    // Get callbackUrl from URL search params
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const url = params.get("callbackUrl");
+      setCallbackUrl(url);
+    }
+  }, []);
+
+  // Debug log helper that persists logs - memoized to prevent infinite loops
+  const addDebugLog = useCallback((message: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    const logMessage = `[${timestamp}] ${message}`;
+    console.log(logMessage);
+    setDebugLogs(prev => [...prev.slice(-9), logMessage]); // Keep last 10 logs
+    // Also store in localStorage for persistence
+    if (typeof window !== "undefined") {
+      const existing = JSON.parse(localStorage.getItem("signin-debug") || "[]");
+      existing.push(logMessage);
+      localStorage.setItem("signin-debug", JSON.stringify(existing.slice(-20))); // Keep last 20
+    }
+  }, []);
 
   const form = useForm<SignInForm>({
     resolver: zodResolver(signInSchema),
@@ -37,11 +85,38 @@ export default function SignInPage() {
     },
   });
 
+  // Handle redirect ONLY after successful login (not for already authenticated users)
+  // Authenticated users should be handled by server-side redirects, not client-side
+  // This prevents redirect loops
+  
+  // CRITICAL: Prevent redirect loop - if user is already authenticated, let server-side redirect handle it
+  // Don't do any client-side redirects for authenticated users
+  // REMOVED: useEffect that was causing redirect loops
+  // Server-side redirect in auth/layout.tsx should handle authenticated users
+
   const onSubmit = async (data: SignInForm) => {
+    addDebugLog(`Form submitted with email: ${data.email}`);
     setIsLoading(true);
     setError(null);
 
+    // Clear any existing timeout
+    if (redirectTimeoutRef.current) {
+      clearTimeout(redirectTimeoutRef.current);
+    }
+
     try {
+      addDebugLog("Calling signIn('credentials')...");
+      
+      // Determine redirect target - use callbackUrl if valid, otherwise default to dashboard
+      let target = "/dashboard";
+      if (callbackUrl) {
+        const decodedCallbackUrl = decodeURIComponent(callbackUrl);
+        // Only use callbackUrl if it's a valid route
+        if (decodedCallbackUrl.startsWith("/admin") || decodedCallbackUrl.startsWith("/dashboard") || decodedCallbackUrl.startsWith("/")) {
+          target = decodedCallbackUrl;
+        }
+      }
+      
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -49,45 +124,41 @@ export default function SignInPage() {
         redirect: false,
       });
 
+      addDebugLog(`signIn result: ${JSON.stringify({ ok: result?.ok, error: result?.error })}`);
+
       if (result?.error) {
-        console.error("Sign in error:", result.error);
+        addDebugLog(`ERROR: ${result.error}`);
         setError("Invalid email or password");
         setIsLoading(false);
         return;
       }
 
       if (result?.ok) {
-        // Login successful - wait for session to be set
-        await new Promise(resolve => setTimeout(resolve, 200));
+        addDebugLog("Login successful, waiting for cookie to be set...");
+        setIsLoading(false);
         
-        // Fetch session to determine redirect target
-        try {
-          const sessionRes = await fetch("/api/auth/session", { 
-            cache: "no-store",
-            credentials: "include" 
-          });
-          
-          if (sessionRes.ok) {
-            const sessionData = await sessionRes.json();
-            if (sessionData?.user?.id && sessionData?.user?.role) {
-              const target = sessionData.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
-              // Use router.push for client-side navigation
-              router.push(target);
-              return;
-            }
-          }
-        } catch (e) {
-          console.error("Session fetch error:", e);
-        }
+        // CRITICAL FIX: Wait for cookie to be set before redirecting
+        // signIn with redirect: false sets cookie via API call to /api/auth/callback/credentials
+        // This is async, so we need to wait for it to complete before redirecting
+        // Use a sufficient timeout to ensure the API call completes and cookie is set
         
-        // Fallback: reload page to trigger AuthRedirect
-        window.location.reload();
+        // Wait 800ms for the signIn API call to complete and set the HttpOnly cookie
+        // This gives enough time for the API response to be processed and cookie to be set
+        // Then use window.location.href (full page nav) to ensure cookies are sent with the request
+        setTimeout(() => {
+          addDebugLog(`Redirecting to: ${target}`);
+          // Use window.location.href for full page navigation - ensures cookies are sent
+          // This prevents the middleware redirect loop by ensuring cookie is available
+          window.location.href = target;
+        }, 800);
+        
         return;
       }
 
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     } catch (err) {
+      console.error("Sign in error:", err);
       setError("An error occurred. Please try again.");
       setIsLoading(false);
     }
@@ -128,6 +199,15 @@ export default function SignInPage() {
                 {error && (
                   <div className="rounded-xl bg-red-50 border-2 border-red-200 p-4 text-sm text-red-700 font-medium" style={{ animation: 'fadeIn 0.3s ease-out forwards' }}>
                     {error}
+                  </div>
+                )}
+                {/* Debug Panel - Development Only */}
+                {process.env.NODE_ENV === "development" && debugLogs.length > 0 && (
+                  <div className="rounded-xl bg-slate-50 border-2 border-slate-200 p-4 text-xs font-mono max-h-40 overflow-y-auto">
+                    <div className="font-semibold text-slate-700 mb-2">Debug Logs:</div>
+                    {debugLogs.map((log, idx) => (
+                      <div key={idx} className="text-slate-600 mb-1">{log}</div>
+                    ))}
                   </div>
                 )}
                 <FormField
