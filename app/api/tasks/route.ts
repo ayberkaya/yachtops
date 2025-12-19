@@ -8,6 +8,7 @@ import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { notifyTaskAssignment } from "@/lib/notifications";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
+import { unstable_cache } from "next/cache";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -59,43 +60,58 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const tasks = await db.task.findMany({
-      where: withTenantScope(scopedSession, baseWhere),
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true },
-        },
-        completedBy: {
-          select: { id: true, name: true, email: true },
-        },
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        trip: {
-          select: { id: true, name: true },
-        },
+    const finalWhere = withTenantScope(scopedSession, baseWhere);
+    const tenantId = tenantResult.tenantId || 'admin';
+
+    // Build cache key from query parameters
+    const cacheKey = `tasks-${tenantId}-${status || 'all'}-${assigneeId || 'all'}-${tripId || 'all'}-${page}-${limit}`;
+
+    // Cache tasks query for 30 seconds
+    const getTasks = unstable_cache(
+      async () => {
+        return db.task.findMany({
+          where: finalWhere,
+          include: {
+            assignee: {
+              select: { id: true, name: true, email: true },
+            },
+            completedBy: {
+              select: { id: true, name: true, email: true },
+            },
+            createdBy: {
+              select: { id: true, name: true, email: true },
+            },
+            trip: {
+              select: { id: true, name: true },
+            },
+          },
+          orderBy: { dueDate: "asc" },
+          skip,
+          take: limit,
+        });
       },
-      orderBy: { dueDate: "asc" },
-      skip,
-      take: limit,
-    });
+      [cacheKey],
+      { revalidate: 30, tags: [`tasks-${tenantId}`] }
+    );
+
+    // Cache count query separately
+    const getTotalCount = unstable_cache(
+      async () => {
+        return db.task.count({ 
+          where: finalWhere 
+        });
+      },
+      [`${cacheKey}-count`],
+      { revalidate: 30, tags: [`tasks-${tenantId}`] }
+    );
+
+    const [tasks, totalCount] = await Promise.all([
+      getTasks(),
+      getTotalCount(),
+    ]);
 
     // Always return paginated response for consistency and egress control
     const hasPagination = true; // Always paginated now
-    
-    if (!hasPagination) {
-      // Cache for 30 seconds - tasks change frequently but not instantly
-      return NextResponse.json(tasks, {
-        headers: {
-          'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
-        },
-      });
-    }
-
-    // Get total count for pagination
-    const totalCount = await db.task.count({ 
-      where: withTenantScope(scopedSession, baseWhere) 
-    });
 
     // Cache for 30 seconds - tasks change frequently but not instantly
     return NextResponse.json(

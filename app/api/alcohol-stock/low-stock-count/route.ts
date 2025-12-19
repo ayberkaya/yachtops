@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { getTenantId } from "@/lib/tenant";
 import { hasPermission } from "@/lib/permissions";
+import { unstable_cache } from "next/cache";
 
 /**
  * Get low stock count without fetching full alcohol stock objects
@@ -24,18 +25,25 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ count: 0 });
     }
 
-    // Count low stock items directly in database using raw SQL (much faster)
-    // Prisma doesn't support column-to-column comparisons in WHERE clauses
-    // Using Prisma.sql for proper parameter binding
-    const result = await db.$queryRaw<Array<{ count: bigint }>>`
-      SELECT COUNT(*)::int as count
-      FROM alcohol_stocks
-      WHERE yacht_id = ${tenantId}
-        AND low_stock_threshold IS NOT NULL
-        AND (quantity IS NULL OR quantity <= low_stock_threshold)
-    `;
+    // Cache the count query for 60 seconds to reduce database load
+    const getLowStockCount = unstable_cache(
+      async () => {
+        // Count low stock items directly in database using raw SQL (much faster)
+        // Prisma doesn't support column-to-column comparisons in WHERE clauses
+        const result = await db.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(*)::int as count
+          FROM alcohol_stocks
+          WHERE yacht_id = ${tenantId}
+            AND low_stock_threshold IS NOT NULL
+            AND (quantity IS NULL OR quantity <= low_stock_threshold)
+        `;
+        return Number(result[0]?.count || 0);
+      },
+      [`low-stock-count-${tenantId}`],
+      { revalidate: 60, tags: [`alcohol-stock-${tenantId}`] }
+    );
 
-    const count = Number(result[0]?.count || 0);
+    const count = await getLowStockCount();
 
     return NextResponse.json({ count }, {
       headers: {

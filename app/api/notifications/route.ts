@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { TaskStatus } from "@prisma/client";
+import { unstable_cache } from "next/cache";
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,53 +14,63 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const unreadOnly = searchParams.get("unreadOnly") === "true";
 
-    const where: any = {
-      userId: session.user.id,
-      // Filter out notifications for completed tasks directly in database
-      OR: [
-        { taskId: null }, // Notifications without tasks
-        {
-          task: {
-            status: {
-              not: TaskStatus.DONE,
+    // Cache notifications for 30 seconds to reduce database load
+    const cacheKey = `notifications-${session.user.id}-${unreadOnly}`;
+    const getNotifications = unstable_cache(
+      async () => {
+        const where: any = {
+          userId: session.user.id,
+          // Filter out notifications for completed tasks directly in database
+          OR: [
+            { taskId: null }, // Notifications without tasks
+            {
+              task: {
+                status: {
+                  not: TaskStatus.DONE,
+                },
+              },
             },
-          },
-        },
-      ],
-    };
+          ],
+        };
 
-    if (unreadOnly) {
-      where.read = false;
-    }
+        if (unreadOnly) {
+          where.read = false;
+        }
 
-    const notifications = await db.notification.findMany({
-      where,
-      include: {
-        task: {
-          select: {
-            id: true,
-            title: true,
-            status: true,
-            dueDate: true,
-          },
-        },
-        message: {
-          select: {
-            id: true,
-            channelId: true,
-            content: true,
-            channel: {
+        return db.notification.findMany({
+          where,
+          include: {
+            task: {
               select: {
                 id: true,
-                name: true,
+                title: true,
+                status: true,
+                dueDate: true,
+              },
+            },
+            message: {
+              select: {
+                id: true,
+                channelId: true,
+                content: true,
+                channel: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
-        },
+          orderBy: { createdAt: "desc" },
+          take: 50,
+        });
       },
-      orderBy: { createdAt: "desc" },
-      take: 50,
-    });
+      [cacheKey],
+      { revalidate: 30, tags: [`notifications-${session.user.id}`] }
+    );
+
+    const notifications = await getNotifications();
 
     return NextResponse.json(notifications, {
       headers: {
