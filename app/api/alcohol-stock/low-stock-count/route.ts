@@ -24,24 +24,17 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ count: 0 });
     }
 
-    // Get all alcohol stocks with only quantity and threshold fields
-    const stocks = await db.alcoholStock.findMany({
-      where: {
-        yachtId: tenantId,
-      },
-      select: {
-        quantity: true,
-        lowStockThreshold: true,
-      },
-    });
+    // Count low stock items directly in database using raw SQL (much faster)
+    // Prisma doesn't support column-to-column comparisons in WHERE clauses
+    const result = await db.$queryRaw<Array<{ count: bigint }>>`
+      SELECT COUNT(*)::int as count
+      FROM alcohol_stocks
+      WHERE yacht_id = ${tenantId}::text
+        AND low_stock_threshold IS NOT NULL
+        AND (quantity IS NULL OR quantity <= low_stock_threshold)
+    `;
 
-    // Count low stock items
-    const count = stocks.filter(
-      (stock: { quantity: number | null; lowStockThreshold: number | null }) =>
-        stock.lowStockThreshold !== null &&
-        stock.lowStockThreshold !== undefined &&
-        Number(stock.quantity) <= Number(stock.lowStockThreshold)
-    ).length;
+    const count = Number(result[0]?.count || 0);
 
     return NextResponse.json({ count }, {
       headers: {

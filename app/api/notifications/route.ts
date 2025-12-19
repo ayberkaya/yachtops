@@ -15,6 +15,17 @@ export async function GET(request: NextRequest) {
 
     const where: any = {
       userId: session.user.id,
+      // Filter out notifications for completed tasks directly in database
+      OR: [
+        { taskId: null }, // Notifications without tasks
+        {
+          task: {
+            status: {
+              not: TaskStatus.DONE,
+            },
+          },
+        },
+      ],
     };
 
     if (unreadOnly) {
@@ -50,21 +61,11 @@ export async function GET(request: NextRequest) {
       take: 50,
     });
 
-    // Filter out task-related notifications for completed tasks
-    const filteredNotifications = notifications.filter((notification: { task: { status: TaskStatus } | null }) => {
-      // If notification has no task, always show it
-      if (!notification.task) {
-        return true;
-      }
-      // Hide notifications for completed tasks (all task-related notifications)
-      if (notification.task.status === TaskStatus.DONE) {
-        return false;
-      }
-      // Otherwise, show all notifications
-      return true;
+    return NextResponse.json(notifications, {
+      headers: {
+        'Cache-Control': 'private, max-age=30, stale-while-revalidate=60',
+      },
     });
-
-    return NextResponse.json(filteredNotifications);
   } catch (error) {
     console.error("Error fetching notifications:", error);
     return NextResponse.json(
