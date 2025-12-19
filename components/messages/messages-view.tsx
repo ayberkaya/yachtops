@@ -1097,6 +1097,89 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
       {/* Messages - Right Side */}
         <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
+        {/* Mobile Header with Menu Button */}
+        <div className="md:hidden border-b p-3 bg-background flex items-center justify-between flex-shrink-0">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => setMobileMenuOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+          <div className="flex-1 px-3">
+            <h2 className="font-semibold text-sm truncate">
+              {selectedChannel.name}
+            </h2>
+            {selectedChannel.description && (
+              <p className="text-xs text-muted-foreground truncate">
+                {selectedChannel.description}
+              </p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {searchQuery ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults([]);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  const input = document.getElementById("search-input") as HTMLInputElement;
+                  if (input) {
+                    input.focus();
+                  }
+                }}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Desktop Header */}
+        <div className="hidden md:flex border-b p-4 bg-muted/30 flex items-center justify-between flex-shrink-0">
+          <div className="flex-1">
+            <h2 className="font-semibold">{selectedChannel.name}</h2>
+            {selectedChannel.description && (
+              <p className="text-sm text-muted-foreground">{selectedChannel.description}</p>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            {searchQuery ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchResults([]);
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            ) : (
+              <div className="relative">
+                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  id="search-input"
+                  placeholder="Search messages..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8 w-64"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
         {/* Messages Area - Scrollable, grows to fill space */}
         <div 
           ref={messagesContainerRef}
