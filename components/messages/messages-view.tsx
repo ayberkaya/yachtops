@@ -6,15 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users, Menu, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings } from "lucide-react";
+import { Send, Hash, Users, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -110,7 +105,6 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const [isSending, setIsSending] = useState(false);
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
   const [lastReadTimes, setLastReadTimes] = useState<Record<string, string>>({});
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Message[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -1006,8 +1000,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   if (!selectedChannel) {
     return (
       <div className="flex h-full border rounded-lg overflow-hidden bg-background">
-        {/* Channel List - Left Sidebar (Desktop) */}
-        <div className="hidden md:flex w-80 border-r flex-col bg-muted/30">
+        {/* Channel List - Left Sidebar (Always visible, responsive width) */}
+        <div className="flex w-64 md:w-80 border-r flex-col bg-muted/30 flex-shrink-0">
           <ChannelList
             channels={channels}
             selectedChannelId=""
@@ -1021,51 +1015,10 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           />
         </div>
 
-        {/* Mobile Channel Menu */}
-        <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-          <SheetContent side="left" className="w-[300px] p-0">
-            <ChannelList
-              channels={channels}
-              selectedChannelId=""
-              onSelectChannel={(channel) => {
-                handleChannelSelect(channel);
-                setMobileMenuOpen(false);
-              }}
-              onChannelCreated={handleChannelCreated}
-              onChannelUpdated={handleChannelUpdated}
-              onChannelDeleted={handleChannelDeleted}
-              allUsers={allUsers}
-              canManage={canManage}
-              unreadCounts={unreadCounts}
-            />
-          </SheetContent>
-        </Sheet>
-
-        {/* Mobile Header with Menu Button */}
-        <div className="md:hidden border-b p-3 bg-background flex items-center justify-between flex-shrink-0">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 px-3">
-            <h2 className="font-semibold text-sm">Messages</h2>
-          </div>
-        </div>
-
         {/* Empty State - Right Side */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-background">
+        <div className="flex-1 flex flex-col items-center justify-center bg-background min-w-0">
           <div className="text-center text-muted-foreground p-4">
-            {canManage ? (
-              <div className="space-y-4">
-                <p className="md:hidden">Tap the menu button above to select a channel or create a new one.</p>
-                <p className="hidden md:block">No channel selected. Select a channel or create a new one.</p>
-              </div>
-            ) : (
-              <p>No channel selected. Select a channel to start messaging.</p>
-            )}
+            <p>No channel selected. Select a channel or create a new one.</p>
           </div>
         </div>
       </div>
@@ -1074,8 +1027,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
 
   return (
     <div className="flex h-full border rounded-lg overflow-hidden bg-background">
-      {/* Channel List - Left Sidebar (Desktop) */}
-      <div className="hidden md:flex w-80 border-r flex-col bg-muted/30">
+      {/* Channel List - Left Sidebar (Always visible, responsive width) */}
+      <div className="flex w-64 md:w-80 border-r flex-col bg-muted/30 flex-shrink-0">
         <ChannelList
           channels={channels}
           selectedChannelId={selectedChannel.id}
@@ -1089,85 +1042,17 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         />
       </div>
 
-      {/* Mobile Channel Menu */}
-      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <SheetContent side="left" className="w-[300px] p-0">
-          <ChannelList
-            channels={channels}
-            selectedChannelId={selectedChannel.id}
-            onSelectChannel={(channel) => {
-              handleChannelSelect(channel);
-              setMobileMenuOpen(false);
-            }}
-            onChannelCreated={handleChannelCreated}
-            onChannelUpdated={handleChannelUpdated}
-            onChannelDeleted={handleChannelDeleted}
-            allUsers={allUsers}
-            canManage={canManage}
-            unreadCounts={unreadCounts}
-          />
-        </SheetContent>
-      </Sheet>
-
       {/* Messages - Right Side */}
-        <div className="flex-1 flex flex-col bg-background w-full md:w-auto min-h-0">
-        {/* Mobile Header with Menu Button */}
-        <div className="md:hidden border-b p-3 bg-background flex items-center justify-between flex-shrink-0">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => setMobileMenuOpen(true)}
-          >
-            <Menu className="h-5 w-5" />
-          </Button>
-          <div className="flex-1 px-3">
-            <h2 className="font-semibold text-sm truncate">
-              {selectedChannel.name}
-            </h2>
+      <div className="flex-1 flex flex-col bg-background min-w-0">
+        {/* Header */}
+        <div className="border-b p-3 md:p-4 bg-muted/30 flex items-center justify-between flex-shrink-0">
+          <div className="flex-1 min-w-0">
+            <h2 className="font-semibold text-sm md:text-base truncate">{selectedChannel.name}</h2>
             {selectedChannel.description && (
-              <p className="text-xs text-muted-foreground truncate">
-                {selectedChannel.description}
-              </p>
+              <p className="text-xs md:text-sm text-muted-foreground truncate">{selectedChannel.description}</p>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {searchQuery ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchResults([]);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            ) : (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  const input = document.getElementById("search-input") as HTMLInputElement;
-                  if (input) {
-                    input.focus();
-                  }
-                }}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            )}
-          </div>
-        </div>
-
-        {/* Desktop Header */}
-        <div className="hidden md:flex border-b p-4 bg-muted/30 flex items-center justify-between flex-shrink-0">
-          <div className="flex-1">
-            <h2 className="font-semibold">{selectedChannel.name}</h2>
-            {selectedChannel.description && (
-              <p className="text-sm text-muted-foreground">{selectedChannel.description}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             {searchQuery ? (
               <Button
                 variant="ghost"
@@ -1184,10 +1069,10 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                 <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="search-input"
-                  placeholder="Search messages..."
+                  placeholder="Search..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-64"
+                  className="pl-8 w-32 md:w-64 text-sm"
                 />
               </div>
             )}
