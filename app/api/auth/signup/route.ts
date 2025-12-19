@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth-server";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
 

@@ -1,6 +1,4 @@
-import { db } from "./db";
 import { UserRole } from "@prisma/client";
-import bcrypt from "bcryptjs";
 
 export type SessionUser = {
   id: string;
@@ -11,33 +9,11 @@ export type SessionUser = {
   permissions?: string | null;
 };
 
-/**
- * Get the current user from the database by ID
- */
-export async function getCurrentUser(userId: string): Promise<SessionUser | null> {
-  const user = await db.user.findUnique({
-    where: { id: userId },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      role: true,
-      yachtId: true,
-      permissions: true,
-    },
-  });
-
-  if (!user) return null;
-
-  return {
-    id: user.id,
-    email: user.email,
-    name: user.name,
-    role: user.role,
-    yachtId: user.yachtId,
-    permissions: user.permissions,
-  };
-}
+// Note: Server-only functions have been moved to lib/auth-server.ts:
+// - getCurrentUser()
+// - hashPassword()
+// - verifyPassword()
+// This file contains only client-safe utility functions
 
 /**
  * Check if a user has a specific role
@@ -78,19 +54,5 @@ export function canManageRoles(user: SessionUser | null): boolean {
   // Only OWNER and CAPTAIN can manage roles
   // ADMIN and SUPER_ADMIN are system-level and not editable
   return hasAnyRole(user, [UserRole.OWNER, UserRole.CAPTAIN]);
-}
-
-/**
- * Hash a password
- */
-export async function hashPassword(password: string): Promise<string> {
-  return bcrypt.hash(password, 10);
-}
-
-/**
- * Verify a password against a hash
- */
-export async function verifyPassword(password: string, hash: string): Promise<boolean> {
-  return bcrypt.compare(password, hash);
 }
 

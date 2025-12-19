@@ -3,7 +3,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth-server";
 
 const createUserSchema = z.object({
   name: z.string().min(1, "Name is required"),

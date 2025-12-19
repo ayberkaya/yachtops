@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { hashPassword } from "@/lib/auth";
+import { hashPassword } from "@/lib/auth-server";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
 
@@ -49,7 +49,7 @@ export async function PATCH(
         return NextResponse.json({ error: "User not found" }, { status: 404 });
       }
 
-      const { verifyPassword } = await import("@/lib/auth");
+      const { verifyPassword } = await import("@/lib/auth-server");
       const isValid = await verifyPassword(validated.currentPassword, user.passwordHash);
 
       if (!isValid) {

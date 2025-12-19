@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { db } from "./db";
-import { verifyPassword } from "./auth";
+import { verifyPassword } from "./auth-server";
 import { UserRole } from "@prisma/client";
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
@@ -15,45 +15,32 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         rememberMe: { label: "Remember Me", type: "text" },
       },
       async authorize(credentials) {
+        const debugMode = process.env.NEXTAUTH_DEBUG === "true" || process.env.DEBUG_AUTH === "1";
+        
         try {
-          if (process.env.NEXTAUTH_DEBUG === "true") {
+          if (debugMode) {
             console.log("🔍 [AUTH] Authorize called with identifier:", credentials?.email);
           }
           
           if (!credentials?.email || !credentials?.password) {
-            if (process.env.NEXTAUTH_DEBUG === "true") {
-              console.log("❌ [AUTH] Missing credentials");
-            }
+            console.error("❌ [AUTH] Missing credentials - email or password not provided");
             return null;
           }
 
           const identifier = credentials.email as string;
-          if (process.env.NEXTAUTH_DEBUG === "true") {
+          if (debugMode) {
             console.log("🔍 [AUTH] Looking up user by email or username:", identifier);
           }
-          const user = await db.user.findUnique({
-            where: {
-              // allow login with email or username
-              email: identifier,
-              // username handled below via fallback query
-            },
-            select: {
-              id: true,
-              email: true,
-              username: true,
-              name: true,
-              role: true,
-              yachtId: true,
-              passwordHash: true,
-              permissions: true,
-              active: true,
-            },
-          });
-
-          const resolvedUser =
-            user ||
-            (await db.user.findUnique({
-              where: { username: identifier },
+          
+          // Enhanced error handling for database queries
+          let user;
+          try {
+            user = await db.user.findUnique({
+              where: {
+                // allow login with email or username
+                email: identifier,
+                // username handled below via fallback query
+              },
               select: {
                 id: true,
                 email: true,
@@ -65,23 +52,51 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 permissions: true,
                 active: true,
               },
-            }));
+            });
+          } catch (dbError) {
+            console.error("❌ [AUTH] Database query error (email lookup):", dbError instanceof Error ? dbError.message : String(dbError));
+            if (dbError instanceof Error) {
+              console.error("❌ [AUTH] Database error stack:", dbError.stack);
+            }
+            throw dbError; // Re-throw to be caught by outer catch
+          }
+
+          let resolvedUser = user;
+          
+          // Fallback to username lookup if email lookup failed
+          if (!resolvedUser) {
+            try {
+              resolvedUser = await db.user.findUnique({
+                where: { username: identifier },
+                select: {
+                  id: true,
+                  email: true,
+                  username: true,
+                  name: true,
+                  role: true,
+                  yachtId: true,
+                  passwordHash: true,
+                  permissions: true,
+                  active: true,
+                },
+              });
+            } catch (dbError) {
+              console.error("❌ [AUTH] Database query error (username lookup):", dbError instanceof Error ? dbError.message : String(dbError));
+              throw dbError; // Re-throw to be caught by outer catch
+            }
+          }
 
           if (!resolvedUser) {
-            if (process.env.NEXTAUTH_DEBUG === "true") {
-              console.log("❌ [AUTH] User not found:", identifier);
-            }
+            console.error(`❌ [AUTH] User not found: ${identifier} (checked both email and username)`);
             return null; // NextAuth v5 will handle this
           }
 
-          if (process.env.NEXTAUTH_DEBUG === "true") {
+          if (debugMode) {
             console.log("✅ [AUTH] User found:", resolvedUser.email, "Role:", resolvedUser.role);
           }
 
           if (resolvedUser.active === false) {
-            if (process.env.NEXTAUTH_DEBUG === "true") {
-              console.log("❌ [AUTH] User inactive");
-            }
+            console.error(`❌ [AUTH] User inactive: ${resolvedUser.email}`);
             return null;
           }
 
@@ -91,13 +106,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           );
 
           if (!isValid) {
-            if (process.env.NEXTAUTH_DEBUG === "true") {
-              console.log("❌ [AUTH] Invalid password for:", identifier);
-            }
+            console.error(`❌ [AUTH] Invalid password for: ${identifier}`);
             return null; // NextAuth v5 will handle this
           }
 
-          if (process.env.NEXTAUTH_DEBUG === "true") {
+          if (debugMode) {
             console.log("✅ [AUTH] Authorization successful for:", resolvedUser.email);
           }
           const userObject = {
@@ -113,10 +126,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           };
           return userObject;
         } catch (error) {
-          console.error("❌ [AUTH] Auth error:", error);
-          if (error instanceof Error && process.env.NEXTAUTH_DEBUG === "true") {
+          // Always log errors, not just in debug mode
+          console.error("❌ [AUTH] Critical auth error:", error);
+          if (error instanceof Error) {
             console.error("❌ [AUTH] Error message:", error.message);
             console.error("❌ [AUTH] Error stack:", error.stack);
+            // Check for common Prisma errors
+            if (error.message.includes("PrismaClient")) {
+              console.error("❌ [AUTH] Prisma Client error - ensure Prisma Client is generated: npx prisma generate");
+            }
+            if (error.message.includes("connection") || error.message.includes("timeout")) {
+              console.error("❌ [AUTH] Database connection error - check DATABASE_URL");
+            }
+            if (error.message.includes("relation") && error.message.includes("does not exist")) {
+              console.error("❌ [AUTH] Database table missing - run migrations: npx prisma migrate deploy");
+            }
           }
           // Return null for any error - NextAuth v5 will handle it
           return null;

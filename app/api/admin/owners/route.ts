@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
   const username = email.split("@")[0];
 
   // simple hash using bcryptjs
-  const { hashPassword } = await import("@/lib/auth");
+  const { hashPassword } = await import("@/lib/auth-server");
   const passwordHash = await hashPassword(password);
 
   const user = await db.user.create({
