@@ -68,12 +68,30 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
     setWidgets(currentWidgets);
   }, [currentWidgets]);
 
-  // Reset widgets when dialog opens to ensure fresh state
+  // Load fresh widgets from API when dialog opens to ensure we have latest state
   useEffect(() => {
     if (open) {
-      setWidgets(currentWidgets);
+      // Load fresh widgets from API (bypass cache)
+      const loadFreshWidgets = async () => {
+        try {
+          const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets", {
+            useCache: false, // Force fresh fetch
+          });
+          if (response.data?.widgets && response.data.widgets.length > 0) {
+            setWidgets(response.data.widgets);
+          } else {
+            // Fallback to currentWidgets if API returns empty
+            setWidgets(currentWidgets);
+          }
+        } catch (error) {
+          // Fallback to currentWidgets on error
+          console.warn("Failed to load fresh widgets, using currentWidgets:", error);
+          setWidgets(currentWidgets);
+        }
+      };
+      loadFreshWidgets();
     }
-  }, [open, currentWidgets]);
+  }, [open]); // Only depend on open, not currentWidgets to avoid loops
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
