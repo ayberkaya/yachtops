@@ -9,35 +9,41 @@ import { RecentExpensesWidget } from "./recent-expenses-widget";
 import { QuickStatsWidget } from "./quick-stats-widget";
 // Lazy load less critical widgets - using dynamic imports for code splitting
 // Added error handling to prevent chunk loading failures
+// Fallback component that matches React component type - accepts any props
+const EmptyWidget = memo(function EmptyWidget(_props: any) {
+  return null;
+});
+EmptyWidget.displayName = "EmptyWidget";
+
 const UpcomingTripsWidget = lazy(() => 
   import("./upcoming-trips-widget")
     .then(m => ({ default: m.UpcomingTripsWidget }))
-    .catch(() => ({ default: () => null }))
+    .catch(() => ({ default: EmptyWidget as any }))
 );
 const MyTasksWidget = lazy(() => 
   import("./my-tasks-widget")
     .then(m => ({ default: m.MyTasksWidget }))
-    .catch(() => ({ default: () => null }))
+    .catch(() => ({ default: EmptyWidget as any }))
 );
 const RoleTasksAlertWidget = lazy(() => 
   import("./role-tasks-alert-widget")
     .then(m => ({ default: m.RoleTasksAlertWidget }))
-    .catch(() => ({ default: () => null }))
+    .catch(() => ({ default: EmptyWidget as any }))
 );
 const UpcomingMaintenanceWidget = lazy(() => 
   import("./upcoming-maintenance-widget")
     .then(m => ({ default: m.UpcomingMaintenanceWidget }))
-    .catch(() => ({ default: () => null }))
+    .catch(() => ({ default: EmptyWidget as any }))
 );
 const ExpiringPermissionsWidget = lazy(() => 
   import("./expiring-permissions-widget")
     .then(m => ({ default: m.ExpiringPermissionsWidget }))
-    .catch(() => ({ default: () => null }))
+    .catch(() => ({ default: EmptyWidget as any }))
 );
 const LowStockAlertWidget = lazy(() => 
   import("./low-stock-alert-widget")
     .then(m => ({ default: m.LowStockAlertWidget }))
-    .catch(() => ({ default: () => null }))
+    .catch(() => ({ default: EmptyWidget as any }))
 );
 import { WidgetCustomizer } from "./widget-customizer";
 import { MonthlyReportDownload } from "../monthly-report-download";
