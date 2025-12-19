@@ -37,18 +37,18 @@ export default async function MessagesPage() {
     },
   });
 
-  // Filter channels based on user access and sort: general first, then by creation date
+  // Filter channels based on user access and sort: general first, then alphabetically
   const accessibleChannels = allChannels
     .filter((channel: { isGeneral: boolean; members: { id: string }[] }) => {
       if (channel.isGeneral) return true;
       return channel.members.some((member: { id: string }) => member.id === session.user.id);
     })
-    .sort((a: { isGeneral: boolean; createdAt: Date }, b: { isGeneral: boolean; createdAt: Date }) => {
-      // General channels first
+    .sort((a: { isGeneral: boolean; name: string }, b: { isGeneral: boolean; name: string }) => {
+      // General channels always first
       if (a.isGeneral && !b.isGeneral) return -1;
       if (!a.isGeneral && b.isGeneral) return 1;
-      // Then by creation date
-      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      // Then alphabetically by name
+      return a.name.localeCompare(b.name);
     });
 
   // Get all users for channel management (only for OWNER/CAPTAIN)
