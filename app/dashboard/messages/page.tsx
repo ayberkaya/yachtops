@@ -38,7 +38,7 @@ export default async function MessagesPage() {
   });
 
   // Ensure General channel exists (create if missing, only for OWNER/CAPTAIN)
-  const hasGeneralChannel = allChannels.some((ch) => ch.isGeneral);
+  const hasGeneralChannel = allChannels.some((ch: (typeof allChannels)[number]) => ch.isGeneral);
   if (!hasGeneralChannel && (session.user.role === "OWNER" || session.user.role === "CAPTAIN")) {
     try {
       const generalChannel = await db.messageChannel.create({

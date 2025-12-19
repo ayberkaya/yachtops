@@ -94,15 +94,18 @@ export function CashView() {
       return data?.balance || 0;
     }
     
+    // Handle both API response structures: { data: [...], balance } or { transactions: [...], balance }
+    const transactions = (data as any).data || data.transactions || [];
+    
     // If no transactions, return 0
-    if (data.transactions.length === 0) {
+    if (!transactions || transactions.length === 0) {
       return 0;
     }
     
     // Calculate balance by converting each transaction to display currency
     let totalBalance = 0;
     
-    for (const transaction of data.transactions) {
+    for (const transaction of transactions) {
       let amountInDisplayCurrency = transaction.amount;
       
       // If transaction currency is not the display currency, convert it
@@ -160,7 +163,13 @@ export function CashView() {
       }
       
       if (response.ok) {
-        setData(responseData);
+        // Handle API response structure: { data: [...], balance, pagination }
+        // Transform to component's expected structure: { transactions: [...], balance }
+        const transactions = responseData.data || responseData.transactions || [];
+        setData({
+          transactions: Array.isArray(transactions) ? transactions : [],
+          balance: responseData.balance || 0,
+        });
       } else {
         console.error("Error fetching cash data:", responseData);
         // Set empty data structure instead of null
@@ -360,7 +369,7 @@ export function CashView() {
           <CardDescription>Cash transaction history</CardDescription>
         </CardHeader>
         <CardContent>
-          {data.transactions.length === 0 ? (
+          {(!data.transactions || data.transactions.length === 0) ? (
             <p className="text-sm text-muted-foreground text-center py-4">
               No transactions yet
             </p>
@@ -377,7 +386,7 @@ export function CashView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data.transactions.map((transaction) => (
+                {(data.transactions || []).map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>
                       {formatDistanceToNow(new Date(transaction.createdAt), {

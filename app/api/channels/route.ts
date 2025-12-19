@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Sort: General channel always first, then others by creation date
-    const sortedChannels = accessibleChannels.sort((a, b) => {
+    const sortedChannels = accessibleChannels.sort((a: (typeof allChannels)[number], b: (typeof allChannels)[number]) => {
       if (a.isGeneral && !b.isGeneral) return -1;
       if (!a.isGeneral && b.isGeneral) return 1;
       return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
