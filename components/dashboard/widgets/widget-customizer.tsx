@@ -29,6 +29,7 @@ import {
 import { WidgetConfig, WidgetType, DEFAULT_WIDGETS } from "@/types/widgets";
 import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
+import { offlineStorage } from "@/lib/offline-storage";
 import { SortableWidgetItem } from "./sortable-widget-item";
 
 interface WidgetCustomizerProps {
@@ -110,6 +111,12 @@ export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerPro
         const errorMsg = response.data?.error || response.data?.message || "Failed to save widget preferences";
         throw new Error(errorMsg);
       }
+      
+      // Clear cache for widgets endpoint to force reload
+      // Cache key format: METHOD:URL:BODY (URL is full URL)
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const cacheKey = `GET:${origin}/api/dashboard/widgets:`;
+      await offlineStorage.deleteCache(cacheKey).catch(() => {}); // Ignore errors if key doesn't exist
       
       onSave(widgets);
       setOpen(false);

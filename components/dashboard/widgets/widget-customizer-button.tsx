@@ -77,9 +77,31 @@ export function WidgetCustomizerButton() {
 
   const widgetsToUse = getWidgetsToUse();
 
-  const handleSave = (savedWidgets: WidgetConfig[]) => {
+  const handleSave = async (savedWidgets: WidgetConfig[]) => {
+    // Update local state immediately
     setWidgets(savedWidgets);
-    // Refresh the page to reload widgets
+    
+    // Clear cache and reload widgets from API
+    // Cache key format: METHOD:URL:BODY (URL is full URL)
+    const { offlineStorage } = await import("@/lib/offline-storage");
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const cacheKey = `GET:${origin}/api/dashboard/widgets:`;
+    await offlineStorage.deleteCache(cacheKey).catch(() => {}); // Ignore errors if key doesn't exist
+    
+    // Reload widgets from API
+    try {
+      const response = await apiClient.request<{ widgets: WidgetConfig[] }>("/api/dashboard/widgets", {
+        useCache: false, // Force fresh fetch
+      });
+      if (response.data?.widgets && response.data.widgets.length > 0) {
+        setWidgets(response.data.widgets);
+      }
+    } catch (error) {
+      // If reload fails, keep the saved widgets
+      console.warn("Failed to reload widgets after save:", error);
+    }
+    
+    // Refresh the page to reload widgets in other components
     router.refresh();
   };
 
