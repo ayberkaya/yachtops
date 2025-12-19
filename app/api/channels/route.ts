@@ -58,7 +58,14 @@ export async function GET(request: NextRequest) {
       return channel.members.some((member: { id: string }) => member.id === session.user.id);
     });
 
-    return NextResponse.json(accessibleChannels);
+    // Sort: General channel always first, then others by creation date
+    const sortedChannels = accessibleChannels.sort((a, b) => {
+      if (a.isGeneral && !b.isGeneral) return -1;
+      if (!a.isGeneral && b.isGeneral) return 1;
+      return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+    });
+
+    return NextResponse.json(sortedChannels);
   } catch (error) {
     console.error("Error fetching channels:", error);
     return NextResponse.json(

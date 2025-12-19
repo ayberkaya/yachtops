@@ -99,6 +99,16 @@ export async function PATCH(
       return NextResponse.json({ error: "Channel not found" }, { status: 404 });
     }
 
+    // Cannot modify General channel name or isGeneral flag
+    if (existingChannel.isGeneral) {
+      if (validated.name !== undefined && validated.name !== existingChannel.name) {
+        return NextResponse.json(
+          { error: "Cannot rename general channel" },
+          { status: 400 }
+        );
+      }
+    }
+
     const updateData: any = {};
     if (validated.name !== undefined) updateData.name = validated.name;
     if (validated.description !== undefined) updateData.description = validated.description;

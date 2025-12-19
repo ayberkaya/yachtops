@@ -100,7 +100,15 @@ export function ChannelList({
 
       {/* Channel List */}
       <div className="flex-1 overflow-y-auto divide-y divide-border/30 bg-background/30 dark:bg-background/40 backdrop-blur-sm">
-          {channels.map((channel) => {
+          {channels
+            .sort((a, b) => {
+              // General channel always first
+              if (a.isGeneral && !b.isGeneral) return -1;
+              if (!a.isGeneral && b.isGeneral) return 1;
+              // Then sort by name
+              return a.name.localeCompare(b.name);
+            })
+            .map((channel) => {
             const unreadCount = unreadCounts[channel.id] || 0;
             return (
               <div

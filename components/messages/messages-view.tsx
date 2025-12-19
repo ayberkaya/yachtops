@@ -936,7 +936,13 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       const response = await fetch("/api/channels");
       if (response.ok) {
         const updatedChannels = await response.json();
-        setChannels(updatedChannels);
+        // Sort: General channel always first
+        const sortedChannels = updatedChannels.sort((a: Channel, b: Channel) => {
+          if (a.isGeneral && !b.isGeneral) return -1;
+          if (!a.isGeneral && b.isGeneral) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        setChannels(sortedChannels);
         
         // Select the newly created channel if user has access
         const newChannel = updatedChannels.find((ch: Channel) => ch.id === channel.id);
@@ -963,7 +969,13 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       const response = await fetch("/api/channels");
       if (response.ok) {
         const updatedChannels = await response.json();
-        setChannels(updatedChannels);
+        // Sort: General channel always first
+        const sortedChannels = updatedChannels.sort((a: Channel, b: Channel) => {
+          if (a.isGeneral && !b.isGeneral) return -1;
+          if (!a.isGeneral && b.isGeneral) return 1;
+          return a.name.localeCompare(b.name);
+        });
+        setChannels(sortedChannels);
         
         // Check if updated channel is still accessible
         const updatedChannel = updatedChannels.find((ch: Channel) => ch.id === channel.id);

@@ -140,8 +140,17 @@ export function ChannelEditForm({
             <FormItem>
               <FormLabel>Channel Name *</FormLabel>
               <FormControl>
-                <Input placeholder="e.g., Engineering Team" {...field} />
+                <Input 
+                  placeholder="e.g., Engineering Team" 
+                  {...field} 
+                  disabled={channel.isGeneral}
+                />
               </FormControl>
+              {channel.isGeneral && (
+                <FormDescription>
+                  General channel name cannot be changed
+                </FormDescription>
+              )}
               <FormMessage />
             </FormItem>
           )}
