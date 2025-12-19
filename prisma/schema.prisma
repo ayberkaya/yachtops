@@ -280,6 +280,9 @@ model Notification {
   task      Task?            @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId, read])
+  @@index([userId, createdAt])
+  @@index([taskId])
   @@map("notifications")
 }
 
@@ -341,6 +344,7 @@ model Expense {
   @@index([yachtId, date, deletedAt])
   @@index([createdByUserId, status])
   @@index([isReimbursable, isReimbursed])
+  @@index([yachtId, isReimbursable, isReimbursed, deletedAt])
   @@map("expenses")
 }
 
@@ -544,18 +548,18 @@ model MessageRead {
 }
 
 model MessageAttachment {
-  id           String   @id @default(cuid())
-  messageId    String   @map("message_id")
-  userId       String   @map("user_id")
-  fileName     String   @map("file_name")
-  fileUrl      String?  @map("file_url") // Nullable for new uploads (legacy base64 fallback)
+  id            String   @id @default(cuid())
+  messageId     String   @map("message_id")
+  userId        String   @map("user_id")
+  fileName      String   @map("file_name")
+  fileUrl       String?  @map("file_url") // Nullable for new uploads (legacy base64 fallback)
   storageBucket String?  @map("storage_bucket") // Supabase Storage bucket name
   storagePath   String?  @map("storage_path") // File path in bucket
-  fileSize     Int?     @map("file_size")
-  mimeType     String?  @map("mime_type")
-  createdAt    DateTime @default(now()) @map("created_at")
-  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  user         User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
+  fileSize      Int?     @map("file_size")
+  mimeType      String?  @map("mime_type")
+  createdAt     DateTime @default(now()) @map("created_at")
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user          User     @relation("MessageAttachmentUploader", fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([storageBucket, storagePath])
   @@map("message_attachments")
@@ -645,6 +649,8 @@ model AlcoholStock {
   yacht             Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
   @@unique([yachtId, name])
+  @@index([yachtId, lowStockThreshold])
+  @@index([yachtId, quantity])
   @@map("alcohol_stocks")
 }
 

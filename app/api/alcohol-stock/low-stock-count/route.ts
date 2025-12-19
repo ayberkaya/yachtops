@@ -26,10 +26,11 @@ export async function GET(request: NextRequest) {
 
     // Count low stock items directly in database using raw SQL (much faster)
     // Prisma doesn't support column-to-column comparisons in WHERE clauses
+    // Using Prisma.sql for proper parameter binding
     const result = await db.$queryRaw<Array<{ count: bigint }>>`
       SELECT COUNT(*)::int as count
       FROM alcohol_stocks
-      WHERE yacht_id = ${tenantId}::text
+      WHERE yacht_id = ${tenantId}
         AND low_stock_threshold IS NOT NULL
         AND (quantity IS NULL OR quantity <= low_stock_threshold)
     `;
