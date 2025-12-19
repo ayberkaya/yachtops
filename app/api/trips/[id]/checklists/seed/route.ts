@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
 import { ensureTripChecklistSeeded } from "@/lib/trip-checklists";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 import { db } from "@/lib/db";
 
 export async function POST(
@@ -20,19 +21,20 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { scopedSession } = tenantResult;
+
     const { id: tripId } = await params;
 
     const trip = await db.trip.findFirst({
-      where: {
-        id: tripId,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id: tripId }),
       select: { id: true },
     });
 
-    if (!trip && !isAdmin) {
+    if (!trip) {
       return NextResponse.json({ error: "Trip not found" }, { status: 404 });
     }
 

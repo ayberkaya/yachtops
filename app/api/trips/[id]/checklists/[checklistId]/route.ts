@@ -4,7 +4,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 import { ensureTripChecklistTableReady } from "@/lib/trip-checklists";
 
 const updateChecklistSchema = z.object({
@@ -32,12 +33,11 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const tenantId = tenantIdFromSession || (isAdmin ? null : null);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     const { id: tripId, checklistId } = await params;
     const body = await request.json();
@@ -52,18 +52,25 @@ export async function PATCH(
       throw error;
     }
 
+    // First verify trip belongs to tenant
+    const trip = await db.trip.findFirst({
+      where: withTenantScope(scopedSession, { id: tripId }),
+      select: { id: true },
+    });
+
+    if (!trip) {
+      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    }
+
     const checklist = await db.tripChecklistItem.findFirst({
       where: {
         id: checklistId,
         tripId,
-        trip: {
-          yachtId: tenantId || undefined,
-        },
       },
     });
 
     if (!checklist) {
-      console.error("Checklist item not found:", { checklistId, tripId, tenantId });
+      console.error("Checklist item not found:", { checklistId, tripId });
       return NextResponse.json({ error: "Checklist item not found" }, { status: 404 });
     }
 

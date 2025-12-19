@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { ExpenseStatus } from "@prisma/client";
 import { PendingExpensesList } from "@/components/expenses/pending-expenses-list";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function PendingExpensesPage() {
   const session = await getSession();
@@ -18,12 +20,17 @@ export default async function PendingExpensesPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const pendingExpenses = await db.expense.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
+    where: withTenantScope(session, {
       status: ExpenseStatus.SUBMITTED,
       deletedAt: null, // Exclude soft-deleted expenses
-    },
+    }),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },

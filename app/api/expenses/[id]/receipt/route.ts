@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { hasPermission } from "@/lib/permissions";
 import { validateFileUpload } from "@/lib/file-upload-security";
 import { createAuditLog } from "@/lib/audit-log";
 import { AuditAction } from "@prisma/client";
 import { uploadFile, STORAGE_BUCKETS, generateFilePath } from "@/lib/supabase-storage";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 export async function POST(
   request: NextRequest,
@@ -18,20 +19,19 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { tenantId, scopedSession } = tenantResult;
+
     const { id } = await params;
 
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
     const expense = await db.expense.findFirst({
-      where: {
+      where: withTenantScope(scopedSession, {
         id,
-        yachtId: tenantId || undefined,
         deletedAt: null, // Exclude soft-deleted expenses
-      },
+      }),
     });
 
     if (!expense) {
@@ -40,8 +40,8 @@ export async function POST(
 
     // Check permissions
     const canUpload = 
-      expense.createdByUserId === session.user.id ||
-      hasPermission(session.user, "documents.upload", session.user.permissions);
+      expense.createdByUserId === session!.user.id ||
+      hasPermission(session!.user, "documents.upload", session!.user.permissions);
 
     if (!canUpload) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -104,14 +104,14 @@ export async function POST(
         storagePath: storageMetadata.path,
         mimeType: storageMetadata.mimeType,
         fileSize: storageMetadata.size,
-        createdByUserId: session.user.id,
+        createdByUserId: session!.user.id,
       },
     });
 
     // Create audit log
     await createAuditLog({
       yachtId: tenantId!,
-      userId: session.user.id,
+      userId: session!.user.id,
       action: AuditAction.CREATE,
       entityType: "ExpenseReceipt",
       entityId: receipt.id,

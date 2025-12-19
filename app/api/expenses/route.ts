@@ -3,9 +3,10 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { ExpenseStatus, PaymentMethod, PaidBy, CashTransactionType, AuditAction } from "@prisma/client";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const expenseSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -33,20 +34,13 @@ const expenseSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
+    const { scopedSession } = tenantResult;
 
     const { searchParams } = new URL(request.url);
-    const requestedTenantId = searchParams.get("tenantId");
-    const effectiveTenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!effectiveTenantId) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
     const status = searchParams.get("status");
     const categoryId = searchParams.get("categoryId");
     const tripId = searchParams.get("tripId");
@@ -64,46 +58,45 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100); // Max 100, default 25 (reduced from 200)
     const skip = (page - 1) * limit;
 
-    const where: any = {
-      yachtId: effectiveTenantId,
+    const baseWhere: any = {
       deletedAt: null, // Exclude soft-deleted expenses
     };
 
     if (status) {
-      where.status = status;
+      baseWhere.status = status;
     } else {
       // Hide submitted expenses from general listings until they are approved/rejected
-      where.status = { not: ExpenseStatus.SUBMITTED };
+      baseWhere.status = { not: ExpenseStatus.SUBMITTED };
     }
     if (categoryId) {
-      where.categoryId = categoryId;
+      baseWhere.categoryId = categoryId;
     }
     if (tripId) {
-      where.tripId = tripId;
+      baseWhere.tripId = tripId;
     }
     if (startDate || endDate) {
-      where.date = {};
+      baseWhere.date = {};
       if (startDate) {
-        where.date.gte = new Date(startDate);
+        baseWhere.date.gte = new Date(startDate);
       }
       if (endDate) {
-        where.date.lte = new Date(endDate);
+        baseWhere.date.lte = new Date(endDate);
       }
     }
     if (createdBy) {
-      where.createdByUserId = createdBy;
+      baseWhere.createdByUserId = createdBy;
     }
     if (currency) {
-      where.currency = currency;
+      baseWhere.currency = currency;
     }
     if (paymentMethod) {
-      where.paymentMethod = paymentMethod;
+      baseWhere.paymentMethod = paymentMethod;
     }
     if (isReimbursable !== null && isReimbursable !== undefined && isReimbursable !== "") {
-      where.isReimbursable = isReimbursable === "true";
+      baseWhere.isReimbursable = isReimbursable === "true";
     }
     if (isReimbursed !== null && isReimbursed !== undefined && isReimbursed !== "") {
-      where.isReimbursed = isReimbursed === "true";
+      baseWhere.isReimbursed = isReimbursed === "true";
     }
     // Amount range filtering - filter by baseAmount if available, otherwise by amount
     if (minAmount || maxAmount) {
@@ -116,11 +109,11 @@ export async function GET(request: NextRequest) {
       }
       // We'll need to filter in memory or use a more complex query
       // For now, we'll filter by amount field
-      where.amount = amountFilter;
+      baseWhere.amount = amountFilter;
     }
 
     const expenses = await db.expense.findMany({
-      where,
+      where: withTenantScope(scopedSession, baseWhere),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -157,7 +150,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination
-    const totalCount = await db.expense.count({ where });
+    const totalCount = await db.expense.count({ 
+      where: withTenantScope(scopedSession, baseWhere) 
+    });
 
     // Cache for 30 seconds - expenses change frequently but not instantly
     return NextResponse.json(
@@ -188,21 +183,22 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
+    const { tenantId, scopedSession } = tenantResult;
+    
     if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     // Check permissions
-    if (!hasPermission(session.user, "expenses.create", session.user.permissions)) {
+    if (!hasPermission(session!.user, "expenses.create", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -214,7 +210,7 @@ export async function POST(request: NextRequest) {
       data: {
         yachtId: ensuredTenantId,
         tripId: validated.tripId || null,
-        createdByUserId: session.user.id,
+        createdByUserId: session!.user.id,
         date: new Date(validated.date),
         categoryId: validated.categoryId,
         description: validated.description,
@@ -251,7 +247,7 @@ export async function POST(request: NextRequest) {
     // Create audit log
     await createAuditLog({
       yachtId: ensuredTenantId,
-      userId: session.user.id,
+      userId: session!.user.id,
       action: AuditAction.CREATE,
       entityType: "Expense",
       entityId: expense.id,

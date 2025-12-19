@@ -87,3 +87,5 @@ Veya Supabase SQL Editor'den `scripts/verify-rls.sql` dosyasını çalıştırı
 **Not:** Direct connection string'i Supabase Dashboard'dan almak en güvenli yöntemdir.
 
 
+
+

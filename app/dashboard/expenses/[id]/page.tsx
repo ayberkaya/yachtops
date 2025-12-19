@@ -3,6 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ExpenseDetail } from "@/components/expenses/expense-detail";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function ExpenseDetailPage({
   params,
@@ -20,12 +22,15 @@ export default async function ExpenseDetailPage({
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const { id } = await params;
   const expense = await db.expense.findUnique({
-    where: {
-      id,
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, { id }),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },

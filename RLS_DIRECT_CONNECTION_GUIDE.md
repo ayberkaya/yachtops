@@ -100,3 +100,5 @@ Direct connection kullanırken:
 **Direct connection kullanmak kesinlikle daha kolay!** 🚀
 
 
+
+

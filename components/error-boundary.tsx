@@ -29,6 +29,28 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   static getDerivedStateFromError(error: Error): State {
+    // Check if this is a chunk loading error
+    const isChunkError = error.message?.includes("Failed to load chunk") || 
+                         error.message?.includes("turbopack") ||
+                         error.message?.includes("ChunkLoadError");
+    
+    if (isChunkError && typeof window !== "undefined") {
+      // For chunk errors, try to reload after clearing cache
+      console.warn("Chunk loading error detected, attempting recovery...");
+      
+      // Clear Next.js cache
+      if ("caches" in window) {
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+      }
+      
+      // Reload after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+    }
+    
     return {
       hasError: true,
       error,
@@ -37,9 +59,17 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Check if this is a chunk loading error
+    const isChunkError = error.message?.includes("Failed to load chunk") || 
+                         error.message?.includes("turbopack") ||
+                         error.message?.includes("ChunkLoadError");
+    
     // Log error to console in development
     if (process.env.NODE_ENV === "development") {
       console.error("ErrorBoundary caught an error:", error, errorInfo);
+      if (isChunkError) {
+        console.warn("This appears to be a chunk loading error. The page will attempt to reload.");
+      }
     }
 
     // Log to error reporting service in production
@@ -49,6 +79,7 @@ export class ErrorBoundary extends Component<Props, State> {
         message: error.message,
         stack: error.stack,
         componentStack: errorInfo.componentStack,
+        isChunkError,
       });
     }
 
@@ -96,6 +127,16 @@ export class ErrorBoundary extends Component<Props, State> {
                   <p className="text-destructive font-mono text-xs break-all">
                     {this.state.error.message}
                   </p>
+                  {(this.state.error.message?.includes("Failed to load chunk") || 
+                    this.state.error.message?.includes("turbopack")) && (
+                    <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-xs">
+                      <p className="font-semibold text-yellow-800">Chunk Loading Error Detected</p>
+                      <p className="text-yellow-700 mt-1">
+                        This is usually caused by cache issues. The page will attempt to reload automatically.
+                        If the problem persists, try a hard refresh (Cmd+Shift+R on Mac, Ctrl+Shift+R on Windows).
+                      </p>
+                    </div>
+                  )}
                   {this.state.error.stack && (
                     <details className="mt-2">
                       <summary className="cursor-pointer text-xs text-muted-foreground">

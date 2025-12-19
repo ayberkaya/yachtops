@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
@@ -12,23 +13,14 @@ const categorySchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const categories = await db.expenseCategory.findMany({
-      where: {
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, {}),
       orderBy: { name: "asc" },
     });
 
@@ -45,19 +37,20 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { tenantId } = tenantResult;
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const tenantId = getTenantId(session);
     if (!tenantId) {
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     const body = await request.json();
     const validated = categorySchema.parse(body);

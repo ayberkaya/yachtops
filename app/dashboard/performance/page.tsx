@@ -5,6 +5,8 @@ import { canManageUsers } from "@/lib/auth";
 import { PerformanceView } from "@/components/performance/performance-view";
 import { hasPermission } from "@/lib/permissions";
 import { UserRole } from "@prisma/client";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function PerformancePage() {
   const session = await getSession();
@@ -18,15 +20,20 @@ export default async function PerformancePage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   // Get all crew users for filter (exclude OWNER/CAPTAIN)
   const allUsers = canManageUsers(session.user)
     ? await db.user.findMany({
-        where: {
-          yachtId: session.user.yachtId || undefined,
+        where: withTenantScope(session, {
           role: {
             notIn: [UserRole.OWNER, UserRole.CAPTAIN],
           },
-        },
+        }),
         select: {
           id: true,
           name: true,

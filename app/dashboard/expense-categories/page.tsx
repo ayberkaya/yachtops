@@ -4,6 +4,8 @@ import { canManageUsers } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { ExpenseCategoryManager } from "@/components/expenses/expense-category-manager";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function ExpenseCategoriesPage() {
   const session = await getSession();
@@ -17,10 +19,14 @@ export default async function ExpenseCategoriesPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const categories = await db.expenseCategory.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, {}),
     orderBy: { name: "asc" },
   });
 

@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { MaintenanceType } from "@prisma/client";
 import { z } from "zod";
 import { hasPermission } from "@/lib/permissions";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateMaintenanceSchema = z.object({
   type: z.nativeEnum(MaintenanceType).optional(),
@@ -35,21 +36,15 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const maintenanceLog = await db.maintenanceLog.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const maintenanceLog = await db.maintenanceLog.findFirst({
+      where: withTenantScope(scopedSession, { id }),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -88,20 +83,18 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { scopedSession } = tenantResult;
+
     const { id } = await params;
     const body = await request.json();
     const validated = updateMaintenanceSchema.parse(body);
 
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
-    const existingLog = await db.maintenanceLog.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const existingLog = await db.maintenanceLog.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingLog) {
@@ -168,17 +161,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { id } = await params;
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    const existingLog = await db.maintenanceLog.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const { id } = await params;
+
+    const existingLog = await db.maintenanceLog.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingLog) {

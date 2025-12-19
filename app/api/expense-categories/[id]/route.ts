@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
@@ -15,17 +16,14 @@ export async function PUT(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
     const { id } = await params;
@@ -33,10 +31,7 @@ export async function PUT(
     const validated = categorySchema.parse(body);
 
     const category = await db.expenseCategory.update({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
       data: {
         name: validated.name,
       },
@@ -65,26 +60,23 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
     const { id } = await params;
 
-    // Check if category is used by any expenses
+    // Check if category is used by any expenses (with tenant scope)
     const expensesCount = await db.expense.count({
-      where: {
+      where: withTenantScope(scopedSession, {
         categoryId: id,
-      },
+      }),
     });
 
     if (expensesCount > 0) {
@@ -95,10 +87,7 @@ export async function DELETE(
     }
 
     await db.expenseCategory.delete({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
     });
 
     return NextResponse.json({ success: true });

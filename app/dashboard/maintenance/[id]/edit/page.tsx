@@ -3,6 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { MaintenanceForm } from "@/components/maintenance/maintenance-form";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function EditMaintenancePage({
   params,
@@ -19,12 +21,15 @@ export default async function EditMaintenancePage({
     redirect("/dashboard/maintenance");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const { id } = await params;
   const log = await db.maintenanceLog.findUnique({
-    where: {
-      id,
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, { id }),
   });
 
   if (!log) {

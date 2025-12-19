@@ -3,6 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ExpenseForm } from "@/components/expenses/expense-form";
 import { hasPermission } from "@/lib/permissions";
+import { getTenantId } from "@/lib/tenant";
+import { getCachedExpenseCategories, getCachedTrips } from "@/lib/server-cache";
 
 export default async function NewExpensePage() {
   const session = await getSession();
@@ -16,7 +18,13 @@ export default async function NewExpensePage() {
     redirect("/dashboard");
   }
 
-  const yachtId = session.user.yachtId || undefined;
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
+  const yachtId = tenantId; // tenantId is guaranteed to be string here
 
   const defaultCategories = [
     "Fuel",
@@ -40,14 +48,9 @@ export default async function NewExpensePage() {
   ];
 
   // Ensure tenant has categories; if none, seed defaults for this yachtId.
-  let categories = await db.expenseCategory.findMany({
-    where: {
-      yachtId,
-    },
-    orderBy: { name: "asc" },
-  });
+  let categories = await getCachedExpenseCategories(yachtId);
 
-  if (categories.length === 0 && yachtId) {
+  if (categories.length === 0) {
     await Promise.all(
       defaultCategories.map((name) =>
         db.expenseCategory.upsert({
@@ -66,20 +69,20 @@ export default async function NewExpensePage() {
       )
     );
 
+    // Invalidate cache after creating categories
+    const { invalidateExpenseCategories } = await import("@/lib/server-cache");
+    if (yachtId) {
+      invalidateExpenseCategories(yachtId);
+    }
+
     categories = await db.expenseCategory.findMany({
       where: { yachtId },
       orderBy: { name: "asc" },
     });
   }
 
-  // Fetch trips for the form
-  const trips = await db.trip.findMany({
-    where: {
-      yachtId,
-    },
-    orderBy: { startDate: "desc" },
-    take: 50,
-  });
+  // Fetch trips for the form (using cached version)
+  const trips = await getCachedTrips(yachtId, 50);
 
   return (
     <div className="space-y-6">

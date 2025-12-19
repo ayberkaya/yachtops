@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { getTenantId } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 /**
  * Get unread message counts for multiple channels in a single request
@@ -14,6 +15,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { scopedSession } = tenantResult;
+
     const body = await request.json();
     const channelIds: string[] = Array.isArray(body.channelIds) ? body.channelIds : [];
 
@@ -21,14 +28,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({});
     }
 
-    const tenantId = getTenantId(session);
-
     // Get all channels user has access to
     const channels = await db.messageChannel.findMany({
-      where: {
+      where: withTenantScope(scopedSession, {
         id: { in: channelIds },
-        yachtId: tenantId || undefined,
-      },
+      }),
       include: {
         members: {
           select: { id: true },

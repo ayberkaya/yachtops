@@ -10,6 +10,8 @@
     "build": "NEXT_TURBOPACK=1 prisma generate && next build --turbo",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "analyze": "ANALYZE=true next build --turbo",
     "db:seed": "tsx prisma/seed.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
     "cleanup-duplicate-channels": "tsx scripts/cleanup-duplicate-channels.ts",

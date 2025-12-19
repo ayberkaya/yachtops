@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const attachmentSchema = z.object({
   fileName: z.string().min(1, "File name is required"),
@@ -17,25 +18,15 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const task = await db.task.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const task = await db.task.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!task) {
@@ -68,26 +59,18 @@ export async function POST(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const tenantId = tenantIdFromSession || (isAdmin ? null : null);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     const body = await request.json();
     const validated = attachmentSchema.parse(body);
 
-    const task = await db.task.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const task = await db.task.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!task) {
@@ -97,7 +80,7 @@ export async function POST(
     const attachment = await db.taskAttachment.create({
       data: {
         taskId: id,
-        userId: session.user.id,
+        userId: session!.user.id,
         fileName: validated.fileName,
         fileUrl: validated.fileUrl,
         fileSize: validated.fileSize || null,

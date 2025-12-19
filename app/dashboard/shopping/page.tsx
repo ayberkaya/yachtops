@@ -3,6 +3,9 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ShoppingListView } from "@/components/shopping/shopping-list-view";
 import { hasPermission } from "@/lib/permissions";
+import { getCachedProducts } from "@/lib/server-cache";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function ShoppingPage() {
   const session = await getSession();
@@ -16,12 +19,16 @@ export default async function ShoppingPage() {
     redirect("/dashboard");
   }
 
-  // Fetch lists and products
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
+  // Fetch lists and products (products are cached)
   const [lists, products] = await Promise.all([
     db.shoppingList.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
+      where: withTenantScope(session, {}),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -32,12 +39,7 @@ export default async function ShoppingPage() {
       },
       orderBy: { createdAt: "desc" },
     }),
-    db.product.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      orderBy: { name: "asc" },
-    }),
+      getCachedProducts(tenantId),
   ]);
 
   return (

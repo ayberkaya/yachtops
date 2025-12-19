@@ -17,19 +17,15 @@ export function AuthRedirect() {
     }
 
     // Only redirect once and if session is valid (has id and role)
-    if (!hasRedirected && session?.user?.id && session?.user?.role) {
+    // Only redirect if we're on an auth page
+    if (!hasRedirected && session?.user?.id && session?.user?.role && pathname?.startsWith("/auth/")) {
       setHasRedirected(true);
       const target = session.user.role === "SUPER_ADMIN" ? "/admin" : "/dashboard";
       
-      // If we're on an auth page and have a valid session, redirect
-      if (pathname?.startsWith("/auth/")) {
-        // Use router.push for client-side navigation (more reliable than window.location)
-        router.push(target);
-        return;
-      }
+      console.log("🔄 [AuthRedirect] Redirecting authenticated user to:", target);
       
-      // For non-auth pages, use window.location.href for hard redirect
-      window.location.href = target;
+      // Use window.location.replace to prevent back button issues and infinite loops
+      window.location.replace(target);
     }
   }, [session, status, router, hasRedirected, pathname]);
 

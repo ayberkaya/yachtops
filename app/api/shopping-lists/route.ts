@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ShoppingListStatus } from "@prisma/client";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const listSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -16,30 +17,23 @@ const updateListSchema = listSchema.partial();
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
+    const { scopedSession } = tenantResult;
+    
     const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
     const status = searchParams.get("status");
 
-    const where: any = {
-      yachtId: tenantId || undefined,
-    };
+    const baseWhere: any = {};
 
     if (status) {
-      where.status = status;
+      baseWhere.status = status;
     }
 
     const lists = await db.shoppingList.findMany({
-      where,
+      where: withTenantScope(scopedSession, baseWhere),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -67,25 +61,26 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
+    const { tenantId } = tenantResult;
+    
     if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     const body = await request.json();
     const validated = listSchema.parse(body);
 
     // Fetch current user to ensure we have the correct user data
     const currentUser = await db.user.findUnique({
-      where: { id: session.user.id },
+      where: { id: session!.user.id },
       select: { id: true, name: true, email: true },
     });
 
@@ -102,7 +97,7 @@ export async function POST(request: NextRequest) {
         name: validated.name,
         description: validated.description || null,
         status: validated.status || ShoppingListStatus.DRAFT,
-        createdByUserId: session.user.id,
+        createdByUserId: session!.user.id,
       },
       include: {
         createdBy: {

@@ -4,6 +4,8 @@ import { VoyagePlanning } from "@/components/trips/voyage-planning";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function VoyagePlanningPage() {
   const session = await getSession();
@@ -16,10 +18,14 @@ export default async function VoyagePlanningPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const trips = await db.trip.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, {}),
     select: {
       id: true,
       name: true,

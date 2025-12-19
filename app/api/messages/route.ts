@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const messageSchema = z.object({
   channelId: z.string().min(1),
@@ -13,18 +14,13 @@ const messageSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
+    const { scopedSession } = tenantResult;
+    
     const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
     const channelId = searchParams.get("channelId");
 
     if (!channelId) {
@@ -35,11 +31,8 @@ export async function GET(request: NextRequest) {
     }
 
     // Check if user has access to this channel
-    const channel = await db.messageChannel.findUnique({
-      where: {
-        id: channelId,
-        yachtId: tenantId || undefined,
-      },
+    const channel = await db.messageChannel.findFirst({
+      where: withTenantScope(scopedSession, { id: channelId }),
       include: {
         members: {
           select: { id: true },
@@ -52,7 +45,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Check access
-    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
+    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session!.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -109,7 +102,7 @@ export async function GET(request: NextRequest) {
     // Mark messages as read for current user when fetching (non-blocking)
     // Only mark messages that are not sent by current user
     const unreadMessages = messagesWithoutImages.filter(
-      (msg: { userId: string }) => msg.userId !== session.user.id
+      (msg: { userId: string }) => msg.userId !== session!.user.id
     );
 
     // Mark as read in background - don't block response
@@ -120,7 +113,7 @@ export async function GET(request: NextRequest) {
       db.messageRead.findMany({
         where: {
           messageId: { in: messageIds },
-          userId: session.user.id,
+          userId: session!.user.id,
         },
         select: { messageId: true },
       }).then((existingReads: Array<{ messageId: string }>) => {
@@ -132,7 +125,7 @@ export async function GET(request: NextRequest) {
           db.messageRead.createMany({
             data: toMarkAsRead.map((messageId: string) => ({
               messageId,
-              userId: session.user.id,
+              userId: session!.user.id,
             })),
           }).catch(() => {
             // Silently fail - not critical
@@ -161,12 +154,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
+    const { tenantId, scopedSession } = tenantResult;
+    const tenantIdFromSession = tenantId;
     console.log("POST /api/messages - Starting request processing");
     
     // Check if request has FormData (image upload) or JSON
@@ -285,11 +278,10 @@ export async function POST(request: NextRequest) {
 
     console.log("Checking channel access...");
     // Check if user has access to this channel
-    const channel = await db.messageChannel.findUnique({
-      where: {
+    const channel = await db.messageChannel.findFirst({
+      where: withTenantScope(scopedSession, {
         id: validated.channelId,
-        yachtId: tenantIdFromSession || undefined,
-      },
+      }),
       include: {
         members: {
           select: { id: true },
@@ -302,7 +294,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check access
-    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
+    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session!.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -317,7 +309,7 @@ export async function POST(request: NextRequest) {
       imageSize?: number | null;
     } = {
       channelId: validated.channelId,
-      userId: session.user.id,
+      userId: session!.user.id,
       content: hasContent ? validated.content!.trim() : null,
       imageUrl: null, // No base64 for new uploads
       imageBucket: imageBucket,
@@ -358,7 +350,7 @@ export async function POST(request: NextRequest) {
     
     // Notify mentions (async, don't wait)
     const { notifyMentions } = await import("@/lib/message-notifications");
-    const senderName = session.user.name || session.user.email;
+    const senderName = session!.user.name || session!.user.email;
     notifyMentions(
       message.id,
       validated.channelId,

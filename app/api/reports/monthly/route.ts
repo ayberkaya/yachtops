@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { ExpenseStatus, ShoppingListStatus, TaskStatus, TripStatus } from "@prisma/client";
 import { jsPDF } from "jspdf";
 import { endOfDay, format, isValid, parseISO, startOfDay } from "date-fns";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const SECTION_KEYS = ["summary", "financial", "trips", "tasks", "shopping"] as const;
 type SectionKey = (typeof SECTION_KEYS)[number];
@@ -19,9 +20,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { tenantId, scopedSession } = tenantResult;
+    
+    if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
@@ -72,20 +77,19 @@ export async function GET(request: NextRequest) {
         : [...SECTION_KEYS];
     const sectionSet = new Set<SectionKey>(selectedSections);
 
-    const yacht = await db.yacht.findUnique({
-      where: { id: tenantId || undefined },
+    const yacht = await db.yacht.findFirst({
+      where: withTenantScope(scopedSession, { id: tenantId }),
     });
 
     const expenses = await db.expense.findMany({
-      where: {
-        yachtId: tenantId || undefined,
+      where: withTenantScope(scopedSession, {
         status: ExpenseStatus.APPROVED,
         deletedAt: null, // Exclude soft-deleted expenses
         date: {
           gte: startDate,
           lte: endDate,
         },
-      },
+      }),
       include: {
         category: { select: { name: true } },
         createdBy: { select: { name: true, email: true } },
@@ -95,8 +99,7 @@ export async function GET(request: NextRequest) {
     });
 
     const trips = await db.trip.findMany({
-      where: {
-        yachtId: tenantId || undefined,
+      where: withTenantScope(scopedSession, {
         OR: [
           {
             startDate: {
@@ -111,7 +114,7 @@ export async function GET(request: NextRequest) {
             },
           },
         ],
-      },
+      }),
       include: {
         createdBy: { select: { name: true } },
       },
@@ -119,14 +122,13 @@ export async function GET(request: NextRequest) {
     });
 
     const completedTasks = await db.task.findMany({
-      where: {
-        yachtId: tenantId || undefined,
+      where: withTenantScope(scopedSession, {
         status: TaskStatus.DONE,
         completedAt: {
           gte: startDate,
           lte: endDate,
         },
-      },
+      }),
       include: {
         completedBy: { select: { name: true, email: true } },
         assignee: { select: { name: true, email: true } },
@@ -136,14 +138,13 @@ export async function GET(request: NextRequest) {
     });
 
     const completedShoppingLists = await db.shoppingList.findMany({
-      where: {
-        yachtId: tenantId || undefined,
+      where: withTenantScope(scopedSession, {
         status: ShoppingListStatus.COMPLETED,
         updatedAt: {
           gte: startDate,
           lte: endDate,
         },
-      },
+      }),
       include: {
         createdBy: { select: { name: true } },
         _count: { select: { items: true } },

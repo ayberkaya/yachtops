@@ -55,3 +55,5 @@ Script şunu gösterecek:
 **Kolay gelsin!** 🚀
 
 
+
+

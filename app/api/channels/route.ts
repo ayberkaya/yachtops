@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const channelSchema = z.object({
   name: z.string().min(1, "Channel name is required"),
@@ -15,24 +16,15 @@ const channelSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     // Get all channels for the yacht
     const allChannels = await db.messageChannel.findMany({
-      where: {
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, {}),
       include: {
         members: {
           select: { id: true, name: true, email: true },
@@ -55,7 +47,7 @@ export async function GET(request: NextRequest) {
       if (channel.isGeneral) return true;
       
       // Private channels - only members can access
-      return channel.members.some((member: { id: string }) => member.id === session.user.id);
+      return channel.members.some((member: { id: string }) => member.id === session!.user.id);
     });
 
     // Sort: General channel always first, then others by creation date
@@ -78,18 +70,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
+    const { tenantId } = tenantResult;
+    
     if (!tenantId) {
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     // Only OWNER/CAPTAIN can create channels
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -117,7 +110,7 @@ export async function POST(request: NextRequest) {
         name: validated.name,
         description: validated.description || null,
         isGeneral: validated.isGeneral,
-        createdByUserId: session.user.id,
+        createdByUserId: session!.user.id,
         members: validated.memberIds && validated.memberIds.length > 0
           ? {
               connect: validated.memberIds.map((id) => ({ id })),

@@ -202,8 +202,25 @@ self.addEventListener("fetch", (event) => {
   const isAPI = requestUrl.pathname.startsWith("/api/");
   const isNavigation = event.request.mode === "navigate";
 
-  // Static assets: stale-while-revalidate
+  // Next.js assets: NEVER cache in dev mode, network-only to prevent chunk loading errors
+  // In production, use stale-while-revalidate but with short TTL
   if (isNextAsset) {
+    // Check if we're in development mode (localhost or dev server)
+    const isDev = requestUrl.hostname === "localhost" || 
+                  requestUrl.hostname === "127.0.0.1" ||
+                  requestUrl.port === "3000" ||
+                  requestUrl.searchParams.has("dev");
+    
+    if (isDev) {
+      // In dev mode, always fetch from network - don't cache Next.js chunks
+      event.respondWith(fetch(event.request).catch(() => {
+        // If fetch fails, return a response that will trigger error handling
+        return new Response("Chunk loading failed", { status: 404 });
+      }));
+      return;
+    }
+    
+    // In production, use stale-while-revalidate but with aggressive invalidation
     event.respondWith(staleWhileRevalidate(event.request));
     return;
   }

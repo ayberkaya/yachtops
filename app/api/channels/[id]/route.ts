@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateChannelSchema = z.object({
   name: z.string().min(1).optional(),
@@ -17,25 +18,15 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const channel = await db.messageChannel.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const channel = await db.messageChannel.findFirst({
+      where: withTenantScope(scopedSession, { id }),
       include: {
         members: {
           select: { id: true, name: true, email: true },
@@ -54,7 +45,7 @@ export async function GET(
     }
 
     // Check access
-    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session.user.id)) {
+    if (!channel.isGeneral && !channel.members.some((m: { id: string }) => m.id === session!.user.id)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -74,16 +65,13 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -91,8 +79,8 @@ export async function PATCH(
     const body = await request.json();
     const validated = updateChannelSchema.parse(body);
 
-    const existingChannel = await db.messageChannel.findUnique({
-      where: { id },
+    const existingChannel = await db.messageChannel.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingChannel) {
@@ -159,22 +147,19 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
-    const channel = await db.messageChannel.findUnique({
-      where: { id },
+    const channel = await db.messageChannel.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!channel) {

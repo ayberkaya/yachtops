@@ -3,6 +3,9 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { TaskList } from "@/components/tasks/task-list";
 import { hasPermission } from "@/lib/permissions";
+import { getCachedUsers, getCachedTrips } from "@/lib/server-cache";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function TasksPage() {
   const session = await getSession();
@@ -16,21 +19,26 @@ export default async function TasksPage() {
     redirect("/dashboard");
   }
 
-  // Fetch tasks
-  const where: any = {
-    yachtId: session.user.yachtId || undefined,
-  };
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
+  // Build base where clause
+  const baseWhere: any = {};
 
   // CREW can see their own tasks OR unassigned tasks
   if (session.user.role === "CREW") {
-    where.OR = [
+    baseWhere.OR = [
       { assigneeId: session.user.id },
       { assigneeId: null },
     ];
   }
 
+  // Fetch tasks with strict tenant scope
   const tasks = await db.task.findMany({
-    where,
+    where: withTenantScope(session, baseWhere),
     include: {
       assignee: {
         select: { id: true, name: true, email: true },
@@ -48,23 +56,13 @@ export default async function TasksPage() {
     orderBy: { dueDate: "asc" },
   });
 
-  // Fetch users and trips for filters/forms (only for OWNER/CAPTAIN)
+  // Fetch users and trips for filters/forms (using cached versions)
+  // tenantId is guaranteed to be string here (checked above)
   const [users, trips] = await Promise.all([
     session.user.role !== "CREW"
-      ? db.user.findMany({
-          where: {
-            yachtId: session.user.yachtId || undefined,
-          },
-          select: { id: true, name: true, email: true, role: true },
-        })
+      ? getCachedUsers(tenantId)
       : [],
-    db.trip.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      orderBy: { startDate: "desc" },
-      take: 50,
-    }),
+    getCachedTrips(tenantId, 50),
   ]);
 
   return (

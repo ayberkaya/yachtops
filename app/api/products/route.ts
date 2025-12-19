@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ItemUnit } from "@prisma/client";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const productSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -13,23 +14,14 @@ const productSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const products = await db.product.findMany({
-      where: {
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, {}),
       orderBy: { name: "asc" },
     });
 
@@ -46,18 +38,19 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
+    const { tenantId } = tenantResult;
+    
     if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     const body = await request.json();
     const validated = productSchema.parse(body);

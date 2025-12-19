@@ -167,3 +167,5 @@ helmops/prisma/migrations/
 **İyi şanslar!** 🚀
 
 
+
+

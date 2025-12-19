@@ -3,6 +3,9 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { TaskDetail } from "@/components/tasks/task-detail";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
+import { getCachedUsers, getCachedTrips } from "@/lib/server-cache";
 
 export default async function TaskDetailPage({
   params,
@@ -19,25 +22,20 @@ export default async function TaskDetailPage({
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const { id } = await params;
 
-  // Fetch users and trips for forms
+  // Fetch users and trips for forms (using cached versions)
   const [users, trips] = await Promise.all([
     session.user.role !== "CREW"
-      ? db.user.findMany({
-          where: {
-            yachtId: session.user.yachtId || undefined,
-          },
-          select: { id: true, name: true, email: true, role: true },
-        })
+      ? getCachedUsers(tenantId!)
       : [],
-    db.trip.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      orderBy: { startDate: "desc" },
-      take: 50,
-    }),
+    getCachedTrips(tenantId!, 50),
   ]);
 
   return (

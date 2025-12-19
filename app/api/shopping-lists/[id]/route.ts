@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { NotificationType, ShoppingListStatus } from "@prisma/client";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 import { createNotification } from "@/lib/notifications";
 
 const updateListSchema = z.object({
@@ -18,25 +19,15 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const list = await db.shoppingList.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const list = await db.shoppingList.findFirst({
+      where: withTenantScope(scopedSession, { id }),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -67,25 +58,18 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     const body = await request.json();
     const validated = updateListSchema.parse(body);
 
-    const existingList = await db.shoppingList.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const existingList = await db.shoppingList.findFirst({
+      where: withTenantScope(scopedSession, { id }),
       select: {
         status: true,
         createdByUserId: true,
@@ -125,9 +109,9 @@ export async function PATCH(
       
       if (creatorId) {
         // Only send notification if creator is different from the person completing
-        if (creatorId !== session.user.id) {
+        if (creatorId !== session!.user.id) {
           try {
-            const completedByName = session.user.name || session.user.email || "Someone";
+            const completedByName = session!.user.name || session!.user.email || "Someone";
             await createNotification(
               creatorId,
               NotificationType.SHOPPING_LIST_COMPLETED,
@@ -166,22 +150,15 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const list = await db.shoppingList.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const list = await db.shoppingList.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!list) {

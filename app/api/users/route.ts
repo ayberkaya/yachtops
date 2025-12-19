@@ -5,7 +5,8 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth-server";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const userSchema = z.object({
   email: z.string().email(),
@@ -19,27 +20,18 @@ const userSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const isAdmin = isPlatformAdmin(session);
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
     const users = await db.user.findMany({
-      where: {
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, {}),
       select: {
         id: true,
         email: true,
@@ -64,16 +56,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    if (!canManageUsers(session.user)) {
+    const { tenantId } = tenantResult;
+    
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
-
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
+    
+    if (!tenantId) {
       return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 

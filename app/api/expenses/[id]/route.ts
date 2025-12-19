@@ -4,9 +4,10 @@ import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ExpenseStatus, PaidBy, CashTransactionType, AuditAction } from "@prisma/client";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateExpenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).optional(),
@@ -22,18 +23,11 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { tenantId, scopedSession } = tenantResult;
 
     const { id } = await params || {};
     if (!id || id === "undefined") {
@@ -42,12 +36,12 @@ export async function GET(
         { status: 400 }
       );
     }
+    
     const expense = await db.expense.findFirst({
-      where: {
+      where: withTenantScope(scopedSession, {
         id,
-        yachtId: tenantId || undefined,
         deletedAt: null, // Exclude soft-deleted expenses
-      },
+      }),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -88,12 +82,11 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
+    const { tenantId, scopedSession } = tenantResult;
 
     // Defensive: if params.id missing, derive from URL path as a fallback
     const pathParts = new URL(request.url).pathname.split("/");
@@ -134,24 +127,12 @@ export async function PATCH(
       throw error;
     }
 
-    // Determine tenant scope
-    const { searchParams } = new URL(request.url);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json(
-        { error: "User must be assigned to a tenant" },
-        { status: 400 }
-      );
-    }
-
     // Check if expense exists and user has access (exclude soft-deleted)
     const existingExpense = await db.expense.findFirst({
-      where: {
+      where: withTenantScope(scopedSession, {
         id,
-        yachtId: tenantId || undefined,
         deletedAt: null, // Exclude soft-deleted expenses
-      },
+      }),
     });
 
     if (!existingExpense) {
@@ -160,16 +141,16 @@ export async function PATCH(
 
     // Check permissions for editing
     const canEdit = 
-      existingExpense.createdByUserId === session.user.id ||
-      hasPermission(session.user, "expenses.edit", session.user.permissions);
+      existingExpense.createdByUserId === session!.user.id ||
+      hasPermission(session!.user, "expenses.edit", session!.user.permissions);
 
-    if (!canEdit && !canApproveExpenses(session.user)) {
+    if (!canEdit && !canApproveExpenses(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Prepare update data
     const updateData: any = {
-      updatedByUserId: session.user.id,
+      updatedByUserId: session!.user.id,
     };
     
     // Track changes for audit log
@@ -177,7 +158,7 @@ export async function PATCH(
 
     // Handle status updates for approval/rejection
     if (validated.status) {
-      if (!canApproveExpenses(session.user)) {
+        if (!canApproveExpenses(session!.user)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -204,9 +185,7 @@ export async function PATCH(
           if (!existingCashTransaction) {
             // Check cash balance
             const cashTransactions = await db.cashTransaction.findMany({
-              where: {
-                yachtId: tenantId || undefined,
-              },
+              where: withTenantScope(scopedSession, {}),
             });
 
             const balance = cashTransactions.reduce((acc: number, transaction: (typeof cashTransactions)[number]) => {
@@ -244,7 +223,7 @@ export async function PATCH(
                 currency: existingExpense.currency,
                 description: `Expense: ${existingExpense.description}`,
                 expenseId: existingExpense.id,
-                createdByUserId: session.user.id,
+                createdByUserId: session!.user.id,
               },
             });
           }
@@ -253,13 +232,13 @@ export async function PATCH(
         updateData.status = validated.status;
         updateData.approvedByUserId =
           validated.status === ExpenseStatus.APPROVED
-            ? session.user.id
+            ? session!.user.id
             : null;
 
         changes.status = { from: existingExpense.status, to: validated.status };
         
         if (validated.status === ExpenseStatus.APPROVED) {
-          changes.approvedBy = session.user.id;
+          changes.approvedBy = session!.user.id;
         }
 
         // If rejecting, add reject reason to notes
@@ -321,7 +300,7 @@ export async function PATCH(
       // Create audit log
       await createAuditLog({
         yachtId: tenantId!,
-        userId: session.user.id,
+        userId: session!.user.id,
         action: validated.status === ExpenseStatus.APPROVED 
           ? AuditAction.APPROVE 
           : validated.status === ExpenseStatus.REJECTED 
@@ -392,12 +371,11 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
+    const { tenantId, scopedSession } = tenantResult;
 
     const { id } = await params;
     if (!id || id === "undefined" || id === "null") {
@@ -407,25 +385,14 @@ export async function DELETE(
       );
     }
 
-    const tenantId = tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json(
-        { error: "User must be assigned to a tenant" },
-        { status: 400 }
-      );
-    }
-
     // Check permissions
-    if (!hasPermission(session.user, "expenses.delete", session.user.permissions)) {
+    if (!hasPermission(session!.user, "expenses.delete", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Find the expense (including soft-deleted ones for restore check)
     const existingExpense = await db.expense.findFirst({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingExpense) {
@@ -464,14 +431,14 @@ export async function DELETE(
       where: { id },
       data: {
         deletedAt: new Date(),
-        deletedByUserId: session.user.id,
+        deletedByUserId: session!.user.id,
       },
     });
 
     // Create audit log
     await createAuditLog({
       yachtId: tenantId!,
-      userId: session.user.id,
+      userId: session!.user.id,
       action: AuditAction.DELETE,
       entityType: "Expense",
       entityId: id,

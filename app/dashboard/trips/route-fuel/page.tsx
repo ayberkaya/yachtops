@@ -3,6 +3,8 @@ import { RouteFuelEstimation } from "@/components/trips/route-fuel-estimation";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function RouteFuelPage() {
   const session = await getSession();
@@ -15,10 +17,14 @@ export default async function RouteFuelPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const trips = await db.trip.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, {}),
     select: {
       id: true,
       name: true,
@@ -34,9 +40,7 @@ export default async function RouteFuelPage() {
 
   const movementLogs = await db.tripMovementLog.findMany({
     where: {
-      trip: {
-        yachtId: session.user.yachtId || undefined,
-      },
+      trip: withTenantScope(session, {}),
     },
     select: {
       id: true,
@@ -55,9 +59,7 @@ export default async function RouteFuelPage() {
 
   const tankLogs = await db.tripTankLog.findMany({
     where: {
-      trip: {
-        yachtId: session.user.yachtId || undefined,
-      },
+      trip: withTenantScope(session, {}),
     },
     select: {
       id: true,

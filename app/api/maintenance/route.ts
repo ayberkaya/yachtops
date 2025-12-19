@@ -4,7 +4,8 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { MaintenanceType } from "@prisma/client";
 import { hasPermission } from "@/lib/permissions";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const maintenanceSchema = z.object({
   type: z.nativeEnum(MaintenanceType),
@@ -33,47 +34,44 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
+    
     const type = searchParams.get("type");
     const component = searchParams.get("component");
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
     const upcoming = searchParams.get("upcoming"); // Filter for upcoming maintenance (nextDueDate)
 
-    const where: any = {
-      yachtId: tenantId || undefined,
-    };
+    const baseWhere: any = {};
 
     if (type) {
-      where.type = type;
+      baseWhere.type = type;
     }
     if (component) {
-      where.component = component;
+      baseWhere.component = component;
     }
     if (startDate || endDate) {
-      where.date = {};
+      baseWhere.date = {};
       if (startDate) {
-        where.date.gte = new Date(startDate);
+        baseWhere.date.gte = new Date(startDate);
       }
       if (endDate) {
-        where.date.lte = new Date(endDate);
+        baseWhere.date.lte = new Date(endDate);
       }
     }
     if (upcoming === "true") {
-      where.nextDueDate = {
+      baseWhere.nextDueDate = {
         gte: new Date(), // Future dates
         lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Within 30 days
       };
     }
 
     const maintenanceLogs = await db.maintenanceLog.findMany({
-      where,
+      where: withTenantScope(scopedSession, baseWhere),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -98,22 +96,23 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { tenantId } = tenantResult;
 
-    if (!hasPermission(session.user, "maintenance.create", session.user.permissions)) {
+    if (!hasPermission(session!.user, "maintenance.create", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const tenantId = getTenantId(session);
     if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     const body = await request.json();
     const validated = maintenanceSchema.parse(body);
@@ -133,7 +132,7 @@ export async function POST(request: NextRequest) {
         mileage: validated.mileage || null,
         mileageUnit: validated.mileageUnit || null,
         notes: validated.notes || null,
-        createdByUserId: session.user.id,
+        createdByUserId: session!.user.id,
       },
       include: {
         createdBy: {

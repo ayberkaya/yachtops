@@ -3,6 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { MaintenanceList } from "@/components/maintenance/maintenance-list";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function MaintenancePage() {
   const session = await getSession();
@@ -15,10 +17,14 @@ export default async function MaintenancePage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const logs = await db.maintenanceLog.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, {}),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },

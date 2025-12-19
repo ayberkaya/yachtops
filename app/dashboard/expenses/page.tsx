@@ -4,6 +4,9 @@ import { db } from "@/lib/db";
 import { ExpenseList } from "@/components/expenses/expense-list";
 import { hasPermission } from "@/lib/permissions";
 import { ExpenseStatus } from "@prisma/client";
+import { getCachedExpenseCategories, getCachedTrips, getCachedUsers } from "@/lib/server-cache";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function ExpensesPage() {
   const session = await getSession();
@@ -17,13 +20,19 @@ export default async function ExpensesPage() {
     redirect("/dashboard");
   }
 
-  // Fetch initial expenses (exclude soft-deleted)
+  // STRICT TENANT ISOLATION: Ensure tenantId exists before proceeding
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    // Regular users without tenantId cannot access expenses
+    redirect("/dashboard");
+  }
+
+  // Fetch initial expenses (exclude soft-deleted) with strict tenant scope
   const expenses = await db.expense.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
+    where: withTenantScope(session, {
       status: { not: ExpenseStatus.SUBMITTED },
       deletedAt: null, // Exclude soft-deleted expenses
-    },
+    }),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },
@@ -42,28 +51,12 @@ export default async function ExpensesPage() {
     take: 50,
   });
 
-  // Fetch categories, trips, and users for filters
+  // Fetch categories, trips, and users for filters (using cached versions)
+  // tenantId is guaranteed to be string here (checked above)
   const [categories, trips, users] = await Promise.all([
-    db.expenseCategory.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      orderBy: { name: "asc" },
-    }),
-    db.trip.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      orderBy: { startDate: "desc" },
-      take: 50,
-    }),
-    db.user.findMany({
-      where: {
-        yachtId: session.user.yachtId || undefined,
-      },
-      select: { id: true, name: true, email: true, role: true },
-      orderBy: { name: "asc" },
-    }),
+    getCachedExpenseCategories(tenantId),
+    getCachedTrips(tenantId, 50),
+    getCachedUsers(tenantId),
   ]);
 
   return (

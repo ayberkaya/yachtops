@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { notifyTaskAssignment } from "@/lib/notifications";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
@@ -22,19 +23,13 @@ const taskSchema = z.object({
 export async function GET(request: NextRequest) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
-
     const status = searchParams.get("status");
     const assigneeId = searchParams.get("assigneeId");
     const tripId = searchParams.get("tripId");
@@ -43,31 +38,29 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100); // Max 100, default 25 (reduced from 200)
     const skip = (page - 1) * limit;
 
-    const where: any = {
-      yachtId: tenantId || undefined,
-    };
+    const baseWhere: any = {};
 
     if (status) {
-      where.status = status;
+      baseWhere.status = status;
     }
     if (assigneeId) {
-      where.assigneeId = assigneeId;
+      baseWhere.assigneeId = assigneeId;
     }
     if (tripId) {
-      where.tripId = tripId;
+      baseWhere.tripId = tripId;
     }
 
     // CREW can see their own tasks, unassigned tasks, or tasks assigned to their role
-    if (session.user.role === "CREW") {
-      where.OR = [
-        { assigneeId: session.user.id },
+    if (session!.user.role === "CREW") {
+      baseWhere.OR = [
+        { assigneeId: session!.user.id },
         { assigneeId: null },
-        { assigneeRole: session.user.role },
+        { assigneeRole: session!.user.role },
       ];
     }
 
     const tasks = await db.task.findMany({
-      where,
+      where: withTenantScope(scopedSession, baseWhere),
       include: {
         assignee: {
           select: { id: true, name: true, email: true },
@@ -100,7 +93,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Get total count for pagination
-    const totalCount = await db.task.count({ where });
+    const totalCount = await db.task.count({ 
+      where: withTenantScope(scopedSession, baseWhere) 
+    });
 
     // Cache for 30 seconds - tasks change frequently but not instantly
     return NextResponse.json(
@@ -143,25 +138,26 @@ export async function POST(request: NextRequest) {
     console.log("POST /api/tasks - Getting session...");
     const session = await getSession();
     console.log("POST /api/tasks - Session obtained:", session?.user ? "User logged in" : "No user");
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
+    const { tenantId, scopedSession } = tenantResult;
+    
     // Check if user has permission to create tasks
-    if (!hasPermission(session.user, "tasks.create", session.user.permissions) && !canManageUsers(session.user)) {
+    if (!hasPermission(session!.user, "tasks.create", session!.user.permissions) && !canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden: You don't have permission to create tasks" }, { status: 403 });
     }
 
-    if (!tenantIdFromSession) {
+    if (!tenantId) {
       console.log("POST /api/tasks - Bad request: No tenantId");
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantIdFromSession as string;
+    const ensuredTenantId = tenantId;
 
     // Parse request body with error handling
     console.log("POST /api/tasks - Parsing request body...");
@@ -216,7 +212,7 @@ export async function POST(request: NextRequest) {
         dueDate: validated.dueDate ? new Date(validated.dueDate) : null,
         status: validated.status,
         priority: (validated.priority || "MEDIUM") as TaskPriority,
-        createdByUserId: session.user.id,
+        createdByUserId: session!.user.id,
       },
       include: {
         assignee: {

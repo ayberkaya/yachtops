@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { AuditAction } from "@prisma/client";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
 import { canManageUsers } from "@/lib/auth";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 export async function DELETE(
   request: NextRequest,
@@ -13,17 +14,14 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
-    }
+    const { tenantId, scopedSession } = tenantResult;
 
     // Only admins/owners/captains can delete cash transactions
-    if (!canManageUsers(session.user) && !hasPermission(session.user, "expenses.delete", session.user.permissions)) {
+    if (!canManageUsers(session!.user) && !hasPermission(session!.user, "expenses.delete", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -34,10 +32,7 @@ export async function DELETE(
 
     // Find the transaction (including soft-deleted ones)
     const existingTransaction = await db.cashTransaction.findFirst({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
       include: {
         expense: {
           select: {
@@ -78,14 +73,14 @@ export async function DELETE(
       where: { id },
       data: {
         deletedAt: new Date(),
-        deletedByUserId: session.user.id,
+        deletedByUserId: session!.user.id,
       },
     });
 
     // Create audit log
     await createAuditLog({
       yachtId: tenantId!,
-      userId: session.user.id,
+      userId: session!.user.id,
       action: AuditAction.DELETE,
       entityType: "CashTransaction",
       entityId: id,

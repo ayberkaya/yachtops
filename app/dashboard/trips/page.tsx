@@ -4,6 +4,8 @@ import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TripList } from "@/components/trips/trip-list";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function TripsPage() {
   const session = await getSession();
@@ -17,10 +19,14 @@ export default async function TripsPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const trips = await db.trip.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, {}),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },

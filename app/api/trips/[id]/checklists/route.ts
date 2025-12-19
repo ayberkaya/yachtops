@@ -5,7 +5,8 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 import {
   ensureTripChecklistSeeded,
   ensureTripChecklistTableReady,
@@ -32,22 +33,16 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     const { id: tripId } = await params;
 
     const trip = await db.trip.findFirst({
-      where: {
-        id: tripId,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id: tripId }),
       select: { id: true },
     });
 
@@ -115,17 +110,16 @@ export async function POST(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const tenantId = tenantIdFromSession || (isAdmin ? null : null);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     const { id: tripId } = await params;
 
     const trip = await db.trip.findFirst({
-      where: { id: tripId, yachtId: tenantId || undefined },
+      where: withTenantScope(scopedSession, { id: tripId }),
       select: { id: true },
     });
 

@@ -3,6 +3,8 @@ import { PostVoyageReport } from "@/components/trips/post-voyage-report";
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function PostVoyageReportPage() {
   const session = await getSession();
@@ -15,11 +17,16 @@ export default async function PostVoyageReportPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const trips = await db.trip.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
+    where: withTenantScope(session, {
       status: "COMPLETED",
-    },
+    }),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },

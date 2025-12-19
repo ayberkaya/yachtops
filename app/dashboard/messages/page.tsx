@@ -3,6 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { MessagesView } from "@/components/messages/messages-view";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function MessagesPage() {
   const session = await getSession();
@@ -16,11 +18,15 @@ export default async function MessagesPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   // Get all accessible channels
   const allChannels = await db.messageChannel.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
-    },
+    where: withTenantScope(session, {}),
     include: {
       members: {
         select: { id: true, name: true, email: true },
@@ -43,7 +49,7 @@ export default async function MessagesPage() {
     try {
       const generalChannel = await db.messageChannel.create({
         data: {
-          yachtId: session.user.yachtId || undefined,
+          yachtId: tenantId!, // tenantId is guaranteed here (checked above)
           name: "General",
           description: "General discussion channel for all crew members",
           isGeneral: true,
@@ -87,9 +93,7 @@ export default async function MessagesPage() {
   // Get all users for channel management (only for OWNER/CAPTAIN)
   const allUsers = session.user.role === "OWNER" || session.user.role === "CAPTAIN"
     ? await db.user.findMany({
-        where: {
-          yachtId: session.user.yachtId || undefined,
-        },
+        where: withTenantScope(session, {}),
         select: {
           id: true,
           name: true,

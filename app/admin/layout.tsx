@@ -18,10 +18,12 @@ export default async function AdminLayout({
   
   // Strict validation: session must have valid user with id, email, and role
   if (!session?.user?.id || !session?.user?.email || !session?.user?.role) {
-    redirect("/auth/signin");
+    // Preserve callbackUrl when redirecting to signin
+    redirect("/auth/signin?callbackUrl=%2Fadmin");
   }
   
   if (session.user.role !== "SUPER_ADMIN") {
+    // Non-SUPER_ADMIN users should go to dashboard, not admin
     redirect("/dashboard");
   }
 

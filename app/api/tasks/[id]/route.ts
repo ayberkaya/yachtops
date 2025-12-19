@@ -5,8 +5,9 @@ import { canManageUsers } from "@/lib/auth";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { z } from "zod";
 import { notifyTaskAssignment, notifyTaskCompletion } from "@/lib/notifications";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { hasPermission } from "@/lib/permissions";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
@@ -24,25 +25,15 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     const task = await db.task.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
       include: {
         assignee: {
           select: { id: true, name: true, email: true },
@@ -80,11 +71,11 @@ export async function GET(
     }
 
     // CREW can view their own tasks, unassigned tasks, or tasks assigned to their role
-    if (session.user.role === "CREW") {
+    if (session!.user.role === "CREW") {
       const canView = 
         !task.assigneeId || // Unassigned
-        task.assigneeId === session.user.id || // Assigned to them
-        task.assigneeRole === session.user.role; // Assigned to their role
+        task.assigneeId === session!.user.id || // Assigned to them
+        task.assigneeRole === session!.user.role; // Assigned to their role
       
       if (!canView) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -107,16 +98,11 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const tenantId = tenantIdFromSession || (isAdmin ? null : null);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     const body = await request.json();
@@ -131,10 +117,7 @@ export async function PATCH(
     const validated = updateTaskSchema.parse(cleanedBody);
 
     const existingTask = await db.task.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingTask) {
@@ -142,11 +125,11 @@ export async function PATCH(
     }
 
     // CREW can update status of their own tasks, unassigned tasks, or tasks assigned to their role
-    if (session.user.role === "CREW") {
+    if (session!.user.role === "CREW") {
       const canUpdate = 
         !existingTask.assigneeId || // Unassigned
-        existingTask.assigneeId === session.user.id || // Assigned to them
-        existingTask.assigneeRole === session.user.role; // Assigned to their role
+        existingTask.assigneeId === session!.user.id || // Assigned to them
+        existingTask.assigneeRole === session!.user.role; // Assigned to their role
       
       if (!canUpdate) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -157,7 +140,7 @@ export async function PATCH(
         updateData.status = validated.status;
         // If marking as DONE and not already completed, set completedBy and completedAt
         if (validated.status === TaskStatus.DONE && !existingTask.completedById) {
-          updateData.completedById = session.user.id;
+          updateData.completedById = session!.user.id;
           updateData.completedAt = new Date();
         }
         // If marking as not DONE, clear completion info
@@ -242,7 +225,7 @@ export async function PATCH(
       updateData.status = validated.status;
       // If marking as DONE and not already completed, set completedBy and completedAt
       if (validated.status === TaskStatus.DONE && !existingTask.completedById) {
-        updateData.completedById = session.user.id;
+        updateData.completedById = session!.user.id;
         updateData.completedAt = new Date();
       }
       // If marking as not DONE, clear completion info
@@ -380,26 +363,17 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = null; // DELETE does not accept override
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     
     // Fetch task to check ownership
     const task = await db.task.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
       select: {
         createdByUserId: true,
       },
@@ -410,18 +384,15 @@ export async function DELETE(
     }
 
     // Check if user is the task creator OR has tasks.delete permission
-    const isTaskOwner = task.createdByUserId === session.user.id;
-    const hasDeletePermission = hasPermission(session.user, "tasks.delete", session.user.permissions);
+    const isTaskOwner = task.createdByUserId === session!.user.id;
+    const hasDeletePermission = hasPermission(session!.user, "tasks.delete", session!.user.permissions);
 
     if (!isTaskOwner && !hasDeletePermission) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     await db.task.delete({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
     });
 
     return NextResponse.json({ success: true });

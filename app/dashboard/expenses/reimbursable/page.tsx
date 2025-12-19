@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { ReimbursableExpensesList } from "@/components/expenses/reimbursable-expenses-list";
 import { hasPermission } from "@/lib/permissions";
 import { ExpenseStatus } from "@prisma/client";
+import { withTenantScope } from "@/lib/tenant-guard";
+import { getTenantId } from "@/lib/tenant";
 
 export default async function ReimbursableExpensesPage() {
   const session = await getSession();
@@ -17,13 +19,18 @@ export default async function ReimbursableExpensesPage() {
     redirect("/dashboard");
   }
 
+  // STRICT TENANT ISOLATION: Ensure tenantId exists
+  const tenantId = getTenantId(session);
+  if (!tenantId && !session.user.role.includes("ADMIN")) {
+    redirect("/dashboard");
+  }
+
   const reimbursableExpenses = await db.expense.findMany({
-    where: {
-      yachtId: session.user.yachtId || undefined,
+    where: withTenantScope(session, {
       isReimbursable: true,
       status: { not: ExpenseStatus.SUBMITTED },
       deletedAt: null, // Exclude soft-deleted expenses
-    },
+    }),
     include: {
       createdBy: {
         select: { id: true, name: true, email: true },

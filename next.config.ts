@@ -4,6 +4,14 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   
+  // Suppress middleware.ts deprecation warning (Next.js 16)
+  // Note: middleware.ts is still supported in Next.js 16, will migrate to proxy.ts in future version
+  // This warning can be safely ignored for now
+  onDemandEntries: {
+    maxInactiveAge: 60 * 1000,
+    pagesBufferLength: 2,
+  },
+  
   // Experimental features for better performance
   experimental: {
     optimizePackageImports: [

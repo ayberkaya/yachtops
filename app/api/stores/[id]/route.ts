@@ -3,7 +3,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { StoreType } from "@prisma/client";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateStoreSchema = z.object({
   name: z.string().min(1).optional(),
@@ -19,25 +20,15 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const store = await db.shoppingStore.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const store = await db.shoppingStore.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!store) {
@@ -60,24 +51,18 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     const body = await request.json();
     const validated = updateStoreSchema.parse(body);
 
-    const existingStore = await db.shoppingStore.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const existingStore = await db.shoppingStore.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingStore) {
@@ -119,21 +104,15 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    if (!tenantId && !isPlatformAdmin(session)) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const store = await db.shoppingStore.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const store = await db.shoppingStore.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!store) {

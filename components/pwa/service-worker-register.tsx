@@ -5,8 +5,27 @@ import { offlineQueue } from "@/lib/offline-queue";
 
 export function ServiceWorkerRegister() {
   useEffect(() => {
+    // Disable service worker in development to prevent chunk loading issues with Turbopack
+    const isDev = process.env.NODE_ENV === "development" || 
+                  window.location.hostname === "localhost" ||
+                  window.location.hostname === "127.0.0.1";
+    
+    if (isDev) {
+      // Unregister any existing service workers in dev mode
+      if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(registrations => {
+          registrations.forEach(registration => {
+            registration.unregister().then(() => {
+              console.log("Service worker unregistered in dev mode to prevent chunk loading issues");
+            });
+          });
+        });
+      }
+      return;
+    }
+    
     if (typeof window !== "undefined" && "serviceWorker" in navigator) {
-      // Register service worker (both dev and production)
+      // Register service worker (production only)
       navigator.serviceWorker
         .register("/sw.js")
         .then((registration) => {

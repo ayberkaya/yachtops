@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { hasPermission } from "@/lib/permissions";
 import { getSignedUrl } from "@/lib/supabase-storage";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 /**
  * Lazy-loading endpoint for vessel document files
@@ -19,24 +20,23 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id } = await params;
-
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     if (!hasPermission(session.user, "documents.vessel.view", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const { id } = await params;
+
     const doc = await db.vesselDocument.findFirst({
-      where: {
+      where: withTenantScope(scopedSession, {
         id,
-        yachtId: tenantId || undefined,
         deletedAt: null,
-      },
+      }),
       select: {
         id: true,
         fileUrl: true, // Legacy base64 fallback

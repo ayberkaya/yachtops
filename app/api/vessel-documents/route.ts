@@ -2,10 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { hasPermission } from "@/lib/permissions";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { validateFileUpload, sanitizeFileName } from "@/lib/file-upload-security";
 import { createAuditLog } from "@/lib/audit-log";
 import { AuditAction } from "@prisma/client";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,14 +15,19 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantId = getTenantId(session);
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { tenantId, scopedSession } = tenantResult;
+    
     if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     if (!hasPermission(session.user, "documents.vessel.view", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
@@ -34,10 +40,9 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const docs = await db.vesselDocument.findMany({
-      where: {
-        yachtId: tenantId || undefined,
+      where: withTenantScope(scopedSession, {
         deletedAt: null, // Exclude soft-deleted documents
-      },
+      }),
       select: {
         id: true,
         title: true,
@@ -58,10 +63,9 @@ export async function GET(request: NextRequest) {
     });
 
     const totalCount = await db.vesselDocument.count({
-      where: {
-        yachtId: tenantId || undefined,
+      where: withTenantScope(scopedSession, {
         deletedAt: null,
-      },
+      }),
     });
 
     return NextResponse.json({
@@ -91,14 +95,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const tenantId = getTenantId(session);
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { tenantId } = tenantResult;
+    
     if (!tenantId) {
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
       );
     }
-    const ensuredTenantId = tenantId as string;
+    const ensuredTenantId = tenantId;
 
     if (!hasPermission(session.user, "documents.upload", session.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });

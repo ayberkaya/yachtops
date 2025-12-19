@@ -128,3 +128,5 @@ brew install libpq && echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> 
 **Not:** Homebrew yoksa önce Homebrew'i yükleyin. En kolay ve yaygın yöntem budur.
 
 
+
+

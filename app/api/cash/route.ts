@@ -3,9 +3,10 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { CashTransactionType, AuditAction } from "@prisma/client";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const cashTransactionSchema = z.object({
   type: z.nativeEnum(CashTransactionType),
@@ -19,15 +20,16 @@ export async function GET(request: NextRequest) {
     // Wrap everything in try-catch to ensure JSON response
     try {
       const session = await getSession();
-      if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const tenantResult = resolveTenantOrResponse(session, request);
+      if (tenantResult instanceof NextResponse) {
+        return tenantResult;
       }
-
-      const tenantId = getTenantId(session);
+      const { tenantId, scopedSession } = tenantResult;
+      
       if (!tenantId) {
         return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
       }
-      const ensuredTenantId = tenantId as string;
+      const ensuredTenantId = tenantId;
 
       // Check if CashTransaction model exists
       if (!db.cashTransaction) {
@@ -50,10 +52,9 @@ export async function GET(request: NextRequest) {
 
       // Get cash transactions (tenant resolved above) - exclude soft-deleted
       const transactions = await db.cashTransaction.findMany({
-        where: {
-          yachtId: tenantId || undefined,
+        where: withTenantScope(scopedSession, {
           deletedAt: null, // Exclude soft-deleted transactions
-        },
+        }),
         include: {
           createdBy: {
             select: { id: true, name: true, email: true },
@@ -68,10 +69,9 @@ export async function GET(request: NextRequest) {
       });
 
       const totalCount = await db.cashTransaction.count({
-        where: {
-          yachtId: tenantId || undefined,
+        where: withTenantScope(scopedSession, {
           deletedAt: null,
-        },
+        }),
       });
 
       // Calculate current balance (only non-deleted transactions)
@@ -131,18 +131,19 @@ export async function POST(request: NextRequest) {
     // Wrap everything in try-catch to ensure JSON response
     try {
       const session = await getSession();
-      if (!session?.user) {
-        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      const tenantResult = resolveTenantOrResponse(session, request);
+      if (tenantResult instanceof NextResponse) {
+        return tenantResult;
       }
-
-      const tenantId = getTenantId(session);
+      const { tenantId } = tenantResult;
+      
       if (!tenantId) {
         return NextResponse.json({ error: "No tenant assigned" }, { status: 400 });
       }
-      const ensuredTenantId = tenantId as string;
+      const ensuredTenantId = tenantId;
 
       // Check permissions - cash transactions should be restricted
-      if (!hasPermission(session.user, "expenses.create", session.user.permissions)) {
+      if (!hasPermission(session!.user, "expenses.create", session!.user.permissions)) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
 
@@ -190,7 +191,7 @@ export async function POST(request: NextRequest) {
           amount: validated.amount,
           currency: validated.currency,
           description: validated.description,
-          createdByUserId: session.user.id,
+          createdByUserId: session!.user.id,
         },
         include: {
           createdBy: {
@@ -202,7 +203,7 @@ export async function POST(request: NextRequest) {
       // Create audit log
       await createAuditLog({
         yachtId: ensuredTenantId,
-        userId: session.user.id,
+        userId: session!.user.id,
         action: AuditAction.CREATE,
         entityType: "CashTransaction",
         entityId: transaction.id,

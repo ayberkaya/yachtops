@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateStockSchema = z.object({
   category: z.enum(["WINE", "SPIRITS", "BEER"]).optional().nullable(),
@@ -18,15 +19,11 @@ export async function PATCH(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     
@@ -80,11 +77,8 @@ export async function PATCH(
       }
     }
 
-    const existing = await db.alcoholStock.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const existing = await db.alcoholStock.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existing) {
@@ -116,7 +110,7 @@ export async function PATCH(
       await db.alcoholStockHistory.create({
         data: {
           stockId: id,
-          userId: session.user.id,
+          userId: session!.user.id,
           changeType,
           quantityBefore: existing.quantity,
           quantityAfter: validated.quantity,
@@ -154,23 +148,16 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
 
-    const existing = await db.alcoholStock.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const existing = await db.alcoholStock.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existing) {

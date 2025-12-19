@@ -5,6 +5,8 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth-server";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateUserSchema = z.object({
   name: z.string().optional(),
@@ -80,7 +82,7 @@ export async function PATCH(
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (existingUser.role === "OWNER" && id !== session.user.id) {
+    if (existingUser.role === "OWNER" && id !== session!.user.id) {
       return NextResponse.json(
         { error: "Cannot modify owner user" },
         { status: 403 }
@@ -110,11 +112,25 @@ export async function PATCH(
     if (validated.customRoleId !== undefined) {
       // Validate custom role belongs to the same vessel
       if (validated.customRoleId) {
+        // STRICT TENANT ISOLATION: Ensure custom role belongs to same yacht
+        if (!existingUser.yachtId) {
+          return NextResponse.json(
+            { error: "User must be assigned to a yacht" },
+            { status: 400 }
+          );
+        }
+        
+        // Resolve tenant for scoped query
+        const tenantResult = resolveTenantOrResponse(session, request);
+        if (tenantResult instanceof NextResponse) {
+          return tenantResult;
+        }
+        const { scopedSession } = tenantResult;
+        
         const customRole = await db.customRole.findFirst({
-          where: {
+          where: withTenantScope(scopedSession, {
             id: validated.customRoleId,
-            yachtId: existingUser.yachtId || undefined,
-          },
+          }),
         });
         if (!customRole) {
           return NextResponse.json(
@@ -162,39 +178,33 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id } = await params;
 
     // Cannot delete yourself
-    if (id === session.user.id) {
+    if (id === session!.user.id) {
       return NextResponse.json(
         { error: "Cannot delete your own account" },
         { status: 400 }
       );
     }
 
-    // Cannot delete OWNER
+    // Cannot delete OWNER - check with tenant scope
     const user = await db.user.findUnique({
-      where: { id },
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    // Ensure user belongs to the same yacht
-    if (user.yachtId !== session.user.yachtId) {
-      return NextResponse.json(
-        { error: "Cannot delete user from another yacht" },
-        { status: 403 }
-      );
     }
 
     if (user.role === "OWNER") {

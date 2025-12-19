@@ -4,7 +4,8 @@ import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { TripStatus, TripType } from "@prisma/client";
 import { z } from "zod";
-import { getTenantId, isPlatformAdmin } from "@/lib/tenant";
+import { resolveTenantOrResponse } from "@/lib/api-tenant";
+import { withTenantScope } from "@/lib/tenant-guard";
 import {
   ensureTripChecklistSeeded,
   ensureTripChecklistTableReady,
@@ -30,25 +31,15 @@ export async function GET(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
-
-    const { searchParams } = new URL(request.url);
-    const tenantIdFromSession = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    const requestedTenantId = searchParams.get("tenantId");
-    const tenantId = isAdmin && requestedTenantId ? requestedTenantId : tenantIdFromSession;
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
-    }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
-    const trip = await db.trip.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const trip = await db.trip.findFirst({
+      where: withTenantScope(scopedSession, { id }),
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
@@ -86,25 +77,22 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
     const { id } = await params;
     const body = await request.json();
     const validated = updateTripSchema.parse(body);
 
-    const existingTrip = await db.trip.findUnique({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+    const existingTrip = await db.trip.findFirst({
+      where: withTenantScope(scopedSession, { id }),
     });
 
     if (!existingTrip) {
@@ -193,26 +181,19 @@ export async function DELETE(
 ) {
   try {
     const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
     }
+    const { scopedSession } = tenantResult;
 
-    if (!canManageUsers(session.user)) {
+    if (!canManageUsers(session!.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
-    const tenantId = getTenantId(session);
-    const isAdmin = isPlatformAdmin(session);
-    if (!tenantId && !isAdmin) {
-      return NextResponse.json({ error: "Tenant not set" }, { status: 400 });
     }
 
     const { id } = await params;
     await db.trip.delete({
-      where: {
-        id,
-        yachtId: tenantId || undefined,
-      },
+      where: withTenantScope(scopedSession, { id }),
     });
 
     return NextResponse.json({ success: true });

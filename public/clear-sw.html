@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Clear Service Worker</title>
+</head>
+<body>
+  <h1>Clearing Service Worker...</h1>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(registrations => {
+        registrations.forEach(registration => {
+          registration.unregister().then(() => {
+            console.log('Service Worker unregistered:', registration.scope);
+          });
+        });
+        
+        // Clear all caches
+        if ('caches' in window) {
+          caches.keys().then(names => {
+            names.forEach(name => {
+              caches.delete(name).then(() => {
+                console.log('Cache deleted:', name);
+              });
+            });
+          });
+        }
+        
+        document.body.innerHTML = '<h1>Service Worker Cleared!</h1><p>You can close this tab and refresh your app.</p>';
+      });
+    } else {
+      document.body.innerHTML = '<h1>No Service Worker Found</h1>';
+    }
+  </script>
+</body>
+</html>
+
