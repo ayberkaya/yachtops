@@ -37,6 +37,46 @@ export default async function MessagesPage() {
     },
   });
 
+  // Ensure General channel exists (create if missing, only for OWNER/CAPTAIN)
+  const hasGeneralChannel = allChannels.some((ch) => ch.isGeneral);
+  if (!hasGeneralChannel && (session.user.role === "OWNER" || session.user.role === "CAPTAIN")) {
+    try {
+      await db.messageChannel.create({
+        data: {
+          yachtId: session.user.yachtId || undefined,
+          name: "General",
+          description: "General discussion channel for all crew members",
+          isGeneral: true,
+          createdByUserId: session.user.id,
+        },
+      });
+      // Reload channels after creating General channel
+      const reloadedChannels = await db.messageChannel.findMany({
+        where: {
+          yachtId: session.user.yachtId || undefined,
+        },
+        include: {
+          members: {
+            select: { id: true, name: true, email: true },
+          },
+          createdBy: {
+            select: { id: true, name: true, email: true },
+          },
+          _count: {
+            select: { messages: true },
+          },
+        },
+        orderBy: {
+          createdAt: "asc",
+        },
+      });
+      allChannels.push(...reloadedChannels.filter((ch) => ch.isGeneral && !allChannels.some((c) => c.id === ch.id)));
+    } catch (error) {
+      // If General channel already exists (race condition), ignore error
+      console.error("Error ensuring General channel exists:", error);
+    }
+  }
+
   // Filter channels based on user access and sort: general first, then alphabetically
   const accessibleChannels = allChannels
     .filter((channel: { isGeneral: boolean; members: { id: string }[] }) => {
