@@ -110,13 +110,31 @@ export function PushNotificationRegister() {
       if (!vapidResponse.ok) {
         // Check if VAPID keys are not configured
         if (vapidResponse.status === 503 || vapidResponse.status === 500) {
+          const errorData = await vapidResponse.json().catch(() => ({}));
+          const errorMessage = errorData.error || "Push notifications not configured";
+          
+          console.error("❌ Push Notification Error:", {
+            status: vapidResponse.status,
+            error: errorMessage,
+            reason: "VAPID keys are not configured in environment variables",
+            solution: "Run: node scripts/generate-vapid-keys.js and add to .env.local",
+          });
+          
           if (!silent) {
             console.warn("Push notifications are not configured (VAPID keys missing)");
           }
           setIsLoading(false);
           return false;
         }
-        throw new Error("Failed to get VAPID public key");
+        
+        // Other errors (401, etc.)
+        const errorData = await vapidResponse.json().catch(() => ({}));
+        console.error("❌ Push Notification Error:", {
+          status: vapidResponse.status,
+          error: errorData.error || "Failed to get VAPID public key",
+        });
+        
+        throw new Error(`Failed to get VAPID public key: ${vapidResponse.status}`);
       }
       const { publicKey } = await vapidResponse.json();
 
@@ -147,11 +165,17 @@ export function PushNotificationRegister() {
           localStorage.removeItem("push-notification-failed");
         }
         if (!silent) {
-          console.log("Successfully subscribed to push notifications");
+          console.log("✅ Successfully subscribed to push notifications");
         }
         return true;
       } else {
-        throw new Error("Failed to save subscription");
+        const errorData = await response.json().catch(() => ({}));
+        console.error("❌ Push Notification Error:", {
+          status: response.status,
+          error: errorData.error || "Failed to save subscription",
+          reason: "Backend failed to save subscription",
+        });
+        throw new Error(`Failed to save subscription: ${response.status}`);
       }
     } catch (error) {
       // Store failure flag to prevent repeated attempts
@@ -159,11 +183,20 @@ export function PushNotificationRegister() {
         localStorage.setItem("push-notification-failed", Date.now().toString());
       }
       
+      // Enhanced error logging
+      const errorInfo = {
+        message: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        timestamp: new Date().toISOString(),
+      };
+      
       if (!silent) {
-        console.error("Error subscribing to push notifications:", error);
+        console.error("❌ Push Notification Subscription Failed:", errorInfo);
+        console.error("   → Check browser console for details");
+        console.error("   → Run diagnostic: npx tsx scripts/diagnose-push-notifications.ts");
       } else {
-        // Silent mode - only log to console, no alert
-        console.debug("Push notification subscription failed (silent):", error);
+        // Silent mode - detailed logging for debugging
+        console.debug("Push notification subscription failed (silent):", errorInfo);
       }
       return false;
     } finally {
