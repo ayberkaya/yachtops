@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useMemo, memo, lazy, Suspense } from "react";
+import React, { useEffect, useState, useMemo, memo, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { apiClient } from "@/lib/api-client";
 import { WidgetConfig } from "@/types/widgets";
@@ -8,42 +8,30 @@ import { PendingExpensesWidget } from "./pending-expenses-widget";
 import { RecentExpensesWidget } from "./recent-expenses-widget";
 import { QuickStatsWidget } from "./quick-stats-widget";
 // Lazy load less critical widgets - using dynamic imports for code splitting
-// Added error handling to prevent chunk loading failures
-// Fallback component that matches React component type - accepts any props
-const EmptyWidget = memo(function EmptyWidget(_props: any) {
-  return null;
-});
-EmptyWidget.displayName = "EmptyWidget";
-
+// Error handling: if import fails, Suspense fallback will be shown
+// Removed catch handlers to avoid TypeScript type conflicts
 const UpcomingTripsWidget = lazy(() => 
-  import("./upcoming-trips-widget")
-    .then(m => ({ default: m.UpcomingTripsWidget }))
-    .catch(() => ({ default: EmptyWidget as any }))
+  import("./upcoming-trips-widget").then(m => ({ default: m.UpcomingTripsWidget }))
 );
+
 const MyTasksWidget = lazy(() => 
-  import("./my-tasks-widget")
-    .then(m => ({ default: m.MyTasksWidget }))
-    .catch(() => ({ default: EmptyWidget as any }))
+  import("./my-tasks-widget").then(m => ({ default: m.MyTasksWidget }))
 );
+
 const RoleTasksAlertWidget = lazy(() => 
-  import("./role-tasks-alert-widget")
-    .then(m => ({ default: m.RoleTasksAlertWidget }))
-    .catch(() => ({ default: EmptyWidget as any }))
+  import("./role-tasks-alert-widget").then(m => ({ default: m.RoleTasksAlertWidget }))
 );
+
 const UpcomingMaintenanceWidget = lazy(() => 
-  import("./upcoming-maintenance-widget")
-    .then(m => ({ default: m.UpcomingMaintenanceWidget }))
-    .catch(() => ({ default: EmptyWidget as any }))
+  import("./upcoming-maintenance-widget").then(m => ({ default: m.UpcomingMaintenanceWidget }))
 );
+
 const ExpiringPermissionsWidget = lazy(() => 
-  import("./expiring-permissions-widget")
-    .then(m => ({ default: m.ExpiringPermissionsWidget }))
-    .catch(() => ({ default: EmptyWidget as any }))
+  import("./expiring-permissions-widget").then(m => ({ default: m.ExpiringPermissionsWidget }))
 );
+
 const LowStockAlertWidget = lazy(() => 
-  import("./low-stock-alert-widget")
-    .then(m => ({ default: m.LowStockAlertWidget }))
-    .catch(() => ({ default: EmptyWidget as any }))
+  import("./low-stock-alert-widget").then(m => ({ default: m.LowStockAlertWidget }))
 );
 import { WidgetCustomizer } from "./widget-customizer";
 import { MonthlyReportDownload } from "../monthly-report-download";
