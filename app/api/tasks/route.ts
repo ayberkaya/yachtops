@@ -94,17 +94,20 @@ export async function GET(request: NextRequest) {
           ];
         }
 
-        // Rebuild scoped session for withTenantScope
-        const mockScopedSession = {
-          ...scopedSession!,
+        // Import withTenantScope inside closure to avoid closure issues
+        const { withTenantScope } = await import("@/lib/tenant-guard");
+        
+        // Rebuild minimal session for withTenantScope (only what's needed)
+        const mockSession = {
           user: {
-            ...scopedSession!.user,
             yachtId: tenantIdParam || undefined,
+            role: userRoleParam as any,
           },
-        } as typeof scopedSession;
+        } as any;
 
-        const finalWhereParam = withTenantScope(mockScopedSession, baseWhereParam);
+        const finalWhereParam = withTenantScope(mockSession, baseWhereParam);
 
+        const { db } = await import("@/lib/db");
         return db.task.findMany({
           where: finalWhereParam,
           include: {
@@ -163,6 +166,7 @@ export async function GET(request: NextRequest) {
 
         const finalWhereParam = withTenantScope(mockScopedSession, baseWhereParam);
 
+        const { db } = await import("@/lib/db");
         return db.task.count({ 
           where: finalWhereParam 
         });

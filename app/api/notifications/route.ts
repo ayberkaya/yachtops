@@ -19,6 +19,7 @@ export async function GET(request: NextRequest) {
     const cacheKey = `notifications-${userId}-${unreadOnly}`;
     const getNotifications = unstable_cache(
       async (userIdParam: string, unreadOnlyParam: boolean) => {
+        const { db } = await import("@/lib/db");
         const where: any = {
           userId: userIdParam,
           // Filter out notifications for completed tasks directly in database
