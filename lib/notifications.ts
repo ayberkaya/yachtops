@@ -1,3 +1,4 @@
+import "server-only";
 import { db } from "@/lib/db";
 import { NotificationType, UserRole } from "@prisma/client";
 

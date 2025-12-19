@@ -1,3 +1,4 @@
+import "server-only";
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
@@ -71,6 +72,26 @@ export const db =
 if (process.env.NODE_ENV !== "production") {
   if (!globalForPrisma.prisma) {
     globalForPrisma.prisma = db;
+  }
+}
+
+// Runtime validation: Ensure Prisma Client is properly initialized
+// This catches cases where Prisma Client wasn't regenerated after schema changes
+if (typeof db.user === "undefined") {
+  const errorMsg = 
+    "❌ [CRITICAL] Prisma Client is not properly initialized. " +
+    "The 'user' model is missing. This usually happens when:\n" +
+    "1. Prisma Client wasn't regenerated after schema changes (run: npx prisma generate)\n" +
+    "2. Next.js server wasn't restarted after regenerating Prisma Client\n" +
+    "3. There's a mismatch between schema.prisma and the generated client\n\n" +
+    "Fix: Run 'npx prisma generate' and restart your Next.js server.";
+  
+  console.error(errorMsg);
+  
+  // In production, throw immediately to fail fast
+  // In development, log warning but allow app to start (will fail on first DB query)
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(errorMsg);
   }
 }
 

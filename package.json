@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:webpack": "next dev --webpack",
-    "dev:mobile": "next dev -H 0.0.0.0",
+    "dev": "next dev --turbo",
+    "dev:turbopack": "next dev --turbo",
+    "dev:webpack": "NEXT_DISABLE_TURBOPACK=1 next dev",
+    "dev:mobile": "next dev --turbo -H 0.0.0.0",
     "build": "NEXT_TURBOPACK=1 prisma generate && next build --turbo",
     "start": "next start",
     "lint": "eslint",
@@ -53,6 +54,7 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-hook-form": "^7.67.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^3.4.0",
     "web-push": "^3.6.7",
     "zod": "^4.1.13"
