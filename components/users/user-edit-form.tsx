@@ -216,35 +216,43 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
           </FormDescription>
         </div>
 
-        {useCustomPermissions && (
-          <div className="space-y-4 border rounded-lg p-4">
-            <p className="text-sm font-medium">Permissions</p>
-            {Object.entries(PERMISSION_GROUPS).map(([group, groupPermissions]) => (
-              <div key={group} className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">{group}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {groupPermissions.map((permission) => (
-                    <div key={permission} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={`edit-${permission}`}
-                        checked={permissions.includes(permission)}
-                        onCheckedChange={() => togglePermission(permission)}
-                      />
-                      <label
-                        htmlFor={`edit-${permission}`}
-                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {permission.includes(".")
-                          ? permission.split(".")[1]?.replace("-", " ") || permission
-                          : permission}
-                      </label>
+        <FormField
+          control={form.control}
+          name="permissions"
+          render={() => (
+            <FormItem>
+              {useCustomPermissions && (
+                <div className="space-y-4 border rounded-lg p-4">
+                  <FormLabel>Permissions</FormLabel>
+                  {Object.entries(PERMISSION_GROUPS).map(([group, groupPermissions]) => (
+                    <div key={group} className="space-y-2">
+                      <p className="text-sm font-medium text-muted-foreground">{group}</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        {groupPermissions.map((permission) => (
+                          <div key={permission} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`edit-${permission}`}
+                              checked={permissions.includes(permission)}
+                              onCheckedChange={() => togglePermission(permission)}
+                            />
+                            <label
+                              htmlFor={`edit-${permission}`}
+                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {permission.includes(".")
+                                ? permission.split(".")[1]?.replace("-", " ") || permission
+                                : permission}
+                            </label>
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>
-              </div>
-            ))}
-          </div>
-        )}
+              )}
+            </FormItem>
+          )}
+        />
 
         <DialogFooter>
           <Button type="submit" disabled={isLoading}>

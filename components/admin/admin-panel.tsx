@@ -7,7 +7,17 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { Users, UserPlus, ChevronDown } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Users, UserPlus, ChevronDown, Trash2 } from "lucide-react";
 
 type UserForm = {
   name: string;
@@ -56,6 +66,9 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
   const [owners, setOwners] = useState<OwnerItem[]>([]);
   const [loadingOwners, setLoadingOwners] = useState(false);
   const [selectedOwnerId, setSelectedOwnerId] = useState<string | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ownerToDelete, setOwnerToDelete] = useState<OwnerItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const handleCreate = async () => {
     setMessage(null);
@@ -184,6 +197,43 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
     }
   };
 
+  const handleDeleteClick = (owner: OwnerItem) => {
+    setOwnerToDelete(owner);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!ownerToDelete) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/owners/${ownerToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete owner");
+      }
+
+      // Remove owner from list
+      setOwners((list) => list.filter((o) => o.id !== ownerToDelete.id));
+      
+      // If deleted owner was selected, clear selection
+      if (selectedOwnerId === ownerToDelete.id) {
+        setSelectedOwnerId(null);
+      }
+
+      setDeleteDialogOpen(false);
+      setOwnerToDelete(null);
+    } catch (e: any) {
+      console.error("Delete error:", e);
+      alert(e.message || "Failed to delete owner. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   useEffect(() => {
     if (view === "owners") {
       loadOwners();
@@ -256,78 +306,162 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
           </Card>
         )}
 
-        {view === "owners" && owners.length === 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Owners</CardTitle>
-            </CardHeader>
-            <CardContent className="text-sm text-muted-foreground">
-              No owners found.
-            </CardContent>
-          </Card>
-        )}
+        {view === "owners" && (
+          <>
+            {loadingOwners && (
+              <Card>
+                <CardContent className="py-6 text-center text-sm text-muted-foreground">
+                  Loading owners...
+                </CardContent>
+              </Card>
+            )}
 
-        {view === "owners" && selectedOwner && (
-          <Collapsible defaultOpen={false}>
-            <Card className="gap-1.5 p-3">
-              <CollapsibleTrigger className="w-full">
-                <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between py-1.5 px-0 min-h-0">
-                  <CardTitle className="m-0 text-base">{selectedOwner.name || "Unnamed"}</CardTitle>
-                  <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+            {!loadingOwners && owners.length === 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Owners</CardTitle>
                 </CardHeader>
-              </CollapsibleTrigger>
-              <CollapsibleContent>
-                <CardContent className="space-y-2 pt-0 px-0">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm text-muted-foreground">{selectedOwner.email}</div>
-                      <div className="text-xs text-muted-foreground">
-                        Tenant: {selectedOwner.yachtId || "-"}
-                      </div>
-                    </div>
-                    <Button
-                      variant={selectedOwner.active ? "secondary" : "default"}
-                      onClick={() => toggleOwnerActive(selectedOwner.id, !selectedOwner.active)}
-                    >
-                      {selectedOwner.active ? "Deactivate Owner" : "Activate Owner"}
-                    </Button>
-                  </div>
+                <CardContent className="text-sm text-muted-foreground">
+                  No owners found.
+                </CardContent>
+              </Card>
+            )}
 
-                  {selectedOwner.users && selectedOwner.users.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="text-sm font-semibold">Users</div>
-                      <div className="space-y-2">
-                        {selectedOwner.users.map((u) => (
-                          <div
-                            key={u.id}
-                            className="flex items-center justify-between rounded border p-2"
-                          >
+            {!loadingOwners && owners.length > 0 && (
+              <div className="space-y-3">
+                {owners.map((owner) => (
+                  <Collapsible
+                    key={owner.id}
+                    open={selectedOwnerId === owner.id}
+                    onOpenChange={(open) => {
+                      if (open) {
+                        setSelectedOwnerId(owner.id);
+                      } else if (selectedOwnerId === owner.id) {
+                        setSelectedOwnerId(null);
+                      }
+                    }}
+                  >
+                    <Card className="gap-1.5 p-3">
+                      <CollapsibleTrigger className="w-full">
+                        <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors flex items-center justify-between py-1.5 px-0 min-h-0">
+                          <div className="flex items-center gap-2">
+                            <CardTitle className="m-0 text-base">{owner.name || "Unnamed"}</CardTitle>
+                            {!owner.active && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-muted text-muted-foreground">
+                                Inactive
+                              </span>
+                            )}
+                          </div>
+                          <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
+                        </CardHeader>
+                      </CollapsibleTrigger>
+                      <CollapsibleContent>
+                        <CardContent className="space-y-2 pt-0 px-0">
+                          <div className="flex items-center justify-between">
                             <div>
-                              <div className="font-medium text-sm">
-                                {u.name || u.username || u.email}
-                              </div>
+                              <div className="text-sm text-muted-foreground">{owner.email}</div>
                               <div className="text-xs text-muted-foreground">
-                                {u.email} • {u.role}
+                                Tenant: {owner.yachtId || "-"}
+                              </div>
+                              {owner.users && owner.users.length > 0 && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {owner.users.length} user{owner.users.length !== 1 ? "s" : ""} in this vessel
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant={owner.active ? "secondary" : "default"}
+                                onClick={() => toggleOwnerActive(owner.id, !owner.active)}
+                              >
+                                {owner.active ? "Deactivate" : "Activate"}
+                              </Button>
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                onClick={() => handleDeleteClick(owner)}
+                                title="Delete owner"
+                                aria-label="Delete owner"
+                                className="gap-2"
+                              >
+                                <Trash2 className="h-5 w-5 shrink-0 stroke-current" />
+                                <span className="font-medium">Delete</span>
+                              </Button>
+                            </div>
+                          </div>
+
+                          {owner.users && owner.users.length > 0 && (
+                            <div className="space-y-2">
+                              <div className="text-sm font-semibold">Users</div>
+                              <div className="space-y-2">
+                                {owner.users.map((u) => (
+                                  <div
+                                    key={u.id}
+                                    className="flex items-center justify-between rounded border p-2"
+                                  >
+                                    <div>
+                                      <div className="font-medium text-sm">
+                                        {u.name || u.username || u.email}
+                                      </div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {u.email} • {u.role}
+                                      </div>
+                                    </div>
+                                    <Button
+                                      size="sm"
+                                      variant={u.active ? "secondary" : "default"}
+                                      onClick={() => toggleUserActive(u.id, !u.active)}
+                                    >
+                                      {u.active ? "Deactivate" : "Activate"}
+                                    </Button>
+                                  </div>
+                                ))}
                               </div>
                             </div>
-                            <Button
-                              size="sm"
-                              variant={u.active ? "secondary" : "default"}
-                              onClick={() => toggleUserActive(u.id, !u.active)}
-                            >
-                              {u.active ? "Deactivate" : "Activate"}
-                            </Button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </CollapsibleContent>
-            </Card>
-          </Collapsible>
+                          )}
+                        </CardContent>
+                      </CollapsibleContent>
+                    </Card>
+                  </Collapsible>
+                ))}
+              </div>
+            )}
+          </>
         )}
       </div>
+
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Owner</AlertDialogTitle>
+          </AlertDialogHeader>
+          <div className="text-sm text-muted-foreground space-y-3">
+            <p>
+              Are you sure you want to delete <strong>{ownerToDelete?.name || ownerToDelete?.email}</strong>?
+            </p>
+            <div>
+              <p className="mb-2">This will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>The owner account</li>
+                <li>The associated vessel (yacht)</li>
+                <li>All users in this vessel</li>
+                <li>All data associated with this vessel (trips, tasks, expenses, etc.)</li>
+              </ul>
+            </div>
+            <p className="text-destructive font-medium">This action cannot be undone.</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete Owner"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

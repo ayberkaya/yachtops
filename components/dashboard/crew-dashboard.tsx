@@ -48,31 +48,33 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
       { revalidate: 30, tags: [`tasks-${yachtId}`, `user-tasks-${user.id}`] }
     )();
 
-    // Cache role assigned tasks query
-    const roleAssignedTasksPromise = unstable_cache(
-      async () => db.task.findMany({
-        where: {
-          yachtId: yachtId!, // yachtId is guaranteed to be string here
-          assigneeRole: user.role,
-          status: {
-            not: TaskStatus.DONE,
-          },
-        },
-        select: {
-          id: true,
-          title: true,
-          dueDate: true,
-          status: true,
-          trip: {
-            select: { name: true },
-          },
-        },
-        orderBy: { dueDate: "asc" },
-        take: 50, // Limit to prevent huge payloads
-      }),
-      [getCacheKey("role-tasks", yachtId), user.role],
-      { revalidate: 30, tags: [`tasks-${yachtId}`] }
-    )();
+    // Cache role assigned tasks query (skip if yachtId is null for SUPER_ADMIN)
+    const roleAssignedTasksPromise = yachtId
+      ? unstable_cache(
+          async () => db.task.findMany({
+            where: {
+              yachtId: yachtId,
+              assigneeRole: user.role,
+              status: {
+                not: TaskStatus.DONE,
+              },
+            },
+            select: {
+              id: true,
+              title: true,
+              dueDate: true,
+              status: true,
+              trip: {
+                select: { name: true },
+              },
+            },
+            orderBy: { dueDate: "asc" },
+            take: 50, // Limit to prevent huge payloads
+          }),
+          [getCacheKey("role-tasks", yachtId), user.role],
+          { revalidate: 30, tags: [`tasks-${yachtId}`] }
+        )()
+      : Promise.resolve([]);
 
     // Cache my expenses query (user-specific)
     const myExpensesPromise = unstable_cache(
@@ -100,12 +102,12 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
       { revalidate: 30, tags: [`expenses-${yachtId}`, `user-expenses-${user.id}`] }
     )();
 
-    // Cache alcohol stocks query (if permission granted)
-    const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions)
+    // Cache alcohol stocks query (if permission granted and yachtId exists)
+    const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.alcoholStock.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
             },
             select: {
               id: true,
@@ -119,12 +121,12 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-    // Cache marina permissions query (if permission granted)
-    const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions)
+    // Cache marina permissions query (if permission granted and yachtId exists)
+    const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.marinaPermissionDocument.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
               expiryDate: {
                 not: null,
               },
@@ -155,12 +157,12 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-    // Cache maintenance logs query (if permission granted)
-    const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions)
+    // Cache maintenance logs query (if permission granted and yachtId exists)
+    const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.maintenanceLog.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
               nextDueDate: {
                 not: null,
                 // Server-side filtering: only get maintenance due within 30 days

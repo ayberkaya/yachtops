@@ -23,97 +23,103 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       throw new Error("User must be assigned to a yacht to access dashboard");
     }
     
-    // Cache pending expenses query (revalidates every 30 seconds)
-    const pendingExpensesPromise = unstable_cache(
-      async () => db.expense.findMany({
-        where: {
-          yachtId: yachtId!, // yachtId is guaranteed to be string here (checked above)
-          status: ExpenseStatus.SUBMITTED,
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          description: true,
-          baseAmount: true,
-          amount: true,
-          currency: true,
-          date: true,
-          createdAt: true,
-          createdBy: {
-            select: { name: true, email: true },
-          },
-          category: {
-            select: { name: true },
-          },
-          trip: {
-            select: { name: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      [getCacheKey("pending-expenses", yachtId)],
-      { revalidate: 30, tags: [`expenses-${yachtId}`] }
-    )();
+    // Cache pending expenses query (revalidates every 30 seconds, skip if yachtId is null)
+    const pendingExpensesPromise = yachtId
+      ? unstable_cache(
+          async () => db.expense.findMany({
+            where: {
+              yachtId: yachtId,
+              status: ExpenseStatus.SUBMITTED,
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              description: true,
+              baseAmount: true,
+              amount: true,
+              currency: true,
+              date: true,
+              createdAt: true,
+              createdBy: {
+                select: { name: true, email: true },
+              },
+              category: {
+                select: { name: true },
+              },
+              trip: {
+                select: { name: true },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          }),
+          [getCacheKey("pending-expenses", yachtId)],
+          { revalidate: 30, tags: [`expenses-${yachtId}`] }
+        )()
+      : Promise.resolve([]);
 
-    // Cache recent expenses query
-      const recentExpensesPromise = unstable_cache(
-      async () => db.expense.findMany({
-        where: {
-          yachtId: yachtId!, // yachtId is guaranteed to be string here
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          description: true,
-          baseAmount: true,
-          amount: true,
-          currency: true,
-          date: true,
-          createdAt: true,
-          createdBy: {
-            select: { name: true, email: true },
-          },
-          category: {
-            select: { name: true },
-          },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
-      [getCacheKey("recent-expenses", yachtId)],
-      { revalidate: 30, tags: [`expenses-${yachtId}`] }
-    )();
+    // Cache recent expenses query (skip if yachtId is null)
+    const recentExpensesPromise = yachtId
+      ? unstable_cache(
+          async () => db.expense.findMany({
+            where: {
+              yachtId: yachtId,
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              description: true,
+              baseAmount: true,
+              amount: true,
+              currency: true,
+              date: true,
+              createdAt: true,
+              createdBy: {
+                select: { name: true, email: true },
+              },
+              category: {
+                select: { name: true },
+              },
+            },
+            orderBy: { createdAt: "desc" },
+            take: 5,
+          }),
+          [getCacheKey("recent-expenses", yachtId)],
+          { revalidate: 30, tags: [`expenses-${yachtId}`] }
+        )()
+      : Promise.resolve([]);
 
-    // Cache upcoming trips query
-    const upcomingTripsPromise = unstable_cache(
-      async () => db.trip.findMany({
-        where: {
-          yachtId: yachtId!, // yachtId is guaranteed to be string here
-          startDate: {
-            gte: new Date(),
-          },
-        },
-        select: {
-          id: true,
-          name: true,
-          startDate: true,
-          endDate: true,
-          status: true,
-        },
-        orderBy: { startDate: "asc" },
-        take: 5,
-      }),
-      [getCacheKey("upcoming-trips", yachtId)],
-      { revalidate: 60, tags: [`trips-${yachtId}`] }
-    )();
+    // Cache upcoming trips query (skip if yachtId is null)
+    const upcomingTripsPromise = yachtId
+      ? unstable_cache(
+          async () => db.trip.findMany({
+            where: {
+              yachtId: yachtId,
+              startDate: {
+                gte: new Date(),
+              },
+            },
+            select: {
+              id: true,
+              name: true,
+              startDate: true,
+              endDate: true,
+              status: true,
+            },
+            orderBy: { startDate: "asc" },
+            take: 5,
+          }),
+          [getCacheKey("upcoming-trips", yachtId)],
+          { revalidate: 60, tags: [`trips-${yachtId}`] }
+        )()
+      : Promise.resolve([]);
 
-    // Cache alcohol stocks query (if permission granted)
-    const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions)
+    // Cache alcohol stocks query (if permission granted and yachtId exists)
+    const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.alcoholStock.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
             },
             select: {
               id: true,
@@ -127,12 +133,12 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-    // Cache marina permissions query (if permission granted)
-    const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions)
+    // Cache marina permissions query (if permission granted and yachtId exists)
+    const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.marinaPermissionDocument.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
               expiryDate: {
                 not: null,
               },
@@ -163,12 +169,12 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-    // Cache maintenance logs query (if permission granted)
-    const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions)
+    // Cache maintenance logs query (if permission granted and yachtId exists)
+    const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.maintenanceLog.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
               nextDueDate: {
                 not: null,
                 // Server-side filtering: only get maintenance due within 30 days
@@ -189,12 +195,12 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-    // Cache role tasks query (if permission granted)
-    const roleTasksPromise = hasPermission(user, "tasks.view", user.permissions)
+    // Cache role tasks query (if permission granted and yachtId exists)
+    const roleTasksPromise = hasPermission(user, "tasks.view", user.permissions) && yachtId
       ? unstable_cache(
           async () => db.task.findMany({
             where: {
-              yachtId: yachtId!, // yachtId is guaranteed to be string here
+              yachtId: yachtId,
               assigneeRole: user.role,
               status: {
                 not: TaskStatus.DONE,
