@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Providers } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
@@ -66,6 +67,7 @@ export default function RootLayout({
           </Providers>
         </ErrorBoundary>
         {/* <SpeedInsights /> */}
+        <Analytics />
       </body>
     </html>
   );
