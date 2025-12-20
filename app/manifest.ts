@@ -1,5 +1,8 @@
 import { MetadataRoute } from 'next'
 
+// Cache-busting version for icons - increment this when icons are updated
+const ICON_VERSION = 'v2'
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'HelmOps - Helm Operations Management',
@@ -12,13 +15,13 @@ export default function manifest(): MetadataRoute.Manifest {
     orientation: 'portrait-primary',
     icons: [
       {
-        src: '/icon-192.png',
+        src: `/icon-192.png?v=${ICON_VERSION}`,
         sizes: '192x192',
         type: 'image/png',
         purpose: 'maskable',
       },
       {
-        src: '/icon-512.png',
+        src: `/icon-512.png?v=${ICON_VERSION}`,
         sizes: '512x512',
         type: 'image/png',
         purpose: 'maskable',
@@ -31,14 +34,14 @@ export default function manifest(): MetadataRoute.Manifest {
         short_name: 'Expenses',
         description: 'View and manage expenses',
         url: '/dashboard/expenses',
-        icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+        icons: [{ src: `/icon-192.png?v=${ICON_VERSION}`, sizes: '192x192' }],
       },
       {
         name: 'Tasks',
         short_name: 'Tasks',
         description: 'View and manage tasks',
         url: '/dashboard/tasks',
-        icons: [{ src: '/icon-192.png', sizes: '192x192' }],
+        icons: [{ src: `/icon-192.png?v=${ICON_VERSION}`, sizes: '192x192' }],
       },
     ],
   }

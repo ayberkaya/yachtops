@@ -1,5 +1,5 @@
 // Service Worker for HelmOps PWA (offline-first with API caching)
-const CACHE_NAME = "helmops-static-v4";
+const CACHE_NAME = "helmops-static-v5";
 const API_CACHE_NAME = "helmops-api-v2";
 
 const PRECACHE_URLS = [
@@ -186,7 +186,19 @@ self.addEventListener("activate", (event) => {
           return null;
         })
       )
-    )
+    ).then(() => {
+      // Force delete icon cache to ensure fresh icons are loaded
+      return caches.open(CACHE_NAME).then((cache) => {
+        return Promise.all([
+          cache.delete("/icon-192.png"),
+          cache.delete("/icon-512.png"),
+          cache.delete(new Request("/icon-192.png")),
+          cache.delete(new Request("/icon-512.png")),
+        ]).catch(() => {
+          // Ignore errors if icons aren't cached yet
+        });
+      });
+    })
   );
   return self.clients.claim();
 });
@@ -402,8 +414,8 @@ self.addEventListener("push", (event) => {
   const options = {
     title: data.title || "HelmOps",
     body: data.body || "You have a new notification",
-    icon: data.icon || "/icon-192.png",
-    badge: "/icon-192.png",
+    icon: data.icon || "/icon-192.png?v=v2",
+    badge: "/icon-192.png?v=v2",
     tag: data.tag || "notification",
     data: data.data || {},
     requireInteraction: data.requireInteraction || false,
