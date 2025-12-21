@@ -127,6 +127,7 @@ model Trip {
   tasks           Task[]
   itineraryDays   TripItineraryDay[]
   checklists      TripChecklistItem[]
+  shoppingLists   ShoppingList[]
   tankLogs        TripTankLog[]
   movementLogs    TripMovementLog[]
   createdBy       User?               @relation("TripCreator", fields: [createdByUserId], references: [id])
@@ -600,6 +601,7 @@ model ShoppingList {
   id              String             @id @default(cuid())
   yachtId         String             @map("yacht_id")
   storeId         String?            @map("store_id")
+  tripId          String?            @map("trip_id")
   name            String
   description     String?
   status          ShoppingListStatus @default(DRAFT)
@@ -609,6 +611,7 @@ model ShoppingList {
   items           ShoppingItem[]
   createdBy       User?              @relation("ShoppingListCreator", fields: [createdByUserId], references: [id])
   store           ShoppingStore?     @relation(fields: [storeId], references: [id])
+  trip            Trip?              @relation(fields: [tripId], references: [id], onDelete: SetNull)
   yacht           Yacht              @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
   @@map("shopping_lists")

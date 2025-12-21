@@ -11,6 +11,7 @@ const updateListSchema = z.object({
   name: z.string().min(1).optional(),
   description: z.string().optional().nullable(),
   status: z.nativeEnum(ShoppingListStatus).optional(),
+  tripId: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -31,6 +32,9 @@ export async function GET(
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
+        },
+        trip: {
+          select: { id: true, name: true, code: true },
         },
         items: {
           orderBy: { createdAt: "asc" },
@@ -85,6 +89,7 @@ export async function PATCH(
     if (validated.name !== undefined) updateData.name = validated.name;
     if (validated.description !== undefined) updateData.description = validated.description;
     if (validated.status !== undefined) updateData.status = validated.status;
+    if (validated.tripId !== undefined) updateData.tripId = validated.tripId;
 
     const list = await db.shoppingList.update({
       where: { id },
@@ -92,6 +97,9 @@ export async function PATCH(
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
+        },
+        trip: {
+          select: { id: true, name: true, code: true },
         },
         items: {
           orderBy: { createdAt: "asc" },

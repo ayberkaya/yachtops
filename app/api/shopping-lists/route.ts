@@ -10,6 +10,7 @@ const listSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().nullable(),
   status: z.nativeEnum(ShoppingListStatus).optional(),
+  tripId: z.string().optional().nullable(),
 });
 
 const updateListSchema = listSchema.partial();
@@ -37,6 +38,9 @@ export async function GET(request: NextRequest) {
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
+        },
+        trip: {
+          select: { id: true, name: true, code: true },
         },
         items: {
           orderBy: { createdAt: "asc" },
@@ -97,11 +101,15 @@ export async function POST(request: NextRequest) {
         name: validated.name,
         description: validated.description || null,
         status: validated.status || ShoppingListStatus.DRAFT,
+        tripId: validated.tripId || null,
         createdByUserId: session!.user.id,
       },
       include: {
         createdBy: {
           select: { id: true, name: true, email: true },
+        },
+        trip: {
+          select: { id: true, name: true, code: true },
         },
         _count: {
           select: { items: true },

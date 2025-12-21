@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -23,9 +23,17 @@ const listSchema = z.object({
   name: z.string().min(1, "Name is required"),
   description: z.string().optional().nullable(),
   status: z.nativeEnum(ShoppingListStatus).optional(),
+  tripId: z.string().optional().nullable(),
 });
 
 type ListFormData = z.infer<typeof listSchema>;
+
+interface Trip {
+  id: string;
+  name: string;
+  code: string | null;
+  status: string;
+}
 
 interface ShoppingListFormProps {
   list?: {
@@ -33,6 +41,7 @@ interface ShoppingListFormProps {
     name: string;
     description: string | null;
     status: ShoppingListStatus;
+    tripId: string | null;
   } | null;
   onSuccess: (list: any) => void;
   onDelete?: () => void;
@@ -41,7 +50,28 @@ interface ShoppingListFormProps {
 export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [loadingTrips, setLoadingTrips] = useState(true);
   const { refresh } = useNotifications();
+
+  // Fetch trips on mount
+  useEffect(() => {
+    const fetchTrips = async () => {
+      try {
+        const response = await fetch("/api/trips?limit=100");
+        if (response.ok) {
+          const result = await response.json();
+          const tripsData = Array.isArray(result) ? result : (result.data || []);
+          setTrips(tripsData);
+        }
+      } catch (error) {
+        console.error("Error fetching trips:", error);
+      } finally {
+        setLoadingTrips(false);
+      }
+    };
+    fetchTrips();
+  }, []);
 
   const sanitizedDefaults: ListFormData = list
     ? {
@@ -49,11 +79,13 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
         description: list.description ?? "",
         status:
           list.status === ShoppingListStatus.DRAFT ? ShoppingListStatus.ACTIVE : list.status,
+        tripId: list.tripId || null,
       }
     : {
         name: "",
         description: "",
         status: ShoppingListStatus.ACTIVE,
+        tripId: null,
       };
 
   const form = useForm<ListFormData>({
@@ -148,6 +180,39 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
               <FormControl>
                 <Textarea {...field} value={field.value || ""} placeholder="Description" />
               </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="tripId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Trip (Optional)</FormLabel>
+              <Select
+                onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                value={field.value || "none"}
+                disabled={loadingTrips}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={loadingTrips ? "Loading trips..." : "Select a trip"} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="none">No trip</SelectItem>
+                  {trips.map((trip) => (
+                    <SelectItem key={trip.id} value={trip.id}>
+                      {trip.name} {trip.code ? `(${trip.code})` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormDescription>
+                Optionally associate this shopping list with a trip
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}

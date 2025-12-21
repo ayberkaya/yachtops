@@ -30,6 +30,12 @@ interface ShoppingList {
   name: string;
   description: string | null;
   status: ShoppingListStatus;
+  tripId: string | null;
+  trip: {
+    id: string;
+    name: string;
+    code: string | null;
+  } | null;
   createdBy: {
     id: string;
     name: string | null;

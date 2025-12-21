@@ -33,6 +33,9 @@ export default async function ShoppingPage() {
         createdBy: {
           select: { id: true, name: true, email: true },
         },
+        trip: {
+          select: { id: true, name: true, code: true },
+        },
         _count: {
           select: { items: true },
         },
