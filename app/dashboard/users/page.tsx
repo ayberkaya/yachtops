@@ -33,6 +33,13 @@ export default async function UsersPage() {
         name: true,
         role: true,
         permissions: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         createdAt: true,
       },
     orderBy: { createdAt: "desc" },
@@ -44,7 +51,19 @@ export default async function UsersPage() {
         <h1 className="text-3xl font-bold">Users</h1>
       </div>
       <UserList 
-        initialUsers={users.map((user: { createdAt: Date }) => ({
+        initialUsers={users.map((user: {
+          id: string;
+          email: string;
+          name: string | null;
+          role: string;
+          permissions: string | null;
+          customRoleId: string | null;
+          customRole: {
+            id: string;
+            name: string;
+          } | null;
+          createdAt: Date;
+        }) => ({
           ...user,
           createdAt: user.createdAt.toISOString(),
         }))} 

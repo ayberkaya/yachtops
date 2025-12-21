@@ -68,6 +68,94 @@ export type Permission =
   | "maintenance.edit"
   | "maintenance.delete";
 
+/**
+ * Permission descriptions - what each permission allows
+ */
+export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
+  // Financial Data
+  "expenses.view": "Giderleri görüntüleme",
+  "expenses.create": "Yeni gider oluşturma",
+  "expenses.edit": "Mevcut giderleri düzenleme",
+  "expenses.approve": "Giderleri onaylama",
+  "expenses.delete": "Giderleri silme",
+  "expenses.categories.manage": "Gider kategorilerini yönetme",
+  
+  // Operational Data
+  "operational.view": "Operasyonel verileri görüntüleme (vardiyalar, izinler vb.)",
+  "operational.create": "Operasyonel veri oluşturma",
+  "operational.edit": "Operasyonel verileri düzenleme",
+  "operational.delete": "Operasyonel verileri silme",
+  
+  // Tasks
+  "tasks.view": "Görevleri görüntüleme",
+  "tasks.create": "Yeni görev oluşturma",
+  "tasks.edit": "Görevleri düzenleme",
+  "tasks.delete": "Görevleri silme",
+  
+  // Documents
+  "documents.view": "Dokümanları görüntüleme",
+  "documents.create": "Yeni doküman oluşturma",
+  "documents.edit": "Dokümanları düzenleme",
+  "documents.delete": "Dokümanları silme",
+  "documents.receipts.view": "Fişleri görüntüleme",
+  "documents.marina.view": "Marina dokümanlarını görüntüleme",
+  "documents.vessel.view": "Tekne dokümanlarını görüntüleme",
+  "documents.crew.view": "Mürettebat dokümanlarını görüntüleme",
+  "documents.upload": "Doküman yükleme",
+  
+  // Inventory
+  "inventory.view": "Envanteri görüntüleme",
+  "inventory.create": "Yeni envanter kaydı oluşturma",
+  "inventory.edit": "Envanter kayıtlarını düzenleme",
+  "inventory.delete": "Envanter kayıtlarını silme",
+  "inventory.alcohol.view": "Alkol envanterini görüntüleme",
+  "inventory.alcohol.manage": "Alkol envanterini yönetme",
+  
+  // Voyages (Trips)
+  "trips.view": "Seyahatleri görüntüleme",
+  "trips.create": "Yeni seyahat oluşturma",
+  "trips.edit": "Seyahatleri düzenleme",
+  "trips.delete": "Seyahatleri silme",
+  
+  // Crew Management
+  "users.view": "Kullanıcıları görüntüleme",
+  "users.create": "Yeni kullanıcı oluşturma",
+  "users.edit": "Kullanıcıları düzenleme",
+  "users.delete": "Kullanıcıları silme",
+  
+  // Role Management
+  "roles.view": "Rolleri görüntüleme",
+  "roles.create": "Yeni rol oluşturma",
+  "roles.edit": "Rolleri düzenleme",
+  "roles.delete": "Rolleri silme",
+  
+  // Messages
+  "messages.view": "Mesajları görüntüleme",
+  "messages.create": "Mesaj gönderme",
+  "messages.edit": "Mesajları düzenleme",
+  "messages.delete": "Mesajları silme",
+  "messages.channels.manage": "Mesaj kanallarını yönetme",
+  
+  // Shopping
+  "shopping.view": "Alışveriş listelerini görüntüleme",
+  "shopping.create": "Yeni alışveriş listesi oluşturma",
+  "shopping.edit": "Alışveriş listelerini düzenleme",
+  "shopping.delete": "Alışveriş listelerini silme",
+  
+  // Performance
+  "performance.view": "Performans verilerini görüntüleme",
+  
+  // Maintenance
+  "maintenance.view": "Bakım kayıtlarını görüntüleme",
+  "maintenance.create": "Yeni bakım kaydı oluşturma",
+  "maintenance.edit": "Bakım kayıtlarını düzenleme",
+  "maintenance.delete": "Bakım kayıtlarını silme",
+  
+  // Settings
+  "settings.view": "Ayarları görüntüleme",
+  "settings.edit": "Ayarları düzenleme",
+};
+
 export const PERMISSION_GROUPS: Record<string, Permission[]> = {
   "Financial Data": [
     "expenses.view",

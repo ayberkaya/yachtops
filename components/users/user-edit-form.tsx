@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,16 +18,25 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { UserRole } from "@prisma/client";
-import { Permission, DEFAULT_PERMISSIONS, parsePermissions, PERMISSION_GROUPS } from "@/lib/permissions";
+import { Permission, DEFAULT_PERMISSIONS, parsePermissions, PERMISSION_GROUPS, PERMISSION_DESCRIPTIONS } from "@/lib/permissions";
 
 const userEditSchema = z.object({
   name: z.string().optional(),
   role: z.nativeEnum(UserRole),
+  customRoleId: z.string().optional().nullable(),
   permissions: z.array(z.string()).optional(),
 });
 
 type UserEditFormData = z.infer<typeof userEditSchema>;
+
+interface CustomRole {
+  id: string;
+  name: string;
+  permissions: string;
+  active: boolean;
+}
 
 interface UserEditFormProps {
   user: {
@@ -36,6 +45,11 @@ interface UserEditFormProps {
     name: string | null;
     role: UserRole;
     permissions: string | null;
+    customRoleId: string | null;
+    customRole: {
+      id: string;
+      name: string;
+    } | null;
   };
   onSuccess: () => void;
 }
@@ -46,6 +60,26 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
   const [useCustomPermissions, setUseCustomPermissions] = useState(
     user.permissions !== null && user.permissions !== ""
   );
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
+
+  // Fetch custom roles on mount
+  useEffect(() => {
+    const fetchCustomRoles = async () => {
+      try {
+        const response = await fetch("/api/roles");
+        if (response.ok) {
+          const roles = await response.json();
+          setCustomRoles(roles.filter((r: CustomRole) => r.active));
+        }
+      } catch (error) {
+        console.error("Error fetching custom roles:", error);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    fetchCustomRoles();
+  }, []);
 
   const currentPermissions = user.permissions && user.permissions !== ""
     ? parsePermissions(user.permissions)
@@ -56,20 +90,37 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
     defaultValues: {
       name: user.name || "",
       role: user.role,
+      customRoleId: user.customRoleId || null,
       permissions: currentPermissions,
     },
   });
 
   const selectedRole = form.watch("role");
+  const selectedCustomRoleId = form.watch("customRoleId");
 
   // When role changes, update permissions to default for that role
-  const handleRoleChange = (role: UserRole) => {
-    form.setValue("role", role);
-    if (!useCustomPermissions) {
-      // Only update permissions if not using custom permissions
-      form.setValue("permissions", DEFAULT_PERMISSIONS[role] || []);
+  const handleRoleChange = (value: string) => {
+    // Check if it's a custom role (starts with "custom_")
+    if (value.startsWith("custom_")) {
+      const customRoleId = value.replace("custom_", "");
+      const customRole = customRoles.find(r => r.id === customRoleId);
+      form.setValue("customRoleId", customRoleId);
+      form.setValue("role", UserRole.CREW); // Default role for custom roles
+      if (customRole) {
+        const rolePermissions = parsePermissions(customRole.permissions);
+        form.setValue("permissions", rolePermissions);
+        // Custom roles have their own permissions, enable custom permissions view so user can edit
+        setUseCustomPermissions(true);
+      }
+    } else {
+      // System role
+      const role = value as UserRole;
+      form.setValue("role", role);
+      form.setValue("customRoleId", null);
+      if (!useCustomPermissions) {
+        form.setValue("permissions", DEFAULT_PERMISSIONS[role] || []);
+      }
     }
-    // If using custom permissions, keep current permissions
   };
 
   const onSubmit = async (data: UserEditFormData) => {
@@ -81,6 +132,13 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
         name: data.name,
         role: data.role,
       };
+
+      // Add custom role if selected
+      if (data.customRoleId) {
+        updateData.customRoleId = data.customRoleId;
+      } else {
+        updateData.customRoleId = null;
+      }
 
       // Only send permissions if using custom permissions
       if (useCustomPermissions) {
@@ -163,20 +221,30 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
             <FormItem>
               <FormLabel>Role *</FormLabel>
               <Select
-                onValueChange={(value) => handleRoleChange(value as UserRole)}
-                defaultValue={field.value}
+                onValueChange={handleRoleChange}
+                value={selectedCustomRoleId ? `custom_${selectedCustomRoleId}` : field.value}
               >
                 <FormControl>
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue placeholder="Select a role" />
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
                   <SelectItem value={UserRole.CREW}>Crew</SelectItem>
                   <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
                   <SelectItem value={UserRole.OWNER}>Owner</SelectItem>
+                  {customRoles.map((role) => (
+                    <SelectItem key={role.id} value={`custom_${role.id}`}>
+                      {role.name}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
+              <FormDescription>
+                {selectedCustomRoleId 
+                  ? "Custom role permissions will be applied"
+                  : "Default permissions will be applied based on role"}
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -224,30 +292,42 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
               {useCustomPermissions && (
                 <div className="space-y-4 border rounded-lg p-4">
                   <FormLabel>Permissions</FormLabel>
-                  {Object.entries(PERMISSION_GROUPS).map(([group, groupPermissions]) => (
-                    <div key={group} className="space-y-2">
-                      <p className="text-sm font-medium text-muted-foreground">{group}</p>
-                      <div className="grid grid-cols-2 gap-2">
-                        {groupPermissions.map((permission) => (
-                          <div key={permission} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={`edit-${permission}`}
-                              checked={permissions.includes(permission)}
-                              onCheckedChange={() => togglePermission(permission)}
-                            />
-                            <label
-                              htmlFor={`edit-${permission}`}
-                              className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                            >
-                              {permission.includes(".")
-                                ? permission.split(".")[1]?.replace("-", " ") || permission
-                                : permission}
-                            </label>
+                  <Accordion type="single" collapsible className="w-full">
+                    {Object.entries(PERMISSION_GROUPS).map(([group, groupPermissions]) => (
+                      <AccordionItem key={group} value={group} className="border-b">
+                        <AccordionTrigger className="text-sm font-semibold">
+                          {group}
+                        </AccordionTrigger>
+                        <AccordionContent>
+                          <div className="grid grid-cols-1 gap-3 pt-2">
+                            {groupPermissions.map((permission) => (
+                              <div key={permission} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                                <Checkbox
+                                  id={`edit-${permission}`}
+                                  checked={permissions.includes(permission)}
+                                  onCheckedChange={() => togglePermission(permission)}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1 space-y-0.5">
+                                  <label
+                                    htmlFor={`edit-${permission}`}
+                                    className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                                  >
+                                    {permission.includes(".")
+                                      ? permission.split(".")[1]?.replace("-", " ") || permission
+                                      : permission}
+                                  </label>
+                                  <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {PERMISSION_DESCRIPTIONS[permission]}
+                                  </p>
+                                </div>
+                              </div>
+                            ))}
                           </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
+                        </AccordionContent>
+                      </AccordionItem>
+                    ))}
+                  </Accordion>
                 </div>
               )}
             </FormItem>

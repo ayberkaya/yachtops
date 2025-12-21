@@ -24,11 +24,10 @@ import {
 } from "@/components/ui/dialog";
 import { UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Trash2, Shield } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import { UserForm } from "./user-form";
 import { UserEditForm } from "./user-edit-form";
-import { RoleForm } from "@/components/roles/role-form";
-import { canManageRoles, canManageUsers } from "@/lib/auth";
+import { canManageUsers } from "@/lib/auth";
 import { useSession } from "next-auth/react";
 
 interface User {
@@ -37,6 +36,11 @@ interface User {
   name: string | null;
   role: UserRole;
   permissions: string | null;
+  customRoleId: string | null;
+  customRole: {
+    id: string;
+    name: string;
+  } | null;
   createdAt: string;
 }
 
@@ -50,10 +54,8 @@ export function UserList({ initialUsers }: UserListProps) {
   const [users, setUsers] = useState(initialUsers);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isRoleDialogOpen, setIsRoleDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   
-  const canManage = session?.user ? canManageRoles(session.user) : false;
   const canDeleteUsers = session?.user ? canManageUsers(session.user) : false;
 
   const handleDelete = async (id: string, email: string) => {
@@ -103,28 +105,6 @@ export function UserList({ initialUsers }: UserListProps) {
             />
           </DialogContent>
         </Dialog>
-        {canManage && (
-          <Dialog open={isRoleDialogOpen} onOpenChange={setIsRoleDialogOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Shield className="mr-2 h-4 w-4" />
-                New Role
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>New Role</DialogTitle>
-                <DialogDescription>Create a new custom role with specific permissions</DialogDescription>
-              </DialogHeader>
-              <RoleForm
-                onSuccess={() => {
-                  setIsRoleDialogOpen(false);
-                  router.refresh();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
-        )}
       </div>
 
       <Card>
@@ -152,7 +132,7 @@ export function UserList({ initialUsers }: UserListProps) {
                     <TableCell>{user.email}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="capitalize">
-                        {user.role.toLowerCase()}
+                        {user.customRole ? user.customRole.name : user.role.toLowerCase()}
                       </Badge>
                     </TableCell>
                     <TableCell>

@@ -18,8 +18,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { UserRole } from "@prisma/client";
-import { Permission, DEFAULT_PERMISSIONS, PERMISSION_GROUPS, parsePermissions } from "@/lib/permissions";
+import { Permission, DEFAULT_PERMISSIONS, PERMISSION_GROUPS, parsePermissions, PERMISSION_DESCRIPTIONS } from "@/lib/permissions";
 
 const userSchema = z.object({
   email: z.string().email("Invalid email address"),
@@ -289,31 +290,43 @@ export function UserForm({ onSuccess }: UserFormProps) {
 
         {useCustomPermissions && (
           <div className="space-y-4 border rounded-lg p-4 max-h-96 overflow-y-auto">
-            <p className="text-sm font-medium">Permissions</p>
-            {Object.entries(PERMISSION_GROUPS).map(([group, groupPermissions]) => (
-              <div key={group} className="space-y-2">
-                <p className="text-sm font-medium text-muted-foreground">{group}</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {groupPermissions.map((permission) => (
-                    <div key={permission} className="flex items-center space-x-2">
-                      <Checkbox
-                        id={permission}
-                        checked={permissions.includes(permission)}
-                        onCheckedChange={() => togglePermission(permission)}
-                      />
-                      <label
-                        htmlFor={permission}
-                        className="text-sm leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                      >
-                        {permission.includes(".")
-                          ? permission.split(".")[1]?.replace("-", " ") || permission
-                          : permission}
-                      </label>
+            <p className="text-sm font-semibold mb-2">Permissions</p>
+            <Accordion type="single" collapsible className="w-full">
+              {Object.entries(PERMISSION_GROUPS).map(([group, groupPermissions]) => (
+                <AccordionItem key={group} value={group} className="border-b">
+                  <AccordionTrigger className="text-sm font-semibold">
+                    {group}
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-1 gap-3 pt-2">
+                      {groupPermissions.map((permission) => (
+                        <div key={permission} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                          <Checkbox
+                            id={permission}
+                            checked={permissions.includes(permission)}
+                            onCheckedChange={() => togglePermission(permission)}
+                            className="mt-1"
+                          />
+                          <div className="flex-1 space-y-0.5">
+                            <label
+                              htmlFor={permission}
+                              className="text-sm font-medium leading-none cursor-pointer peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                            >
+                              {permission.includes(".")
+                                ? permission.split(".")[1]?.replace("-", " ") || permission
+                                : permission}
+                            </label>
+                            <p className="text-xs text-muted-foreground leading-relaxed">
+                              {PERMISSION_DESCRIPTIONS[permission]}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
           </div>
         )}
 

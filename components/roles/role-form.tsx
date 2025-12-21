@@ -12,8 +12,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
-import { Permission, PERMISSION_GROUPS, parsePermissions } from "@/lib/permissions";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Permission, PERMISSION_GROUPS, parsePermissions, PERMISSION_DESCRIPTIONS } from "@/lib/permissions";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 const roleSchema = z.object({
@@ -176,61 +176,73 @@ export function RoleForm({ role, onSuccess }: RoleFormProps) {
           </div>
 
           <ScrollArea className="h-[400px] rounded-md border p-4">
-            <div className="space-y-6">
+            <Accordion type="single" collapsible className="w-full">
               {Object.entries(PERMISSION_GROUPS).map(([groupName, groupPermissions]) => {
                 const selectedCount = groupPermissions.filter((p) => permissions.includes(p)).length;
                 const allSelected = selectedCount === groupPermissions.length;
-                const someSelected = selectedCount > 0 && selectedCount < groupPermissions.length;
 
                 return (
-                  <Card key={groupName}>
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle className="text-base">{groupName}</CardTitle>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => toggleGroup(groupPermissions)}
-                          className="h-8"
-                        >
-                          {allSelected ? "Deselect All" : "Select All"}
-                        </Button>
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        {selectedCount} of {groupPermissions.length} selected
-                      </p>
-                    </CardHeader>
-                    <CardContent className="space-y-2">
-                      {groupPermissions.map((permission) => {
-                        const isChecked = permissions.includes(permission);
-                        const permissionLabel = permission
-                          .split(".")
-                          .slice(1)
-                          .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(" ");
+                  <AccordionItem key={groupName} value={groupName} className="border-b">
+                    <div className="flex items-center justify-between pr-4">
+                      <AccordionTrigger className="text-sm font-semibold flex-1">
+                        <div className="flex items-center gap-2">
+                          <span>{groupName}</span>
+                          <span className="text-xs text-muted-foreground font-normal">
+                            ({selectedCount} of {groupPermissions.length})
+                          </span>
+                        </div>
+                      </AccordionTrigger>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleGroup(groupPermissions);
+                        }}
+                        className="h-8 ml-2"
+                      >
+                        {allSelected ? "Deselect All" : "Select All"}
+                      </Button>
+                    </div>
+                    <AccordionContent>
+                      <div className="grid grid-cols-1 gap-3 pt-2">
+                        {groupPermissions.map((permission) => {
+                          const isChecked = permissions.includes(permission);
+                          const permissionLabel = permission
+                            .split(".")
+                            .slice(1)
+                            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+                            .join(" ");
 
-                        return (
-                          <div key={permission} className="flex items-center space-x-2">
-                            <Checkbox
-                              id={permission}
-                              checked={isChecked}
-                              onCheckedChange={() => togglePermission(permission)}
-                            />
-                            <label
-                              htmlFor={permission}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {permissionLabel}
-                            </label>
-                          </div>
-                        );
-                      })}
-                    </CardContent>
-                  </Card>
+                          return (
+                            <div key={permission} className="flex items-start space-x-3 p-2 rounded-md hover:bg-muted/50 transition-colors">
+                              <Checkbox
+                                id={permission}
+                                checked={isChecked}
+                                onCheckedChange={() => togglePermission(permission)}
+                                className="mt-1"
+                              />
+                              <div className="flex-1 space-y-0.5">
+                                <label
+                                  htmlFor={permission}
+                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                                >
+                                  {permissionLabel}
+                                </label>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                  {PERMISSION_DESCRIPTIONS[permission]}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
                 );
               })}
-            </div>
+            </Accordion>
           </ScrollArea>
         </div>
 

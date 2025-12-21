@@ -151,6 +151,13 @@ export async function PATCH(
         name: true,
         role: true,
         permissions: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         createdAt: true,
       },
     });

@@ -38,6 +38,13 @@ export async function GET(request: NextRequest) {
         name: true,
         role: true,
         permissions: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         createdAt: true,
       },
       orderBy: { createdAt: "desc" },
@@ -144,6 +151,13 @@ export async function POST(request: NextRequest) {
         name: true,
         role: true,
         permissions: true,
+        customRoleId: true,
+        customRole: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
         createdAt: true,
       },
     });

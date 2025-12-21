@@ -241,7 +241,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
         !item.permission ||
         hasPermission(session.user, item.permission as any, session.user.permissions)
     );
-  }, [session?.user, session?.user?.permissions]);
+  }, [session?.user]);
 
   // Fetch pending tasks count
   useEffect(() => {
@@ -617,6 +617,20 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                           <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
                           <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>User Management</span>
                         </Link>
+                        {canManageUsers(user) && (
+                          <Link
+                            href="/dashboard/users/roles-permissions"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setMobileMenuOpen(false);
+                            }}
+                            prefetch={true}
+                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                          >
+                            <Settings size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Roles & Permissions</span>
+                          </Link>
+                        )}
                         <Link
                           href="/dashboard/users/shifts"
                           onClick={(e) => {
@@ -938,7 +952,7 @@ export function Sidebar() {
         !item.permission ||
         hasPermission(session.user, item.permission as any, session.user.permissions)
     );
-  }, [session?.user, session?.user?.permissions]);
+  }, [session?.user]);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -1397,6 +1411,15 @@ export function Sidebar() {
                             <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                             <span className="transition-colors duration-200">User Management</span>
                           </Link>
+                          {canManageUsers(user) && (
+                            <Link
+                              href="/dashboard/users/roles-permissions"
+                              className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                            >
+                              <Settings size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                              <span className="transition-colors duration-200">Roles & Permissions</span>
+                            </Link>
+                          )}
                           <Link
                             href="/dashboard/users/shifts"
                             className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
