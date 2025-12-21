@@ -13,7 +13,7 @@ const creditCardSchema = z.object({
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -35,10 +35,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const resolvedParams = await params;
+
     // Verify the credit card belongs to the tenant
     const existingCard = await db.creditCard.findFirst({
       where: {
-        id: params.id,
+        id: resolvedParams.id,
         yachtId: tenantId,
         deletedAt: null,
       },
@@ -52,7 +54,7 @@ export async function PATCH(
     const validated = creditCardSchema.parse(body);
 
     const creditCard = await db.creditCard.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         ownerName: validated.ownerName,
         lastFourDigits: validated.lastFourDigits,
@@ -64,7 +66,7 @@ export async function PATCH(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }
@@ -78,7 +80,7 @@ export async function PATCH(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await getSession();
@@ -100,10 +102,12 @@ export async function DELETE(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const resolvedParams = await params;
+
     // Verify the credit card belongs to the tenant
     const existingCard = await db.creditCard.findFirst({
       where: {
-        id: params.id,
+        id: resolvedParams.id,
         yachtId: tenantId,
         deletedAt: null,
       },
@@ -115,7 +119,7 @@ export async function DELETE(
 
     // Soft delete
     await db.creditCard.update({
-      where: { id: params.id },
+      where: { id: resolvedParams.id },
       data: {
         deletedAt: new Date(),
       },

@@ -3,12 +3,29 @@
 import React, { useEffect, useState, useMemo, memo, lazy, Suspense } from "react";
 import { useSession } from "next-auth/react";
 import { apiClient, CancelledRequestError } from "@/lib/api-client";
+import { offlineStorage } from "@/lib/offline-storage";
 import { WidgetConfig } from "@/types/widgets";
 import { PendingExpensesWidget } from "./pending-expenses-widget";
 import { RecentExpensesWidget } from "./recent-expenses-widget";
 import { CreditCardExpensesWidget } from "./credit-card-expenses-widget";
 import { CashLedgerSummaryWidget } from "./cash-ledger-summary-widget";
 import { QuickStatsWidget } from "./quick-stats-widget";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { SortableWidgetWrapper } from "./sortable-widget-wrapper";
 // Lazy load less critical widgets - using dynamic imports for code splitting
 // Error handling: if import fails, Suspense fallback will be shown
 // Removed catch handlers to avoid TypeScript type conflicts
@@ -43,7 +60,7 @@ interface WidgetRendererProps {
   pendingExpenses?: any[];
   recentExpenses?: any[];
   creditCardExpenses?: any[];
-  creditCards?: Array<{ id: string; ownerName: string; lastFourDigits: string }>;
+  creditCards?: Array<{ id: string; ownerName: string; lastFourDigits: string; billingCycleEndDate: number | null }>;
   cashBalances?: Array<{ currency: string; balance: number }>;
   upcomingTrips?: any[];
   totalPendingAmount?: number;
@@ -76,6 +93,18 @@ export const WidgetRenderer = memo(function WidgetRenderer({
 
   // Extract role to keep dependency array stable
   const userRole = session?.user?.role;
+
+  // Drag and drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8, // Require 8px of movement before activating drag
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -178,6 +207,61 @@ export const WidgetRenderer = memo(function WidgetRenderer({
     return filtered;
   }, [widgets]);
 
+  // Handle drag end - update widget order
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) {
+      return;
+    }
+
+    const oldIndex = enabledWidgets.findIndex((w) => w.id === active.id);
+    const newIndex = enabledWidgets.findIndex((w) => w.id === over.id);
+
+    if (oldIndex === -1 || newIndex === -1) {
+      return;
+    }
+
+    // Update local state immediately for responsive UI
+    const reorderedWidgets = arrayMove(enabledWidgets, oldIndex, newIndex);
+    const updatedWidgets = widgets.map((widget) => {
+      const newIndexInReordered = reorderedWidgets.findIndex((w) => w.id === widget.id);
+      if (newIndexInReordered !== -1 && widget.enabled) {
+        return { ...widget, order: newIndexInReordered };
+      }
+      return widget;
+    });
+
+    setWidgets(updatedWidgets);
+
+    // Save to API in background (non-blocking)
+    try {
+      const widgetsToSave = updatedWidgets.map((widget, index) => ({
+        id: widget.id,
+        enabled: widget.enabled,
+        order: widget.order ?? index,
+        size: widget.size,
+      }));
+
+      await apiClient.request("/api/dashboard/widgets", {
+        method: "PUT",
+        body: JSON.stringify({ widgets: widgetsToSave }),
+        skipQueue: true,
+        queueOnOffline: false,
+      });
+
+      // Clear cache to force reload on next fetch
+      const origin = typeof window !== "undefined" ? window.location.origin : "";
+      const cacheKey = `GET:${origin}/api/dashboard/widgets:`;
+      await offlineStorage.deleteCache(cacheKey).catch(() => {});
+    } catch (error) {
+      // Silently fail - user can manually save via customizer if needed
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Failed to auto-save widget order:", error);
+      }
+    }
+  };
+
   const renderWidget = useMemo(
     () => (widget: WidgetConfig) => {
     switch (widget.id) {
@@ -275,30 +359,47 @@ export const WidgetRenderer = memo(function WidgetRenderer({
     (w) => w.id !== "cash_ledger_summary" && w.id !== "credit_card_expenses"
   );
 
+  // All widget IDs for drag and drop
+  const allWidgetIds = enabledWidgets.map((w) => w.id);
+
   return (
-    <div className="space-y-6">
-      {showCustomizerButton && (
-        <div className="flex justify-end">
-          <WidgetCustomizer currentWidgets={widgets} onSave={setWidgets} />
-        </div>
-      )}
-      {/* Top Priority Widgets - Side by side on desktop, stacked on mobile */}
-      {topPriorityWidgets.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {topPriorityWidgets.map((widget) => (
-            <div key={widget.id} className="flex justify-start">
-              {renderWidget(widget)}
+    <DndContext
+      sensors={sensors}
+      collisionDetection={closestCenter}
+      onDragEnd={handleDragEnd}
+    >
+      <SortableContext items={allWidgetIds} strategy={verticalListSortingStrategy}>
+        <div className="space-y-6">
+          {showCustomizerButton && (
+            <div className="flex justify-end">
+              <WidgetCustomizer currentWidgets={widgets} onSave={setWidgets} />
             </div>
-          ))}
+          )}
+          {/* Top Priority Widgets - Side by side on desktop, stacked on mobile */}
+          {topPriorityWidgets.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {topPriorityWidgets.map((widget) => (
+                <SortableWidgetWrapper key={widget.id} id={widget.id}>
+                  <div className="flex justify-start">
+                    {renderWidget(widget)}
+                  </div>
+                </SortableWidgetWrapper>
+              ))}
+            </div>
+          )}
+          {/* Other Widgets */}
+          {otherWidgets.length > 0 && (
+            <div className="space-y-4">
+              {otherWidgets.map((widget) => (
+                <SortableWidgetWrapper key={widget.id} id={widget.id}>
+                  {renderWidget(widget)}
+                </SortableWidgetWrapper>
+              ))}
+            </div>
+          )}
         </div>
-      )}
-      {/* Other Widgets */}
-      <div className="space-y-4">
-        {otherWidgets.map((widget) => (
-          <div key={widget.id}>{renderWidget(widget)}</div>
-        ))}
-      </div>
-    </div>
+      </SortableContext>
+    </DndContext>
   );
 }, (prevProps, nextProps) => {
   // Custom comparison function for better performance

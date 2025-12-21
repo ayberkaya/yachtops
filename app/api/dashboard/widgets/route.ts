@@ -7,10 +7,10 @@ import { z } from "zod";
 const updateWidgetsSchema = z.object({
   widgets: z.array(
     z.object({
-      id: z.custom<WidgetType>((val) => {
+      id:       z.custom<WidgetType>((val) => {
         const validWidgetTypes: WidgetType[] = [
           "cash_ledger_summary",
-          "recent_expenses_enhanced",
+          "credit_card_expenses",
           "pending_expenses",
           "recent_expenses",
           "upcoming_trips",

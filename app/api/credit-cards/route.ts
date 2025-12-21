@@ -86,9 +86,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(creditCard, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      console.error("Validation error:", error.errors);
+      console.error("Validation error:", error.issues);
       return NextResponse.json(
-        { error: "Validation error", details: error.errors },
+        { error: "Validation error", details: error.issues },
         { status: 400 }
       );
     }
