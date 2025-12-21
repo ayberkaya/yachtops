@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, ArrowDownCircle, ArrowUpCircle, RefreshCw, ArrowRightLeft, ChevronDown, ChevronUp, Eye } from "lucide-react";
+import { Plus, ArrowDownCircle, ArrowUpCircle, Eye } from "lucide-react";
 import { CashTransactionType } from "@prisma/client";
 import { formatDistanceToNow } from "date-fns";
 
@@ -51,22 +51,12 @@ interface CashData {
   balance: number;
 }
 
-interface ExchangeRates {
-  base: string;
-  rates: Record<string, number>;
-  date: string;
-}
-
-const SUPPORTED_CURRENCIES = ["USD", "EUR", "TRY"];
-
 export function CashView() {
   const router = useRouter();
   const [data, setData] = useState<CashData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [exchangeRates, setExchangeRates] = useState<ExchangeRates | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "EUR" | "TRY">("EUR");
   const [formData, setFormData] = useState({
     type: CashTransactionType.DEPOSIT,
     amount: "",
@@ -74,70 +64,31 @@ export function CashView() {
     description: "",
   });
 
-  const fetchExchangeRates = async () => {
-    try {
-      const response = await fetch("/api/exchange-rates");
-      if (response.ok) {
-        const rates = await response.json();
-        setExchangeRates(rates);
-      }
-    } catch (error) {
-      console.error("Error fetching exchange rates:", error);
+  // Calculate balance by currency from transactions
+  const getBalancesByCurrency = (): Array<{ currency: string; balance: number }> => {
+    if (!data || !data.transactions || data.transactions.length === 0) {
+      return [];
     }
-  };
 
-  // Calculate balance in selected display currency
-  // We need to sum all transactions converted to the display currency
-  const getBalanceInCurrency = (): number => {
-    if (!data || !exchangeRates) {
-      // If no exchange rates, return original balance
-      return data?.balance || 0;
-    }
-    
-    // Handle both API response structures: { data: [...], balance } or { transactions: [...], balance }
-    const transactions = (data as any).data || data.transactions || [];
-    
-    // If no transactions, return 0
-    if (!transactions || transactions.length === 0) {
-      return 0;
-    }
-    
-    // Calculate balance by converting each transaction to display currency
-    let totalBalance = 0;
-    
-    for (const transaction of transactions) {
-      let amountInDisplayCurrency = transaction.amount;
-      
-      // If transaction currency is not the display currency, convert it
-      if (transaction.currency !== displayCurrency) {
-        // Convert to EUR first
-        let amountInEUR = transaction.amount;
-        if (transaction.currency !== "EUR" && exchangeRates.rates[transaction.currency]) {
-          amountInEUR = transaction.amount / exchangeRates.rates[transaction.currency];
-        }
-        
-        // Convert from EUR to display currency
-        if (displayCurrency === "EUR") {
-          amountInDisplayCurrency = amountInEUR;
-        } else {
-          amountInDisplayCurrency = amountInEUR * (exchangeRates.rates[displayCurrency] || 1);
-        }
-      }
-      
-      // Add or subtract based on transaction type
+    const balancesByCurrency = new Map<string, number>();
+
+    for (const transaction of data.transactions) {
+      const currentBalance = balancesByCurrency.get(transaction.currency) || 0;
       if (transaction.type === CashTransactionType.DEPOSIT) {
-        totalBalance += amountInDisplayCurrency;
+        balancesByCurrency.set(transaction.currency, currentBalance + transaction.amount);
       } else {
-        totalBalance -= amountInDisplayCurrency;
+        balancesByCurrency.set(transaction.currency, currentBalance - transaction.amount);
       }
     }
-    
-    return totalBalance;
+
+    // Convert to array and sort by currency
+    return Array.from(balancesByCurrency.entries())
+      .map(([currency, balance]) => ({ currency, balance }))
+      .sort((a, b) => a.currency.localeCompare(b.currency));
   };
 
   useEffect(() => {
     fetchData();
-    fetchExchangeRates();
   }, []);
 
   const fetchData = async () => {
@@ -267,34 +218,43 @@ export function CashView() {
       {/* Balance Card */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Cash Balance</CardTitle>
-              <CardDescription>Current cash balance</CardDescription>
-            </div>
-            <Select
-              value={displayCurrency}
-              onValueChange={(value) => setDisplayCurrency(value as "USD" | "EUR" | "TRY")}
-            >
-              <SelectTrigger className="w-[120px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="USD">USD</SelectItem>
-                <SelectItem value="EUR">EUR</SelectItem>
-                <SelectItem value="TRY">TRY</SelectItem>
-              </SelectContent>
-            </Select>
+          <div>
+            <CardTitle>Cash Balance</CardTitle>
+            <CardDescription>Current cash balance by currency</CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <div className="text-4xl font-bold">
-            {getBalanceInCurrency().toFixed(2)} {displayCurrency}
-          </div>
-          {exchangeRates && (
-            <p className="text-sm text-muted-foreground mt-2">
-              Exchange rates updated: {new Date(exchangeRates.date).toLocaleDateString()}
-            </p>
+        <CardContent className="pt-0">
+          {getBalancesByCurrency().length === 0 ? (
+            <div className="text-center py-3">
+              <p className="text-sm text-muted-foreground">No cash transactions yet</p>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {getBalancesByCurrency().map((balance) => (
+                <div
+                  key={balance.currency}
+                  className="flex items-center justify-between px-1.5 mb-0 rounded-lg bg-muted/50"
+                >
+                  <div className="flex items-center gap-2">
+                    <div className="text-lg font-bold">{balance.currency}</div>
+                  </div>
+                  <div className="text-right">
+                    <p className={`text-base font-semibold ${
+                      balance.balance < 0 
+                        ? "text-red-600 dark:text-red-500" 
+                        : balance.balance > 0 
+                        ? "text-green-600 dark:text-green-500" 
+                        : ""
+                    }`}>
+                      {balance.balance.toLocaleString("en-US", {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </CardContent>
       </Card>

@@ -9,6 +9,8 @@ const updateWidgetsSchema = z.object({
     z.object({
       id: z.custom<WidgetType>((val) => {
         const validWidgetTypes: WidgetType[] = [
+          "cash_ledger_summary",
+          "recent_expenses_enhanced",
           "pending_expenses",
           "recent_expenses",
           "upcoming_trips",
@@ -59,6 +61,21 @@ export async function GET() {
     // If no widgets configured, return defaults for user role
     if (widgets.length === 0) {
       widgets = DEFAULT_WIDGETS[user.role as keyof typeof DEFAULT_WIDGETS] || [];
+    } else {
+      // Merge with defaults to ensure new widgets are included
+      // This ensures that if user has old widget config, new widgets from defaults are added
+      const defaultWidgets = DEFAULT_WIDGETS[user.role as keyof typeof DEFAULT_WIDGETS] || [];
+      const existingWidgetIds = new Set(widgets.map(w => w.id));
+      
+      // Add any default widgets that don't exist in user's config
+      defaultWidgets.forEach(defaultWidget => {
+        if (!existingWidgetIds.has(defaultWidget.id)) {
+          widgets.push(defaultWidget);
+        }
+      });
+      
+      // Sort by order
+      widgets.sort((a, b) => a.order - b.order);
     }
 
     // Cache for 5 minutes - widgets don't change frequently

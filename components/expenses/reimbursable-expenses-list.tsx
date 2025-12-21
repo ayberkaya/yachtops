@@ -196,7 +196,7 @@ export function ReimbursableExpensesList({ expenses: initialExpenses }: Reimburs
               expense.isReimbursed
                 ? {
                     borderColor: "rgba(1, 102, 48, 1)",
-                    backgroundColor: "rgba(1, 102, 48, 0.55)",
+                    backgroundColor: "rgba(1, 102, 48, 0.35)",
                   }
                 : undefined
             }

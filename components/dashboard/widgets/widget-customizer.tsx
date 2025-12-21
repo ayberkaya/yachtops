@@ -38,6 +38,8 @@ interface WidgetCustomizerProps {
 }
 
 const WIDGET_LABELS: Record<WidgetType, string> = {
+  cash_ledger_summary: "Cash Ledger Summary",
+  credit_card_expenses: "Credit Card Expenses",
   pending_expenses: "Pending Expenses",
   recent_expenses: "Recent Expenses",
   upcoming_trips: "Upcoming Trips",

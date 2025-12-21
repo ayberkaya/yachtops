@@ -31,6 +31,7 @@ export const CACHE_TAGS = {
   inventory: (yachtId: string) => `inventory-${yachtId}`,
   maintenance: (yachtId: string) => `maintenance-${yachtId}`,
   documents: (yachtId: string) => `documents-${yachtId}`,
+  cash: (yachtId: string) => `cash-${yachtId}`,
 } as const;
 
 /**
@@ -274,5 +275,110 @@ export function invalidateMaintenance(yachtId: string) {
  */
 export function invalidateDocuments(yachtId: string) {
   revalidateTag(CACHE_TAGS.documents(yachtId), "default");
+}
+
+/**
+ * Get cached cash balance by currency for a yacht
+ * Revalidates every 30 seconds
+ */
+export async function getCachedCashBalanceByCurrency(yachtId: string | null): Promise<Array<{ currency: string; balance: number }>> {
+  if (!yachtId) return [];
+  
+  const tag = CACHE_TAGS.cash(yachtId);
+  return unstable_cache(
+    async () => {
+      const { db } = await import("./db");
+      const { CashTransactionType } = await import("@prisma/client");
+      
+      // Fetch all non-deleted cash transactions for this yacht
+      const transactions = await db.cashTransaction.findMany({
+        where: {
+          yachtId,
+          deletedAt: null,
+        },
+        select: {
+          type: true,
+          amount: true,
+          currency: true,
+        },
+      });
+
+      // Calculate balance by currency
+      const balancesByCurrency = new Map<string, number>();
+      
+      for (const transaction of transactions) {
+        const currentBalance = balancesByCurrency.get(transaction.currency) || 0;
+        if (transaction.type === CashTransactionType.DEPOSIT) {
+          balancesByCurrency.set(transaction.currency, currentBalance + transaction.amount);
+        } else {
+          balancesByCurrency.set(transaction.currency, currentBalance - transaction.amount);
+        }
+      }
+
+      // Convert to array and sort by currency
+      return Array.from(balancesByCurrency.entries())
+        .map(([currency, balance]) => ({ currency, balance }))
+        .sort((a, b) => a.currency.localeCompare(b.currency));
+    },
+    [`cash-balance-${yachtId}`],
+    {
+      revalidate: 30, // 30 seconds
+      tags: [tag],
+    }
+  )();
+}
+
+/**
+ * Get cached recent expenses for a yacht
+ * Revalidates every 30 seconds
+ */
+export async function getCachedRecentExpenses(yachtId: string | null, limit = 5) {
+  if (!yachtId) return [];
+  
+  const tag = CACHE_TAGS.expenses(yachtId);
+  return unstable_cache(
+    async () => {
+      const { db } = await import("./db");
+      const { ExpenseStatus } = await import("@prisma/client");
+      return db.expense.findMany({
+        where: {
+          yachtId,
+          deletedAt: null,
+          // Hide submitted expenses from general listings until they are approved/rejected
+          status: { not: ExpenseStatus.SUBMITTED },
+        },
+        select: {
+          id: true,
+          description: true,
+          baseAmount: true,
+          amount: true,
+          currency: true,
+          date: true,
+          createdAt: true,
+          status: true,
+          createdBy: {
+            select: { name: true, email: true },
+          },
+          category: {
+            select: { name: true },
+          },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+    },
+    [`recent-expenses-${yachtId}-${limit}`],
+    {
+      revalidate: 30, // 30 seconds
+      tags: [tag],
+    }
+  )();
+}
+
+/**
+ * Invalidate cash cache
+ */
+export function invalidateCash(yachtId: string) {
+  revalidateTag(CACHE_TAGS.cash(yachtId), "default");
 }
 

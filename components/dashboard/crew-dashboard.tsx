@@ -78,29 +78,98 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
 
     // Cache my expenses query (user-specific)
     const myExpensesPromise = unstable_cache(
-      async () => db.expense.findMany({
-        where: {
-          createdByUserId: user.id,
-          deletedAt: null,
-        },
-        select: {
-          id: true,
-          description: true,
-          baseAmount: true,
-          amount: true,
-          currency: true,
-          date: true,
-          createdAt: true,
-          category: {
-            select: { name: true },
+      async () => {
+        const { ExpenseStatus } = await import("@prisma/client");
+        return db.expense.findMany({
+          where: {
+            createdByUserId: user.id,
+            deletedAt: null,
+            // Hide submitted expenses from general listings until they are approved/rejected
+            status: { not: ExpenseStatus.SUBMITTED },
           },
-        },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-      }),
+          select: {
+            id: true,
+            description: true,
+            baseAmount: true,
+            amount: true,
+            currency: true,
+            date: true,
+            createdAt: true,
+            category: {
+              select: { name: true },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 5,
+        });
+      },
       [getCacheKey("my-expenses", yachtId, user.id)],
       { revalidate: 30, tags: [`expenses-${yachtId}`, `user-expenses-${user.id}`] }
     )();
+
+    // Cache credit card expenses query (user-specific, only their expenses)
+    const creditCardExpensesPromise = unstable_cache(
+      async () => {
+        const { PaymentMethod, ExpenseStatus } = await import("@prisma/client");
+        return db.expense.findMany({
+          where: {
+            createdByUserId: user.id,
+            paymentMethod: PaymentMethod.CARD,
+            creditCardId: { not: null },
+            deletedAt: null,
+            // Hide submitted expenses from general listings
+            status: { not: ExpenseStatus.SUBMITTED },
+          },
+          select: {
+            id: true,
+            description: true,
+            baseAmount: true,
+            amount: true,
+            currency: true,
+            date: true,
+            createdAt: true,
+            category: {
+              select: { name: true },
+            },
+            createdBy: {
+              select: { name: true, email: true },
+            },
+            creditCard: {
+              select: {
+                id: true,
+                ownerName: true,
+                lastFourDigits: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 20,
+        });
+      },
+      [getCacheKey("credit-card-expenses", yachtId, user.id)],
+      { revalidate: 30, tags: [`expenses-${yachtId}`, `user-expenses-${user.id}`] }
+    )();
+
+    // Cache credit cards query (skip if yachtId is null)
+    const creditCardsPromise = yachtId
+      ? unstable_cache(
+          async () => db.creditCard.findMany({
+            where: {
+              yachtId: yachtId,
+              deletedAt: null,
+            },
+            select: {
+              id: true,
+              ownerName: true,
+              lastFourDigits: true,
+              billingCycleEndDate: true,
+            },
+            orderBy: { createdAt: "desc" },
+          }),
+          [getCacheKey("credit-cards", yachtId)],
+          { revalidate: 60, tags: [`credit-cards-${yachtId}`] }
+        )()
+      : Promise.resolve([]);
 
     // Cache alcohol stocks query (if permission granted and yachtId exists)
     const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions) && yachtId
@@ -183,13 +252,15 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-  let myTasks, roleAssignedTasks, myExpenses, alcoholStocks, marinaPermissions, maintenanceLogs;
+  let myTasks, roleAssignedTasks, myExpenses, creditCardExpenses, creditCards, alcoholStocks, marinaPermissions, maintenanceLogs;
 
   try {
     [
       myTasks,
       roleAssignedTasks,
       myExpenses,
+      creditCardExpenses,
+      creditCards,
       alcoholStocks,
       marinaPermissions,
       maintenanceLogs,
@@ -197,6 +268,8 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
       myTasksPromise,
       roleAssignedTasksPromise,
       myExpensesPromise,
+      creditCardExpensesPromise,
+      creditCardsPromise,
       alcoholStocksPromise,
       marinaPermissionsPromise,
       maintenanceLogsPromise,
@@ -257,6 +330,8 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
 
       <WidgetRenderer
         recentExpenses={recentExpenses}
+        creditCardExpenses={creditCardExpenses}
+        creditCards={creditCards}
         myTasks={myTasks}
         upcomingTrips={[]}
         upcomingMaintenance={upcomingMaintenance}

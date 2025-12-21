@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { ExpenseStatus, PaidBy, CashTransactionType, AuditAction } from "@prisma/client";
+import { ExpenseStatus, PaidBy, PaymentMethod, CashTransactionType, AuditAction } from "@prisma/client";
 import { z } from "zod";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
@@ -10,11 +10,23 @@ import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateExpenseSchema = z.object({
+  tripId: z.string().optional().nullable(),
+  date: z.string().optional(),
+  categoryId: z.string().optional(),
+  description: z.string().optional(),
+  amount: z.number().optional(),
+  currency: z.string().optional(),
+  paymentMethod: z.nativeEnum(PaymentMethod).optional(),
+  paidBy: z.nativeEnum(PaidBy).optional(),
+  creditCardId: z.string().optional().nullable(),
+  vendorName: z.string().optional().nullable(),
+  invoiceNumber: z.string().optional().nullable(),
+  isReimbursable: z.boolean().optional(),
+  notes: z.string().optional().nullable(),
   status: z.nativeEnum(ExpenseStatus).optional(),
   rejectReason: z.string().optional().nullable(),
   isReimbursed: z.boolean().optional(),
   reimbursedAt: z.string().optional().nullable(),
-  // Add other fields that can be updated
 });
 
 export async function GET(
@@ -54,6 +66,9 @@ export async function GET(
         },
         trip: {
           select: { id: true, name: true },
+        },
+        creditCard: {
+          select: { id: true, ownerName: true, lastFourDigits: true },
         },
         receipts: {
           where: { deletedAt: null },
@@ -260,6 +275,80 @@ export async function PATCH(
       updateData.reimbursedAt = validated.isReimbursed 
         ? (validated.reimbursedAt ? new Date(validated.reimbursedAt) : new Date())
         : null;
+
+      // If marking as reimbursed, create cash withdrawal transaction
+      // Allow negative balance - no balance check
+      if (validated.isReimbursed && !existingExpense.isReimbursed) {
+        // Check if cash transaction already exists for this expense (to prevent duplicate)
+        const existingCashTransaction = await db.cashTransaction.findFirst({
+          where: {
+            expenseId: existingExpense.id,
+            deletedAt: null,
+          },
+        });
+
+        if (!existingCashTransaction && tenantId) {
+          // Create cash withdrawal transaction (no balance check - allow negative)
+          await db.cashTransaction.create({
+            data: {
+              yachtId: tenantId,
+              type: CashTransactionType.WITHDRAWAL,
+              amount: existingExpense.amount,
+              currency: existingExpense.currency,
+              description: `Reimbursement: ${existingExpense.description}`,
+              expenseId: existingExpense.id,
+              createdByUserId: session!.user.id,
+            },
+          });
+
+          // Invalidate cash cache
+          const { invalidateCash } = await import("@/lib/server-cache");
+          invalidateCash(tenantId);
+        }
+      }
+      // Note: If unmarking as reimbursed (isReimbursed: false), we don't delete the cash transaction
+      // to maintain audit trail. The transaction remains in the ledger.
+    }
+
+    // Handle other field updates
+    if (validated.tripId !== undefined) {
+      updateData.tripId = validated.tripId;
+    }
+    if (validated.date !== undefined) {
+      updateData.date = new Date(validated.date);
+    }
+    if (validated.categoryId !== undefined) {
+      updateData.categoryId = validated.categoryId;
+    }
+    if (validated.description !== undefined) {
+      updateData.description = validated.description;
+    }
+    if (validated.amount !== undefined) {
+      updateData.amount = validated.amount;
+    }
+    if (validated.currency !== undefined) {
+      updateData.currency = validated.currency;
+    }
+    if (validated.paymentMethod !== undefined) {
+      updateData.paymentMethod = validated.paymentMethod;
+    }
+    if (validated.paidBy !== undefined) {
+      updateData.paidBy = validated.paidBy;
+    }
+    if (validated.creditCardId !== undefined) {
+      updateData.creditCardId = validated.creditCardId;
+    }
+    if (validated.vendorName !== undefined) {
+      updateData.vendorName = validated.vendorName;
+    }
+    if (validated.invoiceNumber !== undefined) {
+      updateData.invoiceNumber = validated.invoiceNumber;
+    }
+    if (validated.isReimbursable !== undefined) {
+      updateData.isReimbursable = validated.isReimbursable;
+    }
+    if (validated.notes !== undefined) {
+      updateData.notes = validated.notes;
     }
 
     // Only update if there's something to update

@@ -41,9 +41,8 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
   const [isProcessing, setIsProcessing] = useState(false);
   const [previewReceipt, setPreviewReceipt] = useState<Receipt | null>(null);
 
-  // Derive extra display info from notes for UI-only fields (crew personal, card owner)
+  // Derive extra display info from notes for UI-only fields (crew personal)
   let crewPersonalLabel: string | null = null;
-  let cardOwnerLabel: string | null = null;
 
   if (typeof expense.notes === "string" && expense.notes.length > 0) {
     const noteLines = expense.notes.split("\n").map((l: string) => l.trim());
@@ -52,13 +51,6 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
     );
     if (crewLine) {
       crewPersonalLabel = crewLine.slice("crew personal:".length).trim();
-    }
-
-    const cardLine = noteLines.find((l: string) =>
-      l.toLowerCase().startsWith("card owner:")
-    );
-    if (cardLine) {
-      cardOwnerLabel = cardLine.slice("card owner:".length).trim();
     }
   }
 
@@ -193,12 +185,12 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
                 <p>{crewPersonalLabel}</p>
               </div>
             )}
-            {expense.paymentMethod === PaymentMethod.CARD && cardOwnerLabel && (
+            {expense.paymentMethod === PaymentMethod.CARD && expense.creditCard && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">
-                  Card Owner
+                  Credit Card
                 </p>
-                <p>{cardOwnerLabel}</p>
+                <p>{expense.creditCard.ownerName} •••• {expense.creditCard.lastFourDigits}</p>
               </div>
             )}
             {expense.vendorName && (

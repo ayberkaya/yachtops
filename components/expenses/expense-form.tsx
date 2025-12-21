@@ -47,8 +47,8 @@ const expenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).default(ExpenseStatus.DRAFT),
   // UI-only field to select which crew member paid when PaidBy = CREW_PERSONAL
   crewPersonalId: z.string().optional().nullable(),
-  // UI-only field to capture whose card was used when paymentMethod = CARD
-  cardOwner: z.string().optional().nullable(),
+  // Credit card ID when paymentMethod = CARD
+  creditCardId: z.string().optional().nullable(),
 });
 
 type ExpenseFormData = z.infer<typeof expenseSchema>;
@@ -67,6 +67,9 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const [pendingPayload, setPendingPayload] = useState<ExpenseFormData | null>(null);
   const [crewUsers, setCrewUsers] = useState<
     { id: string; name: string | null; email: string; role?: string | null }[]
+  >([]);
+  const [creditCards, setCreditCards] = useState<
+    { id: string; ownerName: string; lastFourDigits: string }[]
   >([]);
 
   const form = useForm<ExpenseFormData>({
@@ -87,7 +90,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
           notes: initialData.notes || null,
           status: initialData.status || ExpenseStatus.SUBMITTED,
           crewPersonalId: initialData.crewPersonalId || null,
-          cardOwner: initialData.cardOwner || null,
+          creditCardId: initialData.creditCardId || null,
         }
       : {
           tripId: null,
@@ -104,7 +107,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
           notes: null,
           status: ExpenseStatus.SUBMITTED,
           crewPersonalId: null,
-          cardOwner: null,
+          creditCardId: null,
         },
   });
 
@@ -137,6 +140,21 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
       }
     };
     loadCrew();
+  }, []);
+
+  // Load credit cards (for PaymentMethod = CARD dropdown)
+  React.useEffect(() => {
+    const loadCreditCards = async () => {
+      try {
+        const res = await fetch("/api/credit-cards");
+        if (!res.ok) return;
+        const data = await res.json();
+        setCreditCards(data || []);
+      } catch (e) {
+        console.error("Failed to load credit cards for expense form", e);
+      }
+    };
+    loadCreditCards();
   }, []);
 
   // Load existing receipts if editing
@@ -265,20 +283,15 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     setIsLoading(true);
     setError(null);
 
-    // We don't send crewPersonalId or cardOwner directly to the API (they're UI-only).
+    // We don't send crewPersonalId directly to the API (it's UI-only).
     // Instead, we append this information into the notes field so it is stored.
-    const { crewPersonalId, cardOwner, notes, ...rest } = data as any;
+    const { crewPersonalId, notes, ...rest } = data as any;
 
     let finalNotes = notes || "";
     if (rest.paidBy === PaidBy.CREW_PERSONAL && crewPersonalId) {
       const crew = crewUsers.find((u) => u.id === crewPersonalId);
       const crewLabel = crew?.name || crew?.email || "Unknown crew";
       const tag = `Crew personal: ${crewLabel}`;
-      finalNotes = finalNotes ? `${finalNotes}\n${tag}` : tag;
-    }
-
-    if (rest.paymentMethod === PaymentMethod.CARD && cardOwner) {
-      const tag = `Card owner: ${cardOwner}`;
       finalNotes = finalNotes ? `${finalNotes}\n${tag}` : tag;
     }
 
@@ -549,23 +562,39 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                     )}
                   />
 
-                  {/* When payment method is card, show an input to specify whose card */}
+                  {/* When payment method is card, show a dropdown to select credit card */}
                   {paymentMethod === PaymentMethod.CARD && (
                     <FormField
                       control={form.control}
-                      name="cardOwner"
+                      name="creditCardId"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Card Owner</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Whose card was used?"
-                              {...field}
-                              value={field.value || ""}
-                            />
-                          </FormControl>
+                          <FormLabel>Credit Card</FormLabel>
+                          <Select
+                            onValueChange={field.onChange}
+                            value={field.value || ""}
+                          >
+                            <FormControl>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Select a credit card" />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              {creditCards.length === 0 ? (
+                                <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                                  No credit cards available
+                                </div>
+                              ) : (
+                                creditCards.map((card) => (
+                                  <SelectItem key={card.id} value={card.id}>
+                                    {card.ownerName} •••• {card.lastFourDigits}
+                                  </SelectItem>
+                                ))
+                              )}
+                            </SelectContent>
+                          </Select>
                           <FormDescription>
-                            Enter the name or description of whose card was used for this payment.
+                            Select the credit card used for this payment.
                           </FormDescription>
                           <FormMessage />
                         </FormItem>

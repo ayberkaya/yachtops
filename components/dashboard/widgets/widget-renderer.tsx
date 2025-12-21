@@ -6,6 +6,8 @@ import { apiClient, CancelledRequestError } from "@/lib/api-client";
 import { WidgetConfig } from "@/types/widgets";
 import { PendingExpensesWidget } from "./pending-expenses-widget";
 import { RecentExpensesWidget } from "./recent-expenses-widget";
+import { CreditCardExpensesWidget } from "./credit-card-expenses-widget";
+import { CashLedgerSummaryWidget } from "./cash-ledger-summary-widget";
 import { QuickStatsWidget } from "./quick-stats-widget";
 // Lazy load less critical widgets - using dynamic imports for code splitting
 // Error handling: if import fails, Suspense fallback will be shown
@@ -40,6 +42,9 @@ interface WidgetRendererProps {
   // Data for widgets
   pendingExpenses?: any[];
   recentExpenses?: any[];
+  creditCardExpenses?: any[];
+  creditCards?: Array<{ id: string; ownerName: string; lastFourDigits: string }>;
+  cashBalances?: Array<{ currency: string; balance: number }>;
   upcomingTrips?: any[];
   totalPendingAmount?: number;
   roleAssignedTasks?: any[];
@@ -53,6 +58,9 @@ interface WidgetRendererProps {
 export const WidgetRenderer = memo(function WidgetRenderer({
   pendingExpenses = [],
   recentExpenses = [],
+  creditCardExpenses = [],
+  creditCards = [],
+  cashBalances = [],
   upcomingTrips = [],
   totalPendingAmount = 0,
   roleAssignedTasks = [],
@@ -161,14 +169,22 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   }, [userRole]);
 
   // All hooks must be called before any conditional returns
-  const enabledWidgets = useMemo(
-    () => widgets.filter((w) => w.enabled).sort((a, b) => a.order - b.order),
-    [widgets]
-  );
+  const enabledWidgets = useMemo(() => {
+    const filtered = widgets.filter((w) => w.enabled).sort((a, b) => a.order - b.order);
+    // Debug: Log enabled widgets in development
+    if (process.env.NODE_ENV === "development" && filtered.length > 0) {
+      console.log("[WidgetRenderer] Enabled widgets:", filtered.map(w => w.id));
+    }
+    return filtered;
+  }, [widgets]);
 
   const renderWidget = useMemo(
     () => (widget: WidgetConfig) => {
     switch (widget.id) {
+      case "cash_ledger_summary":
+        return <CashLedgerSummaryWidget balances={cashBalances} />;
+      case "credit_card_expenses":
+        return <CreditCardExpensesWidget expenses={creditCardExpenses} creditCards={creditCards} />;
       case "pending_expenses":
         return <PendingExpensesWidget expenses={pendingExpenses} totalAmount={totalPendingAmount} />;
       case "recent_expenses":
@@ -228,6 +244,9 @@ export const WidgetRenderer = memo(function WidgetRenderer({
       pendingExpenses,
       totalPendingAmount,
       recentExpenses,
+      creditCardExpenses,
+      creditCards,
+      cashBalances,
       upcomingTrips,
       myTasks,
       roleAssignedTasks,
@@ -248,6 +267,14 @@ export const WidgetRenderer = memo(function WidgetRenderer({
     );
   }
 
+  // Separate top priority widgets (cash_ledger_summary and credit_card_expenses) from others
+  const topPriorityWidgets = enabledWidgets.filter(
+    (w) => w.id === "cash_ledger_summary" || w.id === "credit_card_expenses"
+  );
+  const otherWidgets = enabledWidgets.filter(
+    (w) => w.id !== "cash_ledger_summary" && w.id !== "credit_card_expenses"
+  );
+
   return (
     <div className="space-y-6">
       {showCustomizerButton && (
@@ -255,8 +282,19 @@ export const WidgetRenderer = memo(function WidgetRenderer({
           <WidgetCustomizer currentWidgets={widgets} onSave={setWidgets} />
         </div>
       )}
+      {/* Top Priority Widgets - Side by side on desktop, stacked on mobile */}
+      {topPriorityWidgets.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {topPriorityWidgets.map((widget) => (
+            <div key={widget.id} className="flex justify-start">
+              {renderWidget(widget)}
+            </div>
+          ))}
+        </div>
+      )}
+      {/* Other Widgets */}
       <div className="space-y-4">
-        {enabledWidgets.map((widget) => (
+        {otherWidgets.map((widget) => (
           <div key={widget.id}>{renderWidget(widget)}</div>
         ))}
       </div>
@@ -267,6 +305,9 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   return (
     prevProps.pendingExpenses === nextProps.pendingExpenses &&
     prevProps.recentExpenses === nextProps.recentExpenses &&
+    prevProps.creditCardExpenses === nextProps.creditCardExpenses &&
+    prevProps.creditCards === nextProps.creditCards &&
+    prevProps.cashBalances === nextProps.cashBalances &&
     prevProps.upcomingTrips === nextProps.upcomingTrips &&
     prevProps.totalPendingAmount === nextProps.totalPendingAmount &&
     prevProps.roleAssignedTasks === nextProps.roleAssignedTasks &&

@@ -95,3 +95,15 @@ if (typeof db.user === "undefined") {
   }
 }
 
+// Check for creditCard model (added in migration 20250121120000_add_credit_cards)
+if (typeof db.creditCard === "undefined") {
+  const errorMsg = 
+    "⚠️  [WARNING] Prisma Client missing 'creditCard' model. " +
+    "This usually means:\n" +
+    "1. Prisma Client wasn't regenerated after adding CreditCard model (run: npx prisma generate)\n" +
+    "2. Next.js server wasn't restarted after regenerating Prisma Client\n\n" +
+    "Fix: Run 'npx prisma generate' and restart your Next.js server.";
+  
+  console.warn(errorMsg);
+}
+

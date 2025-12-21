@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
+import { CreditCardsManager } from "@/components/settings/credit-cards-manager";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -82,6 +83,8 @@ export default async function SettingsPage() {
             </CardContent>
           </Card>
         )}
+
+        <CreditCardsManager />
 
         <Card>
           <CardHeader>

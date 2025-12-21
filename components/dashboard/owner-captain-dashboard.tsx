@@ -8,6 +8,7 @@ import { QuickActions } from "./quick-actions";
 import { WidgetCustomizerButton } from "./widgets/widget-customizer-button";
 import { WidgetRenderer } from "./widgets/widget-renderer";
 import { unstable_cache } from "next/cache";
+import { getCachedCashBalanceByCurrency, getCachedRecentExpenses } from "@/lib/server-cache";
 
 type DashboardUser = NonNullable<Session["user"]>;
 
@@ -59,34 +60,80 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       : Promise.resolve([]);
 
     // Cache recent expenses query (skip if yachtId is null)
+    // Use the new cached helper for consistency
     const recentExpensesPromise = yachtId
+      ? getCachedRecentExpenses(yachtId, 5)
+      : Promise.resolve([]);
+
+    // Cache credit card expenses query (skip if yachtId is null)
+    const creditCardExpensesPromise = yachtId
       ? unstable_cache(
-          async () => db.expense.findMany({
+          async () => {
+            const { PaymentMethod, ExpenseStatus } = await import("@prisma/client");
+            return db.expense.findMany({
+              where: {
+                yachtId: yachtId,
+                paymentMethod: PaymentMethod.CARD,
+                creditCardId: { not: null },
+                deletedAt: null,
+                // Hide submitted expenses from general listings
+                status: { not: ExpenseStatus.SUBMITTED },
+              },
+              select: {
+                id: true,
+                description: true,
+                baseAmount: true,
+                amount: true,
+                currency: true,
+                date: true,
+                createdAt: true,
+                category: {
+                  select: { name: true },
+                },
+                createdBy: {
+                  select: { name: true, email: true },
+                },
+                creditCard: {
+                  select: {
+                    id: true,
+                    ownerName: true,
+                    lastFourDigits: true,
+                  },
+                },
+              },
+              orderBy: { createdAt: "desc" },
+              take: 20,
+            });
+          },
+          [getCacheKey("credit-card-expenses", yachtId)],
+          { revalidate: 30, tags: [`expenses-${yachtId}`] }
+        )()
+      : Promise.resolve([]);
+
+    // Cache credit cards query (skip if yachtId is null)
+    const creditCardsPromise = yachtId
+      ? unstable_cache(
+          async () => db.creditCard.findMany({
             where: {
               yachtId: yachtId,
               deletedAt: null,
             },
             select: {
               id: true,
-              description: true,
-              baseAmount: true,
-              amount: true,
-              currency: true,
-              date: true,
-              createdAt: true,
-              createdBy: {
-                select: { name: true, email: true },
-              },
-              category: {
-                select: { name: true },
-              },
+              ownerName: true,
+              lastFourDigits: true,
+              billingCycleEndDate: true,
             },
             orderBy: { createdAt: "desc" },
-            take: 5,
           }),
-          [getCacheKey("recent-expenses", yachtId)],
-          { revalidate: 30, tags: [`expenses-${yachtId}`] }
+          [getCacheKey("credit-cards", yachtId)],
+          { revalidate: 60, tags: [`credit-cards-${yachtId}`] }
         )()
+      : Promise.resolve([]);
+
+    // Cache cash balance by currency (skip if yachtId is null)
+    const cashBalancesPromise = yachtId
+      ? getCachedCashBalanceByCurrency(yachtId)
       : Promise.resolve([]);
 
     // Cache upcoming trips query (skip if yachtId is null)
@@ -223,12 +270,15 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         )()
       : Promise.resolve([]);
 
-  let pendingExpenses, recentExpenses, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
+  let pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
 
   try {
     [
       pendingExpenses,
       recentExpenses,
+      creditCardExpenses,
+      creditCards,
+      cashBalances,
       upcomingTrips,
       alcoholStocks,
       marinaPermissions,
@@ -237,6 +287,9 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
     ] = await Promise.all([
       pendingExpensesPromise,
       recentExpensesPromise,
+      creditCardExpensesPromise,
+      creditCardsPromise,
+      cashBalancesPromise,
       upcomingTripsPromise,
       alcoholStocksPromise,
       marinaPermissionsPromise,
@@ -297,6 +350,9 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       <WidgetRenderer
         pendingExpenses={pendingExpenses}
         recentExpenses={recentExpenses}
+        creditCardExpenses={creditCardExpenses}
+        creditCards={creditCards}
+        cashBalances={cashBalances}
         upcomingTrips={upcomingTrips}
         totalPendingAmount={totalPendingAmount}
         roleAssignedTasks={roleAssignedTasks}

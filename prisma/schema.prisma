@@ -102,6 +102,7 @@ model Yacht {
   auditLogs                 AuditLog[]
   usageEvents               UsageEvent[]
   feedback                  Feedback[]
+  creditCards               CreditCard[]
 
   @@map("yachts")
 }
@@ -300,6 +301,23 @@ model ExpenseCategory {
   @@map("expense_categories")
 }
 
+model CreditCard {
+  id                String    @id @default(cuid())
+  yachtId           String    @map("yacht_id")
+  ownerName         String    @map("owner_name")
+  lastFourDigits    String    @map("last_four_digits")
+  billingCycleEndDate Int?    @map("billing_cycle_end_date") // Day of month (1-31)
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+  deletedAt         DateTime? @map("deleted_at")
+  expenses          Expense[]
+  yacht             Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@index([deletedAt])
+  @@index([yachtId, deletedAt])
+  @@map("credit_cards")
+}
+
 model Expense {
   id                 String            @id @default(cuid())
   yachtId            String            @map("yacht_id")
@@ -318,6 +336,7 @@ model Expense {
   baseAmount         Float?            @map("base_amount")
   paymentMethod      PaymentMethod     @map("payment_method")
   paidBy             PaidBy            @map("paid_by")
+  creditCardId       String?           @map("credit_card_id")
   vendorName         String?           @map("vendor_name")
   invoiceNumber      String?           @map("invoice_number")
   vatRate            Float?            @map("vat_rate")
@@ -339,6 +358,7 @@ model Expense {
   createdBy          User              @relation("ExpenseCreator", fields: [createdByUserId], references: [id])
   trip               Trip?             @relation(fields: [tripId], references: [id])
   yacht              Yacht             @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  creditCard         CreditCard?       @relation(fields: [creditCardId], references: [id])
 
   @@index([deletedAt])
   @@index([yachtId, status, deletedAt])
