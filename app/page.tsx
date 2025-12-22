@@ -1,6 +1,5 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { 
   Anchor, 
   DollarSign, 
@@ -8,40 +7,33 @@ import {
   FileText, 
   Users, 
   Shield, 
-  TrendingUp,
-  Clock,
   Smartphone,
   Lock,
-  Zap,
-  BarChart3,
-  MessageSquare,
-  ShoppingCart,
-  Wrench,
-  Package,
-  Route
+  Route,
+  Package
 } from "lucide-react";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50/30 to-white">
+    <div className="min-h-screen bg-white">
       {/* Navigation */}
-      <nav className="border-b border-slate-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <nav className="border-b border-slate-100 bg-white/95 backdrop-blur-sm sticky top-0 z-50">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Anchor className="text-white w-6 h-6" />
+            <div className="flex items-center space-x-2.5">
+              <div className="w-9 h-9 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
+                <Anchor className="text-white w-5 h-5" />
               </div>
-              <span className="text-xl font-bold text-slate-900">HelmOps</span>
+              <span className="text-lg font-semibold text-slate-900">HelmOps</span>
             </div>
-            <div className="flex items-center space-x-4">
-              <Button variant="ghost" asChild>
+            <div className="flex items-center space-x-3">
+              <Button variant="ghost" size="sm" asChild className="text-slate-600 hover:text-slate-900">
                 <Link href="/contact">Contact</Link>
               </Button>
-              <Button variant="ghost" asChild>
+              <Button variant="ghost" size="sm" asChild className="text-slate-600 hover:text-slate-900">
                 <Link href="/demo-request">Demo</Link>
               </Button>
-              <Button asChild className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white">
+              <Button asChild size="sm" className="bg-slate-900 hover:bg-slate-800 text-white">
                 <Link href="/auth/signin">Sign In</Link>
               </Button>
             </div>
@@ -50,314 +42,166 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-20 pb-32 px-4 sm:px-6 lg:px-8">
-        <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-br from-blue-100/40 via-transparent to-transparent rounded-full blur-3xl" />
-          <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-gradient-to-tr from-cyan-100/40 via-transparent to-transparent rounded-full blur-3xl" />
+      <section className="relative pt-24 pb-20 px-4 sm:px-6 lg:px-8">
+        <div className="absolute inset-0 -z-10 overflow-hidden">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-blue-50 rounded-full blur-3xl opacity-50" />
+          <div className="absolute bottom-0 left-0 w-96 h-96 bg-cyan-50 rounded-full blur-3xl opacity-50" />
         </div>
         
-        <div className="max-w-7xl mx-auto text-center">
-          <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl shadow-xl mb-6">
-            <Anchor className="text-white w-10 h-10" />
-          </div>
-          
-          <p className="text-sm font-semibold text-blue-600 uppercase tracking-[0.3em] mb-4">
-            Professional Yacht Operations
-          </p>
-          
-          <h1 className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-slate-900 mb-6 leading-tight">
-            Streamline Your Yacht
+        <div className="max-w-4xl mx-auto text-center">
+          <h1 className="text-5xl sm:text-6xl font-bold text-slate-900 mb-5 leading-tight tracking-tight">
+            Yacht Operations
             <br />
-            <span className="bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
-              Operations Management
-            </span>
+            <span className="text-blue-600">Management Made Simple</span>
           </h1>
           
-          <p className="text-xl sm:text-2xl text-slate-600 max-w-3xl mx-auto mb-10 leading-relaxed">
-            Complete solution for expense tracking, task management, crew coordination, 
-            and operational excellence. Trusted by yacht owners, captains, and crew worldwide.
+          <p className="text-lg sm:text-xl text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed">
+            Complete solution for expense tracking, task management, and crew coordination. 
+            Trusted by yacht owners and captains worldwide.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button asChild size="lg" className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white text-lg px-8 py-6 h-auto shadow-xl">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center mb-16">
+            <Button asChild size="lg" className="bg-slate-900 hover:bg-slate-800 text-white px-6">
               <Link href="/auth/signin">Get Started</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 h-auto border-2">
+            <Button asChild size="lg" variant="outline" className="px-6 border-slate-200 hover:bg-slate-50">
               <Link href="/demo-request">Request Demo</Link>
             </Button>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="mt-16 pt-16 border-t border-slate-200">
-            <p className="text-sm text-slate-500 mb-8">Trusted by yacht operations teams</p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-4xl mx-auto">
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900">100%</div>
-                <div className="text-sm text-slate-600 mt-1">Secure</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900">24/7</div>
-                <div className="text-sm text-slate-600 mt-1">Support</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900">Offline</div>
-                <div className="text-sm text-slate-600 mt-1">Capable</div>
-              </div>
-              <div className="text-center">
-                <div className="text-3xl font-bold text-slate-900">GDPR</div>
-                <div className="text-sm text-slate-600 mt-1">Compliant</div>
-              </div>
+          {/* Trust Indicators - Minimal */}
+          <div className="flex flex-wrap justify-center gap-8 text-sm text-slate-500 pt-8 border-t border-slate-100">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-slate-400" />
+              <span>Secure</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-slate-400" />
+              <span>Offline Ready</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Lock className="w-4 h-4 text-slate-400" />
+              <span>GDPR Compliant</span>
             </div>
           </div>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
-              Everything You Need to Run Smooth Operations
+      {/* Features Section - Simplified */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-50">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-3">
+              Everything You Need
             </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Comprehensive tools designed specifically for yacht operations, 
-              from expense management to crew coordination.
+            <p className="text-lg text-slate-600 max-w-xl mx-auto">
+              Comprehensive tools designed specifically for yacht operations.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <DollarSign className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Expense Management</CardTitle>
-                <CardDescription>
-                  Track expenses, receipts, approvals, and reimbursements with complete audit trails.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <CheckSquare className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Task Management</CardTitle>
-                <CardDescription>
-                  Assign tasks, track progress, and ensure nothing falls through the cracks.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <FileText className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Document Management</CardTitle>
-                <CardDescription>
-                  Organize receipts, certificates, permits, and compliance documents securely.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <Users className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Crew Coordination</CardTitle>
-                <CardDescription>
-                  Manage crew schedules, shifts, permissions, and certifications.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <Route className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Voyage Planning</CardTitle>
-                <CardDescription>
-                  Plan trips, estimate fuel costs, track routes, and generate post-voyage reports.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <Package className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Inventory Management</CardTitle>
-                <CardDescription>
-                  Track stock levels, manage provisions, and get low-stock alerts automatically.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <MessageSquare className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Team Communication</CardTitle>
-                <CardDescription>
-                  Real-time messaging, channels, and notifications to keep everyone connected.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <Wrench className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Maintenance Tracking</CardTitle>
-                <CardDescription>
-                  Schedule maintenance, track service history, and ensure vessel compliance.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-
-            <Card className="border-2 hover:border-blue-200 transition-all hover:shadow-lg">
-              <CardHeader>
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center mb-4">
-                  <BarChart3 className="text-white w-6 h-6" />
-                </div>
-                <CardTitle>Analytics & Reporting</CardTitle>
-                <CardDescription>
-                  Generate monthly reports, track performance metrics, and make data-driven decisions.
-                </CardDescription>
-              </CardHeader>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-b from-slate-50 to-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4">
-              Why Choose HelmOps?
-            </h2>
-            <p className="text-xl text-slate-600 max-w-2xl mx-auto">
-              Built specifically for yacht operations with security, reliability, and ease of use in mind.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Shield className="text-white w-8 h-8" />
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="bg-white rounded-xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <DollarSign className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Enterprise Security</h3>
-              <p className="text-slate-600">
-                Bank-level encryption, role-based access control, and GDPR compliance.
+              <h3 className="font-semibold text-slate-900 mb-2">Expense Management</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Track expenses, receipts, and approvals with complete audit trails.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Smartphone className="text-white w-8 h-8" />
+            <div className="bg-white rounded-xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <CheckSquare className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Works Offline</h3>
-              <p className="text-slate-600">
-                Full functionality even without internet. Syncs automatically when online.
+              <h3 className="font-semibold text-slate-900 mb-2">Task Management</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Assign tasks, track progress, and ensure nothing falls through the cracks.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Zap className="text-white w-8 h-8" />
+            <div className="bg-white rounded-xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <FileText className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Lightning Fast</h3>
-              <p className="text-slate-600">
-                Optimized performance with instant loading and real-time updates.
+              <h3 className="font-semibold text-slate-900 mb-2">Document Management</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Organize receipts, certificates, and compliance documents securely.
               </p>
             </div>
 
-            <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg">
-                <Lock className="text-white w-8 h-8" />
+            <div className="bg-white rounded-xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <Users className="w-5 h-5 text-blue-600" />
               </div>
-              <h3 className="text-xl font-bold text-slate-900 mb-2">Data Privacy</h3>
-              <p className="text-slate-600">
-                Your data stays yours. No third-party sharing, complete control.
+              <h3 className="font-semibold text-slate-900 mb-2">Crew Coordination</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Manage schedules, shifts, permissions, and certifications.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <Route className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Voyage Planning</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Plan trips, estimate fuel costs, and generate post-voyage reports.
+              </p>
+            </div>
+
+            <div className="bg-white rounded-xl p-6 border border-slate-100 hover:border-slate-200 hover:shadow-sm transition-all">
+              <div className="w-10 h-10 bg-blue-50 rounded-lg flex items-center justify-center mb-4">
+                <Package className="w-5 h-5 text-blue-600" />
+              </div>
+              <h3 className="font-semibold text-slate-900 mb-2">Inventory Management</h3>
+              <p className="text-sm text-slate-600 leading-relaxed">
+                Track stock levels and get low-stock alerts automatically.
               </p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-600 to-cyan-600">
-        <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl font-bold text-white mb-6">
-            Ready to Transform Your Operations?
+      {/* CTA Section - Minimal */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 bg-slate-900">
+        <div className="max-w-3xl mx-auto text-center">
+          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
+            Ready to Get Started?
           </h2>
-          <p className="text-xl text-blue-50 mb-10 max-w-2xl mx-auto">
-            Join yacht operations teams worldwide who trust HelmOps for their daily operations.
+          <p className="text-lg text-slate-300 mb-8 max-w-xl mx-auto">
+            Join yacht operations teams worldwide who trust HelmOps.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button asChild size="lg" variant="secondary" className="text-lg px-8 py-6 h-auto">
-              <Link href="/auth/signin">Start Free Trial</Link>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Button asChild size="lg" className="bg-white text-slate-900 hover:bg-slate-100 px-6">
+              <Link href="/auth/signin">Sign In</Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="text-lg px-8 py-6 h-auto border-2 border-white text-white hover:bg-white/10">
-              <Link href="/demo-request">Schedule Demo</Link>
+            <Button asChild size="lg" variant="outline" className="border-slate-700 text-white hover:bg-slate-800 px-6">
+              <Link href="/demo-request">Request Demo</Link>
             </Button>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="bg-slate-900 text-slate-300 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center space-x-3 mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-xl flex items-center justify-center">
-                  <Anchor className="text-white w-6 h-6" />
-                </div>
-                <span className="text-xl font-bold text-white">HelmOps</span>
+      {/* Footer - Minimal */}
+      <footer className="bg-white border-t border-slate-100 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center gap-6">
+            <div className="flex items-center space-x-2.5">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-cyan-600 rounded-lg flex items-center justify-center">
+                <Anchor className="text-white w-4 h-4" />
               </div>
-              <p className="text-sm text-slate-400">
-                Professional yacht operations management platform.
-              </p>
+              <span className="text-sm font-semibold text-slate-900">HelmOps</span>
             </div>
             
-            <div>
-              <h3 className="text-white font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-sm">
-                <li><Link href="/demo-request" className="hover:text-white transition-colors">Demo</Link></li>
-                <li><Link href="/fleet-solutions" className="hover:text-white transition-colors">Fleet Solutions</Link></li>
-                <li><Link href="/contact" className="hover:text-white transition-colors">Contact</Link></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-white font-semibold mb-4">Resources</h3>
-              <ul className="space-y-2 text-sm">
-                <li><a href="#" className="hover:text-white transition-colors">Documentation</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Support</a></li>
-                <li><a href="#" className="hover:text-white transition-colors">Privacy Policy</a></li>
-              </ul>
-            </div>
-            
-            <div>
-              <h3 className="text-white font-semibold mb-4">Security</h3>
-              <ul className="space-y-2 text-sm">
-                <li className="text-slate-400">GDPR Compliant</li>
-                <li className="text-slate-400">SOC 2 Ready</li>
-                <li className="text-slate-400">Bank-Level Encryption</li>
-              </ul>
+            <div className="flex items-center gap-6 text-sm text-slate-600">
+              <Link href="/contact" className="hover:text-slate-900 transition-colors">Contact</Link>
+              <Link href="/demo-request" className="hover:text-slate-900 transition-colors">Demo</Link>
+              <Link href="/fleet-solutions" className="hover:text-slate-900 transition-colors">Fleet</Link>
             </div>
           </div>
           
-          <div className="border-t border-slate-800 pt-8 text-center text-sm text-slate-400">
+          <div className="mt-8 pt-8 border-t border-slate-100 text-center text-sm text-slate-500">
             <p>© {new Date().getFullYear()} HelmOps. All rights reserved.</p>
           </div>
         </div>
