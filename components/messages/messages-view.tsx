@@ -16,6 +16,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface User {
   id: string;
@@ -124,6 +131,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   });
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const lastMessageIdRef = useRef<string | null>(null);
+  const [showChannelDetails, setShowChannelDetails] = useState(false);
 
   const canManage = canManageUsers(session?.user || null);
 
@@ -1070,35 +1078,17 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             <ArrowLeft className="h-5 w-5" />
           </Button>
           <div className="flex-1 min-w-0">
-            <h2 className="font-semibold text-sm md:text-base truncate">{selectedChannel.name}</h2>
-            {selectedChannel.description && (
-              <p className="text-xs md:text-sm text-muted-foreground truncate">{selectedChannel.description}</p>
-            )}
-          </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {searchQuery ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setSearchQuery("");
-                  setSearchResults([]);
-                }}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            ) : (
-              <div className="relative">
-                <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="search-input"
-                  placeholder="Search..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 w-32 md:w-64 text-sm"
-                />
-              </div>
-            )}
+            <button
+              onClick={() => setShowChannelDetails(true)}
+              className="text-left w-full hover:opacity-80 transition-opacity"
+            >
+              <h2 className="font-semibold text-sm md:text-base truncate cursor-pointer hover:underline">
+                {selectedChannel.name}
+              </h2>
+              {selectedChannel.description && (
+                <p className="text-xs md:text-sm text-muted-foreground truncate">{selectedChannel.description}</p>
+              )}
+            </button>
           </div>
         </div>
 
@@ -1645,6 +1635,165 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
           </form>
         </div>
       </div>
+
+      {/* Channel Details Dialog */}
+      <Dialog open={showChannelDetails} onOpenChange={setShowChannelDetails}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Channel Details</DialogTitle>
+            <DialogDescription>
+              View channel information and members
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-6 mt-4">
+            {/* Channel Info */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm">Channel Information</h3>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">Name:</span>
+                  <p className="text-sm">{selectedChannel.name}</p>
+                </div>
+                {selectedChannel.description && (
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Description:</span>
+                    <p className="text-sm">{selectedChannel.description}</p>
+                  </div>
+                )}
+                <div>
+                  <span className="text-sm font-medium text-muted-foreground">Type:</span>
+                  <p className="text-sm">
+                    {selectedChannel.isGeneral ? (
+                      <Badge variant="secondary">General Channel</Badge>
+                    ) : (
+                      <Badge variant="outline">Private Channel</Badge>
+                    )}
+                  </p>
+                </div>
+                {selectedChannel.createdBy && (
+                  <div>
+                    <span className="text-sm font-medium text-muted-foreground">Created by:</span>
+                    <p className="text-sm">
+                      {selectedChannel.createdBy.name || selectedChannel.createdBy.email}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Members */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm">
+                Members ({selectedChannel.members.length})
+              </h3>
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {selectedChannel.members.map((member) => (
+                  <div
+                    key={member.id}
+                    className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
+                  >
+                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium">
+                      {member.name
+                        ? member.name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)
+                        : member.email[0].toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium truncate">
+                        {member.name || member.email}
+                      </p>
+                      {member.name && (
+                        <p className="text-xs text-muted-foreground truncate">
+                          {member.email}
+                        </p>
+                      )}
+                      {member.role && (
+                        <p className="text-xs text-muted-foreground capitalize">
+                          {member.role.toLowerCase()}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="space-y-2">
+              <h3 className="font-semibold text-sm">Search Messages</h3>
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search messages in this channel..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (e.target.value.trim()) {
+                        handleSearch();
+                      } else {
+                        setSearchResults([]);
+                      }
+                    }}
+                    className="pl-8"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && searchQuery.trim()) {
+                        handleSearch();
+                      }
+                    }}
+                  />
+                </div>
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchResults([]);
+                    }}
+                    className="w-full"
+                  >
+                    <X className="h-4 w-4 mr-2" />
+                    Clear Search
+                  </Button>
+                )}
+                {searchResults.length > 0 && (
+                  <div className="mt-2 space-y-2 max-h-64 overflow-y-auto">
+                    <p className="text-xs text-muted-foreground">
+                      Found {searchResults.length} result{searchResults.length !== 1 ? "s" : ""}
+                    </p>
+                    {searchResults.map((message) => (
+                      <div
+                        key={message.id}
+                        className="p-3 rounded-lg bg-muted/50 border border-border/50"
+                      >
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-medium">
+                            {message.user.name || message.user.email}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDistanceToNow(new Date(message.createdAt), {
+                              addSuffix: true,
+                            })}
+                          </span>
+                        </div>
+                        {message.content && (
+                          <p className="text-sm">{message.content}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
