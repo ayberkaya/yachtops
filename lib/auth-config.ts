@@ -184,8 +184,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // If rememberMe is true, token expires in 30 days (persistent cookie)
         if (rememberMe) {
           token.exp = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 days
+          // Set cookie maxAge for persistent cookie
+          if (typeof (token as any).cookieMaxAge === 'undefined') {
+            (token as any).cookieMaxAge = 30 * 24 * 60 * 60; // 30 days in seconds
+          }
         } else {
           token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours
+          // No cookie maxAge - session cookie (expires when browser closes)
+          (token as any).cookieMaxAge = undefined;
         }
       }
       // Handle session updates
@@ -284,9 +290,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     strategy: "jwt",
     // maxAge is set to 24 hours for session cookies (when rememberMe is false)
     // When rememberMe is true, token.exp is set to 30 days in JWT callback
-    // But cookie maxAge is still 24 hours to ensure session expires when browser closes
     maxAge: 24 * 60 * 60, // 24 hours (session cookie - expires when browser closes)
     updateAge: 60 * 60, // Update session every 1 hour to check expiration
+  },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+        // By default, no maxAge - session cookie (expires when browser closes)
+        // When rememberMe is true, we'll handle it via token expiration
+      },
+    },
   },
   secret: (() => {
     const secret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;

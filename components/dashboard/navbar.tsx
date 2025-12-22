@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
+import { completeSignOut } from "@/lib/signout-helper";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -173,11 +174,8 @@ export function Navbar() {
               <DropdownMenuItem
                 onClick={async () => {
                   try {
-                    // Clear all local storage and session storage
-                    if (typeof window !== 'undefined') {
-                      localStorage.clear();
-                      sessionStorage.clear();
-                    }
+                    // Complete sign out - clear all storage and cookies
+                    await completeSignOut();
                     
                     // Sign out without redirect first to clear session
                     await signOut({ 
@@ -187,15 +185,16 @@ export function Navbar() {
                     
                     // Clear all caches and force hard redirect
                     if (typeof window !== 'undefined') {
-                      // Clear Next.js router cache
-                      window.location.href = "/auth/signin";
+                      // Small delay to ensure cookies are cleared
+                      setTimeout(() => {
+                        window.location.href = "/auth/signin";
+                      }, 100);
                     }
                   } catch (error) {
                     console.error("Sign out error:", error);
                     // Force redirect even on error
                     if (typeof window !== 'undefined') {
-                      localStorage.clear();
-                      sessionStorage.clear();
+                      await completeSignOut();
                       window.location.href = "/auth/signin";
                     }
                   }

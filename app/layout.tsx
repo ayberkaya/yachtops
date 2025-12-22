@@ -7,6 +7,7 @@ import { OfflineIndicator } from "@/components/pwa/offline-indicator";
 import { SyncStatus } from "@/components/pwa/sync-status";
 import { PushNotificationRegister } from "@/components/pwa/push-notification-register";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { UnhandledRejectionHandler } from "@/components/providers/unhandled-rejection-handler";
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -56,6 +57,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        <UnhandledRejectionHandler />
         <ErrorBoundary>
           <Providers>
             {children}
