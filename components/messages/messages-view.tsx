@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
-import { Send, Hash, Users, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings } from "lucide-react";
+import { Send, Hash, Users, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings, ArrowLeft } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
 import { canManageUsers } from "@/lib/auth";
@@ -92,9 +92,8 @@ interface MessagesViewProps {
 export function MessagesView({ initialChannels, allUsers, currentUser }: MessagesViewProps) {
   const { data: session } = useSession();
   const [channels, setChannels] = useState(initialChannels);
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(
-    initialChannels[0] || null
-  );
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  const [showChannelList, setShowChannelList] = useState(true);
   const [messages, setMessages] = useState<Message[]>([]);
   const [pinnedMessages, setPinnedMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
@@ -917,6 +916,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       return;
     }
     setSelectedChannel(channel);
+    setShowChannelList(false); // Hide channel list, show chat
     setMessages([]);
     // Mark as read when selected
     const now = new Date().toISOString();
@@ -928,6 +928,14 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       ...prev,
       [channel.id]: 0,
     }));
+  };
+
+  const handleBackToChannels = () => {
+    setShowChannelList(true);
+    setSelectedChannel(null);
+    setMessages([]);
+    setSearchQuery("");
+    setSearchResults([]);
   };
 
   const handleChannelCreated = async (channel: Channel) => {
@@ -948,9 +956,11 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         const newChannel = updatedChannels.find((ch: Channel) => ch.id === channel.id);
         if (newChannel && hasChannelAccess(newChannel)) {
           setSelectedChannel(newChannel);
+          setShowChannelList(false); // Show chat view
         } else if (updatedChannels.length > 0) {
           // If can't access new channel, select first available
           setSelectedChannel(updatedChannels[0]);
+          setShowChannelList(false); // Show chat view
         }
       }
     } catch (error) {
@@ -959,6 +969,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
       if (hasChannelAccess(channel)) {
         setChannels((prev) => [...prev, channel]);
         setSelectedChannel(channel);
+        setShowChannelList(false); // Show chat view
       }
     }
   };
@@ -981,12 +992,15 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
         const updatedChannel = updatedChannels.find((ch: Channel) => ch.id === channel.id);
         if (updatedChannel && hasChannelAccess(updatedChannel)) {
           setSelectedChannel(updatedChannel);
+          // Keep current view state (don't change showChannelList)
         } else if (selectedChannel?.id === channel.id) {
-          // If current channel is no longer accessible, select first available
+          // If current channel is no longer accessible, go back to channel list
           if (updatedChannels.length > 0) {
             setSelectedChannel(updatedChannels[0]);
+            setShowChannelList(false);
           } else {
             setSelectedChannel(null);
+            setShowChannelList(true);
           }
         }
       }
@@ -1005,18 +1019,27 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
   const handleChannelDeleted = (channelId: string) => {
     setChannels((prev) => prev.filter((ch) => ch.id !== channelId));
     if (selectedChannel?.id === channelId) {
-      setSelectedChannel(channels.find((ch) => ch.id !== channelId) || null);
+      // If deleted channel was selected, go back to channel list
+      const remainingChannels = channels.filter((ch) => ch.id !== channelId);
+      if (remainingChannels.length > 0) {
+        setSelectedChannel(remainingChannels[0]);
+        setShowChannelList(false);
+      } else {
+        setSelectedChannel(null);
+        setShowChannelList(true);
+      }
     }
   };
 
-  if (!selectedChannel) {
+  // Show channel list view
+  if (showChannelList || !selectedChannel) {
     return (
       <div className="flex h-full border rounded-lg overflow-hidden bg-background">
-        {/* Channel List - Left Sidebar (Always visible, responsive width) */}
-        <div className="flex w-64 md:w-80 border-r flex-col bg-muted/30 flex-shrink-0">
+        {/* Channel List - Full Width */}
+        <div className="flex w-full flex-col bg-muted/30">
           <ChannelList
             channels={channels}
-            selectedChannelId=""
+            selectedChannelId={selectedChannel?.id || ""}
             onSelectChannel={handleChannelSelect}
             onChannelCreated={handleChannelCreated}
             onChannelUpdated={handleChannelUpdated}
@@ -1026,38 +1049,26 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             unreadCounts={unreadCounts}
           />
         </div>
-
-        {/* Empty State - Right Side */}
-        <div className="flex-1 flex flex-col items-center justify-center bg-background min-w-0">
-          <div className="text-center text-muted-foreground p-4">
-            <p>No channel selected. Select a channel or create a new one.</p>
-          </div>
-        </div>
       </div>
     );
   }
 
+  // Show chat view
   return (
     <div className="flex h-full border rounded-lg overflow-hidden bg-background">
-      {/* Channel List - Left Sidebar (Always visible, responsive width) */}
-      <div className="flex w-64 md:w-80 border-r flex-col bg-muted/30 flex-shrink-0">
-        <ChannelList
-          channels={channels}
-          selectedChannelId={selectedChannel.id}
-          onSelectChannel={handleChannelSelect}
-          onChannelCreated={handleChannelCreated}
-          onChannelUpdated={handleChannelUpdated}
-          onChannelDeleted={handleChannelDeleted}
-          allUsers={allUsers}
-          canManage={canManage}
-          unreadCounts={unreadCounts}
-        />
-      </div>
-
-      {/* Messages - Right Side */}
+      {/* Messages - Full Width */}
       <div className="flex-1 flex flex-col bg-background min-w-0">
         {/* Header */}
-        <div className="border-b p-3 md:p-4 bg-muted/30 flex items-center justify-between flex-shrink-0">
+        <div className="border-b p-3 md:p-4 bg-muted/30 flex items-center gap-3 flex-shrink-0">
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleBackToChannels}
+            className="flex-shrink-0"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </Button>
           <div className="flex-1 min-w-0">
             <h2 className="font-semibold text-sm md:text-base truncate">{selectedChannel.name}</h2>
             {selectedChannel.description && (
