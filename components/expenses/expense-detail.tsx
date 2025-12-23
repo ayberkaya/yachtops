@@ -128,21 +128,12 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
             <div>
               <p className="text-sm font-medium text-muted-foreground">Amount</p>
               <p className="text-2xl font-bold">
-                {Number(expense.baseAmount || expense.amount).toLocaleString("en-US", {
+                {Number(expense.amount).toLocaleString("en-US", {
                   style: "currency",
                   currency: expense.currency,
                 })}
               </p>
             </div>
-            {expense.currency !== "EUR" && expense.baseAmount && (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground">Base Amount (EUR)</p>
-                <p>{Number(expense.baseAmount).toLocaleString("en-US", {
-                  style: "currency",
-                  currency: "EUR",
-                })}</p>
-              </div>
-            )}
             {expense.vatAmount && (
               <div>
                 <p className="text-sm font-medium text-muted-foreground">VAT Amount</p>

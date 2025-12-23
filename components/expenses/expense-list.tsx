@@ -116,8 +116,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
   const [groupBy, setGroupBy] = useState<"none" | "category" | "date" | "trip">("none");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "status">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  const [exchangeRates, setExchangeRates] = useState<{ base: string; rates: Record<string, number>; date: string } | null>(null);
-  const [displayCurrency, setDisplayCurrency] = useState<"USD" | "EUR" | "TRY">("EUR");
 
   // Combined sort value for single dropdown
   const sortValue = `${sortBy}-${sortOrder}`;
@@ -162,21 +160,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
     }
   }, []);
 
-  // Fetch exchange rates
-  useEffect(() => {
-    const fetchExchangeRates = async () => {
-      try {
-        const response = await fetch("/api/exchange-rates");
-        if (response.ok) {
-          const rates = await response.json();
-          setExchangeRates(rates);
-        }
-      } catch (error) {
-        console.error("Error fetching exchange rates:", error);
-      }
-    };
-    fetchExchangeRates();
-  }, []);
 
   // Update URL when filters change
   const updateURL = useCallback((newFilters: FilterState) => {
@@ -234,10 +217,10 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
           );
         }
 
-        // Client-side amount filtering (since we filter by baseAmount or amount)
+        // Client-side amount filtering
         if (filters.minAmount || filters.maxAmount) {
           filtered = filtered.filter((exp: Expense) => {
-            const amount = exp.baseAmount || exp.amount;
+            const amount = exp.amount;
             if (filters.minAmount && amount < parseFloat(filters.minAmount)) return false;
             if (filters.maxAmount && amount > parseFloat(filters.maxAmount)) return false;
             return true;
@@ -335,7 +318,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
       
       switch (sortBy) {
         case "amount":
-          comparison = (a.baseAmount || a.amount) - (b.baseAmount || b.amount);
+          comparison = a.amount - b.amount;
           break;
         case "status":
           comparison = a.status.localeCompare(b.status);
@@ -350,38 +333,9 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
     });
   }, [expenses, sortBy, sortOrder]);
 
-  // Convert amount to display currency
-  const convertToDisplayCurrency = (amount: number, fromCurrency: string): number => {
-    if (!exchangeRates || fromCurrency === displayCurrency) {
-      return amount;
-    }
-
-    // Convert to EUR first
-    let amountInEUR = amount;
-    if (fromCurrency !== "EUR" && exchangeRates.rates[fromCurrency]) {
-      amountInEUR = amount / exchangeRates.rates[fromCurrency];
-    }
-
-    // Convert from EUR to display currency
-    if (displayCurrency === "EUR") {
-      return amountInEUR;
-    }
-
-    return amountInEUR * (exchangeRates.rates[displayCurrency] || 1);
-  };
-
-  // Calculate group total in display currency
+  // Calculate group total (no currency conversion - show as-is)
   const calculateGroupTotal = (groupExpenses: Expense[]): number => {
-    if (!exchangeRates) {
-      // If no exchange rates, sum amounts as-is (may be inaccurate)
-      return groupExpenses.reduce((sum, exp) => sum + (exp.baseAmount || exp.amount), 0);
-    }
-
-    return groupExpenses.reduce((sum, exp) => {
-      const amount = exp.baseAmount || exp.amount;
-      const converted = convertToDisplayCurrency(amount, exp.currency);
-      return sum + converted;
-    }, 0);
+    return groupExpenses.reduce((sum, exp) => sum + exp.amount, 0);
   };
 
   // Group expenses
@@ -428,7 +382,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
       exp.description,
       exp.category.name,
       exp.trip?.name || "",
-      (exp.baseAmount || exp.amount).toString(),
+      exp.amount.toString(),
       exp.currency,
       exp.status,
       exp.paymentMethod,
@@ -521,26 +475,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* Currency Selector (only show when grouping) */}
-          {groupBy !== "none" && exchangeRates && (
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Display Currency:</span>
-              <Select
-                value={displayCurrency}
-                onValueChange={(value) => setDisplayCurrency(value as "USD" | "EUR" | "TRY")}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USD">USD</SelectItem>
-                  <SelectItem value="EUR">EUR</SelectItem>
-                  <SelectItem value="TRY">TRY</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-
           {/* View Mode Toggle */}
           <Button
             variant="outline"
@@ -880,10 +814,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                   </h3>
                   {groupExpenses.length > 0 && (
                     <div className="text-sm text-muted-foreground">
-                      Total: {calculateGroupTotal(groupExpenses).toLocaleString("en-US", {
-                        style: "currency",
-                        currency: displayCurrency,
-                      })}
+                      Total: {groupExpenses.length} {groupExpenses.length === 1 ? "expense" : "expenses"}
                     </div>
                   )}
                 </div>
@@ -916,17 +847,10 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                             <TableCell>{expense.category.name}</TableCell>
                             <TableCell>{expense.trip?.name || "-"}</TableCell>
                             <TableCell>
-                              {exchangeRates ? (
-                                convertToDisplayCurrency(expense.baseAmount || expense.amount, expense.currency).toLocaleString("en-US", {
-                                  style: "currency",
-                                  currency: displayCurrency,
-                                })
-                              ) : (
-                                Number(expense.baseAmount || expense.amount).toLocaleString("en-US", {
-                                  style: "currency",
-                                  currency: expense.currency,
-                                })
-                              )}
+                              {Number(expense.amount).toLocaleString("en-US", {
+                                style: "currency",
+                                currency: expense.currency,
+                              })}
                             </TableCell>
                             <TableCell>{getStatusBadge(expense.status)}</TableCell>
                             <TableCell>
@@ -985,17 +909,10 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                         <div className="flex items-center justify-between">
                           <span className="text-muted-foreground">Amount:</span>
                           <span className="font-bold text-lg">
-                            {exchangeRates ? (
-                              convertToDisplayCurrency(expense.baseAmount || expense.amount, expense.currency).toLocaleString("en-US", {
-                                style: "currency",
-                                currency: displayCurrency,
-                              })
-                            ) : (
-                              Number(expense.baseAmount || expense.amount).toLocaleString("en-US", {
-                                style: "currency",
-                                currency: expense.currency,
-                              })
-                            )}
+                            {Number(expense.baseAmount || expense.amount).toLocaleString("en-US", {
+                              style: "currency",
+                              currency: expense.currency,
+                            })}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">

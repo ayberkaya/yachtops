@@ -57,6 +57,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [usersMenuOpen, setUsersMenuOpen] = useState(false);
 
@@ -336,6 +337,55 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     return () => clearInterval(interval);
   }, [session?.user]);
 
+  // Fetch unread messages count
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchUnreadMessagesCount = async () => {
+      try {
+        // First, get all accessible channels
+        const channelsResponse = await fetch("/api/channels");
+        if (!channelsResponse.ok) {
+          setUnreadMessagesCount(0);
+          return;
+        }
+        
+        const channels = await channelsResponse.json();
+        if (!Array.isArray(channels) || channels.length === 0) {
+          setUnreadMessagesCount(0);
+          return;
+        }
+
+        // Get unread counts for all channels
+        const channelIds = channels.map((ch: { id: string }) => ch.id);
+        const unreadResponse = await fetch("/api/messages/unread-counts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelIds }),
+        });
+
+        if (unreadResponse.ok) {
+          const unreadCounts = await unreadResponse.json();
+          const totalUnread = Object.values(unreadCounts).reduce(
+            (sum: number, count: unknown) => sum + (typeof count === "number" ? count : 0),
+            0
+          );
+          setUnreadMessagesCount(totalUnread);
+        } else {
+          setUnreadMessagesCount(0);
+        }
+      } catch (error) {
+        console.error("Error fetching unread messages count:", error);
+        setUnreadMessagesCount(0);
+      }
+    };
+
+    fetchUnreadMessagesCount();
+    // Poll every 2 minutes (same as other counts)
+    const interval = setInterval(fetchUnreadMessagesCount, 120000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
   // Early return after all hooks (to maintain hook order)
   if (status === "loading" || !session?.user) {
     return null;
@@ -480,6 +530,15 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                             : "bg-red-500 text-white"
                         }`}>
                           {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                        </span>
+                      )}
+                      {item.href === "/dashboard/messages" && unreadMessagesCount > 0 && (
+                        <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
+                          isActive 
+                            ? "bg-white/20 text-white" 
+                            : "bg-red-500 text-white"
+                        }`}>
+                          {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
                         </span>
                       )}
                       {item.children && (
@@ -777,6 +836,7 @@ export function Sidebar() {
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
+  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const navContentRef = useRef<HTMLElement>(null);
   const scrollPositionRef = useRef<number>(0);
@@ -1061,6 +1121,55 @@ export function Sidebar() {
     return () => clearInterval(interval);
   }, [session?.user]);
 
+  // Fetch unread messages count
+  useEffect(() => {
+    if (!session?.user) return;
+
+    const fetchUnreadMessagesCount = async () => {
+      try {
+        // First, get all accessible channels
+        const channelsResponse = await fetch("/api/channels");
+        if (!channelsResponse.ok) {
+          setUnreadMessagesCount(0);
+          return;
+        }
+        
+        const channels = await channelsResponse.json();
+        if (!Array.isArray(channels) || channels.length === 0) {
+          setUnreadMessagesCount(0);
+          return;
+        }
+
+        // Get unread counts for all channels
+        const channelIds = channels.map((ch: { id: string }) => ch.id);
+        const unreadResponse = await fetch("/api/messages/unread-counts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelIds }),
+        });
+
+        if (unreadResponse.ok) {
+          const unreadCounts = await unreadResponse.json();
+          const totalUnread = Object.values(unreadCounts).reduce(
+            (sum: number, count: unknown) => sum + (typeof count === "number" ? count : 0),
+            0
+          );
+          setUnreadMessagesCount(totalUnread);
+        } else {
+          setUnreadMessagesCount(0);
+        }
+      } catch (error) {
+        console.error("Error fetching unread messages count:", error);
+        setUnreadMessagesCount(0);
+      }
+    };
+
+    fetchUnreadMessagesCount();
+    // Poll every 2 minutes (same as other counts)
+    const interval = setInterval(fetchUnreadMessagesCount, 120000);
+    return () => clearInterval(interval);
+  }, [session?.user]);
+
   // Auto-collapse when a menu item is selected
   useEffect(() => {
     if (pathname && pathname !== "/dashboard") {
@@ -1223,6 +1332,11 @@ export function Sidebar() {
                         {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
                       </span>
                     )}
+                    {item.href === "/dashboard/messages" && unreadMessagesCount > 0 && (
+                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
+                        {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
+                      </span>
+                    )}
                     {item.children && childrenNotificationCount > 0 && (
                       <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
                         {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
@@ -1241,6 +1355,11 @@ export function Sidebar() {
                 {!containerExpanded && item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
                   <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
                     {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
+                  </span>
+                )}
+                {!containerExpanded && item.href === "/dashboard/messages" && unreadMessagesCount > 0 && (
+                  <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
+                    {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
                   </span>
                 )}
                 {!containerExpanded && item.children && childrenNotificationCount > 0 && (

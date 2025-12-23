@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { format, formatDistanceToNow } from "date-fns";
 import { Send, Hash, Users, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings, ArrowLeft } from "lucide-react";
@@ -1149,8 +1150,8 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                     <div
                       className={`max-w-[70%] rounded-lg p-3 relative ${
                         isOwnMessage
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                          ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 border border-primary/20"
+                          : "bg-muted shadow-sm shadow-black/5 border border-border/50"
                       } ${message.isPinned ? "ring-2 ring-yellow-400" : ""}`}
                       onTouchStart={(e) => {
                         // Mobile long press
@@ -1543,7 +1544,7 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
             className="flex gap-2"
           >
             <div className="flex-1 flex gap-2">
-              <Input
+              <Textarea
                 value={replyingToMessageId ? editingContent : newMessage}
                 onChange={(e) => {
                   if (replyingToMessageId) {
@@ -1554,11 +1555,129 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                 }}
                 placeholder={replyingToMessageId ? "Type a reply... (use @username to mention)" : "Type a message... (use @username to mention)"}
                 disabled={isSending}
-                className="flex-1"
+                className="flex-1 min-h-[44px] max-h-[200px] resize-none"
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
                 spellCheck="false"
+                rows={1}
+                onPaste={async (e) => {
+                  e.preventDefault();
+                  const clipboardData = e.clipboardData || (window as any).clipboardData;
+                  
+                  // Try to get HTML format first to preserve formatting
+                  let pastedText = '';
+                  if (clipboardData.types.includes('text/html')) {
+                    const html = clipboardData.getData('text/html');
+                    
+                    // Remove style tags and their content
+                    let cleanHtml = html.replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '');
+                    // Remove script tags and their content
+                    cleanHtml = cleanHtml.replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+                    // Remove meta tags
+                    cleanHtml = cleanHtml.replace(/<meta[^>]*>/gi, '');
+                    // Remove class and style attributes
+                    cleanHtml = cleanHtml.replace(/\s*(class|style)="[^"]*"/gi, '');
+                    
+                    // Convert HTML to plain text while preserving formatting
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = cleanHtml;
+                    
+                    // Function to convert HTML to formatted text
+                    const convertHtmlToText = (element: HTMLElement): string => {
+                      let result = '';
+                      const children = Array.from(element.childNodes);
+                      
+                      children.forEach((node, index) => {
+                        if (node.nodeType === Node.TEXT_NODE) {
+                          const text = node.textContent || '';
+                          // Only add text content, skip empty text nodes
+                          if (text.trim() || text === '\n') {
+                            result += text;
+                          }
+                        } else if (node.nodeType === Node.ELEMENT_NODE) {
+                          const el = node as HTMLElement;
+                          const tagName = el.tagName.toLowerCase();
+                          
+                          // Skip style, script, meta elements
+                          if (['style', 'script', 'meta'].includes(tagName)) {
+                            return;
+                          }
+                          
+                          if (tagName === 'br') {
+                            result += '\n';
+                          } else if (tagName === 'p' || tagName === 'div') {
+                            if (index > 0 && result && !result.endsWith('\n')) {
+                              result += '\n';
+                            }
+                            const content = convertHtmlToText(el).trim();
+                            if (content) {
+                              result += content;
+                              if (index < children.length - 1) {
+                                result += '\n';
+                              }
+                            }
+                          } else if (tagName === 'li') {
+                            const parent = el.parentElement;
+                            if (parent) {
+                              const parentTag = parent.tagName.toLowerCase();
+                              if (parentTag === 'ul') {
+                                result += '- ';
+                              } else if (parentTag === 'ol') {
+                                const liIndex = Array.from(parent.children).indexOf(el) + 1;
+                                result += `${liIndex}. `;
+                              }
+                            }
+                            const content = convertHtmlToText(el).trim();
+                            result += content;
+                            result += '\n';
+                          } else if (tagName === 'ul' || tagName === 'ol') {
+                            const content = convertHtmlToText(el);
+                            if (content.trim()) {
+                              result += content;
+                              if (index < children.length - 1 && !result.endsWith('\n')) {
+                                result += '\n';
+                              }
+                            }
+                          } else {
+                            // For other elements, just get their text content
+                            result += convertHtmlToText(el);
+                          }
+                        }
+                      });
+                      
+                      return result;
+                    };
+                    
+                    pastedText = convertHtmlToText(tempDiv).trim();
+                    
+                    // Clean up multiple consecutive newlines
+                    pastedText = pastedText.replace(/\n{3,}/g, '\n\n');
+                  } else {
+                    // Fallback to plain text
+                    pastedText = clipboardData.getData('text/plain');
+                  }
+                  
+                  // Insert at cursor position
+                  const textarea = e.currentTarget as HTMLTextAreaElement;
+                  const start = textarea.selectionStart || 0;
+                  const end = textarea.selectionEnd || 0;
+                  const currentValue = replyingToMessageId ? editingContent : newMessage;
+                  const newValue = currentValue.substring(0, start) + pastedText + currentValue.substring(end);
+                  
+                  if (replyingToMessageId) {
+                    setEditingContent(newValue);
+                  } else {
+                    setNewMessage(newValue);
+                  }
+                  
+                  // Restore cursor position
+                  setTimeout(() => {
+                    const newPosition = start + pastedText.length;
+                    textarea.setSelectionRange(newPosition, newPosition);
+                    textarea.focus();
+                  }, 0);
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -1573,6 +1692,12 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                       }
                     }
                   }
+                }}
+                onInput={(e) => {
+                  // Auto-resize textarea
+                  const textarea = e.currentTarget;
+                  textarea.style.height = 'auto';
+                  textarea.style.height = `${Math.min(textarea.scrollHeight, 200)}px`;
                 }}
               />
               <label className="cursor-pointer">
