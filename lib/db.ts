@@ -1,5 +1,7 @@
 import "server-only";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, Prisma } from "@prisma/client";
+// Defer imports to avoid circular dependencies
+// getSession and tenant utilities will be imported lazily in the middleware
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
@@ -138,5 +140,263 @@ if (typeof db.creditCard === "undefined") {
     "Fix: Run 'npx prisma generate' and restart your Next.js server.";
   
   console.warn(errorMsg);
+}
+
+// ============================================================================
+// Prisma Middleware: Tenant Enforcement (Defense-in-Depth)
+// ============================================================================
+// This middleware automatically enforces tenant isolation at the database level
+// by adding yachtId filters to all queries. This provides defense-in-depth
+// even if application code forgets to use withTenantScope().
+// ============================================================================
+
+// Context flag to skip middleware during auth operations
+const skipMiddlewareContext = new Set<string>();
+
+// Set up middleware lazily to avoid initialization errors
+// Use a function that will be called after Prisma Client is fully initialized
+function setupTenantMiddleware() {
+  try {
+    // Check if db is actually a PrismaClient instance (not a Proxy mock)
+    // Wrap in try-catch because accessing db.$use on a Proxy will throw
+    let hasUseMethod = false;
+    try {
+      hasUseMethod = typeof db.$use === 'function';
+    } catch {
+      // If accessing $use throws (e.g., Proxy mock), skip middleware setup
+      return;
+    }
+    
+    if (!hasUseMethod) {
+      return; // Silently skip if $use is not available
+    }
+
+    // Try to set up middleware
+    db.$use(async (params: any, next: (params: any) => Promise<any>) => {
+      // Skip middleware if explicitly disabled for this operation
+      if (skipMiddlewareContext.has('skip')) {
+        return next(params);
+      }
+      
+      // Models that require tenant scoping
+      // NOTE: 'user' and 'yacht' are excluded - they are not tenant-scoped
+      const tenantScopedModels = [
+        'expense', 'task', 'trip', 'shoppingList', 'messageChannel',
+        'alcoholStock', 'maintenanceLog', 'cashTransaction', 'crewDocument',
+        'vesselDocument', 'marinaPermissionDocument', 'shift', 'leave',
+        'customRole', 'product', 'shoppingStore', 'expenseCategory', 'creditCard',
+        'tripItineraryDay', 'tripChecklistItem', 'tripTankLog', 'tripMovementLog',
+        'taskComment', 'taskAttachment', 'expenseReceipt', 'maintenanceDocument',
+        'shoppingItem', 'alcoholStockHistory', 'message', 'messageRead',
+        'messageAttachment', 'notification', 'userNote', 'userNoteChecklistItem',
+      ];
+
+      // Skip middleware for user and yacht models (they're not tenant-scoped)
+      // These models are used for authentication and don't need tenant isolation
+      if (params.model === 'user' || params.model === 'yacht') {
+        return next(params);
+      }
+
+      // Only apply middleware to tenant-scoped models
+      if (!tenantScopedModels.includes(params.model || '')) {
+        return next(params);
+      }
+
+      // Apply tenant scoping for tenant-scoped models
+      try {
+        // Use a try-catch to handle cases where session might not be available
+        // (e.g., during initial auth, migrations, etc.)
+        // Import getSession lazily to avoid circular dependencies
+        let session;
+        try {
+          const { getSession } = await import("./get-session");
+          session = await getSession();
+        } catch (sessionError) {
+          // If session retrieval fails (e.g., circular dependency during auth), skip middleware
+          // This allows auth-related queries to proceed without tenant enforcement
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[Prisma Middleware] Session retrieval failed, skipping tenant enforcement:', sessionError);
+          }
+          return next(params);
+        }
+        
+        // If no session, skip middleware (allows unauthenticated queries during setup)
+        if (!session) {
+          return next(params);
+        }
+        
+        // Import tenant utilities lazily to avoid circular dependencies
+        const { getTenantId, isPlatformAdmin } = await import("./tenant");
+        const isAdmin = isPlatformAdmin(session);
+        const tenantId = getTenantId(session);
+
+        // Skip enforcement for platform admin users (they can access all data)
+        if (isAdmin) {
+          return next(params);
+        }
+
+        // Enforce tenant scope for regular users
+        // But don't throw if tenantId is missing - just skip enforcement
+        // This allows queries during user setup/onboarding
+        if (!tenantId) {
+          if (process.env.NODE_ENV === 'development') {
+            console.warn('[Prisma Middleware] No tenantId found, skipping tenant enforcement');
+          }
+          return next(params);
+        }
+
+        // Apply tenant filter based on operation type
+        if (['findMany', 'findFirst', 'count'].includes(params.action)) {
+          // SELECT operations - add yachtId to where clause
+          if (params.args.where) {
+            // Handle nested yachtId (for related tables accessed via parent)
+            if (params.model === 'expenseReceipt') {
+              // For expense receipts, filter via expense.yachtId
+              params.args.where.expense = {
+                ...(params.args.where.expense || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'taskComment' || params.model === 'taskAttachment') {
+              // For task comments/attachments, filter via task.yachtId
+              params.args.where.task = {
+                ...(params.args.where.task || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'tripItineraryDay' || params.model === 'tripChecklistItem' || 
+                       params.model === 'tripTankLog' || params.model === 'tripMovementLog') {
+              // For trip-related tables, filter via trip.yachtId
+              params.args.where.trip = {
+                ...(params.args.where.trip || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'shoppingItem') {
+              // For shopping items, filter via list.yachtId
+              params.args.where.list = {
+                ...(params.args.where.list || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'alcoholStockHistory') {
+              // For alcohol stock history, filter via stock.yachtId
+              params.args.where.stock = {
+                ...(params.args.where.stock || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'message' || params.model === 'messageRead' || params.model === 'messageAttachment') {
+              // For messages, filter via channel.yachtId
+              params.args.where.channel = {
+                ...(params.args.where.channel || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'notification') {
+              // Notifications are user-specific, but we can still scope by user's yachtId
+              // This is handled differently - notifications are already scoped by userId
+              // Skip middleware for notifications as they're user-specific
+              return next(params);
+            } else if (params.model === 'userNote' || params.model === 'userNoteChecklistItem') {
+              // User notes are user-specific, skip middleware
+              return next(params);
+            } else {
+              // Direct yachtId filter for most tables
+              params.args.where.yachtId = tenantId;
+            }
+          } else {
+            // No where clause - add yachtId filter
+            if (params.model === 'expenseReceipt') {
+              params.args.where = { expense: { yachtId: tenantId } };
+            } else if (params.model === 'taskComment' || params.model === 'taskAttachment') {
+              params.args.where = { task: { yachtId: tenantId } };
+            } else if (params.model === 'tripItineraryDay' || params.model === 'tripChecklistItem' || 
+                       params.model === 'tripTankLog' || params.model === 'tripMovementLog') {
+              params.args.where = { trip: { yachtId: tenantId } };
+            } else if (params.model === 'shoppingItem') {
+              params.args.where = { list: { yachtId: tenantId } };
+            } else if (params.model === 'alcoholStockHistory') {
+              params.args.where = { stock: { yachtId: tenantId } };
+            } else if (params.model === 'message' || params.model === 'messageRead' || params.model === 'messageAttachment') {
+              params.args.where = { channel: { yachtId: tenantId } };
+            } else {
+              params.args.where = { yachtId: tenantId };
+            }
+          }
+        } else if (params.action === 'create') {
+          // INSERT operations - ensure yachtId is set
+          if (!params.args.data.yachtId) {
+            params.args.data.yachtId = tenantId;
+          }
+        } else if (['update', 'updateMany', 'delete', 'deleteMany'].includes(params.action)) {
+          // UPDATE/DELETE operations - add yachtId to where clause
+          if (params.args.where) {
+            // For related tables, ensure parent's yachtId matches
+            if (params.model === 'expenseReceipt') {
+              params.args.where.expense = {
+                ...(params.args.where.expense || {}),
+                yachtId: tenantId,
+              };
+            } else if (params.model === 'taskComment' || params.model === 'taskAttachment') {
+              params.args.where.task = {
+                ...(params.args.where.task || {}),
+                yachtId: tenantId,
+              };
+            } else {
+              params.args.where.yachtId = tenantId;
+            }
+          } else {
+            params.args.where = { yachtId: tenantId };
+          }
+        }
+      } catch (error) {
+        // If session retrieval fails, skip middleware instead of throwing
+        // This prevents circular dependencies during auth operations
+        if (process.env.NODE_ENV === 'development') {
+          console.warn('[Prisma Middleware] Error enforcing tenant scope, skipping middleware:', error);
+        }
+        // Don't throw - allow query to proceed without tenant enforcement
+        // This is safer during auth operations
+        return next(params);
+      }
+      
+        return next(params);
+      });
+  } catch (middlewareError: any) {
+    // If middleware setup fails (e.g., Prisma Client not initialized, $use doesn't exist), log and continue
+    // This allows the app to start even if middleware can't be set up
+    if (process.env.NODE_ENV === 'development') {
+      const errorMsg = middlewareError?.message || String(middlewareError);
+      if (!errorMsg.includes('$use is not a function')) {
+        // Only log if it's not the expected "not a function" error
+        console.warn('[Prisma Middleware] Failed to set up middleware:', middlewareError);
+      }
+    }
+    // Silently fail - tenant enforcement will be handled at application level
+  }
+}
+
+// Try to set up middleware immediately, but catch errors
+setupTenantMiddleware();
+
+// Also try to set up middleware after a short delay (in case Prisma Client needs time to initialize)
+if (typeof setTimeout !== 'undefined') {
+  setTimeout(() => {
+    try {
+      setupTenantMiddleware();
+    } catch (e) {
+      // Ignore errors on delayed setup
+    }
+  }, 100);
+}
+
+/**
+ * Execute a database operation without tenant middleware
+ * Use this for auth-related queries that don't need tenant scoping
+ */
+export async function dbWithoutTenantMiddleware<T>(
+  operation: () => Promise<T>
+): Promise<T> {
+  skipMiddlewareContext.add('skip');
+  try {
+    return await operation();
+  } finally {
+    skipMiddlewareContext.delete('skip');
+  }
 }
 

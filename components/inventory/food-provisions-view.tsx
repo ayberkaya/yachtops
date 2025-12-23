@@ -115,12 +115,12 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
   const [categoryFilter, setCategoryFilter] = useState<FoodCategory | "ALL">("ALL");
 
   const handleAddStock = async () => {
-    if (!selectedFood && !customFood.trim()) {
-      alert("Please select a food item or enter a custom name");
+    if (!customFood.trim()) {
+      alert("Please enter a food item name");
       return;
     }
 
-    const name = selectedFood || customFood.trim();
+    const name = customFood.trim();
     setIsAdding(true);
 
     try {
@@ -138,7 +138,6 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
       if (response.ok) {
         const newStock = await response.json();
         setStocks([...stocks, newStock].sort((a, b) => a.name.localeCompare(b.name)));
-        setSelectedFood("");
         setCustomFood("");
         setSelectedCategory("NONE");
         setSelectedUnit("kg");
@@ -282,30 +281,12 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
       <Card>
         <CardHeader>
           <CardTitle>Add Food Item to Stock</CardTitle>
-          <CardDescription>
-            Select from common food items or enter a custom name
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
-              <Select value={selectedFood} onValueChange={setSelectedFood}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select from common items" />
-                </SelectTrigger>
-                <SelectContent>
-                  {POPULAR_FOOD_ITEMS.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex-1 text-center text-sm text-muted-foreground flex items-center justify-center">
-                OR
-              </div>
               <Input
-                placeholder="Enter custom food item name"
+                placeholder="Enter food item name"
                 value={customFood}
                 onChange={(e) => {
                   setCustomFood(e.target.value);

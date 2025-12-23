@@ -237,6 +237,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           const hasAllData = token.id && token.role && (token.email || session.user.email);
           if (!hasAllData && db && typeof db.user?.findUnique === 'function') {
             try {
+              // Use a timeout and catch any errors to prevent session callback from failing
               const freshUser = await Promise.race([
                 db.user.findUnique({
                   where: { id: token.id as string },
@@ -252,7 +253,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 new Promise<null>((resolve) => 
                   setTimeout(() => resolve(null), 2000)
                 ),
-              ]);
+              ]).catch((error) => {
+                // Catch any database errors and return null to prevent session callback failure
+                console.error("❌ [AUTH] Error fetching user data in session callback:", error);
+                return null;
+              });
               
               if (freshUser) {
                 session.user.id = freshUser.id;
@@ -264,7 +269,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                 session.user.permissions = freshUser.permissions;
               }
             } catch (error) {
+              // Double catch to ensure we never throw from session callback
               console.error("❌ [AUTH] Error fetching user data:", error);
+              // Don't throw - use token data as fallback
             }
           }
         }

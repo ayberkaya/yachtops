@@ -116,12 +116,12 @@ export function SparePartsView({ initialStocks }: SparePartsViewProps) {
   const [categoryFilter, setCategoryFilter] = useState<SparePartsCategory | "ALL">("ALL");
 
   const handleAddStock = async () => {
-    if (!selectedPart && !customPart.trim()) {
-      alert("Please select a part or enter a custom name");
+    if (!customPart.trim()) {
+      alert("Please enter a spare part name");
       return;
     }
 
-    const name = selectedPart || customPart.trim();
+    const name = customPart.trim();
     setIsAdding(true);
 
     try {
@@ -139,7 +139,6 @@ export function SparePartsView({ initialStocks }: SparePartsViewProps) {
       if (response.ok) {
         const newStock = await response.json();
         setStocks([...stocks, newStock].sort((a, b) => a.name.localeCompare(b.name)));
-        setSelectedPart("");
         setCustomPart("");
         setSelectedCategory("NONE");
         setSelectedUnit("piece");
@@ -285,30 +284,12 @@ export function SparePartsView({ initialStocks }: SparePartsViewProps) {
       <Card>
         <CardHeader>
           <CardTitle>Add Spare Part to Stock</CardTitle>
-          <CardDescription>
-            Select from common spare parts or enter a custom name
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
-              <Select value={selectedPart} onValueChange={setSelectedPart}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select from common parts" />
-                </SelectTrigger>
-                <SelectContent>
-                  {POPULAR_SPARE_PARTS.map((part) => (
-                    <SelectItem key={part} value={part}>
-                      {part}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex-1 text-center text-sm text-muted-foreground flex items-center justify-center">
-                OR
-              </div>
               <Input
-                placeholder="Enter custom part name"
+                placeholder="Enter spare part name"
                 value={customPart}
                 onChange={(e) => {
                   setCustomPart(e.target.value);

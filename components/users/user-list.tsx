@@ -27,7 +27,7 @@ import { format } from "date-fns";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import { UserForm } from "./user-form";
 import { UserEditForm } from "./user-edit-form";
-import { canManageUsers } from "@/lib/auth";
+import { canManageUsers } from "@/lib/auth-utils";
 import { useSession } from "next-auth/react";
 
 interface User {

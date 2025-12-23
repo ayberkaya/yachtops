@@ -113,12 +113,12 @@ export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProp
   const [categoryFilter, setCategoryFilter] = useState<CleaningCategory | "ALL">("ALL");
 
   const handleAddStock = async () => {
-    if (!selectedItem && !customItem.trim()) {
-      alert("Please select an item or enter a custom name");
+    if (!customItem.trim()) {
+      alert("Please enter a cleaning supply name");
       return;
     }
 
-    const name = selectedItem || customItem.trim();
+    const name = customItem.trim();
     setIsAdding(true);
 
     try {
@@ -136,7 +136,6 @@ export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProp
       if (response.ok) {
         const newStock = await response.json();
         setStocks([...stocks, newStock].sort((a, b) => a.name.localeCompare(b.name)));
-        setSelectedItem("");
         setCustomItem("");
         setSelectedCategory("NONE");
         setSelectedUnit("piece");
@@ -279,30 +278,12 @@ export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProp
       <Card>
         <CardHeader>
           <CardTitle>Add Cleaning Supply to Stock</CardTitle>
-          <CardDescription>
-            Select from common cleaning supplies or enter a custom name
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
-              <Select value={selectedItem} onValueChange={setSelectedItem}>
-                <SelectTrigger className="flex-1">
-                  <SelectValue placeholder="Select from common items" />
-                </SelectTrigger>
-                <SelectContent>
-                  {POPULAR_CLEANING_ITEMS.map((item) => (
-                    <SelectItem key={item} value={item}>
-                      {item}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex-1 text-center text-sm text-muted-foreground flex items-center justify-center">
-                OR
-              </div>
               <Input
-                placeholder="Enter custom item name"
+                placeholder="Enter cleaning supply name"
                 value={customItem}
                 onChange={(e) => {
                   setCustomItem(e.target.value);

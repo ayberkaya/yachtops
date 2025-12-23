@@ -43,7 +43,7 @@ import { TaskForm } from "./task-form";
 import { TaskCompletionDialog } from "./task-completion-dialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { hasPermission } from "@/lib/permissions";
-import { SessionUser } from "@/lib/auth";
+import { SessionUser } from "@/lib/auth-utils";
 
 interface Task {
   id: string;
@@ -589,7 +589,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     </div>
                   )}
                 </CardContent>
-                <div className="p-2 md:p-4 flex justify-between items-center gap-2">
+                <div className="p-1 flex justify-between items-center gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                     {canUncomplete && (
                       <Button
@@ -826,7 +826,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                     </div>
                   )}
                 </CardContent>
-                <div className="p-2 md:p-4 flex justify-between items-center gap-2">
+                <div className="p-1 flex justify-between items-center gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
                     {canUncomplete && (
                       <Button

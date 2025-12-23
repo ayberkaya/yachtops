@@ -45,7 +45,7 @@ import {
   Shield,
 } from "lucide-react";
 // Force recompile - removed Moon import
-import { canManageUsers } from "@/lib/auth";
+import { canManageUsers } from "@/lib/auth-utils";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
 
 // Mobile Sheet Component (separated for better organization)

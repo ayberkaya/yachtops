@@ -21,7 +21,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Menu } from "lucide-react";
 import { UserRole } from "@prisma/client";
-import { canManageUsers, canApproveExpenses } from "@/lib/auth";
+import { canManageUsers, canApproveExpenses } from "@/lib/auth-utils";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
 import { NotificationsView } from "@/components/notifications/notifications-view";
 

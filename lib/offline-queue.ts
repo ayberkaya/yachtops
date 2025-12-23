@@ -4,6 +4,7 @@
  */
 
 import { offlineStorage } from "./offline-storage";
+import { getOfflineFile, arrayBufferToFile, deleteOfflineFile } from "./offline-file-storage";
 
 export interface QueueItem {
   id: string;
@@ -87,6 +88,32 @@ class OfflineQueue {
   }
 
   /**
+   * Add file upload to queue
+   * Stores file reference in queue item body
+   */
+  async enqueueFileUpload(
+    fileId: string,
+    url: string,
+    method: string = 'POST',
+    metadata?: Record<string, any>
+  ): Promise<string> {
+    const body = JSON.stringify({
+      fileId,
+      ...metadata,
+    });
+    
+    const id = await offlineStorage.addToQueue(url, method, {}, body);
+    this.notifySyncListeners();
+
+    // Try to sync immediately if online
+    if (this.isOnline && !this.isSyncing) {
+      this.sync().catch(console.error);
+    }
+
+    return id;
+  }
+
+  /**
    * Get pending items count
    */
   async getPendingCount(): Promise<number> {
@@ -159,31 +186,78 @@ class OfflineQueue {
         });
 
         try {
-          // Parse request body to check for potential conflicts
+          // Parse request body to check for potential conflicts and file uploads
           let requestBody: any = null;
+          let isFileUpload = false;
+          let formData: FormData | null = null;
+          
           try {
             if (item.body) {
               requestBody = JSON.parse(item.body);
+              // Check if this is a file upload
+              if (requestBody?.fileId) {
+                isFileUpload = true;
+              }
             }
           } catch {
             // Body might not be JSON, that's okay
           }
 
+          // Handle file uploads
+          if (isFileUpload && requestBody?.fileId) {
+            // Retrieve file from IndexedDB
+            const offlineFile = await getOfflineFile(requestBody.fileId);
+            if (!offlineFile) {
+              throw new Error(`Offline file not found: ${requestBody.fileId}`);
+            }
+
+            // Convert ArrayBuffer to File
+            const file = arrayBufferToFile(
+              offlineFile.file,
+              offlineFile.fileName,
+              offlineFile.mimeType
+            );
+
+            // Create FormData
+            formData = new FormData();
+            formData.append('file', file);
+            
+            // Add metadata fields
+            if (offlineFile.expenseId) {
+              formData.append('expenseId', offlineFile.expenseId);
+            }
+            if (offlineFile.taskId) {
+              formData.append('taskId', offlineFile.taskId);
+            }
+            if (offlineFile.messageId) {
+              formData.append('messageId', offlineFile.messageId);
+            }
+
+            // Add any additional metadata
+            Object.entries(requestBody).forEach(([key, value]) => {
+              if (key !== 'fileId' && value !== undefined && value !== null) {
+                formData!.append(key, String(value));
+              }
+            });
+          }
+
           // Execute request with timeout
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 30000); // 30s timeout
+          const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout for file uploads
 
           let response: Response;
           try {
-            response = await fetch(item.url, {
+            const fetchOptions: RequestInit = {
               method: item.method,
-              headers: {
+              headers: isFileUpload ? {} : {
                 "Content-Type": "application/json",
                 ...item.headers,
               },
-              body: item.body,
+              body: isFileUpload ? formData : item.body,
               signal: controller.signal,
-            });
+            };
+
+            response = await fetch(item.url, fetchOptions);
             clearTimeout(timeoutId);
           } catch (fetchError) {
             clearTimeout(timeoutId);
@@ -193,6 +267,16 @@ class OfflineQueue {
           if (response.ok) {
             // Success - remove from queue
             await offlineStorage.removeFromQueue(item.id);
+            
+            // Delete offline file if this was a file upload
+            if (isFileUpload && requestBody?.fileId) {
+              try {
+                await deleteOfflineFile(requestBody.fileId);
+              } catch (error) {
+                console.warn('Failed to delete offline file after upload:', error);
+              }
+            }
+            
             onSuccess?.(item);
             processed++;
             onProgress?.(processed, total);

@@ -212,53 +212,72 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
       const result = response.data as any;
 
-      // Upload receipts if provided (only when online and saved successfully)
-      if (receiptFiles.length > 0 && result?.id && !response.queued) {
+      // Upload receipts if provided (with offline support)
+      if (receiptFiles.length > 0 && result?.id) {
         try {
-          // Upload each receipt file
-          for (const file of receiptFiles) {
-            const receiptFormData = new FormData();
-            receiptFormData.append("file", file);
-            const receiptResponse = await fetch(`/api/expenses/${result.id}/receipt`, {
-              method: "POST",
-              body: receiptFormData,
-            });
-            
-            if (!receiptResponse.ok) {
-              // Try to get error message from response
-              let errorMessage = `HTTP ${receiptResponse.status}: ${receiptResponse.statusText}`;
-              let errorData: any = {};
+          // Import offline utilities
+          const { compressImages } = await import("@/lib/image-compression");
+          const { storeFileOffline } = await import("@/lib/offline-file-storage");
+          const { offlineQueue } = await import("@/lib/offline-queue");
+          const { apiClient } = await import("@/lib/api-client");
+
+          // Compress images before upload
+          const compressedFiles = await compressImages(receiptFiles, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            initialQuality: 0.85,
+          });
+
+          // Check if online
+          if (offlineQueue.online && !response.queued) {
+            // Online - upload immediately
+            for (const file of compressedFiles) {
+              const receiptFormData = new FormData();
+              receiptFormData.append("file", file);
               
-              try {
-                const responseText = await receiptResponse.text();
-                if (responseText) {
-                  errorData = JSON.parse(responseText);
-                  errorMessage = errorData.error || errorData.message || errorMessage;
+              const receiptResponse = await apiClient.request(
+                `/api/expenses/${result.id}/receipt`,
+                {
+                  method: "POST",
+                  body: receiptFormData,
+                  queueOnOffline: false, // Already checked online status
                 }
-              } catch (parseError) {
-                console.error("Failed to parse error response:", parseError);
-              }
+              );
               
-              console.error("Failed to upload receipt:", {
-                error: errorMessage,
-                details: errorData.details,
-                file: file.name,
-                size: file.size,
-                type: file.type,
-                status: receiptResponse.status,
-                statusText: receiptResponse.statusText,
-                fullError: errorData,
-              });
-              throw new Error(errorMessage);
+              if (receiptResponse.status >= 400) {
+                const errorData = receiptResponse.data as any;
+                const errorMessage = errorData?.error || errorData?.message || "Failed to upload receipt";
+                console.error("Failed to upload receipt:", errorMessage);
+                // Fallback to offline storage
+                const fileId = await storeFileOffline(file, { expenseId: result.id });
+                await offlineQueue.enqueueFileUpload(
+                  fileId,
+                  `/api/expenses/${result.id}/receipt`,
+                  'POST'
+                );
+              } else {
+                console.log("Receipt uploaded successfully");
+              }
+            }
+          } else {
+            // Offline or queued - store files and queue uploads
+            for (const file of compressedFiles) {
+              const fileId = await storeFileOffline(file, { expenseId: result.id });
+              await offlineQueue.enqueueFileUpload(
+                fileId,
+                `/api/expenses/${result.id}/receipt`,
+                'POST'
+              );
             }
             
-            const receiptResult = await receiptResponse.json();
-            console.log("Receipt uploaded successfully:", receiptResult.id);
+            if (response.queued) {
+              console.log("Receipts queued for upload when connection is restored");
+            }
           }
         } catch (uploadError) {
           console.error("Failed to upload receipt images", uploadError);
           const errorMessage = uploadError instanceof Error ? uploadError.message : "Failed to upload receipt images";
-          alert(`Expense saved, but receipt upload failed: ${errorMessage}. Please try uploading receipts again from the expense detail page.`);
+          alert(`Expense saved, but receipt upload failed: ${errorMessage}. Receipts will be uploaded automatically when connection is restored.`);
           // Expense was saved successfully, receipt upload failures will retry when online
         }
       }

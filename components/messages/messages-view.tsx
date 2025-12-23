@@ -10,7 +10,7 @@ import { format, formatDistanceToNow } from "date-fns";
 import { Send, Hash, Users, Image as ImageIcon, X, Search, Pin, Reply, Edit2, Trash2, Paperclip, FileText, Download, ChevronDown, Star, Forward, Check, CheckCheck, Bell, Settings, ArrowLeft } from "lucide-react";
 import { ChannelList } from "./channel-list";
 import { ChannelForm } from "./channel-form";
-import { canManageUsers } from "@/lib/auth";
+import { canManageUsers } from "@/lib/auth-utils";
 import {
   DropdownMenu,
   DropdownMenuContent,

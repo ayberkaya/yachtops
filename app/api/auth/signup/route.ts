@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth-server";
 import { UserRole } from "@prisma/client";
 import { z } from "zod";
+import { syncUserToSupabaseAuth } from "@/lib/supabase-auth-sync";
 
 const signUpSchema = z.object({
   email: z.string().email(),
@@ -148,6 +149,14 @@ export async function POST(request: NextRequest) {
           },
         },
       });
+    }
+
+    // Sync user to Supabase Auth for RLS policies
+    try {
+      await syncUserToSupabaseAuth(user.id, user.email);
+    } catch (syncError) {
+      console.error("Failed to sync user to Supabase Auth:", syncError);
+      // Don't fail signup if sync fails - user can still use the app
     }
 
     return NextResponse.json(

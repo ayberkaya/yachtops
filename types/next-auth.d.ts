@@ -11,6 +11,7 @@ declare module "next-auth" {
       yachtId: string | null;
       permissions?: string | null;
     };
+    supabaseAccessToken?: string;
   }
 
   interface User {
@@ -30,6 +31,7 @@ declare module "next-auth/jwt" {
     yachtId: string | null;
     permissions?: string | null;
     rememberMe?: boolean;
+    supabaseAccessToken?: string;
   }
 }
 
