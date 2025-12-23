@@ -66,11 +66,11 @@ export function ReceiptUpload({
       return;
     }
 
+    // CRITICAL: Retrieve Yacht ID - required for RLS-compliant path
     const yachtId = session.user.yachtId;
     if (!yachtId) {
       console.error('[Receipt Upload Debug] Missing Yacht ID');
-      setError('You must be assigned to a yacht to upload receipts');
-      return;
+      throw new Error('Yacht ID missing - user must be assigned to a yacht to upload receipts');
     }
 
     // Check file count limit
@@ -103,9 +103,14 @@ export function ReceiptUpload({
             initialQuality: 0.85,
           });
 
-          // Step 2: Check if online
-          if (offlineQueue.online) {
-            // Online - upload directly to Supabase Storage with authenticated client
+          // Step 2: Check if online - always try direct upload first when online
+          const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
+          console.log("🌐 Network Status:", isOnline ? "ONLINE" : "OFFLINE");
+          console.log("🌐 navigator.onLine:", navigator.onLine);
+          console.log("🌐 offlineQueue.online:", offlineQueue.online);
+
+          if (isOnline) {
+            // Online - ALWAYS try direct upload first
             setUploadProgress(prev => ({ ...prev, [fileId]: 50 }));
             
             try {
@@ -114,19 +119,37 @@ export function ReceiptUpload({
               const supabase = createSupabaseClient(supabaseAccessToken);
               console.log('[Receipt Upload Debug] Supabase client created successfully');
 
-              // Generate file path: /{yachtId}/receipts/{timestamp}-{randomId}-{sanitizedFileName}
-              const timestamp = Date.now();
-              const randomId = Math.random().toString(36).substring(2, 15);
-              const sanitizedFileName = compressedFile.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-              const filePath = `/${yachtId}/receipts/${timestamp}-${randomId}-${sanitizedFileName}`;
+              // CRITICAL: Generate file path MUST start with yachtId for RLS compliance
+              // Format: {yachtId}/{category}/{filename} (NO leading slash - verified working pattern)
+              // RLS policy checks: split_part(name, '/', 1) = get_jwt_yacht_id()
               
-              console.log('[Receipt Upload Debug] Uploading to path:', filePath);
-              console.log('[Receipt Upload Debug] File size:', compressedFile.size, 'bytes');
-              console.log('[Receipt Upload Debug] File type:', compressedFile.type);
+              // Construct filename: timestamp-sanitized-original-name
+              const fileName = `${Date.now()}-${compressedFile.name.replace(/[^a-zA-Z0-9.]/g, '-')}`;
+              
+              // Construct path: yachtId/receipts/filename (MUST START WITH YACHT ID)
+              const filePath = `${yachtId}/receipts/${fileName}`;
+              
+              // Validate path format before upload
+              if (!filePath.startsWith(`${yachtId}/`)) {
+                throw new Error(`Invalid path format: Path must start with ${yachtId}/ but got ${filePath}`);
+              }
+              
+              // Log upload path for verification
+              console.log("📤 Uploading to path:", filePath);
+              
+              // Additional debug info
+              console.log("🚀 Attempting Direct Upload (Online)...");
+              console.log("🆔 Yacht ID:", yachtId);
+              console.log("📦 Bucket Name: helmops-files");
+              console.log("📏 File Size:", compressedFile.size, "bytes");
+              console.log("📄 File Type:", compressedFile.type);
+              console.log("📝 Original File Name:", compressedFile.name);
+              console.log("📝 Generated File Name:", fileName);
+              console.log("🔑 Token Length:", supabaseAccessToken.length);
 
-              // Upload to Supabase Storage
+              // Upload to Supabase Storage using authenticated client
               // Note: Supabase upload returns { data, error } - it does NOT throw by default
-              const { data: uploadData, error: uploadError } = await supabase.storage
+              const { data, error } = await supabase.storage
                 .from('helmops-files')
                 .upload(filePath, compressedFile, {
                   contentType: compressedFile.type || 'image/jpeg',
@@ -134,22 +157,33 @@ export function ReceiptUpload({
                   upsert: false,
                 });
 
-              // Check for upload errors - Supabase returns errors in the error object, not as exceptions
-              if (uploadError) {
-                console.error('[Receipt Upload Debug] Supabase upload error:', {
-                  message: uploadError.message,
-                  name: uploadError.name,
-                  error: uploadError,
-                });
-                throw new Error(`Supabase Storage Error: ${uploadError.message || 'Failed to upload receipt'}`);
+              // ✅ After Upload Call: Detailed error/success logging
+              if (error) {
+                console.error("❌ Direct Upload Failed (Supabase Error):", error);
+                console.error("❌ Error Message:", error.message);
+                console.error("❌ Error Name:", error.name);
+                console.error("❌ Error Status Code:", (error as any).statusCode);
+                console.error("❌ Full Error Object:", JSON.stringify(error, null, 2));
+                console.error("❌ Target Path That Failed:", filePath);
+                console.error("❌ Yacht ID Used:", yachtId);
+                console.warn("⚠️ Direct upload failed, falling back to offline queue...");
+                
+                // Fallback to offline queue if direct upload fails
+                throw new Error(`DIRECT_UPLOAD_FAILED: ${error.message || 'Failed to upload receipt'}`);
+              } else {
+                console.log("✅ Direct Upload Success Data:", data);
+                console.log("✅ Uploaded Path:", data?.path);
+                console.log("✅ Full Path Used:", filePath);
               }
 
-              if (!uploadData) {
-                console.error('[Receipt Upload Debug] Upload returned no data and no error');
+              if (!data) {
+                console.error("❌ Upload returned no data and no error");
+                console.error("❌ This is unexpected - Supabase should return data on success");
                 throw new Error('Upload failed: No data returned from Supabase Storage');
               }
 
-              console.log('[Receipt Upload Debug] Upload successful, path:', uploadData.path);
+              // Use the data variable for the rest of the flow
+              const uploadData = data;
 
               // Prepare the request body
               const requestBody = {
@@ -179,10 +213,44 @@ export function ReceiptUpload({
                 onUploadSuccess(response.data.id);
               }
             } catch (uploadError) {
-              throw uploadError; // Re-throw to be caught by outer catch
+              // If direct upload fails, fallback to offline queue
+              const errorMessage = uploadError instanceof Error ? uploadError.message : String(uploadError);
+              console.warn("⚠️ Direct upload failed, storing in offline queue:", errorMessage);
+              
+              // Check if this is a network error or a Supabase error
+              const isNetworkError = uploadError instanceof TypeError || 
+                                    (uploadError instanceof Error && errorMessage.includes('fetch')) ||
+                                    (uploadError instanceof Error && errorMessage.includes('network'));
+              
+              if (isNetworkError || !navigator.onLine) {
+                // Network issue - store offline
+                console.log("📦 Storing file offline due to network error");
+                const storedFileId = await storeFileOffline(compressedFile, {
+                  expenseId,
+                });
+
+                await offlineQueue.enqueueFileUpload(
+                  storedFileId,
+                  `/api/expenses/${expenseId}/receipt`,
+                  'POST',
+                  {
+                    expenseId,
+                    yachtId,
+                    category: 'receipts',
+                  }
+                );
+
+                setUploadProgress(prev => ({ ...prev, [fileId]: 100 }));
+                setUploadStatus(prev => ({ ...prev, [fileId]: 'pending' }));
+                setError('Files stored offline. They will upload automatically when connection is restored.');
+              } else {
+                // Other error (RLS, auth, etc.) - re-throw to show error
+                throw uploadError;
+              }
             }
           } else {
-            // Offline - store and queue
+            // Offline - store and queue immediately
+            console.log("📦 Device is offline, storing file in offline queue");
             setUploadProgress(prev => ({ ...prev, [fileId]: 50 }));
             
             const storedFileId = await storeFileOffline(compressedFile, {

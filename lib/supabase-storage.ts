@@ -8,7 +8,7 @@ import { createClient } from '@supabase/supabase-js';
 // Bucket names for different file types
 // NOTE: These must match the bucket names in Supabase Storage dashboard
 export const STORAGE_BUCKETS = {
-  RECEIPTS: 'receipts', // Changed from 'expense-receipts' to match Supabase
+  RECEIPTS: 'helmops-files', // All receipts stored in secured helmops-files bucket with RLS
   MESSAGE_IMAGES: 'message-images',
   MESSAGE_ATTACHMENTS: 'message-attachments',
   VESSEL_DOCUMENTS: 'vessel-documents',

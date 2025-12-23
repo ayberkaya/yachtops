@@ -148,11 +148,18 @@ class OfflineQueue {
    * Sync queue with server
    */
   async sync(options: SyncOptions = {}): Promise<void> {
+    console.log("🔄 Processing Offline Queue...");
+    console.log("🔄 Is Syncing:", this.isSyncing);
+    console.log("🔄 Is Online:", this.isOnline);
+    console.log("🔄 navigator.onLine:", typeof navigator !== 'undefined' ? navigator.onLine : 'N/A');
+    
     if (this.isSyncing) {
+      console.log("🔄 Already syncing, skipping...");
       return;
     }
 
     if (!this.isOnline) {
+      console.log("🔄 Not online, skipping sync...");
       return;
     }
 
@@ -171,7 +178,10 @@ class OfflineQueue {
       const items = await offlineStorage.getQueueItems("pending");
       const total = items.length;
 
+      console.log("🔄 Found", total, "pending items in queue");
+
       if (total === 0) {
+        console.log("🔄 No pending items, sync complete");
         this.isSyncing = false;
         this.notifySyncListeners();
         return;
@@ -180,8 +190,16 @@ class OfflineQueue {
       let processed = 0;
 
       for (const item of items) {
+        console.log(`🔄 Processing queue item ${processed + 1}/${total}:`, {
+          id: item.id,
+          url: item.url,
+          method: item.method,
+          retries: item.retries,
+        });
+        
         // Skip if max retries exceeded
         if (item.retries >= maxRetries) {
+          console.log(`🔄 Skipping item ${item.id} - max retries exceeded`);
           await offlineStorage.updateQueueItem(item.id, {
             status: "failed",
           });
@@ -240,11 +258,22 @@ class OfflineQueue {
                   offlineFile.mimeType
                 );
 
-                // Generate file path: /{yachtId}/{category}/{timestamp}-{randomId}-{sanitizedFileName}
+                // CRITICAL: Generate file path MUST start with yachtId for RLS compliance
+                // Format: /{yachtId}/{category}/{filename}
+                // RLS policy checks: split_part(name, '/', 2) = get_jwt_yacht_id()
                 const timestamp = Date.now();
                 const randomId = Math.random().toString(36).substring(2, 15);
                 const sanitizedFileName = offlineFile.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+                // Ensure path starts with / and yachtId is the first segment
                 const filePath = `/${yachtId}/${category}/${timestamp}-${randomId}-${sanitizedFileName}`;
+                
+                // Validate path format before upload
+                if (!yachtId || !category) {
+                  throw new Error(`Missing yachtId or category for offline file upload. yachtId: ${yachtId}, category: ${category}`);
+                }
+                if (!filePath.startsWith(`/${yachtId}/`)) {
+                  throw new Error(`Invalid path format: Path must start with /${yachtId}/ but got ${filePath}`);
+                }
 
                 // Upload to Supabase Storage
                 const { data: uploadData, error: uploadError } = await supabase.storage
@@ -456,11 +485,14 @@ class OfflineQueue {
           await new Promise((resolve) => setTimeout(resolve, retryDelay));
         }
       }
+      
+      console.log("🔄 Queue sync completed. Processed:", processed, "of", total);
     } catch (error) {
-      console.error("Sync error:", error);
+      console.error("🔄 Sync error:", error);
     } finally {
       this.isSyncing = false;
       this.notifySyncListeners();
+      console.log("🔄 Sync finished, isSyncing set to false");
     }
   }
 
