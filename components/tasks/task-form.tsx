@@ -61,6 +61,12 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
 
+  // Filter out OWNER role users from assignee selection
+  const assignableUsers = users.filter((user) => {
+    const role = user.role ? String(user.role).toUpperCase().trim() : "";
+    return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
+  });
+
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema) as any,
@@ -501,7 +507,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
                             <span className="text-slate-400 font-medium">Select people...</span>
                           ) : (
                             assigneeIds.map((userId) => {
-                              const user = users.find((u) => u.id === userId);
+                              const user = assignableUsers.find((u) => u.id === userId) || users.find((u) => u.id === userId);
                               if (!user) return null;
                               const displayRole = user.customRole ? user.customRole.name : (user.role ? user.role.toLowerCase() : "");
                               return (
@@ -533,11 +539,11 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
                     sideOffset={4}
                   >
                     <div className="max-h-64 overflow-y-auto">
-                      {users.length === 0 ? (
+                      {assignableUsers.length === 0 ? (
                         <p className="text-sm text-slate-500 p-2">No users available</p>
                       ) : (
                         <div className="space-y-0.5">
-                          {users.map((user) => (
+                          {assignableUsers.map((user) => (
                             <div
                               key={user.id}
                               className="flex items-center space-x-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-slate-900"
