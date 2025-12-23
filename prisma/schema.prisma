@@ -103,6 +103,7 @@ model Yacht {
   usageEvents               UsageEvent[]
   feedback                  Feedback[]
   creditCards               CreditCard[]
+  invites                   YachtInvite[]
 
   @@map("yachts")
 }
@@ -736,6 +737,10 @@ enum UserRole {
   ADMIN
   OWNER
   CAPTAIN
+  CHEF
+  STEWARDESS
+  DECKHAND
+  ENGINEER
   CREW
 }
 
@@ -965,6 +970,32 @@ enum AuditAction {
   RESTORE
   APPROVE
   REJECT
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+}
+
+model YachtInvite {
+  id        String       @id @default(cuid())
+  email     String
+  role      UserRole
+  yachtId   String       @map("yacht_id")
+  token     String       @unique
+  expiresAt DateTime     @map("expires_at")
+  status    InviteStatus @default(PENDING)
+  createdAt DateTime     @default(now()) @map("created_at")
+  updatedAt DateTime     @updatedAt @map("updated_at")
+  yacht     Yacht        @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@unique([yachtId, email, status])
+  @@index([token])
+  @@index([yachtId, status])
+  @@index([email, status])
+  @@index([expiresAt])
+  @@map("yacht_invites")
 }
 
 model UsageEvent {
