@@ -66,6 +66,30 @@ export const DEFAULT_WIDGETS: Record<UserRoleType, WidgetConfig[]> = {
     { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
     { id: "upcoming_maintenance", enabled: true, order: 3, size: "full" },
   ],
+  CHEF: [
+    { id: "my_tasks", enabled: true, order: 0, size: "medium" },
+    { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
+    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
+    { id: "low_stock_alert", enabled: true, order: 3, size: "full" },
+  ],
+  STEWARDESS: [
+    { id: "my_tasks", enabled: true, order: 0, size: "medium" },
+    { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
+    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
+    { id: "low_stock_alert", enabled: true, order: 3, size: "full" },
+  ],
+  DECKHAND: [
+    { id: "my_tasks", enabled: true, order: 0, size: "medium" },
+    { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
+    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
+    { id: "upcoming_maintenance", enabled: true, order: 3, size: "full" },
+  ],
+  ENGINEER: [
+    { id: "my_tasks", enabled: true, order: 0, size: "medium" },
+    { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
+    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
+    { id: "upcoming_maintenance", enabled: true, order: 3, size: "full" },
+  ],
   ADMIN: [
     { id: "role_tasks_alert", enabled: true, order: 0, size: "full" },
     { id: "quick_stats", enabled: true, order: 1, size: "medium" },
