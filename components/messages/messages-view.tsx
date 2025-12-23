@@ -1555,6 +1555,10 @@ export function MessagesView({ initialChannels, allUsers, currentUser }: Message
                 placeholder={replyingToMessageId ? "Type a reply... (use @username to mention)" : "Type a message... (use @username to mention)"}
                 disabled={isSending}
                 className="flex-1"
+                autoComplete="off"
+                autoCorrect="off"
+                autoCapitalize="off"
+                spellCheck="false"
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
