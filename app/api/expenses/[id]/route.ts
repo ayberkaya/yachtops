@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/get-session";
 import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -405,6 +406,10 @@ export async function PATCH(
           : `Expense updated: ${existingExpense.description}`,
         request,
       });
+      
+      // Revalidate expense pages to immediately show updated data
+      revalidatePath('/dashboard/expenses');
+      revalidatePath('/dashboard/expenses/pending');
       
       console.log("Expense updated successfully");
     } catch (dbError) {

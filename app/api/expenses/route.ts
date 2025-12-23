@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
@@ -64,8 +65,9 @@ export async function GET(request: NextRequest) {
     if (status) {
       baseWhere.status = status;
     } else {
-      // Hide submitted expenses from general listings until they are approved/rejected
-      baseWhere.status = { not: ExpenseStatus.SUBMITTED };
+      // Default to APPROVED only for main expenses list (General Ledger)
+      // Pending items belong in Approval Queue, Rejected items should not clutter this view
+      baseWhere.status = ExpenseStatus.APPROVED;
     }
     if (categoryId) {
       baseWhere.categoryId = categoryId;
@@ -252,6 +254,10 @@ export async function POST(request: NextRequest) {
       description: `Expense created: ${expense.description} (${expense.amount} ${expense.currency})`,
       request,
     });
+
+    // Revalidate expense pages to immediately show new data
+    revalidatePath('/dashboard/expenses');
+    revalidatePath('/dashboard/expenses/pending');
 
     return NextResponse.json(expense, { status: 201 });
   } catch (error) {

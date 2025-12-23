@@ -1,6 +1,7 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
+import { ToastProvider } from "./toast-provider";
 
 export function Providers({ children }: { children: React.ReactNode }) {
   return (
@@ -8,7 +9,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
       refetchInterval={5 * 60} // Refetch session every 5 minutes
       refetchOnWindowFocus={true} // Refetch when window regains focus
     >
-      {children}
+      <ToastProvider>
+        {children}
+      </ToastProvider>
     </SessionProvider>
   );
 }

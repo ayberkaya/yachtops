@@ -27,10 +27,11 @@ export default async function ExpensesPage() {
     redirect("/dashboard");
   }
 
-  // Fetch initial expenses (exclude soft-deleted) with strict tenant scope
+  // Fetch initial expenses - only APPROVED items for General Ledger
+  // Pending items belong in Approval Queue, Rejected items should not clutter this view
   const expenses = await db.expense.findMany({
     where: withTenantScope(session, {
-      status: { not: ExpenseStatus.SUBMITTED },
+      status: ExpenseStatus.APPROVED,
       deletedAt: null, // Exclude soft-deleted expenses
     }),
     include: {

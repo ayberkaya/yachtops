@@ -338,6 +338,7 @@ export function ExpenseDetail({ expense, canApprove, canEdit }: ExpenseDetailPro
                       body: JSON.stringify({ status: ExpenseStatus.APPROVED }),
                     });
                     if (response.ok) {
+                      // Refresh immediately to show updated data
                       router.refresh();
                     } else {
                       const result = await response.json();

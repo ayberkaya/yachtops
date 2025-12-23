@@ -128,10 +128,11 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
 
 
   // Initialize filters from URL params or default
+  // Default status to APPROVED for main expenses list (General Ledger)
   const getInitialFilters = (): FilterState => {
     const params = searchParams;
     return {
-      status: params.get("status") || "",
+      status: params.get("status") || ExpenseStatus.APPROVED,
       categoryId: params.get("categoryId") || "",
       tripId: params.get("tripId") || "",
       startDate: params.get("startDate") || "",
@@ -185,6 +186,11 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
             params.append(key, value);
           }
         });
+        
+        // Ensure status is always included - default to APPROVED if not set
+        if (!filters.status) {
+          params.append("status", ExpenseStatus.APPROVED);
+        }
 
         const response = await fetch(`/api/expenses?${params.toString()}`);
         
@@ -244,8 +250,9 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
   };
 
   const clearFilters = () => {
+    // When clearing filters, keep status as APPROVED (default for General Ledger)
     const emptyFilters: FilterState = {
-      status: "",
+      status: ExpenseStatus.APPROVED,
       categoryId: "",
       tripId: "",
       startDate: "",
@@ -569,17 +576,16 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
 
               {/* Status */}
               <Select
-                value={filters.status || "all"}
-                onValueChange={(value) => handleFilterChange("status", value === "all" ? "" : value)}
+                value={filters.status || ExpenseStatus.APPROVED}
+                onValueChange={(value) => handleFilterChange("status", value)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
+                  <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value={ExpenseStatus.APPROVED}>Approved</SelectItem>
                   <SelectItem value={ExpenseStatus.DRAFT}>Draft</SelectItem>
                   <SelectItem value={ExpenseStatus.SUBMITTED}>Submitted</SelectItem>
-                  <SelectItem value={ExpenseStatus.APPROVED}>Approved</SelectItem>
                   <SelectItem value={ExpenseStatus.REJECTED}>Rejected</SelectItem>
                 </SelectContent>
               </Select>

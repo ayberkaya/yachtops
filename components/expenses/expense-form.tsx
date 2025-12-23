@@ -212,85 +212,112 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
       const result = response.data as any;
 
-      // Upload receipts if provided (with offline support)
+      // Show success toast for new expense creation
+      if (method === "POST") {
+        // Import toast function dynamically
+        const toastModule = await import("@/components/ui/toast");
+        toastModule.toast({
+          description: "Masraf başarıyla oluşturuldu! Onay kuyruğuna (Pending) eklendi.",
+          variant: "success",
+          duration: 5000,
+        });
+      }
+
+      // Track successful expense creation/update (non-blocking)
+      const { trackAction } = await import("@/lib/usage-tracking");
+      trackAction(method === "POST" ? "expense.create" : "expense.update", {
+        expenseId: result?.id,
+        categoryId: payload.categoryId,
+      }).catch(err => console.error("Failed to track action:", err));
+
+      // Navigate and refresh immediately - don't wait for receipt uploads
+      router.push("/dashboard/expenses");
+      router.refresh();
+
+      // Upload receipts in background (non-blocking) after navigation
       if (receiptFiles.length > 0 && result?.id) {
-        try {
-          // Import offline utilities
-          const { compressImages } = await import("@/lib/image-compression");
-          const { storeFileOffline } = await import("@/lib/offline-file-storage");
-          const { offlineQueue } = await import("@/lib/offline-queue");
-          const { apiClient } = await import("@/lib/api-client");
+        // Use setTimeout to ensure navigation happens first, then upload receipts
+        setTimeout(async () => {
+          try {
+            // Import offline utilities
+            const { compressImages } = await import("@/lib/image-compression");
+            const { storeFileOffline } = await import("@/lib/offline-file-storage");
+            const { offlineQueue } = await import("@/lib/offline-queue");
+            const { apiClient } = await import("@/lib/api-client");
 
-          // Compress images before upload
-          const compressedFiles = await compressImages(receiptFiles, {
-            maxSizeMB: 1,
-            maxWidthOrHeight: 1920,
-            initialQuality: 0.85,
-          });
+            // Compress images before upload
+            const compressedFiles = await compressImages(receiptFiles, {
+              maxSizeMB: 1,
+              maxWidthOrHeight: 1920,
+              initialQuality: 0.85,
+            });
 
-          // Check if online
-          if (offlineQueue.online && !response.queued) {
-            // Online - upload immediately
-            for (const file of compressedFiles) {
-              const receiptFormData = new FormData();
-              receiptFormData.append("file", file);
-              
-              const receiptResponse = await apiClient.request(
-                `/api/expenses/${result.id}/receipt`,
-                {
-                  method: "POST",
-                  body: receiptFormData,
-                  queueOnOffline: false, // Already checked online status
+            // Check if online
+            if (offlineQueue.online && !response.queued) {
+              // Online - upload in parallel for better performance
+              const uploadPromises = compressedFiles.map(async (file) => {
+                try {
+                  const receiptFormData = new FormData();
+                  receiptFormData.append("file", file);
+                  
+                  const receiptResponse = await apiClient.request(
+                    `/api/expenses/${result.id}/receipt`,
+                    {
+                      method: "POST",
+                      body: receiptFormData,
+                      queueOnOffline: false,
+                    }
+                  );
+                  
+                  if (receiptResponse.status >= 400) {
+                    const errorData = receiptResponse.data as any;
+                    const errorMessage = errorData?.error || errorData?.message || "Failed to upload receipt";
+                    console.error("Failed to upload receipt:", errorMessage);
+                    // Fallback to offline storage
+                    const fileId = await storeFileOffline(file, { expenseId: result.id });
+                    await offlineQueue.enqueueFileUpload(
+                      fileId,
+                      `/api/expenses/${result.id}/receipt`,
+                      'POST'
+                    );
+                  } else {
+                    console.log("Receipt uploaded successfully");
+                  }
+                } catch (fileError) {
+                  console.error("Error uploading receipt:", fileError);
+                  // Fallback to offline storage
+                  const fileId = await storeFileOffline(file, { expenseId: result.id });
+                  await offlineQueue.enqueueFileUpload(
+                    fileId,
+                    `/api/expenses/${result.id}/receipt`,
+                    'POST'
+                  );
                 }
-              );
-              
-              if (receiptResponse.status >= 400) {
-                const errorData = receiptResponse.data as any;
-                const errorMessage = errorData?.error || errorData?.message || "Failed to upload receipt";
-                console.error("Failed to upload receipt:", errorMessage);
-                // Fallback to offline storage
+              });
+
+              // Wait for all uploads in parallel (but don't block UI)
+              await Promise.allSettled(uploadPromises);
+            } else {
+              // Offline or queued - store files and queue uploads
+              for (const file of compressedFiles) {
                 const fileId = await storeFileOffline(file, { expenseId: result.id });
                 await offlineQueue.enqueueFileUpload(
                   fileId,
                   `/api/expenses/${result.id}/receipt`,
                   'POST'
                 );
-              } else {
-                console.log("Receipt uploaded successfully");
+              }
+              
+              if (response.queued) {
+                console.log("Receipts queued for upload when connection is restored");
               }
             }
-          } else {
-            // Offline or queued - store files and queue uploads
-            for (const file of compressedFiles) {
-              const fileId = await storeFileOffline(file, { expenseId: result.id });
-              await offlineQueue.enqueueFileUpload(
-                fileId,
-                `/api/expenses/${result.id}/receipt`,
-                'POST'
-              );
-            }
-            
-            if (response.queued) {
-              console.log("Receipts queued for upload when connection is restored");
-            }
+          } catch (uploadError) {
+            console.error("Failed to upload receipt images", uploadError);
+            // Silently fail - receipts will be uploaded automatically when connection is restored
           }
-        } catch (uploadError) {
-          console.error("Failed to upload receipt images", uploadError);
-          const errorMessage = uploadError instanceof Error ? uploadError.message : "Failed to upload receipt images";
-          alert(`Expense saved, but receipt upload failed: ${errorMessage}. Receipts will be uploaded automatically when connection is restored.`);
-          // Expense was saved successfully, receipt upload failures will retry when online
-        }
+        }, 0);
       }
-
-      // Track successful expense creation/update
-      const { trackAction } = await import("@/lib/usage-tracking");
-      trackAction(method === "POST" ? "expense.create" : "expense.update", {
-        expenseId: result?.id,
-        categoryId: payload.categoryId,
-      });
-
-      router.push("/dashboard/expenses");
-      router.refresh();
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
       setError(errorMessage);
@@ -329,9 +356,11 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const handleConfirmCreate = async () => {
     if (!pendingPayload) return;
     setIsLoading(true);
-    await performSave(pendingPayload, "/api/expenses", "POST");
+    // Close dialog immediately for better UX
     setConfirmOpen(false);
     setPendingPayload(null);
+    // Perform save (which will navigate)
+    await performSave(pendingPayload, "/api/expenses", "POST");
   };
 
   const categoryName =
