@@ -139,7 +139,7 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
       <Card>
         <CardContent className="p-12 text-center">
           <div className="max-w-md mx-auto space-y-4">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-green-950/20 border-2" style={{ borderColor: 'rgba(5, 223, 114, 1)', borderImage: 'none' }}>
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-white dark:bg-white border-2" style={{ borderColor: 'rgba(5, 223, 114, 1)', borderImage: 'none' }}>
               <Check className="h-8 w-8 text-green-600 dark:text-green-400" />
             </div>
             <div>

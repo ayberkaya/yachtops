@@ -3,6 +3,22 @@ import Credentials from "next-auth/providers/credentials";
 import { db } from "./db";
 import { verifyPassword } from "./auth-server";
 import { UserRole } from "@prisma/client";
+import jwt from "jsonwebtoken";
+import { createHash } from "crypto";
+
+// ID Dönüştürücü Fonksiyon (Deterministik) - Converts CUID to UUID format for Supabase
+function getUuidFromUserId(userId: string): string {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(userId)) return userId;
+  const hash = createHash('sha1').update(userId).digest('hex');
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    '5' + hash.substring(13, 16),
+    '8' + hash.substring(17, 20),
+    hash.substring(20, 32),
+  ].join('-');
+}
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
@@ -150,6 +166,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user, trigger, session }) {
+      // 🚨🚨🚨 LOUD LOGGING - JWT CALLBACK 🚨🚨🚨
+      console.log("🚨🚨🚨 JWT CALLBACK IS RUNNING 🚨🚨🚨");
+      console.log("🔑 Secret Env Length:", process.env.SUPABASE_JWT_SECRET ? process.env.SUPABASE_JWT_SECRET.length : "MISSING");
+      console.log("🎫 Current Token Has AccessToken:", !!token.supabaseAccessToken);
+      
       // Always check token expiration first
       if (token.exp && typeof token.exp === 'number') {
         const now = Math.floor(Date.now() / 1000);
@@ -205,9 +226,107 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         }
       }
+
+      // CRITICAL: Handle Supabase Access Token (Persistent Signing Logic)
+      const jwtSecret = process.env.SUPABASE_JWT_SECRET;
+      
+      if (!jwtSecret) {
+        console.error("❌ [JWT Callback] SUPABASE_JWT_SECRET is missing! This is a configuration error.");
+        // If no secret and no existing token, we cannot proceed
+        if (!token.supabaseAccessToken) {
+          console.error("❌ [JWT Callback] No existing Supabase token and JWT_SECRET missing. Token will be undefined.");
+        } else {
+          console.warn("⚠️ [JWT Callback] Using existing token, but cannot regenerate without JWT_SECRET.");
+        }
+        return token;
+      }
+
+      // Step A: Check if token exists and is valid
+      let shouldRegenerateToken = false;
+      
+      if (token.supabaseAccessToken) {
+        try {
+          // Verify token is not expired by decoding it
+          const decoded = jwt.decode(token.supabaseAccessToken as string) as { exp?: number } | null;
+          if (decoded && decoded.exp) {
+            const now = Math.floor(Date.now() / 1000);
+            const timeUntilExpiry = decoded.exp - now;
+            // Regenerate if expires within 1 hour (refresh proactively)
+            if (timeUntilExpiry < 3600) {
+              console.log("🔄 [JWT Callback] Supabase token expires soon, regenerating...");
+              shouldRegenerateToken = true;
+            } else {
+              console.log("✅ [JWT Callback] Existing Supabase token is valid (expires in", Math.floor(timeUntilExpiry / 3600), "hours)");
+            }
+          } else {
+            // Token exists but can't decode expiration, regenerate to be safe
+            console.log("⚠️ [JWT Callback] Cannot decode Supabase token expiration, regenerating...");
+            shouldRegenerateToken = true;
+          }
+        } catch (error) {
+          // Token exists but is invalid, regenerate
+          console.log("⚠️ [JWT Callback] Supabase token decode failed, regenerating...", error);
+          shouldRegenerateToken = true;
+        }
+      } else {
+        // Token is missing, must generate
+        console.log("🆕 [JWT Callback] Supabase token missing, generating new token...");
+        shouldRegenerateToken = true;
+      }
+
+      // Step B: Generate new token if needed
+      if (shouldRegenerateToken) {
+        // Determine user data source (from user on login, or from token on refresh)
+        const userId = user?.id || token.id;
+        const userEmail = user?.email || token.email;
+        const userName = user?.name || token.name;
+        const yachtId = user?.yachtId || token.yachtId;
+
+        if (!userId || !userEmail) {
+          console.error("❌ [JWT Callback] Cannot generate Supabase token: missing userId or email");
+          return token;
+        }
+
+        // Convert NextAuth ID to Supabase UUID format
+        const supabaseUserId = getUuidFromUserId(userId as string);
+
+        // Create payload for Supabase JWT
+        const payload = {
+          aud: "authenticated",
+          exp: Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 7, // 7 days validity
+          sub: supabaseUserId,
+          email: userEmail,
+          role: "authenticated",
+          app_metadata: {
+            provider: "email",
+            providers: ["email"],
+          },
+          user_metadata: {
+            name: userName,
+            yacht_id: yachtId, // Critical for RLS policies
+          },
+        };
+
+        // Sign the token
+        try {
+          token.supabaseAccessToken = jwt.sign(payload, jwtSecret);
+          console.log("🎫 [JWT Callback] New Supabase token signed successfully (Length:", (token.supabaseAccessToken as string).length + ")");
+        } catch (error) {
+          console.error("❌ [JWT Callback] Failed to sign Supabase token:", error);
+          // If signing fails and no existing token, log error but don't throw
+          if (!token.supabaseAccessToken) {
+            console.error("❌ [JWT Callback] Token signing failed and no existing token available.");
+          }
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
+      // 👀 LOUD LOGGING - SESSION CALLBACK 👀
+      console.log("👀 SESSION CALLBACK IS RUNNING");
+      console.log("📦 Transferring Token:", !!token.supabaseAccessToken);
+      
       try {
         // If token is null or expired, return null session
         if (!token || !token.id) {
@@ -232,6 +351,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           session.user.yachtId = token.yachtId as string | null;
           (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
           session.user.permissions = token.permissions as string | null | undefined;
+          
+          // Pass Supabase Access Token to session (for client-side use)
+          if (token.supabaseAccessToken) {
+            session.supabaseAccessToken = token.supabaseAccessToken as string;
+            console.log("✅ [Session Callback] Session Token Set (Length:", session.supabaseAccessToken.length + ")");
+          } else {
+            console.error("❌ [Session Callback] token.supabaseAccessToken is missing! This should not happen if JWT_SECRET is configured.");
+          }
           
           // Only fetch from DB if critical data is missing (shouldn't happen normally)
           const hasAllData = token.id && token.role && (token.email || session.user.email);
