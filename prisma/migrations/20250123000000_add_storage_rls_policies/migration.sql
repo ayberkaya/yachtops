@@ -79,6 +79,10 @@ BEGIN
             'storage_objects_insert_own_yacht',
             'storage_objects_update_own_yacht',
             'storage_objects_delete_own_yacht',
+            'Tenant Isolation Policy - SELECT',
+            'Tenant Isolation Policy - INSERT',
+            'Tenant Isolation Policy - UPDATE',
+            'Tenant Isolation Policy - DELETE',
             'storage_buckets_select_own_yacht'
         )
     ) LOOP
@@ -89,9 +93,11 @@ END $$;
 -- ============================================================================
 -- Step 5: Create RLS policies for storage.objects
 -- ============================================================================
+-- Tenant Isolation Policy: Users can only access files where the first
+-- path segment matches their yacht_id from JWT user_metadata
 
 -- Policy: SELECT - Users can only see files in paths starting with their yacht_id
-CREATE POLICY storage_objects_select_own_yacht
+CREATE POLICY "Tenant Isolation Policy - SELECT"
 ON storage.objects
 FOR SELECT
 TO authenticated
@@ -100,13 +106,14 @@ USING (
   auth.role() = 'authenticated'
   AND get_jwt_yacht_id() IS NOT NULL
   -- Extract first path segment (yacht_id) and compare with JWT yacht_id
-  -- Path format: /{yacht_id}/{folder}/{filename}
+  -- Path format: /{yacht_id}/{category}/{filename}
   -- split_part(name, '/', 2) extracts the yacht_id (first segment after leading slash)
+  -- Equivalent to: (storage.foldername(name))[1] = (auth.jwt() -> 'user_metadata' ->> 'yacht_id')
   AND split_part(name, '/', 2) = get_jwt_yacht_id()
 );
 
 -- Policy: INSERT - Users can only upload files to paths starting with their yacht_id
-CREATE POLICY storage_objects_insert_own_yacht
+CREATE POLICY "Tenant Isolation Policy - INSERT"
 ON storage.objects
 FOR INSERT
 TO authenticated
@@ -115,13 +122,14 @@ WITH CHECK (
   auth.role() = 'authenticated'
   AND get_jwt_yacht_id() IS NOT NULL
   -- Ensure the path starts with the user's yacht_id
+  -- Path format: /{yacht_id}/{category}/{filename}
   AND split_part(name, '/', 2) = get_jwt_yacht_id()
   -- Ensure bucket is 'helmops-files'
   AND bucket_id = 'helmops-files'
 );
 
 -- Policy: UPDATE - Users can only update files in paths starting with their yacht_id
-CREATE POLICY storage_objects_update_own_yacht
+CREATE POLICY "Tenant Isolation Policy - UPDATE"
 ON storage.objects
 FOR UPDATE
 TO authenticated
@@ -140,7 +148,7 @@ WITH CHECK (
 );
 
 -- Policy: DELETE - Users can only delete files in paths starting with their yacht_id
-CREATE POLICY storage_objects_delete_own_yacht
+CREATE POLICY "Tenant Isolation Policy - DELETE"
 ON storage.objects
 FOR DELETE
 TO authenticated
@@ -181,7 +189,7 @@ BEGIN
     FROM pg_policies
     WHERE schemaname = 'storage'
     AND tablename = 'objects'
-    AND policyname LIKE 'storage_objects_%';
+    AND (policyname LIKE 'Tenant Isolation Policy%' OR policyname LIKE 'storage_objects_%');
     
     IF policy_count < 4 THEN
         RAISE EXCEPTION 'Expected 4 policies on storage.objects, found %', policy_count;

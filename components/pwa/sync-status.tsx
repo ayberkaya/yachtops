@@ -1,11 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useSession } from "next-auth/react";
 import { RefreshCw, CheckCircle2, XCircle, Clock } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
 import { Button } from "@/components/ui/button";
 
 export function SyncStatus() {
+  const { data: session } = useSession();
   const [pendingCount, setPendingCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -57,6 +59,17 @@ export function SyncStatus() {
 
     try {
       await apiClient.sync({
+        getAccessToken: async () => {
+          // Get token from session
+          if (session && (session as any).supabaseAccessToken) {
+            return (session as any).supabaseAccessToken;
+          }
+          return null;
+        },
+        getYachtId: async () => {
+          // Get yachtId from session
+          return session?.user?.yachtId || null;
+        },
         onProgress: (processed, total) => {
           // Update status during sync
           updateStatus();
@@ -93,6 +106,15 @@ export function SyncStatus() {
       const { offlineQueue } = await import("@/lib/offline-queue");
       await offlineQueue.retryFailed();
       await apiClient.sync({
+        getAccessToken: async () => {
+          if (session && (session as any).supabaseAccessToken) {
+            return (session as any).supabaseAccessToken;
+          }
+          return null;
+        },
+        getYachtId: async () => {
+          return session?.user?.yachtId || null;
+        },
         onProgress: updateStatus,
         onSuccess: () => {
           setLastSync(new Date());

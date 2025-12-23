@@ -174,40 +174,105 @@ class ApiClient {
 
     // If online, try to make request (skipQueue only controls queuing fallback, not fetch)
     if (this.isOnline) {
-      try {
-        // Reduced timeout for mobile/slow networks: 8 seconds (was 15)
-        const timeout = 8000;
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), timeout);
-
         try {
-          // Ensure credentials are always included for NextAuth session
-          const { credentials: _, ...restFetchOptions } = fetchOptions;
-          const response = await fetch(fullUrl, {
-            ...restFetchOptions,
-            signal: controller.signal,
-            credentials: "include", // Always include cookies for NextAuth session
-            headers: {
-              "Content-Type": "application/json",
-              ...restFetchOptions.headers,
-            },
-          });
+          // Reduced timeout for mobile/slow networks: 8 seconds (was 15)
+          const timeout = 8000;
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+          try {
+            // Ensure credentials are always included for NextAuth session
+            const { credentials: _, ...restFetchOptions } = fetchOptions;
+            
+            // Check if body is FormData - if so, don't set Content-Type (browser will set it with boundary)
+            const isFormData = fetchOptions.body instanceof FormData;
+            
+            // Debug logging for receipt upload requests
+            if (fullUrl.includes('/receipt')) {
+              console.log('[Receipt Upload API Client] Request details:', {
+                url: fullUrl,
+                method,
+                body: isFormData ? 'FormData' : (typeof fetchOptions.body === 'string' ? fetchOptions.body.substring(0, 200) : fetchOptions.body),
+                bodyType: typeof fetchOptions.body,
+                isFormData,
+                bodyLength: typeof fetchOptions.body === 'string' ? fetchOptions.body.length : 'N/A',
+                headers: restFetchOptions.headers,
+              });
+            }
+            
+            // Prepare headers - don't set Content-Type for FormData (browser handles it)
+            // Convert headers to a plain object to ensure we can modify it
+            const headers: Record<string, string> = {};
+            
+            // Copy existing headers
+            if (restFetchOptions.headers) {
+              if (restFetchOptions.headers instanceof Headers) {
+                restFetchOptions.headers.forEach((value, key) => {
+                  headers[key] = value;
+                });
+              } else if (Array.isArray(restFetchOptions.headers)) {
+                restFetchOptions.headers.forEach(([key, value]) => {
+                  headers[key] = value;
+                });
+              } else {
+                Object.assign(headers, restFetchOptions.headers);
+              }
+            }
+            
+            // Only set Content-Type for non-FormData requests
+            if (!isFormData) {
+              headers["Content-Type"] = "application/json";
+            }
+            
+            const response = await fetch(fullUrl, {
+              ...restFetchOptions,
+              signal: controller.signal,
+              credentials: "include", // Always include cookies for NextAuth session
+              headers,
+            });
 
           clearTimeout(timeoutId);
+
+          // Get response text first (can only be read once)
+          const responseText = await response.text();
+          const contentType = response.headers.get("content-type") || "";
+
+          // Debug logging for receipt upload issues
+          if (fullUrl.includes('/receipt')) {
+            console.log('[Receipt Upload Debug]', {
+              status: response.status,
+              statusText: response.statusText,
+              contentType,
+              responseLength: responseText.length,
+              responsePreview: responseText.substring(0, 100),
+              responseFirstChars: Array.from(responseText.substring(0, 10)).map(c => `${c} (${c.charCodeAt(0)})`).join(', '),
+            });
+          }
 
           // Check if response is ok
           if (!response.ok) {
             // Try to parse error response
             let errorData: any;
             try {
-              const contentType = response.headers.get("content-type");
-              if (contentType && contentType.includes("application/json")) {
-                errorData = await response.json();
+              if (contentType.includes("application/json") && responseText && responseText.trim() !== '') {
+                // Validate JSON before parsing
+                const trimmed = responseText.trim();
+                if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+                  errorData = JSON.parse(trimmed);
+                } else {
+                  // Invalid JSON, use text as error message
+                  errorData = { error: response.statusText, message: trimmed.substring(0, 200) };
+                }
               } else {
-                errorData = { error: response.statusText };
+                errorData = { error: response.statusText, message: responseText || 'No error message provided' };
               }
-            } catch {
-              errorData = { error: response.statusText };
+            } catch (parseError) {
+              // JSON parse failed, use text as error message
+              console.error('Error parsing error response:', parseError, 'Response text:', responseText);
+              errorData = { 
+                error: response.statusText || 'Request failed', 
+                message: responseText ? responseText.substring(0, 200) : 'Invalid response format'
+              };
             }
 
             // Throw error with response data
@@ -217,12 +282,27 @@ class ApiClient {
             throw error;
           }
 
-          const contentType = response.headers.get("content-type");
+          // Parse successful response
           let data: T;
-
-          if (contentType && contentType.includes("application/json")) {
-            const text = await response.text();
-            data = JSON.parse(text) as T;
+          if (contentType.includes("application/json")) {
+            // Handle empty response body
+            if (!responseText || responseText.trim() === '') {
+              data = {} as T;
+            } else {
+              try {
+                const trimmed = responseText.trim();
+                // Validate JSON format before parsing
+                if (!trimmed.startsWith('{') && !trimmed.startsWith('[') && trimmed !== 'null') {
+                  console.error('Invalid JSON response format. Expected object or array, got:', trimmed.substring(0, 100));
+                  throw new Error(`Invalid JSON response: Response does not start with valid JSON token. Got: ${trimmed.substring(0, 50)}`);
+                }
+                data = JSON.parse(trimmed) as T;
+              } catch (parseError) {
+                // If JSON parsing fails, log the error and throw a more descriptive error
+                console.error('JSON parse error:', parseError, 'Response text:', responseText);
+                throw new Error(`Invalid JSON response: ${parseError instanceof Error ? parseError.message : String(parseError)}. Response: ${responseText.substring(0, 100)}`);
+              }
+            }
             
             // Instrument request (async to not block response)
             if (typeof window !== "undefined") {
@@ -232,7 +312,7 @@ class ApiClient {
                   import("./request-instrumentation").catch(() => null),
                   import("./egress-logger").catch(() => null),
                 ]).then(([requestInstrumentationModule, egressLoggerModule]) => {
-                  const estimatedSize = text.length;
+                  const estimatedSize = responseText.length;
                   const url = new URL(fullUrl);
                   
                   // Log to request instrumentation (existing)
@@ -250,7 +330,7 @@ class ApiClient {
                   // Log to egress logger (new, controlled by EGRESS_DEBUG)
                   if (egressLoggerModule?.egressLogger) {
                     try {
-                      const data = JSON.parse(text);
+                      const data = JSON.parse(responseText);
                       const recordCount = Array.isArray(data) 
                         ? data.length 
                         : data?.data && Array.isArray(data.data)
@@ -273,7 +353,8 @@ class ApiClient {
               }, 0);
             }
           } else {
-            data = (await response.text()) as any;
+            // Non-JSON response, use text as-is
+            data = responseText as any;
           }
 
           // Cache successful GET responses

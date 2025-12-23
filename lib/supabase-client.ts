@@ -20,8 +20,26 @@ const SUPABASE_URL: string = supabaseUrl;
  * @returns Authenticated Supabase client
  */
 export function createSupabaseClient(accessToken: string): SupabaseClient {
+  // Strict validation - do not proceed if token is missing or invalid
   if (!accessToken) {
-    throw new Error('Access token is required to create Supabase client');
+    console.error('[Supabase Client] Missing Supabase Access Token');
+    throw new Error('Missing Supabase Access Token: Access token is required to create Supabase client');
+  }
+
+  if (typeof accessToken !== 'string') {
+    console.error('[Supabase Client] Invalid token type:', typeof accessToken);
+    throw new Error('Invalid Supabase Access Token: Token must be a string');
+  }
+
+  if (accessToken.trim() === '') {
+    console.error('[Supabase Client] Empty token provided');
+    throw new Error('Invalid Supabase Access Token: Token cannot be empty');
+  }
+
+  // Validate token format (should be a JWT-like string with at least some structure)
+  if (accessToken.split('.').length < 2) {
+    console.warn('[Supabase Client] Token does not appear to be a valid JWT format');
+    // Don't throw here, as custom tokens might have different formats
   }
 
   // Pass the access token as the anon key parameter

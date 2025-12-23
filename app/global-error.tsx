@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import * as Sentry from "@sentry/nextjs";
 import { AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +15,9 @@ export default function GlobalError({
   reset: () => void;
 }) {
   useEffect(() => {
+    // Capture error in Sentry
+    Sentry.captureException(error);
+    
     // Log error to console
     console.error("Global error:", {
       message: error.message,

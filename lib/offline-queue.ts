@@ -23,6 +23,16 @@ export interface SyncOptions {
   onSuccess?: (item: QueueItem) => void;
   onError?: (item: QueueItem, error: Error) => void;
   onProgress?: (processed: number, total: number) => void;
+  /**
+   * Function to get Supabase access token for authenticated Storage uploads
+   * Should return the token from NextAuth session
+   */
+  getAccessToken?: () => Promise<string | null>;
+  /**
+   * Function to get yachtId for path construction
+   * Should return the yachtId from NextAuth session
+   */
+  getYachtId?: () => Promise<string | null>;
 }
 
 class OfflineQueue {
@@ -211,34 +221,105 @@ class OfflineQueue {
               throw new Error(`Offline file not found: ${requestBody.fileId}`);
             }
 
-            // Convert ArrayBuffer to File
-            const file = arrayBufferToFile(
-              offlineFile.file,
-              offlineFile.fileName,
-              offlineFile.mimeType
-            );
+            // Check if we have access token and yachtId for direct Supabase Storage upload
+            const accessToken = options.getAccessToken ? await options.getAccessToken() : null;
+            const yachtId = options.getYachtId ? await options.getYachtId() : null;
+            const category = requestBody.category || 'receipts';
 
-            // Create FormData
-            formData = new FormData();
-            formData.append('file', file);
-            
-            // Add metadata fields
-            if (offlineFile.expenseId) {
-              formData.append('expenseId', offlineFile.expenseId);
-            }
-            if (offlineFile.taskId) {
-              formData.append('taskId', offlineFile.taskId);
-            }
-            if (offlineFile.messageId) {
-              formData.append('messageId', offlineFile.messageId);
-            }
+            // If we have token and yachtId, upload directly to Supabase Storage
+            if (accessToken && yachtId && requestBody.yachtId === yachtId) {
+              try {
+                // Import Supabase client helper
+                const { createSupabaseClient } = await import('./supabase-client');
+                const supabase = createSupabaseClient(accessToken);
 
-            // Add any additional metadata
-            Object.entries(requestBody).forEach(([key, value]) => {
-              if (key !== 'fileId' && value !== undefined && value !== null) {
-                formData!.append(key, String(value));
+                // Convert ArrayBuffer to File
+                const file = arrayBufferToFile(
+                  offlineFile.file,
+                  offlineFile.fileName,
+                  offlineFile.mimeType
+                );
+
+                // Generate file path: /{yachtId}/{category}/{timestamp}-{randomId}-{sanitizedFileName}
+                const timestamp = Date.now();
+                const randomId = Math.random().toString(36).substring(2, 15);
+                const sanitizedFileName = offlineFile.fileName.replace(/[^a-zA-Z0-9.-]/g, '_');
+                const filePath = `/${yachtId}/${category}/${timestamp}-${randomId}-${sanitizedFileName}`;
+
+                // Upload to Supabase Storage
+                const { data: uploadData, error: uploadError } = await supabase.storage
+                  .from('helmops-files')
+                  .upload(filePath, file, {
+                    contentType: offlineFile.mimeType || 'application/octet-stream',
+                    cacheControl: '3600',
+                    upsert: false,
+                  });
+
+                if (uploadError) {
+                  throw new Error(`Storage upload failed: ${uploadError.message}`);
+                }
+
+                // Replace FormData with JSON body containing storage metadata
+                requestBody = {
+                  ...requestBody,
+                  storageBucket: 'helmops-files',
+                  storagePath: uploadData.path,
+                  mimeType: offlineFile.mimeType,
+                  fileSize: offlineFile.size,
+                };
+                formData = null; // Clear FormData, we'll use JSON instead
+                isFileUpload = false; // Treat as JSON request now
+              } catch (storageError) {
+                console.error('Failed to upload to Supabase Storage during sync:', storageError);
+                // Fall back to FormData upload via API route
+                const file = arrayBufferToFile(
+                  offlineFile.file,
+                  offlineFile.fileName,
+                  offlineFile.mimeType
+                );
+                formData = new FormData();
+                formData.append('file', file);
+                
+                // Add metadata fields
+                if (offlineFile.expenseId) {
+                  formData.append('expenseId', offlineFile.expenseId);
+                }
+                if (offlineFile.taskId) {
+                  formData.append('taskId', offlineFile.taskId);
+                }
+                if (offlineFile.messageId) {
+                  formData.append('messageId', offlineFile.messageId);
+                }
               }
-            });
+            } else {
+              // No token available - use FormData upload via API route (legacy)
+              const file = arrayBufferToFile(
+                offlineFile.file,
+                offlineFile.fileName,
+                offlineFile.mimeType
+              );
+
+              formData = new FormData();
+              formData.append('file', file);
+              
+              // Add metadata fields
+              if (offlineFile.expenseId) {
+                formData.append('expenseId', offlineFile.expenseId);
+              }
+              if (offlineFile.taskId) {
+                formData.append('taskId', offlineFile.taskId);
+              }
+              if (offlineFile.messageId) {
+                formData.append('messageId', offlineFile.messageId);
+              }
+
+              // Add any additional metadata
+              Object.entries(requestBody).forEach(([key, value]) => {
+                if (key !== 'fileId' && value !== undefined && value !== null) {
+                  formData!.append(key, String(value));
+                }
+              });
+            }
           }
 
           // Execute request with timeout
@@ -249,11 +330,11 @@ class OfflineQueue {
           try {
             const fetchOptions: RequestInit = {
               method: item.method,
-              headers: isFileUpload ? {} : {
+              headers: isFileUpload && formData ? {} : {
                 "Content-Type": "application/json",
                 ...item.headers,
               },
-              body: isFileUpload ? formData : item.body,
+              body: isFileUpload && formData ? formData : (isFileUpload && requestBody ? JSON.stringify(requestBody) : item.body),
               signal: controller.signal,
             };
 
