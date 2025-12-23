@@ -73,7 +73,7 @@ export function PendingExpensesList({ expenses: initialExpenses }: PendingExpens
       
       // Track expense approval (non-blocking)
       const { trackAction } = await import("@/lib/usage-tracking");
-      trackAction("expense.approve", { expenseId: id }).catch(err => console.error("Failed to track action:", err));
+      trackAction("expense.approve", { expenseId: id });
     } catch (error) {
       alert("An error occurred. Please try again.");
     } finally {

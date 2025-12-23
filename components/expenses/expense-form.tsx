@@ -228,7 +228,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
       trackAction(method === "POST" ? "expense.create" : "expense.update", {
         expenseId: result?.id,
         categoryId: payload.categoryId,
-      }).catch(err => console.error("Failed to track action:", err));
+      });
 
       // Navigate and refresh immediately - don't wait for receipt uploads
       router.push("/dashboard/expenses");
