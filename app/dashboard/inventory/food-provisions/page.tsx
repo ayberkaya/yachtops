@@ -26,9 +26,9 @@ export default async function FoodProvisionsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Food & Provisions</h1>
-        <p className="text-muted-foreground">
+      <div className="px-4 md:px-0">
+        <h1 className="text-2xl md:text-3xl font-bold break-words">Food & Provisions</h1>
+        <p className="text-sm md:text-base text-muted-foreground mt-2 break-words">
           Manage food items, groceries, and provisions inventory
         </p>
       </div>

@@ -280,7 +280,7 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
       {/* Add New Stock */}
       <Card>
         <CardHeader>
-          <CardTitle>Add Food Item to Stock</CardTitle>
+          <CardTitle className="text-lg md:text-xl break-words">Add Food Item to Stock</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -341,9 +341,9 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Current Stock</CardTitle>
-              <CardDescription>
+            <div className="flex-1 min-w-0">
+              <CardTitle className="text-lg md:text-xl break-words">Current Stock</CardTitle>
+              <CardDescription className="text-xs md:text-sm break-words">
                 Manage quantities and set low stock alerts
               </CardDescription>
             </div>
@@ -381,8 +381,8 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <h3 className="font-semibold text-base">{stock.name}</h3>
+                      <div className="flex items-center gap-2 mb-2 flex-wrap">
+                        <h3 className="font-semibold text-sm md:text-base break-words">{stock.name}</h3>
                         {getCategoryBadge(stock.category)}
                         {isLowStock(stock) && (
                           <Badge variant="destructive" className="gap-1">
@@ -391,15 +391,15 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
                           </Badge>
                         )}
                       </div>
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                        <span>
+                      <div className="flex items-center gap-2 md:gap-4 text-xs md:text-sm text-muted-foreground flex-wrap">
+                        <span className="break-words">
                           Quantity: <strong className="font-semibold text-foreground">{stock.quantity}</strong> {stock.unit}
                         </span>
                         {stock.location && (
-                          <span>Location: <strong className="font-semibold text-foreground">{stock.location}</strong></span>
+                          <span className="break-words">Location: <strong className="font-semibold text-foreground">{stock.location}</strong></span>
                         )}
                         {stock.lowStockThreshold !== null && (
-                          <span>
+                          <span className="break-words">
                             Threshold: <strong className="font-semibold text-foreground">{stock.lowStockThreshold}</strong> {stock.unit}
                           </span>
                         )}
