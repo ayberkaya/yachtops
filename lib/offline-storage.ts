@@ -150,6 +150,24 @@ class OfflineStorage {
   }
 
   /**
+   * Get all data keys
+   */
+  async getDataKeys(): Promise<string[]> {
+    const db = await this.getDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([STORES.DATA], "readonly");
+      const store = transaction.objectStore(STORES.DATA);
+      const request = store.getAllKeys();
+
+      request.onsuccess = () => {
+        const keys = request.result as string[];
+        resolve(keys);
+      };
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  /**
    * Clear all data
    */
   async clearData(): Promise<void> {

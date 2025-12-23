@@ -2,7 +2,7 @@ import "server-only";
 import { db } from "./db";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";
-import type { SessionUser } from "./auth";
+import type { SessionUser } from "./auth-utils";
 
 /**
  * Get the current user from the database by ID

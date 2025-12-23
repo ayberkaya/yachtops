@@ -1,4 +1,4 @@
-import { SessionUser } from "./auth";
+import { SessionUser } from "./auth-utils";
 
 export type Permission =
   // Financial data

@@ -41,7 +41,7 @@ export async function storeFileOffline(
     timestamp: Date.now(),
   };
 
-  await offlineStorage.set(`offline_file:${fileId}`, offlineFile);
+  await offlineStorage.setData(`offline_file:${fileId}`, offlineFile);
   return fileId;
 }
 
@@ -49,7 +49,7 @@ export async function storeFileOffline(
  * Retrieve file from IndexedDB
  */
 export async function getOfflineFile(fileId: string): Promise<OfflineFile | null> {
-  return await offlineStorage.get<OfflineFile>(`offline_file:${fileId}`);
+  return await offlineStorage.getData<OfflineFile>(`offline_file:${fileId}`);
 }
 
 /**
@@ -68,12 +68,12 @@ export function arrayBufferToFile(
  * Get all pending file uploads
  */
 export async function getPendingFileUploads(): Promise<OfflineFile[]> {
-  const keys = await offlineStorage.keys();
-  const fileKeys = keys.filter(key => key.startsWith('offline_file:'));
+  const keys = await offlineStorage.getDataKeys();
+  const fileKeys = keys.filter((key: string) => key.startsWith('offline_file:'));
   
   const files: OfflineFile[] = [];
   for (const key of fileKeys) {
-    const file = await offlineStorage.get<OfflineFile>(key);
+    const file = await offlineStorage.getData<OfflineFile>(key);
     if (file) {
       files.push(file);
     }
@@ -86,6 +86,6 @@ export async function getPendingFileUploads(): Promise<OfflineFile[]> {
  * Delete offline file after successful upload
  */
 export async function deleteOfflineFile(fileId: string): Promise<void> {
-  await offlineStorage.delete(`offline_file:${fileId}`);
+  await offlineStorage.deleteData(`offline_file:${fileId}`);
 }
 

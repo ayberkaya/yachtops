@@ -11,6 +11,9 @@ if (!supabaseUrl) {
   throw new Error('NEXT_PUBLIC_SUPABASE_URL environment variable is not set');
 }
 
+// Assert that supabaseUrl is defined (TypeScript type narrowing)
+const SUPABASE_URL: string = supabaseUrl;
+
 /**
  * Create a Supabase client with custom JWT authentication
  * @param accessToken The Supabase access token from NextAuth session
@@ -23,7 +26,7 @@ export function createSupabaseClient(accessToken: string): SupabaseClient {
 
   // Pass the access token as the anon key parameter
   // Supabase client will use it for authentication
-  return createClient(supabaseUrl, accessToken, {
+  return createClient(SUPABASE_URL, accessToken, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -44,7 +47,7 @@ export function getAnonymousSupabaseClient(): SupabaseClient {
   // Use anon key if available, otherwise use empty string (will fail for protected operations)
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
   
-  return createClient(supabaseUrl, anonKey, {
+  return createClient(SUPABASE_URL, anonKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
