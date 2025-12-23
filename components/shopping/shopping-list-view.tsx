@@ -249,7 +249,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                                 </span>
                                 {getStatusBadge(list.status)}
                               </div>
-                              <div className="text-sm text-white">
+                              <div className="text-sm text-white font-semibold">
                                 {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
                                 {" • Created by "}
                                 {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
