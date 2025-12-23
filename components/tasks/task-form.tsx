@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -15,18 +15,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Badge } from "@/components/ui/badge";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
-import { Trash2 } from "lucide-react";
+import { Trash2, ChevronDown, X } from "lucide-react";
+
+interface CustomRole {
+  id: string;
+  name: string;
+  permissions: string;
+  active: boolean;
+}
 
 const taskSchema = z.object({
   tripId: z.string().optional().nullable(),
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
-  assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
+  assigneeIds: z.array(z.string()).optional().default([]),
+  assigneeRole: z.union([z.nativeEnum(UserRole), z.string()]).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
@@ -36,7 +47,7 @@ type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
   task?: any;
-  users: { id: string; name: string | null; email: string; role?: UserRole }[];
+  users: { id: string; name: string | null; email: string; role?: UserRole; customRoleId?: string | null; customRole?: { id: string; name: string } | null }[];
   trips: { id: string; name: string }[];
   onSuccess: (createdTask?: any) => void;
   onDelete?: () => void;
@@ -47,14 +58,20 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   const [error, setError] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
+  const [loadingRoles, setLoadingRoles] = useState(true);
 
 
   const form = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema) as any,
-    defaultValues: task || {
+    defaultValues: task ? {
+      ...task,
+      assigneeIds: task.assigneeId ? [task.assigneeId] : [],
+    } : {
       title: "",
       description: "",
       assigneeId: null,
+      assigneeIds: [],
       assigneeRole: null,
       tripId: null,
       dueDate: "",
@@ -64,123 +81,332 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   });
 
   const assigneeId = form.watch("assigneeId");
+  const assigneeIds = form.watch("assigneeIds") || [];
   const assigneeRole = form.watch("assigneeRole");
+
+  const toggleAssignee = (userId: string) => {
+    const current = assigneeIds;
+    if (current.includes(userId)) {
+      form.setValue("assigneeIds", current.filter((id) => id !== userId));
+      // If removing the last assignee and assigneeId was set, clear it
+      if (current.length === 1 && assigneeId === userId) {
+        form.setValue("assigneeId", null);
+      }
+    } else {
+      form.setValue("assigneeIds", [...current, userId]);
+      // Clear assigneeRole when assigning to specific users
+      form.setValue("assigneeRole", null);
+    }
+  };
+
+  // Fetch custom roles on mount
+  useEffect(() => {
+    const fetchCustomRoles = async () => {
+      try {
+        const response = await fetch("/api/roles");
+        if (response.ok) {
+          const roles = await response.json();
+          // API already returns only active roles, but filter just in case
+          const activeRoles = roles.filter((r: CustomRole) => r.active !== false);
+          console.log("Fetched custom roles:", activeRoles);
+          console.log("Total roles received:", roles.length);
+          console.log("Active roles:", activeRoles.length);
+          setCustomRoles(activeRoles);
+        } else {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          console.error("Failed to fetch roles:", response.status, response.statusText, errorData);
+          // Even if API fails, set empty array to avoid undefined issues
+          setCustomRoles([]);
+        }
+      } catch (error) {
+        console.error("Error fetching custom roles:", error);
+        // Set empty array on error
+        setCustomRoles([]);
+      } finally {
+        setLoadingRoles(false);
+      }
+    };
+    fetchCustomRoles();
+  }, []);
 
   const onSubmit = async (data: TaskFormData) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const url = task ? `/api/tasks/${task.id}` : "/api/tasks";
-      const method = task ? "PATCH" : "POST";
+      // For editing, we only update the single task (not create multiple)
+      if (task) {
+        const url = `/api/tasks/${task.id}`;
+        const method = "PATCH";
 
-      // Clean up the data: convert "none" strings to null
-      const cleanedData = {
-        ...data,
+        // Handle custom role selection
+        let assigneeRoleValue = data.assigneeRole;
+        let assigneeIdValue = data.assigneeIds && data.assigneeIds.length > 0 ? data.assigneeIds[0] : null;
+        
+        // Check if a custom role was selected (starts with "custom_")
+        if (assigneeRoleValue && typeof assigneeRoleValue === "string" && assigneeRoleValue.startsWith("custom_")) {
+          const customRoleId = assigneeRoleValue.replace("custom_", "");
+          // Find users with this custom role
+          try {
+            const usersResponse = await fetch("/api/users");
+            if (usersResponse.ok) {
+              const allUsers = await usersResponse.json() as Array<{ id: string; customRoleId: string | null; active?: boolean }>;
+              const usersWithCustomRole = allUsers.filter((u) => u.customRoleId === customRoleId && u.active !== false);
+              if (usersWithCustomRole.length > 0) {
+                assigneeIdValue = usersWithCustomRole[0].id;
+                assigneeRoleValue = null;
+              } else {
+                setError(`No active users found with the selected custom role. Please assign to a specific person instead.`);
+                setIsLoading(false);
+                return;
+              }
+            }
+          } catch (err) {
+            console.error("Error fetching users for custom role assignment:", err);
+            setError("Failed to find users with the selected custom role. Please try again.");
+            setIsLoading(false);
+            return;
+          }
+        }
+
+        const cleanedData = {
+          tripId: data.tripId === "none" || !data.tripId ? null : data.tripId,
+          title: data.title,
+          description: data.description || null,
+          assigneeId: assigneeIdValue || null,
+          assigneeRole: (!assigneeRoleValue || assigneeRoleValue === "none") ? null : assigneeRoleValue,
+          dueDate: data.dueDate || null,
+          status: data.status,
+          priority: data.priority || "MEDIUM",
+        };
+
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cleanedData),
+        });
+
+        const contentType = response.headers.get("content-type");
+        let result;
+        
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            result = await response.json();
+          } catch (jsonError) {
+            console.error("Failed to parse JSON response:", jsonError);
+            const text = await response.text();
+            setError(`Server error: ${response.status} ${response.statusText}. Response: ${text.substring(0, 200)}`);
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          const text = await response.text();
+          console.error("Non-JSON response received:", text);
+          setError(`Server returned non-JSON response. Status: ${response.status}. ${text.substring(0, 200)}`);
+          setIsLoading(false);
+          return;
+        }
+
+        if (!response.ok) {
+          let errorMessage = "Failed to update task";
+          let errorDetails = "";
+          
+          if (result) {
+            errorMessage = result.error || result.message || errorMessage;
+            if (result.details) {
+              errorDetails = ` Details: ${JSON.stringify(result.details)}`;
+            }
+          } else {
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+          
+          setError(`${errorMessage}${errorDetails}`);
+          setIsLoading(false);
+          return;
+        }
+
+        // Track successful task update
+        const { trackAction } = await import("@/lib/usage-tracking");
+        trackAction("task.update", {
+          taskId: result?.id,
+          assigneeId: cleanedData.assigneeId,
+          priority: cleanedData.priority,
+        });
+
+        onSuccess(result);
+        setIsLoading(false);
+        return;
+      }
+
+      // For creating new tasks, handle multiple assignees
+      const url = "/api/tasks";
+      const method = "POST";
+
+      // Handle custom role selection
+      let assigneeRoleValue = data.assigneeRole;
+      let assigneeIdsToUse = data.assigneeIds || [];
+      
+      // Check if a custom role was selected (starts with "custom_")
+      if (assigneeRoleValue && typeof assigneeRoleValue === "string" && assigneeRoleValue.startsWith("custom_")) {
+        const customRoleId = assigneeRoleValue.replace("custom_", "");
+        // Find users with this custom role
+        try {
+            const usersResponse = await fetch("/api/users");
+            if (usersResponse.ok) {
+              const allUsers = await usersResponse.json() as Array<{ id: string; customRoleId: string | null; active?: boolean }>;
+              const usersWithCustomRole = allUsers.filter((u) => u.customRoleId === customRoleId && u.active !== false);
+              if (usersWithCustomRole.length > 0) {
+                // Assign to all users with this custom role
+                assigneeIdsToUse = usersWithCustomRole.map((u) => u.id);
+              assigneeRoleValue = null; // Clear assigneeRole since we're assigning to specific users
+            } else {
+              setError(`No active users found with the selected custom role. Please assign to a specific person instead.`);
+              setIsLoading(false);
+              return;
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching users for custom role assignment:", err);
+          setError("Failed to find users with the selected custom role. Please try again.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // If multiple assignees selected, create a task for each user
+      const assigneeIdsArray = assigneeIdsToUse.length > 0 ? assigneeIdsToUse : (data.assigneeId ? [data.assigneeId] : []);
+      
+      // If no assignees and no role, create one unassigned task
+      if (assigneeIdsArray.length === 0 && !assigneeRoleValue) {
+        assigneeIdsArray.push(null as any);
+      }
+
+      // Clean up the base data
+      const baseTaskData = {
         tripId: data.tripId === "none" || !data.tripId ? null : data.tripId,
-        assigneeId: data.assigneeId === "none" || !data.assigneeId ? null : data.assigneeId,
-        assigneeRole: (!data.assigneeRole || (data.assigneeRole as any) === "none") ? null : data.assigneeRole,
-        dueDate: data.dueDate || null,
+        title: data.title,
         description: data.description || null,
-        priority: data.priority || "MEDIUM", // Ensure priority is always set
+        assigneeRole: (!assigneeRoleValue || assigneeRoleValue === "none") ? null : assigneeRoleValue,
+        dueDate: data.dueDate || null,
+        status: data.status,
+        priority: data.priority || "MEDIUM",
       };
 
       console.log("Form data before submit:", data);
-      console.log("Cleaned data to send:", cleanedData);
+      console.log("Assignee IDs to create tasks for:", assigneeIdsArray);
 
-      const response = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(cleanedData),
-      });
+      // Create tasks for each assignee
+      const createdTasks = [];
+      let lastResult: any = null;
+      let hasError = false;
 
-      // Check if response is JSON before parsing
-      const contentType = response.headers.get("content-type");
-      let result;
-      
-      if (contentType && contentType.includes("application/json")) {
-        try {
-          result = await response.json();
-        } catch (jsonError) {
-          console.error("Failed to parse JSON response:", jsonError);
-          const text = await response.text();
-          setError(`Server error: ${response.status} ${response.statusText}. Response: ${text.substring(0, 200)}`);
-          setIsLoading(false);
-          return;
-        }
-      } else {
-        // Response is not JSON, read as text
-        const text = await response.text();
-        console.error("Non-JSON response received:", text);
-        setError(`Server returned non-JSON response. Status: ${response.status}. ${text.substring(0, 200)}`);
-        setIsLoading(false);
-        return;
-      }
+      for (const assigneeId of assigneeIdsArray) {
+        const cleanedData = {
+          ...baseTaskData,
+          assigneeId: assigneeId || null,
+        };
 
-      if (!response.ok) {
-        // Show detailed error message from API
-        let errorMessage = "Failed to save task";
-        let errorDetails = "";
+        const response = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(cleanedData),
+        });
+
+        // Check if response is JSON before parsing
+        const contentType = response.headers.get("content-type");
+        let result;
         
-        if (result) {
-          errorMessage = result.error || result.message || errorMessage;
-          if (result.details) {
-            errorDetails = ` Details: ${JSON.stringify(result.details)}`;
+        if (contentType && contentType.includes("application/json")) {
+          try {
+            result = await response.json();
+          } catch (jsonError) {
+            console.error("Failed to parse JSON response:", jsonError);
+            const text = await response.text();
+            setError(`Server error: ${response.status} ${response.statusText}. Response: ${text.substring(0, 200)}`);
+            setIsLoading(false);
+            return;
           }
         } else {
-          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          // Response is not JSON, read as text
+          const text = await response.text();
+          console.error("Non-JSON response received:", text);
+          setError(`Server returned non-JSON response. Status: ${response.status}. ${text.substring(0, 200)}`);
+          setIsLoading(false);
+          return;
         }
-        
-        setError(`${errorMessage}${errorDetails}`);
-        console.error("Task creation error:", {
-          status: response.status,
-          statusText: response.statusText,
-          result: result,
+
+        if (!response.ok) {
+          // Show detailed error message from API
+          let errorMessage = "Failed to save task";
+          let errorDetails = "";
+          
+          if (result) {
+            errorMessage = result.error || result.message || errorMessage;
+            if (result.details) {
+              errorDetails = ` Details: ${JSON.stringify(result.details)}`;
+            }
+          } else {
+            errorMessage = `Server error: ${response.status} ${response.statusText}`;
+          }
+          
+          setError(`${errorMessage}${errorDetails}`);
+          console.error("Task creation error:", {
+            status: response.status,
+            statusText: response.statusText,
+            result: result,
+          });
+          hasError = true;
+          break;
+        }
+
+        createdTasks.push(result);
+        lastResult = result;
+
+        // If photo selected, upload as attachment to the first task
+        if (photoFile && result?.id && createdTasks.length === 1) {
+          try {
+            const toDataUrl = (file: File) =>
+              new Promise<string>((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = (err) => reject(err);
+                reader.readAsDataURL(file);
+              });
+
+            const fileUrl = await toDataUrl(photoFile);
+            await fetch(`/api/tasks/${result.id}/attachments`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                fileName: photoFile.name,
+                fileUrl,
+                fileSize: photoFile.size,
+                mimeType: photoFile.type || "image/*",
+              }),
+            });
+          } catch (uploadErr) {
+            console.error("Attachment upload failed", uploadErr);
+            // Don't fail the whole operation if photo upload fails
+          }
+        }
+
+        // Track successful task creation/update
+        const { trackAction } = await import("@/lib/usage-tracking");
+        trackAction(method === "POST" ? "task.create" : "task.update", {
+          taskId: result?.id,
+          assigneeId: cleanedData.assigneeId,
+          priority: cleanedData.priority,
         });
+      }
+
+      if (hasError) {
         setIsLoading(false);
         return;
       }
 
-      // If photo selected, upload as attachment
-      if (photoFile && result?.id) {
-        try {
-          const toDataUrl = (file: File) =>
-            new Promise<string>((resolve, reject) => {
-              const reader = new FileReader();
-              reader.onload = () => resolve(reader.result as string);
-              reader.onerror = (err) => reject(err);
-              reader.readAsDataURL(file);
-            });
-
-          const fileUrl = await toDataUrl(photoFile);
-          await fetch(`/api/tasks/${result.id}/attachments`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              fileName: photoFile.name,
-              fileUrl,
-              fileSize: photoFile.size,
-              mimeType: photoFile.type || "image/*",
-            }),
-          });
-        } catch (uploadErr) {
-          console.error("Attachment upload failed", uploadErr);
-          setError("Task saved but photo upload failed.");
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // Track successful task creation/update
-      const { trackAction } = await import("@/lib/usage-tracking");
-      trackAction(method === "POST" ? "task.create" : "task.update", {
-        taskId: result?.id,
-        assigneeId: cleanedData.assigneeId,
-        priority: cleanedData.priority,
-      });
-
       setPhotoFile(null);
-      onSuccess(result);
+      // Return the last created task or the first one
+      onSuccess(lastResult || createdTasks[0]);
     } catch (err) {
       console.error("Task form submission error:", err);
       const errorMessage = err instanceof Error ? err.message : "An error occurred. Please try again.";
@@ -258,34 +484,93 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <FormField
             control={form.control}
-            name="assigneeId"
+            name="assigneeIds"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Assign to Person</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value === "none" ? null : value);
-                    // Clear assigneeRole when assigning to a person
-                    if (value !== "none") {
-                      form.setValue("assigneeRole", null);
-                    }
-                  }}
-                  value={field.value || "none"}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select person" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem key="none" value="none">Unassigned</SelectItem>
-                    {users.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name || user.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <FormLabel>Assign to People</FormLabel>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <FormControl>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        className="w-full justify-between h-11 border-border/50 bg-white text-slate-900 hover:bg-white hover:border-border focus-visible:ring-2 focus-visible:ring-ring/20"
+                      >
+                        <div className="flex flex-wrap gap-1 flex-1 text-left">
+                          {assigneeIds.length === 0 ? (
+                            <span className="text-slate-400 font-medium">Select people...</span>
+                          ) : (
+                            assigneeIds.map((userId) => {
+                              const user = users.find((u) => u.id === userId);
+                              if (!user) return null;
+                              const displayRole = user.customRole ? user.customRole.name : (user.role ? user.role.toLowerCase() : "");
+                              return (
+                                <Badge
+                                  key={userId}
+                                  variant="secondary"
+                                  className="mr-1 bg-secondary text-secondary-foreground"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleAssignee(userId);
+                                  }}
+                                  title={displayRole ? `${user.name || user.email} (${displayRole})` : user.name || user.email}
+                                >
+                                  {user.name || user.email}
+                                  {displayRole && <span className="ml-1 text-xs opacity-75">({displayRole})</span>}
+                                  <X className="ml-1 h-3 w-3" />
+                                </Badge>
+                              );
+                            })
+                          )}
+                        </div>
+                        <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </FormControl>
+                  </PopoverTrigger>
+                  <PopoverContent 
+                    className="w-[var(--radix-popover-trigger-width)] p-1 bg-white border-border/50 rounded-xl shadow-lg" 
+                    align="start"
+                    sideOffset={4}
+                  >
+                    <div className="max-h-64 overflow-y-auto">
+                      {users.length === 0 ? (
+                        <p className="text-sm text-slate-500 p-2">No users available</p>
+                      ) : (
+                        <div className="space-y-0.5">
+                          {users.map((user) => (
+                            <div
+                              key={user.id}
+                              className="flex items-center space-x-2 px-2 py-1.5 rounded-sm hover:bg-accent cursor-pointer text-slate-900"
+                              onClick={() => toggleAssignee(user.id)}
+                            >
+                              <Checkbox
+                                id={`assignee-${user.id}`}
+                                checked={assigneeIds.includes(user.id)}
+                                onCheckedChange={() => toggleAssignee(user.id)}
+                                className="border-slate-300"
+                              />
+                              <label
+                                htmlFor={`assignee-${user.id}`}
+                                className="text-sm leading-none cursor-pointer flex-1 text-slate-900"
+                              >
+                                {user.name || user.email}
+                                {user.customRole ? (
+                                  <span className="text-slate-500 ml-1">
+                                    ({user.customRole.name})
+                                  </span>
+                                ) : user.role ? (
+                                  <span className="text-slate-500 ml-1">
+                                    ({user.role.toLowerCase()})
+                                  </span>
+                                ) : null}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
                 <FormMessage />
               </FormItem>
             )}
@@ -297,16 +582,16 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Assign to Role</FormLabel>
-                <Select
-                  onValueChange={(value) => {
-                    field.onChange(value === "none" ? null : value);
-                    // Clear assigneeId when assigning to a role
-                    if (value !== "none") {
-                      form.setValue("assigneeId", null);
-                    }
-                  }}
-                  value={field.value || "none"}
-                >
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value === "none" ? null : value);
+                      // Clear assigneeIds when assigning to a role
+                      if (value !== "none") {
+                        form.setValue("assigneeIds", []);
+                      }
+                    }}
+                    value={field.value || "none"}
+                  >
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue placeholder="Select role" />
@@ -316,6 +601,24 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
                     <SelectItem key="none" value="none">No role assignment</SelectItem>
                     <SelectItem key={UserRole.CAPTAIN} value={UserRole.CAPTAIN}>Captain</SelectItem>
                     <SelectItem key={UserRole.CREW} value={UserRole.CREW}>Crew</SelectItem>
+                    {loadingRoles ? (
+                      <SelectItem key="loading" value="loading" disabled>
+                        Loading roles...
+                      </SelectItem>
+                    ) : (
+                      Array.isArray(customRoles) && customRoles.length > 0 && (
+                        <>
+                          {customRoles.map((role) => {
+                            console.log("Rendering custom role:", role);
+                            return (
+                              <SelectItem key={`custom_${role.id}`} value={`custom_${role.id}`}>
+                                {role.name}
+                              </SelectItem>
+                            );
+                          })}
+                        </>
+                      )
+                    )}
                   </SelectContent>
                 </Select>
                 <FormMessage />

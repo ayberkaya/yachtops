@@ -232,7 +232,6 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
                 <SelectContent>
                   <SelectItem value={UserRole.CREW}>Crew</SelectItem>
                   <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
-                  <SelectItem value={UserRole.OWNER}>Owner</SelectItem>
                   {customRoles.map((role) => (
                     <SelectItem key={role.id} value={`custom_${role.id}`}>
                       {role.name}

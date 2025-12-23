@@ -111,6 +111,13 @@ export async function getCachedUsers(yachtId: string | null) {
           name: true,
           email: true,
           role: true,
+          customRoleId: true,
+          customRole: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy: { name: "asc" },
       });

@@ -26,11 +26,8 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if user can view roles
-    if (!canManageRoles(session.user)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
+    // Allow all authenticated users to view roles (for task assignment)
+    // Only active roles are returned for task assignment purposes
     const tenantId = getTenantId(session);
     if (!tenantId) {
       return NextResponse.json(
@@ -39,20 +36,49 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const roles = await db.customRole.findMany({
+    // First, get all roles (including inactive) to debug
+    const allRoles = await db.customRole.findMany({
       where: {
         yachtId: tenantId,
       },
-      orderBy: [
-        { active: "desc" },
-        { createdAt: "desc" },
-      ],
-      include: {
-        _count: {
-          select: { users: true },
-        },
+      select: {
+        id: true,
+        name: true,
+        active: true,
       },
     });
+    
+    console.log(`[API /roles] All custom roles for yacht ${tenantId}:`, allRoles);
+    console.log(`[API /roles] Active roles:`, allRoles.filter((r: { active: boolean }) => r.active));
+    console.log(`[API /roles] Inactive roles:`, allRoles.filter((r: { active: boolean }) => !r.active));
+
+    // Then return only active roles
+    const roles = await db.customRole.findMany({
+      where: {
+        yachtId: tenantId,
+        active: true, // Only return active roles for task assignment
+      },
+      orderBy: [
+        { createdAt: "desc" },
+      ],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        active: true,
+        createdAt: true,
+        updatedAt: true,
+        // Don't include _count for regular users (only for role management page)
+        ...(canManageRoles(session.user) && {
+          _count: {
+            select: { users: true },
+          },
+        }),
+      },
+    });
+
+    console.log(`[API /roles] Returning ${roles.length} active custom roles`);
+    console.log(`[API /roles] Role names:`, roles.map((r: { name: string }) => r.name));
 
     return NextResponse.json(roles);
   } catch (error) {

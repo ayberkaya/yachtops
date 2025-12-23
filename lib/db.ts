@@ -23,10 +23,43 @@ const createPrismaClient = () => {
 
     // Create Prisma Client - it will handle DATABASE_URL validation internally
     // We don't validate here to avoid throwing during module evaluation
+    
+    // Parse and update DATABASE_URL with connection pool settings
+    let databaseUrl = process.env.DATABASE_URL;
+    if (databaseUrl) {
+      try {
+        const url = new URL(databaseUrl);
+        // Remove existing connection_limit and pool_timeout if present
+        url.searchParams.delete("connection_limit");
+        url.searchParams.delete("pool_timeout");
+        // Set optimal connection pool settings
+        // connection_limit: 10 allows multiple parallel queries
+        // pool_timeout: 60 seconds gives more time to acquire connections
+        url.searchParams.set("connection_limit", "10");
+        url.searchParams.set("pool_timeout", "60");
+        databaseUrl = url.toString();
+      } catch (e) {
+        // If URL parsing fails, try simple string manipulation
+        if (databaseUrl.includes("?")) {
+          // Remove existing connection_limit and pool_timeout
+          databaseUrl = databaseUrl.replace(/[&?]connection_limit=\d+/g, "");
+          databaseUrl = databaseUrl.replace(/[&?]pool_timeout=\d+/g, "");
+          databaseUrl = `${databaseUrl}&connection_limit=10&pool_timeout=60`;
+        } else {
+          databaseUrl = `${databaseUrl}?connection_limit=10&pool_timeout=60`;
+        }
+      }
+    }
+    
     const client = new PrismaClient({
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
       // Don't fail on missing tables during initialization
       errorFormat: "pretty",
+      datasources: {
+        db: {
+          url: databaseUrl,
+        },
+      },
     });
 
     // Test connection on startup (non-blocking)
