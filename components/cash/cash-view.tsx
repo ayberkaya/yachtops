@@ -25,7 +25,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, ArrowDownCircle, ArrowUpCircle, Eye } from "lucide-react";
 import { CashTransactionType } from "@prisma/client";
-import { formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 
 interface CashTransaction {
   id: string;
@@ -349,9 +349,7 @@ export function CashView() {
                 {(data.transactions || []).map((transaction) => (
                   <TableRow key={transaction.id}>
                     <TableCell>
-                      {formatDistanceToNow(new Date(transaction.createdAt), {
-                        addSuffix: true,
-                      })}
+                      {format(new Date(transaction.createdAt), "MMM d, yyyy HH:mm")}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">

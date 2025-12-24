@@ -18,15 +18,15 @@ console.log("=" .repeat(50));
 
 // 1. Check VAPID keys
 console.log("\n1️⃣ Checking VAPID Keys:");
-const vapidPublicKey = process.env.VAPID_PUBLIC_KEY;
+const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
 const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
 const vapidEmail = process.env.VAPID_EMAIL;
 
 if (!vapidPublicKey) {
-  console.log("❌ VAPID_PUBLIC_KEY is NOT set");
+  console.log("❌ NEXT_PUBLIC_VAPID_PUBLIC_KEY is NOT set");
   console.log("   → This is the PRIMARY reason for push notification failures");
 } else {
-  console.log("✅ VAPID_PUBLIC_KEY is set");
+  console.log("✅ NEXT_PUBLIC_VAPID_PUBLIC_KEY is set");
   console.log(`   → Key: ${vapidPublicKey.substring(0, 20)}...`);
 }
 
@@ -82,7 +82,7 @@ if (!vapidPublicKey || !vapidPrivateKey) {
   console.log("   1. Generate VAPID keys:");
   console.log("      node scripts/generate-vapid-keys.js");
   console.log("\n   2. Add to .env.local:");
-  console.log("      VAPID_PUBLIC_KEY=<public-key>");
+  console.log("      NEXT_PUBLIC_VAPID_PUBLIC_KEY=<public-key>");
   console.log("      VAPID_PRIVATE_KEY=<private-key>");
   console.log("      VAPID_EMAIL=mailto:admin@helmops.com");
   console.log("\n   3. Restart your development server");

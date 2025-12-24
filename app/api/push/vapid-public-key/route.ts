@@ -8,9 +8,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const publicKey = process.env.VAPID_PUBLIC_KEY;
+    const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
     if (!publicKey) {
-      console.error("VAPID_PUBLIC_KEY is not set in environment variables");
+      console.error("NEXT_PUBLIC_VAPID_PUBLIC_KEY is not set in environment variables");
       return NextResponse.json(
         { error: "Push notifications not configured" },
         { status: 500 }
