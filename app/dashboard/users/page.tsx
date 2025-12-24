@@ -111,10 +111,19 @@ export default async function UsersPage() {
         { value: UserRole.CREW, label: "Crew" },
       ];
 
-      const customRoleOptions = customRoles.map((role: { id: string; name: string }) => ({
-        value: `custom_${role.id}`,
-        label: role.name,
-      }));
+      // Create a Set of standard role labels for duplicate checking
+      const standardRoleLabels = new Set(standardRoles.map(role => role.label.toLowerCase()));
+
+      // Filter out custom roles that have the same name as standard roles (case-insensitive)
+      const customRoleOptions = customRoles
+        .filter((role: { id: string; name: string }) => {
+          // Only include custom roles that don't match standard role names
+          return !standardRoleLabels.has(role.name.toLowerCase());
+        })
+        .map((role: { id: string; name: string }) => ({
+          value: `custom_${role.id}`,
+          label: role.name,
+        }));
 
       availableRoles = [...standardRoles, ...customRoleOptions];
     } catch (error) {
