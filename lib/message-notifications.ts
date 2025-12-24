@@ -96,8 +96,7 @@ export async function notifyMentions(
 
 /**
  * Notify channel members of new message (if preferences allow)
- * This is a simplified version - in production, you might want to only notify
- * when user is mentioned or when they have specific channel notification settings
+ * Sends push notifications to all channel members except the sender and mentioned users
  */
 export async function notifyNewMessage(
   messageId: string,
@@ -108,9 +107,50 @@ export async function notifyNewMessage(
   yachtId: string | null
 ) {
   try {
-    // For now, we'll only notify mentions via notifyMentions
-    // Regular message notifications can be added later if needed
-    // This function is kept for future use
+    // Get channel with members
+    const channel = await db.messageChannel.findUnique({
+      where: { id: channelId },
+      include: {
+        members: {
+          select: { id: true },
+        },
+      },
+    });
+
+    if (!channel) return;
+
+    // Get channel name
+    const channelName = channel.name || "Unknown channel";
+
+    // Find mentioned users to exclude them from general message notification
+    // (they already get a mention notification)
+    const mentions = parseMentions(content);
+    const mentionedUserIds = new Set<string>();
+    if (mentions.length > 0) {
+      const mentionedUsers = await findUsersByMention(mentions, yachtId);
+      mentionedUsers.forEach(user => mentionedUserIds.add(user.id));
+    }
+
+    // Notify all channel members except the sender and mentioned users
+    const membersToNotify = channel.members.filter(
+      (member: { id: string }) => 
+        member.id !== senderId && !mentionedUserIds.has(member.id)
+    );
+
+    if (membersToNotify.length === 0) return;
+
+    // Create notifications for all members (push notification will be sent automatically)
+    await Promise.all(
+      membersToNotify.map((member: { id: string }) =>
+        createNotification(
+          member.id,
+          NotificationType.MESSAGE_RECEIVED,
+          `${senderName} sent a message in #${channelName}`,
+          undefined,
+          messageId
+        )
+      )
+    );
   } catch (error) {
     console.error("Error notifying new message:", error);
   }

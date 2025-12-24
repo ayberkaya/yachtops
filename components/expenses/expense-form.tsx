@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Search } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -61,6 +62,134 @@ interface ExpenseFormProps {
 
 export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps) {
   const router = useRouter();
+  const [categorySearch, setCategorySearch] = useState("");
+  const [isCategorySelectOpen, setIsCategorySelectOpen] = useState(false);
+  const categorySearchInputRef = useRef<HTMLInputElement>(null);
+  const [tripSearch, setTripSearch] = useState("");
+  const [isTripSelectOpen, setIsTripSelectOpen] = useState(false);
+  const tripSearchInputRef = useRef<HTMLInputElement>(null);
+
+  // Filter categories based on search - memoized for performance
+  const filteredCategories = useMemo(() => {
+    if (!categorySearch.trim() || categories.length < 5) {
+      return categories;
+    }
+    const searchLower = categorySearch.toLowerCase().trim();
+    return categories.filter((cat) =>
+      cat.name.toLowerCase().includes(searchLower)
+    );
+  }, [categorySearch, categories]);
+
+  // Auto-focus search input when dropdown opens
+  useEffect(() => {
+    if (isCategorySelectOpen && categorySearchInputRef.current && categories.length >= 5) {
+      const timer = setTimeout(() => {
+        categorySearchInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isCategorySelectOpen, categories.length]);
+
+  // Filter trips based on search
+  const filteredTrips = useMemo(() => {
+    if (!tripSearch.trim() || trips.length < 5) {
+      return trips;
+    }
+    const searchLower = tripSearch.toLowerCase().trim();
+    return trips.filter(
+      (trip) =>
+        trip.name.toLowerCase().includes(searchLower) ||
+        (trip.code && trip.code.toLowerCase().includes(searchLower))
+    );
+  }, [tripSearch, trips]);
+
+  // Auto-focus trip search input when dropdown opens
+  useEffect(() => {
+    if (isTripSelectOpen && tripSearchInputRef.current && trips.length >= 5) {
+      const timer = setTimeout(() => {
+        tripSearchInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [isTripSelectOpen, trips.length]);
+
+  // Handle keyboard input when category dropdown is open
+  useEffect(() => {
+    if (!isCategorySelectOpen || categories.length < 5) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) {
+        return;
+      }
+
+      if (
+        e.key === "Escape" ||
+        e.key === "Enter" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight" ||
+        e.key === "Tab" ||
+        e.key === "Backspace" ||
+        e.key === "Delete" ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey
+      ) {
+        return;
+      }
+
+      if (e.key.length === 1) {
+        e.preventDefault();
+        if (categorySearchInputRef.current) {
+          categorySearchInputRef.current.focus();
+          setCategorySearch((prev) => prev + e.key);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isCategorySelectOpen, categories.length]);
+
+  // Handle keyboard input when trip dropdown is open
+  useEffect(() => {
+    if (!isTripSelectOpen || trips.length < 5) return;
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) {
+        return;
+      }
+
+      if (
+        e.key === "Escape" ||
+        e.key === "Enter" ||
+        e.key === "ArrowUp" ||
+        e.key === "ArrowDown" ||
+        e.key === "ArrowLeft" ||
+        e.key === "ArrowRight" ||
+        e.key === "Tab" ||
+        e.key === "Backspace" ||
+        e.key === "Delete" ||
+        e.ctrlKey ||
+        e.metaKey ||
+        e.altKey
+      ) {
+        return;
+      }
+
+      if (e.key.length === 1) {
+        e.preventDefault();
+        if (tripSearchInputRef.current) {
+          tripSearchInputRef.current.focus();
+          setTripSearch((prev) => prev + e.key);
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isTripSelectOpen, trips.length]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -479,25 +608,72 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Category *</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ""}>
+                      <Select
+                        open={isCategorySelectOpen}
+                        onOpenChange={(open) => {
+                          setIsCategorySelectOpen(open);
+                          if (!open) {
+                            setCategorySearch("");
+                          }
+                        }}
+                        onValueChange={(value) => {
+                          field.onChange(value);
+                          setCategorySearch("");
+                          setIsCategorySelectOpen(false);
+                        }}
+                        value={field.value || ""}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
                         </FormControl>
-                      <SelectContent>
-                        {categories.length === 0 ? (
-                          <SelectItem value="__none" disabled>
-                            No categories available
-                          </SelectItem>
-                        ) : (
-                          categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
+                        <SelectContent className={categories.length >= 5 ? "max-h-[400px] p-0" : ""}>
+                          {categories.length >= 5 && (
+                            <div className="sticky top-0 z-10 bg-white border-b border-border/50 p-2 backdrop-blur-sm">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                  ref={categorySearchInputRef}
+                                  placeholder="Search categories..."
+                                  value={categorySearch}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setCategorySearch(e.target.value);
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                    if (e.key === "Escape") {
+                                      setCategorySearch("");
+                                      setIsCategorySelectOpen(false);
+                                    }
+                                    if (e.key === "Enter" && categorySearch.trim()) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  className="pl-8 h-9 text-sm"
+                                />
+                              </div>
+                            </div>
+                          )}
+                          {filteredCategories.length === 0 ? (
+                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              {categories.length === 0
+                                ? "No categories available"
+                                : "No categories found"}
+                            </div>
+                          ) : (
+                            filteredCategories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
@@ -743,7 +919,18 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                     <FormItem>
                       <FormLabel>Trip (Optional)</FormLabel>
                       <Select
-                        onValueChange={(value) => field.onChange(value === "none" ? null : value)}
+                        open={isTripSelectOpen}
+                        onOpenChange={(open) => {
+                          setIsTripSelectOpen(open);
+                          if (!open) {
+                            setTripSearch("");
+                          }
+                        }}
+                        onValueChange={(value) => {
+                          field.onChange(value === "none" ? null : value);
+                          setTripSearch("");
+                          setIsTripSelectOpen(false);
+                        }}
                         value={field.value || "none"}
                       >
                         <FormControl>
@@ -751,13 +938,50 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                             <SelectValue placeholder="Select trip" />
                           </SelectTrigger>
                         </FormControl>
-                        <SelectContent>
+                        <SelectContent className={trips.length >= 5 ? "max-h-[400px] p-0" : ""}>
+                          {trips.length >= 5 && (
+                            <div className="sticky top-0 z-10 bg-white border-b border-border/50 p-2 backdrop-blur-sm">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                                <Input
+                                  ref={tripSearchInputRef}
+                                  placeholder="Search trips..."
+                                  value={tripSearch}
+                                  onChange={(e) => {
+                                    e.stopPropagation();
+                                    setTripSearch(e.target.value);
+                                  }}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    e.preventDefault();
+                                  }}
+                                  onKeyDown={(e) => {
+                                    e.stopPropagation();
+                                    if (e.key === "Escape") {
+                                      setTripSearch("");
+                                      setIsTripSelectOpen(false);
+                                    }
+                                    if (e.key === "Enter" && tripSearch.trim()) {
+                                      e.preventDefault();
+                                    }
+                                  }}
+                                  className="pl-8 h-9 text-sm"
+                                />
+                              </div>
+                            </div>
+                          )}
                           <SelectItem value="none">No trip</SelectItem>
-                          {trips.map((trip) => (
-                            <SelectItem key={trip.id} value={trip.id}>
-                              {trip.name} ({trip.code || "N/A"})
-                            </SelectItem>
-                          ))}
+                          {filteredTrips.length === 0 && tripSearch.trim() ? (
+                            <div className="px-2 py-6 text-center text-sm text-muted-foreground">
+                              No trips found
+                            </div>
+                          ) : (
+                            filteredTrips.map((trip) => (
+                              <SelectItem key={trip.id} value={trip.id}>
+                                {trip.name} ({trip.code || "N/A"})
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />

@@ -4,10 +4,65 @@ import { Sidebar, MobileMenuButton } from "@/components/dashboard/sidebar";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import { PageTracker } from "@/components/dashboard/page-tracker";
+import { TrialBanner } from "@/components/dashboard/trial-banner";
+import { createClient } from "@supabase/supabase-js";
+import { UserRole } from "@prisma/client";
 
 // Force dynamic rendering for all dashboard routes to avoid static pre-render during build
 // Session is already cached by NextAuth, so we don't need to disable fetchCache
 export const dynamic = "force-dynamic";
+
+async function getSubscriptionData(userId: string) {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+  if (!supabaseUrl || !supabaseServiceRoleKey) {
+    return null;
+  }
+
+  try {
+    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Fetch user subscription data
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("subscription_status, trial_ends_at, plan_id")
+      .eq("id", userId)
+      .single();
+
+    if (userError || !userData) {
+      return null;
+    }
+
+    // Fetch plan name if plan_id exists
+    let planName: string | null = null;
+    if (userData.plan_id) {
+      const { data: planData, error: planError } = await supabase
+        .from("plans")
+        .select("name")
+        .eq("id", userData.plan_id)
+        .single();
+
+      if (!planError && planData) {
+        planName = planData.name;
+      }
+    }
+
+    return {
+      subscription_status: userData.subscription_status,
+      trial_ends_at: userData.trial_ends_at,
+      plan_name: planName,
+    };
+  } catch (error) {
+    console.error("Error fetching subscription data:", error);
+    return null;
+  }
+}
 
 export default async function DashboardLayout({
   children,
@@ -33,6 +88,12 @@ export default async function DashboardLayout({
       redirect("/auth/signin");
     }
 
+    // Fetch subscription data for OWNER users only
+    let subscriptionData = null;
+    if (session.user.role === UserRole.OWNER) {
+      subscriptionData = await getSubscriptionData(session.user.id);
+    }
+
     return (
       <NotificationsProvider>
         <PageTracker />
@@ -45,7 +106,18 @@ export default async function DashboardLayout({
               <DashboardNotificationsPanel />
             </div>
             <div className="p-4 md:p-0">
-              <div className="max-w-7xl mx-auto w-full space-y-6">{children}</div>
+              <div className="max-w-7xl mx-auto w-full space-y-6">
+                {/* Trial Banner - Only show for OWNER users */}
+                {session.user.role === UserRole.OWNER && (
+                  <TrialBanner
+                    userId={session.user.id}
+                    initialSubscriptionStatus={subscriptionData?.subscription_status}
+                    initialTrialEndsAt={subscriptionData?.trial_ends_at}
+                    initialPlanName={subscriptionData?.plan_name}
+                  />
+                )}
+                {children}
+              </div>
             </div>
           </main>
         </div>

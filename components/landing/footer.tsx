@@ -23,7 +23,6 @@ export function Footer() {
           
           <div className="flex items-center gap-6 text-sm text-slate-600">
             <Link href="/contact" className="hover:text-slate-900 transition-colors">Contact</Link>
-            <Link href="/demo-request" className="hover:text-slate-900 transition-colors">Demo</Link>
           </div>
         </div>
         

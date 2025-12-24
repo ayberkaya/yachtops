@@ -13,6 +13,8 @@ const createUserSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   vesselName: z.string().min(1, "Vessel name is required"),
   vesselFlag: z.string().min(1, "Vessel flag is required"),
+  vesselSize: z.string().min(1, "Vessel size is required"),
+  planId: z.string().min(1, "Plan selection is required"),
 });
 
 export async function POST(req: NextRequest) {
@@ -30,6 +32,8 @@ export async function POST(req: NextRequest) {
       password: body?.password,
       vesselName: typeof body?.vesselName === "string" ? body.vesselName.trim() : body?.vesselName,
       vesselFlag: typeof body?.vesselFlag === "string" ? body.vesselFlag.trim() : body?.vesselFlag,
+      vesselSize: typeof body?.vesselSize === "string" ? body.vesselSize.trim() : body?.vesselSize,
+      planId: typeof body?.planId === "string" ? body.planId.trim() : body?.planId,
     });
     if (!parsed.success) {
       return NextResponse.json(
@@ -37,7 +41,7 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    const { name, email, password, vesselName, vesselFlag } = parsed.data;
+    const { name, email, password, vesselName, vesselFlag, vesselSize, planId } = parsed.data;
     const username = (parsed.data.username || parsed.data.email).trim();
 
     const existingEmail = await db.user.findUnique({ where: { email } });
@@ -67,6 +71,8 @@ export async function POST(req: NextRequest) {
       email_confirm: true,
       user_metadata: {
         full_name: name,
+        plan_id: planId,
+        vessel_size: vesselSize,
       },
     });
 
@@ -83,10 +89,12 @@ export async function POST(req: NextRequest) {
 
     try {
       // Step 3: Create vessel (tenant)
+      const vesselSizeNum = parseFloat(vesselSize);
       const vessel = await db.yacht.create({
         data: {
           name: vesselName,
           flag: vesselFlag,
+          length: isNaN(vesselSizeNum) ? null : vesselSizeNum,
         },
       });
 

@@ -43,6 +43,9 @@ import {
   NotebookPen,
   Clock,
   Shield,
+  Inbox,
+  UserPlus,
+  Tag,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth-utils";
@@ -215,22 +218,28 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     session?.user?.role === "SUPER_ADMIN"
       ? [
           {
-            href: "#admin",
-            label: "Admin",
-            icon: Settings,
+            href: "/admin/create",
+            label: "Create User",
+            icon: UserPlus,
             permission: null,
-            children: [
-              {
-                href: "/admin",
-                label: "Create User",
-                permission: null,
-              },
-              {
-                href: "/admin/owners",
-                label: "Owners",
-                permission: null,
-              },
-            ],
+          },
+          {
+            href: "/admin/owners",
+            label: "Owners",
+            icon: Users,
+            permission: null,
+          },
+          {
+            href: "/admin/leads",
+            label: "Leads",
+            icon: Inbox,
+            permission: null,
+          },
+          {
+            href: "/admin/pricing",
+            label: "Pricing",
+            icon: Tag,
+            permission: null,
           },
           ...coreNavItems,
         ]
@@ -437,9 +446,15 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
             <nav className="px-3 pt-4 pb-4 space-y-1 bg-white">
             {filteredNavItems.map((item) => {
-              const isActive = mobileExpandedItems.has(item.href);
               const Icon = item.icon;
-              const showChildren = mobileExpandedItems.has(item.href) && item.children;
+              const leafActive =
+                item.href !== "#" &&
+                (pathname === item.href ||
+                  (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
+              const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
+              const parentOpen = mobileExpandedItems.has(item.href);
+              const isActive = leafActive || childActive || parentOpen;
+              const showChildren = parentOpen && item.children;
               
               // Calculate total notifications from children
               const getChildrenNotificationCount = (item: any): number => {
@@ -853,15 +868,34 @@ export function Sidebar() {
     session?.user?.role === "SUPER_ADMIN"
       ? [
           {
-            href: "#admin",
-            label: "Admin",
-            icon: Settings,
+            href: "/admin/create",
+            label: "Create User",
+            icon: UserPlus,
             permission: null,
-            children: [
-              { href: "/admin", label: "Create User", permission: null },
-              { href: "/admin/owners", label: "Owners", permission: null },
-              { href: "/admin/usage", label: "Usage Insights", permission: null },
-            ],
+          },
+          {
+            href: "/admin/owners",
+            label: "Owners",
+            icon: Users,
+            permission: null,
+          },
+          {
+            href: "/admin/leads",
+            label: "Leads",
+            icon: Inbox,
+            permission: null,
+          },
+          {
+            href: "/admin/pricing",
+            label: "Pricing",
+            icon: Tag,
+            permission: null,
+          },
+          {
+            href: "/admin/usage",
+            label: "Usage Insights",
+            icon: TrendingUp,
+            permission: null,
           },
         ]
       : [

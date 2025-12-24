@@ -35,9 +35,21 @@ const AdminPanel = dynamic(
 
 type AdminPanelWrapperProps = {
   view?: "create" | "owners";
+  initialValues?: {
+    name?: string;
+    email?: string;
+    vessel?: string;
+    role?: string;
+    plan?: string;
+  };
 };
 
-export default function AdminPanelWrapper({ view = "create" }: AdminPanelWrapperProps) {
-  return <AdminPanel view={view} />;
+export default function AdminPanelWrapper({ 
+  view = "create",
+  initialValues 
+}: AdminPanelWrapperProps) {
+  // Don't use key prop - let useEffect handle updates to avoid unnecessary re-mounts
+  // The useEffect in AdminPanel will handle form population from URL params
+  return <AdminPanel view={view} initialValues={initialValues} />;
 }
 

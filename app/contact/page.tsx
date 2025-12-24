@@ -11,45 +11,71 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
 import { useToast, ToastContainer } from "@/components/ui/toast";
 import { Mail, MapPin } from "lucide-react";
+import { submitLead, type SubmitLeadState } from "@/actions/submit-lead";
 
 export default function ContactPage() {
   const { toast, toasts, removeToast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
+  
+  const [formData, setFormData] = useState<{
+    full_name: string;
+    email: string;
+    subject: string;
+    message: string;
+  }>({
+    full_name: "",
     email: "",
     subject: "",
     message: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate all required fields
-    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
-      toast({
-        title: "Please fill all fields",
-        description: "All fields are required.",
-        variant: "error",
-      });
-      return;
+  const initialState: SubmitLeadState = {
+    success: false,
+    message: "",
+  };
+
+  const [state, formAction, isPending] = useActionState(submitLead, initialState);
+
+  // Handle success/error toasts and reset form on success
+  useEffect(() => {
+    if (state.message) {
+      if (state.success) {
+        toast({
+          title: "Message Sent",
+          description: "We'll get back to you shortly.",
+          variant: "success",
+        });
+        // Reset form on success
+        setFormData({
+          full_name: "",
+          email: "",
+          subject: "",
+          message: "",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: state.message,
+          variant: "error",
+        });
+      }
     }
+  }, [state, toast]);
 
-    setIsSubmitting(true);
-
-    // Simulate form submission
-    setTimeout(() => {
-      toast({
-        title: "Message Sent",
-        description: "We will get back to you shortly.",
-        variant: "success",
-      });
-      setFormData({ name: "", email: "", subject: "", message: "" });
-      setIsSubmitting(false);
-    }, 500);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formDataObj = new FormData();
+    formDataObj.append("full_name", formData.full_name || "");
+    formDataObj.append("email", formData.email || "");
+    formDataObj.append("subject", formData.subject || "");
+    formDataObj.append("message", formData.message || "");
+    // Note: We intentionally do NOT send role or vessel_size
+    // This will make the server action tag it as 'CONTACT_INQUIRY'
+    startTransition(() => {
+      formAction(formDataObj);
+    });
   };
 
   return (
@@ -112,15 +138,15 @@ export default function ContactPage() {
           <div>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-2">
+                <label htmlFor="full_name" className="block text-sm font-medium text-slate-900 mb-2">
                   Full Name
                 </label>
                 <Input
-                  id="name"
+                  id="full_name"
                   type="text"
                   required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.full_name ?? ""}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-sm"
                   placeholder="John Smith"
                 />
@@ -134,7 +160,7 @@ export default function ContactPage() {
                   id="email"
                   type="email"
                   required
-                  value={formData.email}
+                  value={formData.email ?? ""}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-sm"
                   placeholder="john@example.com"
@@ -147,21 +173,21 @@ export default function ContactPage() {
                 </label>
                 <Select
                   required
-                  value={formData.subject}
+                  value={formData.subject || undefined}
                   onValueChange={(value) => setFormData({ ...formData, subject: value })}
                 >
                   <SelectTrigger className="w-full h-11 bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-sm">
                     <SelectValue placeholder="Select a subject" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="general-inquiry">General Inquiry</SelectItem>
-                    <SelectItem value="partnership">Partnership Opportunities</SelectItem>
-                    <SelectItem value="press-media">Press & Media</SelectItem>
-                    <SelectItem value="technical-support">Technical Support</SelectItem>
-                    <SelectItem value="sales-pricing">Sales & Pricing</SelectItem>
-                    <SelectItem value="feature-request">Feature Request</SelectItem>
-                    <SelectItem value="bug-report">Bug Report</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="General Inquiry">General Inquiry</SelectItem>
+                    <SelectItem value="Partnership Opportunity">Partnership Opportunity</SelectItem>
+                    <SelectItem value="Press Inquiry">Press Inquiry</SelectItem>
+                    <SelectItem value="Technical Support">Technical Support</SelectItem>
+                    <SelectItem value="Sales & Pricing">Sales & Pricing</SelectItem>
+                    <SelectItem value="Feature Request">Feature Request</SelectItem>
+                    <SelectItem value="Bug Report">Bug Report</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -173,7 +199,7 @@ export default function ContactPage() {
                 <Textarea
                   id="message"
                   required
-                  value={formData.message}
+                  value={formData.message ?? ""}
                   onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                   className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 min-h-[140px] rounded-sm"
                   placeholder="How can we help?"
@@ -184,10 +210,10 @@ export default function ContactPage() {
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={isSubmitting}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-8 py-6 rounded-sm"
+                  disabled={isPending}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-8 py-6 rounded-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Sending..." : "Send Message"}
+                  {isPending ? "Sending..." : "Send Message"}
                 </Button>
                 <Link 
                   href="/"

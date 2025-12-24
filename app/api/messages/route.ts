@@ -348,9 +348,11 @@ export async function POST(request: NextRequest) {
 
     console.log("Message created successfully:", message.id);
     
-    // Notify mentions (async, don't wait)
-    const { notifyMentions } = await import("@/lib/message-notifications");
+    // Notify mentions and channel members (async, don't wait)
+    const { notifyMentions, notifyNewMessage } = await import("@/lib/message-notifications");
     const senderName = session!.user.name || session!.user.email;
+    
+    // Notify mentions
     notifyMentions(
       message.id,
       validated.channelId,
@@ -358,6 +360,16 @@ export async function POST(request: NextRequest) {
       senderName,
       tenantIdFromSession || null
     ).catch(err => console.error("Error sending mention notifications:", err));
+    
+    // Notify all channel members about new message
+    notifyNewMessage(
+      message.id,
+      validated.channelId,
+      session!.user.id,
+      senderName,
+      message.content,
+      tenantIdFromSession || null
+    ).catch(err => console.error("Error sending new message notifications:", err));
     
     return NextResponse.json(message, { status: 201 });
   } catch (error) {

@@ -24,45 +24,75 @@ import {
   Lock,
   Smartphone
 } from "lucide-react";
-import { useState } from "react";
+import { useActionState, useEffect, useState, startTransition } from "react";
+import { submitLead, type SubmitLeadState } from "@/actions/submit-lead";
 
 export default function Home() {
   const { toast, toasts, removeToast } = useToast();
-  const [formData, setFormData] = useState({
-    name: "",
+  
+  const [formData, setFormData] = useState<{
+    full_name: string;
+    role: string;
+    email: string;
+    vessel_size: string;
+    vessel_name: string;
+    message: string;
+  }>({
+    full_name: "",
     role: "",
-    yachtName: "",
-    yachtLength: "",
     email: "",
+    vessel_size: "",
+    vessel_name: "",
     message: "",
   });
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Validate all required fields
-    if (!formData.name || !formData.role || !formData.yachtName || !formData.yachtLength || !formData.email || !formData.message) {
-      toast({
-        title: "Please fill all fields",
-        description: "All fields are required.",
-        variant: "error",
-      });
-      return;
+  const initialState: SubmitLeadState = {
+    success: false,
+    message: "",
+  };
+
+  const [state, formAction, isPending] = useActionState(submitLead, initialState);
+
+  // Handle success/error toasts and reset form on success
+  useEffect(() => {
+    if (state.message) {
+      if (state.success) {
+        toast({
+          title: "Request Received",
+          description: "Our concierge team will be in touch.",
+          variant: "success",
+        });
+        // Reset form on success
+        setFormData({
+          full_name: "",
+          role: "",
+          email: "",
+          vessel_size: "",
+          vessel_name: "",
+          message: "",
+        });
+      } else {
+        toast({
+          title: "Submission Failed",
+          description: state.message,
+          variant: "error",
+        });
+      }
     }
+  }, [state, toast]);
 
-    setIsSubmitting(true);
-
-    // Simulate form submission
-    setTimeout(() => {
-      toast({
-        title: "Request Received",
-        description: "We will contact you shortly.",
-        variant: "success",
-      });
-      setFormData({ name: "", role: "", yachtName: "", yachtLength: "", email: "", message: "" });
-      setIsSubmitting(false);
-    }, 500);
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formDataObj = new FormData();
+    formDataObj.append("full_name", formData.full_name || "");
+    formDataObj.append("role", formData.role || "");
+    formDataObj.append("email", formData.email || "");
+    formDataObj.append("vessel_size", formData.vessel_size || "");
+    formDataObj.append("vessel_name", formData.vessel_name || "");
+    formDataObj.append("message", formData.message || "");
+    startTransition(() => {
+      formAction(formDataObj);
+    });
   };
 
   return (
@@ -376,15 +406,15 @@ export default function Home() {
             {/* Row 1: Name and Role */}
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-2">
+                <label htmlFor="full_name" className="block text-sm font-medium text-slate-900 mb-2">
                   Full Name
                 </label>
                 <Input
-                  id="name"
+                  id="full_name"
                   type="text"
                   required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  value={formData.full_name ?? ""}
+                  onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                   className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
                   placeholder="John Smith"
                 />
@@ -396,69 +426,69 @@ export default function Home() {
                 </label>
                 <Select
                   required
-                  value={formData.role}
+                  value={formData.role || undefined}
                   onValueChange={(value) => setFormData({ ...formData, role: value })}
                 >
                   <SelectTrigger className="w-full h-12 bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg">
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="captain">Captain</SelectItem>
-                    <SelectItem value="owner">Owner</SelectItem>
-                    <SelectItem value="purser">Purser</SelectItem>
-                    <SelectItem value="yacht-manager">Yacht Manager</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    <SelectItem value="Captain">Captain</SelectItem>
+                    <SelectItem value="Owner">Owner</SelectItem>
+                    <SelectItem value="Yacht Manager">Yacht Manager</SelectItem>
+                    <SelectItem value="Chief Stew">Chief Stew</SelectItem>
+                    <SelectItem value="Purser">Purser</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            {/* Row 2: Yacht Name and Yacht Length */}
+            {/* Row 2: Email and Yacht Size */}
             <div className="grid sm:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="yachtName" className="block text-sm font-medium text-slate-900 mb-2">
-                  Yacht Name
+                <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
+                  Email
                 </label>
                 <Input
-                  id="yachtName"
-                  type="text"
+                  id="email"
+                  type="email"
                   required
-                  value={formData.yachtName}
-                  onChange={(e) => setFormData({ ...formData, yachtName: e.target.value })}
+                  value={formData.email ?? ""}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
-                  placeholder="M/Y Serenity"
+                  placeholder="john@example.com"
                 />
               </div>
 
               <div>
-                <label htmlFor="yachtLength" className="block text-sm font-medium text-slate-900 mb-2">
-                  Yacht Length (LOA)
+                <label htmlFor="vessel_size" className="block text-sm font-medium text-slate-900 mb-2">
+                  Yacht Size
                 </label>
                 <Input
-                  id="yachtLength"
+                  id="vessel_size"
                   type="text"
                   required
-                  value={formData.yachtLength}
-                  onChange={(e) => setFormData({ ...formData, yachtLength: e.target.value })}
+                  value={formData.vessel_size ?? ""}
+                  onChange={(e) => setFormData({ ...formData, vessel_size: e.target.value })}
                   className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
                   placeholder="e.g. 45m"
                 />
               </div>
             </div>
 
-            {/* Row 3: Email (Full Width) */}
+            {/* Row 3: Yacht Name (Full Width) */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
-                Email
+              <label htmlFor="vessel_name" className="block text-sm font-medium text-slate-900 mb-2">
+                Yacht Name
               </label>
               <Input
-                id="email"
-                type="email"
+                id="vessel_name"
+                type="text"
                 required
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                value={formData.vessel_name ?? ""}
+                onChange={(e) => setFormData({ ...formData, vessel_name: e.target.value })}
                 className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
-                placeholder="john@example.com"
+                placeholder="M/Y Serenity"
               />
             </div>
 
@@ -470,7 +500,7 @@ export default function Home() {
               <Textarea
                 id="message"
                 required
-                value={formData.message}
+                value={formData.message ?? ""}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
                 className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 min-h-[120px] rounded-lg"
                 placeholder="Tell us about your vessel and operational needs..."
@@ -480,10 +510,10 @@ export default function Home() {
             <Button
               type="submit"
               size="lg"
-              disabled={isSubmitting}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-6 text-lg rounded-lg"
+              disabled={isPending}
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-6 text-lg rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isSubmitting ? "Submitting..." : "Request Private Demo"}
+              {isPending ? "Sending..." : "Request Private Demo"}
             </Button>
           </form>
         </div>

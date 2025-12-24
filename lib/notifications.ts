@@ -21,9 +21,14 @@ export async function createNotification(
     });
 
     // Send push notification if user has subscription
+    // For MESSAGE_RECEIVED, don't show message content in push notification
+    const pushBody = type === "MESSAGE_RECEIVED" 
+      ? "Yeni mesaj aldınız" 
+      : content;
+    
     sendPushNotification(userId, {
       title: getNotificationTitle(type),
-      body: content,
+      body: pushBody,
       tag: notification.id,
       data: {
         url: getNotificationUrl(type, taskId, messageId),
