@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { Tag, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PricingTable } from "@/components/admin/pricing-table";
@@ -94,26 +94,30 @@ export default async function AdminPricingPage() {
   }
 
   // Initialize Supabase Admin Client
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
   let plans: Plan[] = fallbackPlans;
   let subscribersByPlan: Record<string, Subscriber[]> = {};
 
-  if (supabaseUrl && supabaseServiceRoleKey) {
-    try {
-      const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      });
+  try {
+    const supabase = createAdminClient();
+    
+    if (supabase) {
+      console.log("Fetching plans from DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
 
-      // Fetch plans
+      // Fetch plans using admin client (bypasses RLS)
       const { data: plansData, error: plansError } = await supabase
         .from("plans")
         .select("*")
         .order("min_loa", { ascending: true });
+
+      if (plansError) {
+        console.error("Error fetching plans:", plansError);
+        console.error("Error details:", {
+          code: plansError.code,
+          message: plansError.message,
+          details: plansError.details,
+          hint: plansError.hint,
+        });
+      }
 
       if (!plansError && plansData && plansData.length > 0) {
         // Fetch subscriber counts for each plan
@@ -177,30 +181,24 @@ export default async function AdminPricingPage() {
           status: (plan.status as "active" | "archived") || "active",
         }));
       } else {
-        // Fallback: Try to get counts from Prisma if Supabase doesn't have the data
-        try {
-          // This assumes plan_id is stored in user metadata or a separate field
-          // For now, we'll use the fallback plans with 0 counts
-          plans = fallbackPlans.map((plan) => ({
-            ...plan,
-            activeSubscribers: 0,
-            status: "active" as const,
-          }));
-        } catch (dbError) {
-          console.error("Error fetching from database:", dbError);
-        }
+        console.warn("No plans found in database or error occurred, using fallback plans");
+        plans = fallbackPlans.map((plan) => ({
+          ...plan,
+          activeSubscribers: 0,
+          status: "active" as const,
+        }));
       }
-    } catch (error) {
-      console.error("Error fetching plans:", error);
-      // Fall back to hardcoded plans with 0 counts
+    } else {
+      console.warn("Supabase admin client not configured, using fallback plans");
       plans = fallbackPlans.map((plan) => ({
         ...plan,
         activeSubscribers: 0,
         status: "active" as const,
       }));
     }
-  } else {
-    // No Supabase config, use fallback with 0 counts
+  } catch (error) {
+    console.error("Error fetching plans:", error);
+    // Fall back to hardcoded plans with 0 counts
     plans = fallbackPlans.map((plan) => ({
       ...plan,
       activeSubscribers: 0,

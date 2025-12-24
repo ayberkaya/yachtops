@@ -5,6 +5,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 import Link from "next/link";
+import { differenceInDays } from "date-fns";
 
 interface TrialBannerProps {
   userId: string;
@@ -68,19 +69,23 @@ export function TrialBanner({
     return null;
   }
 
-  // Calculate days left
+  // Calculate days left using date-fns
   const calculateDaysLeft = (): number | null => {
     if (!trialEndsAt) return null;
     const endDate = new Date(trialEndsAt);
     const now = new Date();
-    const diffTime = endDate.getTime() - now.getTime();
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    return diffDays > 0 ? diffDays : 0;
+    const daysLeft = differenceInDays(endDate, now);
+    return daysLeft > 0 ? daysLeft : 0;
   };
 
   const daysLeft = calculateDaysLeft();
   const isExpired = daysLeft !== null && daysLeft <= 0;
   const isPastDue = subscriptionStatus === "PAST_DUE";
+
+  // Don't show if not TRIAL status
+  if (subscriptionStatus !== "TRIAL") {
+    return null;
+  }
 
   // Show expired/past due banner (non-dismissible)
   if (isExpired || isPastDue) {
@@ -108,22 +113,30 @@ export function TrialBanner({
   }
 
   // Show trial banner (dismissible)
-  if (subscriptionStatus === "TRIAL" && daysLeft !== null && daysLeft > 0) {
+  // Use Amber-50 for urgency if 3 days or less, otherwise Indigo-50 for friendly reminder
+  const isUrgent = daysLeft !== null && daysLeft <= 3;
+  const bgColor = isUrgent 
+    ? "bg-amber-50 dark:bg-amber-950/20 border-amber-200" 
+    : "bg-indigo-50 dark:bg-indigo-950/20 border-indigo-200";
+
+  if (daysLeft !== null && daysLeft > 0) {
     return (
-      <Alert className="mb-6 border-blue-200 bg-blue-50 dark:bg-blue-950/20">
+      <Alert className={`mb-6 ${bgColor}`}>
         <AlertDescription className="flex items-center justify-between gap-4">
           <div className="flex items-center gap-2 flex-1">
             <span className="text-lg">🚢</span>
-            <span className="text-sm">
-              You are on the <strong>{planName || "Trial"}</strong> Trial.{" "}
-              <strong>{daysLeft}</strong> {daysLeft === 1 ? "Day" : "Days"} Left.
+            <span className="text-sm text-slate-900 dark:text-slate-100">
+              <strong>{planName || "Trial"}</strong> Trial: You have{" "}
+              <strong>{daysLeft}</strong> {daysLeft === 1 ? "day" : "days"} left.
             </span>
           </div>
           <div className="flex items-center gap-2">
             <Button
               asChild
               size="sm"
-              className="bg-blue-600 hover:bg-blue-700 text-white"
+              className={isUrgent 
+                ? "bg-amber-600 hover:bg-amber-700 text-white" 
+                : "bg-indigo-600 hover:bg-indigo-700 text-white"}
             >
               <Link href="/dashboard/billing">Add Payment Method</Link>
             </Button>
@@ -131,7 +144,7 @@ export function TrialBanner({
               variant="ghost"
               size="sm"
               onClick={handleDismiss}
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 hover:bg-slate-200 dark:hover:bg-slate-700"
               aria-label="Dismiss banner"
             >
               <X className="h-4 w-4" />

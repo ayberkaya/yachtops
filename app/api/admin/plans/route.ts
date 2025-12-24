@@ -1,8 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/admin";
 
 export const dynamic = "force-dynamic";
+
+const fallbackPlans = [
+  {
+    id: "essentials",
+    name: "Essentials",
+    price: 299,
+    currency: "USD",
+    min_loa: 0,
+    max_loa: 30,
+  },
+  {
+    id: "professional",
+    name: "Professional",
+    price: 599,
+    currency: "USD",
+    min_loa: 30,
+    max_loa: 60,
+  },
+  {
+    id: "enterprise",
+    name: "Enterprise",
+    price: 0,
+    currency: "USD",
+    min_loa: 60,
+    max_loa: null,
+  },
+];
 
 export async function GET(req: NextRequest) {
   const session = await getSession();
@@ -10,46 +37,15 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    // Return fallback plans if Supabase is not configured
-    return NextResponse.json([
-      {
-        id: "essentials",
-        name: "Essentials",
-        price: 299,
-        currency: "USD",
-        min_loa: 0,
-        max_loa: 30,
-      },
-      {
-        id: "professional",
-        name: "Professional",
-        price: 599,
-        currency: "USD",
-        min_loa: 30,
-        max_loa: 60,
-      },
-      {
-        id: "enterprise",
-        name: "Enterprise",
-        price: 0,
-        currency: "USD",
-        min_loa: 60,
-        max_loa: null,
-      },
-    ]);
-  }
-
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    // Use admin client to bypass RLS and caching
+    const supabase = createAdminClient();
+    console.log("Fetching plans from DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+
+    if (!supabase) {
+      console.warn("Supabase admin client not configured, returning fallback plans");
+      return NextResponse.json(fallbackPlans);
+    }
 
     const { data, error } = await supabase
       .from("plans")
@@ -58,39 +54,26 @@ export async function GET(req: NextRequest) {
 
     if (error) {
       console.error("Error fetching plans:", error);
+      console.error("Error details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+      });
       // Return fallback plans on error
-      return NextResponse.json([
-        {
-          id: "essentials",
-          name: "Essentials",
-          price: 299,
-          currency: "USD",
-          min_loa: 0,
-          max_loa: 30,
-        },
-        {
-          id: "professional",
-          name: "Professional",
-          price: 599,
-          currency: "USD",
-          min_loa: 30,
-          max_loa: 60,
-        },
-        {
-          id: "enterprise",
-          name: "Enterprise",
-          price: 0,
-          currency: "USD",
-          min_loa: 60,
-          max_loa: null,
-        },
-      ]);
+      return NextResponse.json(fallbackPlans);
     }
 
-    return NextResponse.json(data || []);
+    if (!data || data.length === 0) {
+      console.warn("No plans found in database, returning fallback plans");
+      return NextResponse.json(fallbackPlans);
+    }
+
+    console.log(`Successfully fetched ${data.length} plans from database`);
+    return NextResponse.json(data);
   } catch (error) {
     console.error("Error fetching plans:", error);
-    return NextResponse.json({ error: "Failed to fetch plans" }, { status: 500 });
+    return NextResponse.json(fallbackPlans);
   }
 }
 

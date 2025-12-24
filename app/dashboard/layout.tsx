@@ -5,7 +5,7 @@ import { NotificationsProvider } from "@/components/notifications/notifications-
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import { PageTracker } from "@/components/dashboard/page-tracker";
 import { TrialBanner } from "@/components/dashboard/trial-banner";
-import { createClient } from "@supabase/supabase-js";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { UserRole } from "@prisma/client";
 
 // Force dynamic rendering for all dashboard routes to avoid static pre-render during build
@@ -13,20 +13,13 @@ import { UserRole } from "@prisma/client";
 export const dynamic = "force-dynamic";
 
 async function getSubscriptionData(userId: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    return null;
-  }
-
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const supabase = createAdminClient();
+    
+    if (!supabase) {
+      console.error("Supabase Admin client not configured");
+      return null;
+    }
 
     // Fetch user subscription data
     const { data: userData, error: userError } = await supabase

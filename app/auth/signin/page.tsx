@@ -87,14 +87,6 @@ export default function SignInPage() {
     try {
       addDebugLog("Calling signIn('credentials')...");
       
-      let target = "/dashboard";
-      if (callbackUrl) {
-        const decodedCallbackUrl = decodeURIComponent(callbackUrl);
-        if (decodedCallbackUrl.startsWith("/admin") || decodedCallbackUrl.startsWith("/dashboard") || decodedCallbackUrl.startsWith("/")) {
-          target = decodedCallbackUrl;
-        }
-      }
-      
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -112,13 +104,33 @@ export default function SignInPage() {
       }
 
       if (result?.ok) {
-        addDebugLog("Login successful, waiting for cookie to be set...");
-        setIsLoading(false);
+        addDebugLog("Login successful, redirecting to dashboard...");
         
+        // Determine redirect target: use callbackUrl if valid, otherwise default to /dashboard
+        let target = "/dashboard";
+        if (callbackUrl) {
+          const decodedCallbackUrl = decodeURIComponent(callbackUrl);
+          // Only allow safe redirects to dashboard or admin routes
+          if (decodedCallbackUrl.startsWith("/admin") || decodedCallbackUrl.startsWith("/dashboard")) {
+            target = decodedCallbackUrl;
+            addDebugLog(`Using callbackUrl: ${target}`);
+          }
+        }
+        
+        // Refresh router to ensure session is updated
+        router.refresh();
+        
+        // Force immediate redirect using router.replace (prevents back button issues)
+        addDebugLog(`Redirecting to: ${target}`);
+        router.replace(target);
+        
+        // Fallback: If router.replace doesn't work within 200ms, use window.location.replace
         setTimeout(() => {
-          addDebugLog(`Redirecting to: ${target}`);
-          window.location.href = target;
-        }, 800);
+          if (window.location.pathname === "/auth/signin") {
+            addDebugLog("Router redirect didn't work, using window.location.replace as fallback");
+            window.location.replace(target);
+          }
+        }, 200);
         
         return;
       }

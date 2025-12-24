@@ -5,10 +5,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { hashPassword } from "@/lib/auth-server";
-import { getSupabaseAdmin } from "@/lib/supabase-auth-sync";
 import { sendWelcomeEmail } from "@/utils/mail";
-import { createClient } from "@supabase/supabase-js";
-import { randomBytes } from "crypto";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 
 const createUserSchema = z.object({
@@ -26,7 +24,7 @@ const createUserSchema = z.object({
     }
     return num;
   }),
-  planId: z.string().uuid("Valid plan ID is required"),
+  plan: z.string().min(1, "Plan is required"), // Plan name (e.g., "Essentials", "Professional")
   // Password is auto-generated on server, not required from form
 });
 
@@ -49,39 +47,74 @@ function generateTempPassword(): string {
 }
 
 /**
- * Get plan name from Supabase by plan ID
+ * Get plan ID from Supabase by plan name (case-insensitive)
+ * Falls back to 'Essentials' plan, then to ANY available plan if not found
+ * Uses provided admin client to bypass RLS
  */
-async function getPlanName(planId: string): Promise<string> {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-
-  if (!supabaseUrl || !supabaseServiceRoleKey) {
-    return "Essentials"; // Fallback
-  }
-
+async function getPlanId(
+  supabase: ReturnType<typeof createAdminClient>,
+  planName: string
+): Promise<{ id: string; name: string } | null> {
   try {
-    const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    });
+    const trimmedPlanName = planName.trim();
+    console.log("Searching for plan:", trimmedPlanName);
 
-    const { data, error } = await supabase
+    // Step 1: Try to find the specified plan (case-insensitive)
+    let { data: planRecord, error: planError } = await supabase
       .from("plans")
-      .select("name")
-      .eq("id", planId)
+      .select("id, name")
+      .ilike("name", trimmedPlanName)
       .single();
 
-    if (error || !data) {
-      console.error("Error fetching plan:", error);
-      return "Essentials"; // Fallback
+    if (planError) {
+      console.error("Plan Fetch Error (primary lookup):", planError);
     }
 
-    return data.name;
+    // Step 2: If not found, try 'Essentials' as fallback
+    if (planError || !planRecord) {
+      console.warn(`Plan "${trimmedPlanName}" not found, trying 'Essentials' fallback...`);
+      const { data: essentialsPlan, error: essentialsError } = await supabase
+        .from("plans")
+        .select("id, name")
+        .ilike("name", "Essentials")
+        .single();
+
+      if (essentialsError) {
+        console.error("Plan Fetch Error (Essentials fallback):", essentialsError);
+      }
+
+      if (!essentialsError && essentialsPlan) {
+        planRecord = essentialsPlan;
+        console.log("Using 'Essentials' plan as fallback");
+      } else {
+        // Step 3: If 'Essentials' also not found, get ANY available plan
+        console.warn("'Essentials' plan not found. Fetching any available plan...");
+        const { data: anyPlan, error: anyPlanError } = await supabase
+          .from("plans")
+          .select("id, name")
+          .limit(1)
+          .single();
+
+        if (anyPlanError) {
+          console.error("Plan Fetch Error (any plan fallback):", anyPlanError);
+        }
+
+        if (anyPlanError || !anyPlan) {
+          console.error("CRITICAL: No plans exist in the database. Error:", anyPlanError);
+          return null;
+        }
+
+        planRecord = anyPlan;
+        console.log(`Using first available plan: "${planRecord.name}" (ID: ${planRecord.id})`);
+      }
+    } else {
+      console.log(`Found plan: "${planRecord.name}" (ID: ${planRecord.id})`);
+    }
+
+    return planRecord;
   } catch (error) {
-    console.error("Error fetching plan name:", error);
-    return "Essentials"; // Fallback
+    console.error("Error fetching plan ID:", error);
+    return null;
   }
 }
 
@@ -107,7 +140,29 @@ export async function createUserAndInvite(
       };
     }
 
+    // Initialize Supabase Admin Client (bypasses RLS and caching)
+    const supabase = createAdminClient();
+    console.log("Connecting to DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    
+    if (!supabase) {
+      return {
+        success: false,
+        error: "Configuration error",
+        message: "Supabase Admin client not configured. Please check SUPABASE_SERVICE_ROLE_KEY.",
+      };
+    }
+
     // Parse and validate form data
+    // Accept both 'plan' (name) and 'planId' (UUID) for backward compatibility
+    const planInputFromForm = formData.get("plan")?.toString().trim() || formData.get("planId")?.toString().trim() || "Essentials";
+    
+    // Debug: Log what we received from formData
+    console.log("FormData plan input:", {
+      plan: formData.get("plan")?.toString(),
+      planId: formData.get("planId")?.toString(),
+      finalPlanInput: planInputFromForm,
+    });
+    
     const rawData = {
       name: formData.get("name")?.toString().trim(),
       email: formData.get("email")?.toString().trim(),
@@ -117,7 +172,7 @@ export async function createUserAndInvite(
       vesselFlag: formData.get("vesselFlag")?.toString().trim(),
       vesselSize: formData.get("vesselSize")?.toString().trim(),
       crewCount: formData.get("crewCount")?.toString().trim() || "1",
-      planId: formData.get("planId")?.toString().trim(),
+      plan: planInputFromForm,
     };
 
     const parsed = createUserSchema.safeParse(rawData);
@@ -134,8 +189,43 @@ export async function createUserAndInvite(
       };
     }
 
-    const { name, email, vesselName, vesselType, vesselFlag, vesselSize, crewCount, planId } = parsed.data;
+    const { name, email, vesselName, vesselType, vesselFlag, vesselSize, crewCount, plan: planInput } = parsed.data;
     const username = parsed.data.username || email;
+
+    // Check if planInput is a UUID (backward compatibility)
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(planInput);
+    
+    let planId: string;
+    let actualPlanName: string;
+
+    if (isUUID) {
+      // If it's a UUID, use it directly and fetch the plan name
+      planId = planInput;
+      const { data: planData, error: planError } = await supabase
+        .from("plans")
+        .select("name")
+        .eq("id", planId)
+        .single();
+      
+      if (planError) {
+        console.error("Plan Fetch Error (UUID lookup):", planError);
+      }
+      
+      actualPlanName = planData?.name || "Essentials";
+    } else {
+      // If it's a plan name, lookup the ID with fallback strategy
+      const planRecord = await getPlanId(supabase, planInput);
+      if (!planRecord?.id) {
+        return {
+          success: false,
+          error: "Plan configuration missing",
+          message: "CRITICAL: No plans exist in the database. Please contact admin.",
+        };
+      }
+      planId = planRecord.id;
+      actualPlanName = planRecord.name;
+      console.log(`Using plan: "${actualPlanName}" (ID: ${planId})`);
+    }
 
     // Check if user already exists
     const existingEmail = await db.user.findUnique({ where: { email } });
@@ -160,19 +250,9 @@ export async function createUserAndInvite(
     const tempPassword = generateTempPassword();
     const passwordHash = await hashPassword(tempPassword);
 
-    // Get Supabase Admin client
-    const supabaseAdmin = getSupabaseAdmin();
-    if (!supabaseAdmin) {
-      return {
-        success: false,
-        error: "Configuration error",
-        message: "Supabase Admin client not configured. Please check SUPABASE_SERVICE_ROLE_KEY.",
-      };
-    }
-
-    // Step 1: Create user in Supabase Auth
+    // Step 1: Create user in Supabase Auth using admin client
     // CRITICAL: Set email_confirm: true so they can login immediately
-    const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true, // Auto-confirm email so user can login immediately
@@ -195,8 +275,7 @@ export async function createUserAndInvite(
     const userId = authUser.user.id; // UUID from Supabase Auth
 
     try {
-      // Step 2: Get plan name for email
-      const planName = await getPlanName(planId);
+      // Step 2: Plan name is already available from lookup
 
       // Step 3: Calculate trial end date (7 days from now)
       const trialEndsAt = new Date();
@@ -236,33 +315,21 @@ export async function createUserAndInvite(
         },
       });
 
-      // Step 6: Update user with subscription fields using Supabase client
+      // Step 6: Update user with subscription fields using Supabase admin client
       // This is necessary because subscription_status and trial_ends_at are in Supabase
       // but not in the Prisma schema
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-      
-      if (supabaseUrl && supabaseServiceRoleKey) {
-        const supabase = createClient(supabaseUrl, supabaseServiceRoleKey, {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false,
-          },
-        });
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({
+          plan_id: planId,
+          subscription_status: "TRIAL",
+          trial_ends_at: trialEndsAt.toISOString(),
+        })
+        .eq("id", userId);
 
-        const { error: updateError } = await supabase
-          .from("users")
-          .update({
-            plan_id: planId,
-            subscription_status: "TRIAL",
-            trial_ends_at: trialEndsAt.toISOString(),
-          })
-          .eq("id", userId);
-
-        if (updateError) {
-          console.error("Failed to update subscription fields:", updateError);
-          // Continue anyway - user is created, subscription fields are optional
-        }
+      if (updateError) {
+        console.error("Failed to update subscription fields:", updateError);
+        // Continue anyway - user is created, subscription fields are optional
       }
 
       // Step 7: Create default expense categories for the vessel
@@ -312,7 +379,7 @@ export async function createUserAndInvite(
           email,
           name,
           tempPassword,
-          planName
+          actualPlanName
         );
       } catch (emailError) {
         // Log email error but don't fail the entire operation
@@ -333,7 +400,7 @@ export async function createUserAndInvite(
       // Rollback: Delete the Auth user if DB operations failed
       console.error("Failed to create user in database, rolling back Auth user:", dbError);
       try {
-        await supabaseAdmin.auth.admin.deleteUser(userId);
+        await supabase.auth.admin.deleteUser(userId);
         console.log("Successfully rolled back Auth user");
       } catch (rollbackError) {
         console.error("Failed to rollback Auth user (orphaned record may exist):", rollbackError);
