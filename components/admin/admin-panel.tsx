@@ -33,6 +33,11 @@ type TenantUser = {
   email: string;
   username: string | null;
   role: string;
+  customRoleId: string | null;
+  customRole: {
+    id: string;
+    name: string;
+  } | null;
   active: boolean;
   createdAt: string;
 };
@@ -404,7 +409,7 @@ export default function AdminPanel({ view = "create" }: AdminPanelProps) {
                                         {u.name || u.username || u.email}
                                       </div>
                                       <div className="text-xs text-muted-foreground">
-                                        {u.email} • {u.role}
+                                        {u.email} • {u.customRole?.name || u.role}
                                       </div>
                                     </div>
                                     <Button

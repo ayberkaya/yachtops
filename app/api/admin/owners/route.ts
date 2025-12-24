@@ -40,6 +40,13 @@ export async function GET(request: NextRequest) {
             email: true,
             username: true,
             role: true,
+            customRoleId: true,
+            customRole: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
             active: true,
             createdAt: true,
             yachtId: true,
