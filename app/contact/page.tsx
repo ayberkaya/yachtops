@@ -1,41 +1,205 @@
+"use client";
+
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useState } from "react";
+import { useToast, ToastContainer } from "@/components/ui/toast";
+import { Mail, MapPin } from "lucide-react";
 
 export default function ContactPage() {
+  const { toast, toasts, removeToast } = useToast();
+  const [formData, setFormData] = useState({
+    name: "",
+    email: "",
+    subject: "",
+    message: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate all required fields
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
+      toast({
+        title: "Please fill all fields",
+        description: "All fields are required.",
+        variant: "error",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    // Simulate form submission
+    setTimeout(() => {
+      toast({
+        title: "Message Sent",
+        description: "We will get back to you shortly.",
+        variant: "success",
+      });
+      setFormData({ name: "", email: "", subject: "", message: "" });
+      setIsSubmitting(false);
+    }, 500);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-white via-blue-50/30 to-white py-16 px-4">
-      <div className="max-w-3xl mx-auto space-y-8">
-        <div className="space-y-3 text-center">
-          <p className="text-sm font-semibold text-blue-600 uppercase tracking-wide">Contact Sales</p>
-          <h1 className="text-3xl sm:text-4xl font-bold text-slate-900">Let’s talk about your helm ops</h1>
-          <p className="text-slate-600">
-            Ask anything about features, pricing, onboarding, or custom needs.
+    <div className="min-h-screen bg-white">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
+      
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
+        {/* Header Section */}
+        <div className="text-center mb-20">
+          <h1 className="text-4xl sm:text-5xl font-bold text-slate-900 mb-4 tracking-tight font-serif" style={{ fontFamily: 'var(--font-playfair), serif' }}>
+            Get in Touch
+          </h1>
+          <p className="text-xl text-slate-500 max-w-2xl mx-auto">
+            For general inquiries, partnerships, or press.
           </p>
         </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Send a message</CardTitle>
-            <CardDescription>We typically reply within one business day.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Input placeholder="Full name" />
-            <Input placeholder="Work email" type="email" />
-            <Input placeholder="Vessel / Company" />
-            <Textarea placeholder="How can we help?" rows={4} />
-            <div className="flex gap-3">
-              <Button className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white">Send message</Button>
-              <Button variant="outline" asChild>
-                <Link href="/">Back to home</Link>
-              </Button>
+        {/* Content Grid */}
+        <div className="grid lg:grid-cols-2 gap-16">
+          {/* Left Column: Contact Info */}
+          <div className="space-y-8">
+            <div>
+              <h2 className="text-2xl font-semibold text-slate-900 mb-4 tracking-tight font-serif" style={{ fontFamily: 'var(--font-playfair), serif' }}>
+                Contact Concierge
+              </h2>
+              <p className="text-slate-600 leading-relaxed mb-8">
+                Our support team is available to assist with technical questions or partnership opportunities.
+              </p>
             </div>
-          </CardContent>
-        </Card>
+
+            <div className="space-y-6">
+              {/* Email */}
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Mail className="w-5 h-5 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-900">Email</span>
+                </div>
+                <a
+                  href="mailto:support@helmops.com"
+                  className="text-slate-900 underline decoration-slate-300 hover:decoration-[#C5A059] transition-colors text-lg"
+                >
+                  support@helmops.com
+                </a>
+              </div>
+
+              {/* Location */}
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <MapPin className="w-5 h-5 text-slate-600" />
+                  <span className="text-sm font-medium text-slate-900">Location</span>
+                </div>
+                <p className="text-slate-600">
+                  Headquarters: İzmir, Türkiye
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Form */}
+          <div>
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-2">
+                  Full Name
+                </label>
+                <Input
+                  id="name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-sm"
+                  placeholder="John Smith"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
+                  Work Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-sm"
+                  placeholder="john@example.com"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="subject" className="block text-sm font-medium text-slate-900 mb-2">
+                  Subject
+                </label>
+                <Select
+                  required
+                  value={formData.subject}
+                  onValueChange={(value) => setFormData({ ...formData, subject: value })}
+                >
+                  <SelectTrigger className="w-full h-11 bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-sm">
+                    <SelectValue placeholder="Select a subject" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="general-inquiry">General Inquiry</SelectItem>
+                    <SelectItem value="partnership">Partnership Opportunities</SelectItem>
+                    <SelectItem value="press-media">Press & Media</SelectItem>
+                    <SelectItem value="technical-support">Technical Support</SelectItem>
+                    <SelectItem value="sales-pricing">Sales & Pricing</SelectItem>
+                    <SelectItem value="feature-request">Feature Request</SelectItem>
+                    <SelectItem value="bug-report">Bug Report</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label htmlFor="message" className="block text-sm font-medium text-slate-900 mb-2">
+                  Message
+                </label>
+                <Textarea
+                  id="message"
+                  required
+                  value={formData.message}
+                  onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                  className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 min-h-[140px] rounded-sm"
+                  placeholder="How can we help?"
+                />
+              </div>
+
+              <div className="flex items-center gap-4 pt-2">
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isSubmitting}
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-8 py-6 rounded-sm"
+                >
+                  {isSubmitting ? "Sending..." : "Send Message"}
+                </Button>
+                <Link 
+                  href="/"
+                  className="text-sm text-slate-600 hover:text-slate-900 transition-colors underline decoration-slate-300 hover:decoration-slate-900"
+                >
+                  Back to home
+                </Link>
+              </div>
+            </form>
+          </div>
+        </div>
       </div>
     </div>
   );
 }
-

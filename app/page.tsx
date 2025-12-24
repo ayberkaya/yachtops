@@ -5,6 +5,13 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Navbar } from "@/components/landing/navbar";
 import { Footer } from "@/components/landing/footer";
 import { useToast, ToastContainer } from "@/components/ui/toast";
@@ -23,7 +30,9 @@ export default function Home() {
   const { toast, toasts, removeToast } = useToast();
   const [formData, setFormData] = useState({
     name: "",
+    role: "",
     yachtName: "",
+    yachtLength: "",
     email: "",
     message: "",
   });
@@ -31,6 +40,17 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate all required fields
+    if (!formData.name || !formData.role || !formData.yachtName || !formData.yachtLength || !formData.email || !formData.message) {
+      toast({
+        title: "Please fill all fields",
+        description: "All fields are required.",
+        variant: "error",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
     // Simulate form submission
@@ -40,7 +60,7 @@ export default function Home() {
         description: "We will contact you shortly.",
         variant: "success",
       });
-      setFormData({ name: "", yachtName: "", email: "", message: "" });
+      setFormData({ name: "", role: "", yachtName: "", yachtLength: "", email: "", message: "" });
       setIsSubmitting(false);
     }, 500);
   };
@@ -353,36 +373,80 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl p-8 border border-stone-200 shadow-sm space-y-6">
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-2">
-                Full Name
-              </label>
-              <Input
-                id="name"
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900"
-                placeholder="John Smith"
-              />
+            {/* Row 1: Name and Role */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="name" className="block text-sm font-medium text-slate-900 mb-2">
+                  Full Name
+                </label>
+                <Input
+                  id="name"
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
+                  placeholder="John Smith"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="role" className="block text-sm font-medium text-slate-900 mb-2">
+                  Role
+                </label>
+                <Select
+                  required
+                  value={formData.role}
+                  onValueChange={(value) => setFormData({ ...formData, role: value })}
+                >
+                  <SelectTrigger className="w-full h-12 bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="captain">Captain</SelectItem>
+                    <SelectItem value="owner">Owner</SelectItem>
+                    <SelectItem value="purser">Purser</SelectItem>
+                    <SelectItem value="yacht-manager">Yacht Manager</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
-            <div>
-              <label htmlFor="yachtName" className="block text-sm font-medium text-slate-900 mb-2">
-                Yacht Name
-              </label>
-              <Input
-                id="yachtName"
-                type="text"
-                required
-                value={formData.yachtName}
-                onChange={(e) => setFormData({ ...formData, yachtName: e.target.value })}
-                className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900"
-                placeholder="M/Y Serenity"
-              />
+            {/* Row 2: Yacht Name and Yacht Length */}
+            <div className="grid sm:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="yachtName" className="block text-sm font-medium text-slate-900 mb-2">
+                  Yacht Name
+                </label>
+                <Input
+                  id="yachtName"
+                  type="text"
+                  required
+                  value={formData.yachtName}
+                  onChange={(e) => setFormData({ ...formData, yachtName: e.target.value })}
+                  className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
+                  placeholder="M/Y Serenity"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="yachtLength" className="block text-sm font-medium text-slate-900 mb-2">
+                  Yacht Length (LOA)
+                </label>
+                <Input
+                  id="yachtLength"
+                  type="text"
+                  required
+                  value={formData.yachtLength}
+                  onChange={(e) => setFormData({ ...formData, yachtLength: e.target.value })}
+                  className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
+                  placeholder="e.g. 45m"
+                />
+              </div>
             </div>
 
+            {/* Row 3: Email (Full Width) */}
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-900 mb-2">
                 Email
@@ -393,11 +457,12 @@ export default function Home() {
                 required
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900"
+                className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 rounded-lg"
                 placeholder="john@example.com"
               />
             </div>
 
+            {/* Row 4: Message (Full Width) */}
             <div>
               <label htmlFor="message" className="block text-sm font-medium text-slate-900 mb-2">
                 Message
@@ -407,7 +472,7 @@ export default function Home() {
                 required
                 value={formData.message}
                 onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 min-h-[120px]"
+                className="bg-white border-stone-200 focus:border-slate-900 focus:ring-slate-900 min-h-[120px] rounded-lg"
                 placeholder="Tell us about your vessel and operational needs..."
               />
             </div>
@@ -416,9 +481,9 @@ export default function Home() {
               type="submit"
               size="lg"
               disabled={isSubmitting}
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-6 text-lg"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium py-6 text-lg rounded-lg"
             >
-              {isSubmitting ? "Submitting..." : "Submit Request"}
+              {isSubmitting ? "Submitting..." : "Request Private Demo"}
             </Button>
           </form>
         </div>
