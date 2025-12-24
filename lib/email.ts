@@ -60,6 +60,7 @@ export async function sendInviteEmail(
   to: string,
   token: string,
   yachtName: string,
+  invitedName: string,
   inviterName: string | null,
   inviterRole: string,
   invitedRole: string
@@ -84,7 +85,7 @@ export async function sendInviteEmail(
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Join ${yachtName} on HelmOps</title>
+  <title>Invitation to join ${yachtName} on HelmOps</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
   <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8fafc;">
@@ -101,8 +102,16 @@ export async function sendInviteEmail(
           <!-- Content -->
           <tr>
             <td style="padding: 40px;">
+              <p style="margin: 0 0 20px; color: #334155; font-size: 18px; line-height: 1.6; font-weight: 500;">
+                Welcome aboard, <strong>${invitedName}</strong>!
+              </p>
+              
               <p style="margin: 0 0 20px; color: #334155; font-size: 16px; line-height: 1.6;">
-                ${inviterName ? `${inviterRoleDisplay} <strong>${inviterName}</strong>` : `A ${inviterRoleDisplay.toLowerCase()}`} has invited you to join the crew of <strong>${yachtName}</strong> as a <strong>${invitedRoleDisplay}</strong>.
+                ${inviterName ? `${inviterRoleDisplay} <strong>${inviterName}</strong>` : `A ${inviterRoleDisplay.toLowerCase()}`} has invited you to join the crew of <strong>${yachtName}</strong>.
+              </p>
+              
+              <p style="margin: 0 0 20px; color: #334155; font-size: 16px; line-height: 1.6;">
+                You have been invited to join the crew as <strong>${invitedRoleDisplay}</strong>.
               </p>
               
               <p style="margin: 0 0 30px; color: #64748b; font-size: 14px; line-height: 1.6;">
@@ -169,9 +178,13 @@ export async function sendInviteEmail(
     // Plain text version for email clients that don't support HTML
     // This improves deliverability and prevents spam filtering
     const text = `
-You've been invited to join ${yachtName} on HelmOps!
+Invitation to join ${yachtName} on HelmOps
 
-${inviterName ? `${inviterRoleDisplay} ${inviterName}` : `A ${inviterRoleDisplay.toLowerCase()}`} has invited you to join the crew as a ${invitedRoleDisplay}.
+Welcome aboard, ${invitedName}!
+
+${inviterName ? `${inviterRoleDisplay} ${inviterName}` : `A ${inviterRoleDisplay.toLowerCase()}`} has invited you to join the crew of ${yachtName}.
+
+You have been invited to join the crew as ${invitedRoleDisplay}.
 
 Click the link below to accept your invitation:
 ${inviteUrl}
@@ -191,7 +204,7 @@ Powered by HelmOps — Yacht Operations Management
       from: `"${fromName}" <${fromEmail}>`,
       replyTo: fromEmail, // Add reply-to for better deliverability
       to: to,
-      subject: `You've been invited to join ${yachtName} on HelmOps`,
+      subject: `Invitation to join ${yachtName} on HelmOps`,
       text: text, // Plain text version (required for spam prevention - improves deliverability)
       html: html,
       // Additional headers for better deliverability

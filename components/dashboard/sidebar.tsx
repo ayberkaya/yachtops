@@ -46,6 +46,7 @@ import {
   Inbox,
   UserPlus,
   Tag,
+  CreditCard,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth-utils";
@@ -760,6 +761,18 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                 >
                   <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
                   <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
+                </Link>
+                <Link
+                  href="/dashboard/settings/billing"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  prefetch={true}
+                  className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group touch-manipulation min-h-[44px]"
+                >
+                  <CreditCard size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Subscription</span>
                 </Link>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -1615,6 +1628,13 @@ export function Sidebar() {
                   >
                     <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">Personal Notes</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/settings/billing"
+                    className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <CreditCard size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">Subscription</span>
                   </Link>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>

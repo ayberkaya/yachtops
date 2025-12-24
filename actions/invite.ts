@@ -9,6 +9,7 @@ import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
 
 const inviteSchema = z.object({
+  name: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
   role: z.string().min(1, "Invalid role selected"), // Can be UserRole enum or custom role ID
 });
@@ -54,6 +55,7 @@ export async function inviteCrewMember(
 
     // Parse and validate form data
     const rawData = {
+      name: formData.get("name") as string,
       email: formData.get("email") as string,
       role: formData.get("role") as string,
     };
@@ -67,7 +69,7 @@ export async function inviteCrewMember(
       };
     }
 
-    const { email, role } = validationResult.data;
+    const { name, email, role } = validationResult.data;
 
     // Validate role
     // If it's a standard enum role, check it's not OWNER, SUPER_ADMIN, or ADMIN
@@ -209,6 +211,7 @@ export async function inviteCrewMember(
     const invite = await db.yachtInvite.create({
       data: {
         email: email.toLowerCase().trim(),
+        name: name.trim(),
         role: roleToStore,
         yachtId: yachtId,
         token: token,
@@ -224,6 +227,7 @@ export async function inviteCrewMember(
         email.toLowerCase().trim(),
         token,
         yacht.name,
+        name.trim(), // Pass invited crew member's name
         inviter.name,
         inviter.role, // Pass inviter's role dynamically
         invitedRoleDisplay // Pass the display name (enum formatted or custom role name)

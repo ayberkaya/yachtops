@@ -54,6 +54,7 @@ export default async function UsersPage() {
   let pendingInvites: Array<{
     id: string;
     email: string;
+    name: string | null;
     role: UserRole;
     createdAt: Date;
     expiresAt: Date;
@@ -74,6 +75,7 @@ export default async function UsersPage() {
         select: {
           id: true,
           email: true,
+          name: true,
           role: true,
           createdAt: true,
           expiresAt: true,

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/get-session";
-import { createAdminClient } from "@/utils/supabase/admin";
+import { createClient } from "@/utils/supabase/server";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,44 +9,83 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-async function getSubscriptionData(userId: string) {
+async function getSubscriptionData(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
   try {
-    const supabase = createAdminClient();
-    
-    if (!supabase) {
-      console.error("Supabase Admin client not configured");
-      return null;
-    }
+    // Try join query first, but fallback to separate queries if it fails
+    let userWithPlan: any = null;
+    let userError: any = null;
+    let planDetails: any = null;
+    // Since we're using admin client, we don't need to switch clients
+    const clientToUse = supabase;
 
-    // Fetch user subscription data
-    const { data: userData, error: userError } = await supabase
+    // Attempt join query
+    const joinResult = await supabase
       .from("users")
-      .select("subscription_status, trial_ends_at, plan_id")
+      .select("*, plans(*)") // Join with plans table
       .eq("id", userId)
       .single();
 
-    if (userError || !userData) {
-      return null;
-    }
+    userWithPlan = joinResult.data;
+    userError = joinResult.error;
 
-    // Fetch plan details if plan_id exists
-    let planData = null;
-    if (userData.plan_id) {
-      const { data: plan, error: planError } = await supabase
-        .from("plans")
-        .select("id, name, price, currency")
-        .eq("id", userData.plan_id)
+    // Debug logging
+    console.log("Join Query Result - User Plan ID:", userWithPlan?.plan_id);
+    console.log("Join Query Result - Plans Data:", JSON.stringify(userWithPlan?.plans, null, 2));
+    console.log("Join Query Result - Error:", JSON.stringify(userError || {}, null, 2));
+    console.log("Join Query Result - Raw Response:", JSON.stringify(joinResult, null, 2));
+
+    // If join query failed, try separate queries as fallback
+    if (userError || !userWithPlan) {
+      console.warn("Join query failed, falling back to separate queries. Error:", JSON.stringify(userError || {}, null, 2));
+      
+      // Fetch user data separately
+      const { data: userData, error: userDataError } = await clientToUse
+        .from("users")
+        .select("subscription_status, trial_ends_at, plan_id")
+        .eq("id", userId)
         .single();
 
-      if (!planError && plan) {
-        planData = plan;
+      if (userDataError || !userData) {
+        console.error("Error fetching user data (fallback):", JSON.stringify(userDataError || {}, null, 2));
+        return null;
       }
+
+      // Successfully fetched user data
+      userWithPlan = userData;
+
+      // Fetch plan details if plan_id exists
+      if (userWithPlan.plan_id) {
+        const { data: plan, error: planError } = await clientToUse
+          .from("plans")
+          .select("id, name, price, currency")
+          .eq("id", userWithPlan.plan_id)
+          .single();
+
+        if (planError) {
+          console.warn("Error fetching plan details (fallback):", JSON.stringify(planError, null, 2));
+        } else {
+          planDetails = plan;
+        }
+      }
+    } else {
+      // Join query succeeded - extract plan details
+      // Handle case where relation returns array vs object
+      // Supabase can return plans as an array or single object depending on relation type
+      planDetails = Array.isArray(userWithPlan?.plans) 
+        ? userWithPlan.plans[0] 
+        : userWithPlan?.plans;
+    }
+
+    // If plan_id exists but plans (details) is missing, log a warning
+    if (userWithPlan.plan_id && !planDetails) {
+      console.warn(`Plan ID exists (${userWithPlan.plan_id}) but plan details are missing. This may indicate an RLS issue or missing plan record.`);
     }
 
     return {
-      subscription_status: userData.subscription_status,
-      trial_ends_at: userData.trial_ends_at,
-      plan: planData,
+      subscription_status: userWithPlan.subscription_status,
+      trial_ends_at: userWithPlan.trial_ends_at,
+      plan: planDetails || null,
+      plan_id: userWithPlan.plan_id, // Include plan_id for fallback display
     };
   } catch (error) {
     console.error("Error fetching subscription data:", error);
@@ -56,13 +94,24 @@ async function getSubscriptionData(userId: string) {
 }
 
 export default async function BillingPage() {
-  const session = await getSession();
+  // Create authenticated Supabase client
+  const supabase = await createClient();
 
-  if (!session?.user) {
+  // Authentication check - verify user is authenticated
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    console.error("Authentication error:", JSON.stringify(authError || {}, null, 2));
     redirect("/auth/signin");
   }
 
-  const subscriptionData = await getSubscriptionData(session.user.id);
+  // Debug log to confirm authentication
+  console.log("Auth User ID:", user?.id);
+
+  const userId = user.id;
+
+  // Fetch subscription data using authenticated client
+  const subscriptionData = await getSubscriptionData(supabase, userId);
 
   // Calculate days left if trial
   let daysLeft: number | null = null;
@@ -153,15 +202,29 @@ export default async function BillingPage() {
             <div>
               <CardTitle>Current Plan</CardTitle>
               <CardDescription className="mt-2">
-                {subscriptionData?.plan?.name || "No plan assigned"}
+                {subscriptionData?.plan?.name 
+                  ? subscriptionData.plan.name
+                  : subscriptionData?.plan_id 
+                    ? `Plan ID: ${subscriptionData.plan_id} (Details unavailable)`
+                    : "No plan assigned"}
               </CardDescription>
             </div>
             {getStatusBadge()}
           </div>
         </CardHeader>
         <CardContent>
-          {subscriptionData?.plan ? (
+          {subscriptionData?.plan || subscriptionData?.plan_id ? (
             <div className="space-y-6">
+              {/* Show warning if plan_id exists but plan details are missing */}
+              {subscriptionData?.plan_id && !subscriptionData?.plan && (
+                <div className="rounded-lg bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 p-4">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                    <strong>Note:</strong> Plan ID ({subscriptionData.plan_id}) is assigned but plan details are unavailable. 
+                    This may indicate a data sync issue. Please contact support if this persists.
+                  </p>
+                </div>
+              )}
+
               {/* Details Grid */}
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
@@ -186,7 +249,9 @@ export default async function BillingPage() {
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">Monthly Cost</p>
                   <p className="text-base font-semibold">
-                    {formatPrice(subscriptionData.plan.price, subscriptionData.plan.currency)}
+                    {subscriptionData?.plan 
+                      ? formatPrice(subscriptionData.plan.price, subscriptionData.plan.currency)
+                      : "N/A"}
                   </p>
                 </div>
               </div>
@@ -210,7 +275,7 @@ export default async function BillingPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 text-center">
+              <div className="rounded-lg bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-6 text-center" style={{ backgroundColor: 'rgba(255, 255, 255, 1)' }}>
                 <p className="text-sm text-muted-foreground mb-4">
                   No subscription plan is currently assigned to your account.
                 </p>

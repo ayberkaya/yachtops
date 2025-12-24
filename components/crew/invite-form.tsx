@@ -29,6 +29,7 @@ import { toast } from "@/components/ui/toast";
 import { useState } from "react";
 
 const inviteFormSchema = z.object({
+  name: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
   role: z.string().min(1, "Please select a role"),
 });
@@ -56,6 +57,7 @@ export function InviteCrewForm({ availableRoles, onSuccess }: InviteCrewFormProp
   const form = useForm<InviteFormData>({
     resolver: zodResolver(inviteFormSchema),
     defaultValues: {
+      name: "",
       email: "",
       role: availableRoles.length > 0 ? availableRoles[0].value : "",
     },
@@ -65,6 +67,7 @@ export function InviteCrewForm({ availableRoles, onSuccess }: InviteCrewFormProp
     setError(null);
     
     const formData = new FormData();
+    formData.append("name", data.name);
     formData.append("email", data.email);
     formData.append("role", data.role);
 
@@ -102,6 +105,24 @@ export function InviteCrewForm({ availableRoles, onSuccess }: InviteCrewFormProp
       <CardContent>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Full Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="text"
+                      placeholder="John Smith"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <FormField
               control={form.control}
               name="email"

@@ -981,6 +981,7 @@ enum InviteStatus {
 model YachtInvite {
   id        String       @id @default(cuid())
   email     String
+  name      String?
   role      UserRole
   yachtId   String       @map("yacht_id")
   token     String       @unique

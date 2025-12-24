@@ -20,6 +20,7 @@ import { toast } from "@/components/ui/toast";
 interface PendingInvite {
   id: string;
   email: string;
+  name: string | null;
   role: UserRole;
   createdAt: Date | string;
   expiresAt: Date | string;
@@ -83,6 +84,7 @@ export function PendingInvitesTable({ invites, roleLabels }: PendingInvitesTable
     <Table>
       <TableHeader>
         <TableRow>
+          <TableHead>Name</TableHead>
           <TableHead>Email</TableHead>
           <TableHead>Role</TableHead>
           <TableHead>Sent At</TableHead>
@@ -93,7 +95,8 @@ export function PendingInvitesTable({ invites, roleLabels }: PendingInvitesTable
       <TableBody>
         {invites.map((invite) => (
           <TableRow key={invite.id}>
-            <TableCell className="font-medium">{invite.email}</TableCell>
+            <TableCell className="font-medium">{invite.name || "—"}</TableCell>
+            <TableCell>{invite.email}</TableCell>
             <TableCell>
               <Badge variant="outline" className="capitalize">
                 {roleLabels[invite.role as UserRole] || invite.role}
