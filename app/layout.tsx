@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Playfair_Display, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers/session-provider";
 import { ServiceWorkerRegister } from "@/components/pwa/service-worker-register";
@@ -8,6 +9,19 @@ import { SyncStatus } from "@/components/pwa/sync-status";
 import { PushNotificationRegister } from "@/components/pwa/push-notification-register";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { UnhandledRejectionHandler } from "@/components/providers/unhandled-rejection-handler";
+
+const playfairDisplay = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-playfair",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
 
@@ -55,8 +69,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className="antialiased">
+    <html lang="en" className={`${playfairDisplay.variable} ${inter.variable}`}>
+      <body className="antialiased font-sans" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
         <UnhandledRejectionHandler />
         <ErrorBoundary>
           <Providers>
