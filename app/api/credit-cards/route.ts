@@ -27,6 +27,11 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Check permissions - allow users with expense view permission
+    if (!hasPermission(session!.user, "expenses.view", session!.user.permissions)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const creditCards = await db.creditCard.findMany({
       where: {
         yachtId: tenantId,

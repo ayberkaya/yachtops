@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { X, CheckCircle2 } from "lucide-react";
+import { X, CheckCircle2, AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface ToastProps {
@@ -29,33 +29,62 @@ export function Toast({ id, title, description, variant = "default", duration = 
 
   if (!isVisible) return null;
 
-  const variantStyles = {
-    default: "bg-background border-border text-foreground",
-    success: "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800 text-green-900 dark:text-green-100",
-    error: "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800 text-red-900 dark:text-red-100",
-    warning: "bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-800 text-yellow-900 dark:text-yellow-100",
+  const variantConfig = {
+    default: {
+      container: "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100",
+      icon: "text-slate-600 dark:text-slate-400",
+      iconComponent: Info,
+    },
+    success: {
+      container: "bg-emerald-500 dark:bg-emerald-600 border-emerald-600 dark:border-emerald-700 text-white",
+      icon: "text-white",
+      iconComponent: CheckCircle2,
+    },
+    error: {
+      container: "bg-red-500 dark:bg-red-600 border-red-600 dark:border-red-700 text-white",
+      icon: "text-white",
+      iconComponent: AlertCircle,
+    },
+    warning: {
+      container: "bg-amber-500 dark:bg-amber-600 border-amber-600 dark:border-amber-700 text-white",
+      icon: "text-white",
+      iconComponent: AlertTriangle,
+    },
   };
+
+  const config = variantConfig[variant];
+  const IconComponent = config.iconComponent;
 
   return (
     <div
       className={cn(
-        "relative flex w-full items-center gap-3 rounded-lg border p-4 shadow-lg transition-all",
-        variantStyles[variant],
-        isVisible ? "animate-in slide-in-from-top-5" : "animate-out slide-out-to-top-5"
+        "relative flex w-full items-start gap-3 rounded-xl border-2 p-4 shadow-xl backdrop-blur-sm transition-all",
+        "min-h-[64px]",
+        config.container,
+        isVisible ? "animate-in slide-in-from-top-5 fade-in-0" : "animate-out slide-out-to-top-5 fade-out-0"
       )}
       role="alert"
     >
-      {variant === "success" && <CheckCircle2 className="h-5 w-5 flex-shrink-0" />}
-      <div className="flex-1">
-        {title && <div className="font-semibold">{title}</div>}
-        <div className={cn("text-sm", title && "mt-1")}>{description}</div>
+      <IconComponent className={cn("h-5 w-5 flex-shrink-0 mt-0.5", config.icon)} />
+      <div className="flex-1 min-w-0">
+        {title && (
+          <div className="font-semibold text-base leading-tight mb-1">{title}</div>
+        )}
+        <div className={cn("text-sm leading-relaxed", title ? "" : "text-base")}>
+          {description}
+        </div>
       </div>
       <button
         onClick={() => {
           setIsVisible(false);
           setTimeout(() => onClose?.(), 300);
         }}
-        className="rounded-md p-1 hover:bg-black/10 dark:hover:bg-white/10"
+        className={cn(
+          "rounded-lg p-1.5 flex-shrink-0 transition-colors",
+          variant === "default"
+            ? "hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+            : "hover:bg-black/20 text-white/80 hover:text-white"
+        )}
         aria-label="Close"
       >
         <X className="h-4 w-4" />

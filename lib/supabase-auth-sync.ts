@@ -13,7 +13,7 @@ const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 let supabaseAdmin: ReturnType<typeof createClient> | null = null;
 
-function getSupabaseAdmin() {
+export function getSupabaseAdmin() {
   if (!supabaseUrl || !supabaseServiceRoleKey) {
     console.warn('Supabase credentials not configured. RLS policies will not work.');
     return null;

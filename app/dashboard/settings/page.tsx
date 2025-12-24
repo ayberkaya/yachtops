@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FeedbackButton } from "@/components/feedback/feedback-button";
 import { CreditCardsManager } from "@/components/settings/credit-cards-manager";
+import { hasPermission } from "@/lib/permissions";
 
 export default async function SettingsPage() {
   const session = await getSession();
@@ -84,7 +85,10 @@ export default async function SettingsPage() {
           </Card>
         )}
 
-        <CreditCardsManager />
+        {/* Credit Cards - Only visible to users with expenses.view permission */}
+        {hasPermission(session.user, "expenses.view", session.user.permissions) && (
+          <CreditCardsManager />
+        )}
 
         <Card>
           <CardHeader>

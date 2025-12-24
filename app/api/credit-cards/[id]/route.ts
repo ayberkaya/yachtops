@@ -30,8 +30,8 @@ export async function PATCH(
       );
     }
 
-    // Check permissions
-    if (!hasPermission(session!.user, "expenses.create", session!.user.permissions)) {
+    // Check permissions - allow users with expense edit permission
+    if (!hasPermission(session!.user, "expenses.edit", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -97,8 +97,8 @@ export async function DELETE(
       );
     }
 
-    // Check permissions
-    if (!hasPermission(session!.user, "expenses.create", session!.user.permissions)) {
+    // Check permissions - allow users with expense delete permission
+    if (!hasPermission(session!.user, "expenses.delete", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

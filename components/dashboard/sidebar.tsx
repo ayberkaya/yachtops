@@ -676,7 +676,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                           className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                         >
                           <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                          <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>User Management</span>
+                          <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Crew Management</span>
                         </Link>
                         {canManageUsers(user) && (
                           <Link
@@ -1537,7 +1537,7 @@ export function Sidebar() {
                             className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                           >
                             <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                            <span className="transition-colors duration-200">User Management</span>
+                            <span className="transition-colors duration-200">Crew Management</span>
                           </Link>
                           {canManageUsers(user) && (
                             <Link

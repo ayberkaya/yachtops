@@ -93,7 +93,7 @@ export function Navbar() {
           className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setMobileMenuOpen(false)}
         >
-          Users
+          Crew Management
         </Link>
       )}
       <Link
