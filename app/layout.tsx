@@ -21,6 +21,8 @@ const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
   display: "swap",
+  // Premium typography settings for Geist-like feel
+  adjustFontFallback: true,
 });
 // Vercel SpeedInsights disabled for local development
 // import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -60,7 +62,7 @@ export const viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-  themeColor: "#ffffff",
+  themeColor: "#fafafa", // zinc-50 for premium tactile feel
 };
 
 export default function RootLayout({
@@ -70,7 +72,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${playfairDisplay.variable} ${inter.variable}`}>
-      <body className="antialiased font-sans" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
+      <body className="antialiased font-sans bg-zinc-50" style={{ fontFamily: 'var(--font-inter), sans-serif' }}>
         <UnhandledRejectionHandler />
         <ErrorBoundary>
           <Providers>

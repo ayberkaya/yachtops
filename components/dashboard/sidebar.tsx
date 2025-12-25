@@ -40,6 +40,9 @@ import {
   UserPlus,
   Tag,
   CreditCard,
+  MessageSquare,
+  CheckSquare,
+  ShoppingCart,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth-utils";
@@ -87,6 +90,24 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       label: "Compliance",
       icon: FileText,
       permission: "documents.view",
+    },
+    {
+      href: "/dashboard/tasks",
+      label: "Tasks",
+      icon: CheckSquare,
+      permission: "tasks.view",
+    },
+    {
+      href: "/dashboard/shopping",
+      label: "Shopping Lists",
+      icon: ShoppingCart,
+      permission: null,
+    },
+    {
+      href: "/dashboard/messages",
+      label: "Communication",
+      icon: MessageSquare,
+      permission: null,
     },
   ];
 
@@ -330,13 +351,11 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                 isActive = pathname === "/dashboard";
               } else if (item.href === "/dashboard/operations") {
                 isActive = pathname.startsWith("/dashboard/trips") || 
-                          pathname.startsWith("/dashboard/tasks") || 
                           pathname.startsWith("/dashboard/maintenance") ||
                           pathname === "/dashboard/operations";
               } else if (item.href === "/dashboard/inventory") {
-                isActive = pathname.startsWith("/dashboard/inventory") || 
-                          pathname.startsWith("/dashboard/shopping") ||
-                          pathname === "/dashboard/inventory";
+                isActive = pathname.startsWith("/dashboard/inventory") &&
+                          !pathname.startsWith("/dashboard/shopping");
               } else if (item.href === "/dashboard/finance") {
                 isActive = pathname.startsWith("/dashboard/expenses") || 
                           pathname.startsWith("/dashboard/cash") ||
@@ -344,6 +363,12 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               } else if (item.href === "/dashboard/compliance") {
                 isActive = pathname.startsWith("/dashboard/documents") ||
                           pathname === "/dashboard/compliance";
+              } else if (item.href === "/dashboard/messages") {
+                isActive = pathname.startsWith("/dashboard/messages");
+              } else if (item.href === "/dashboard/tasks") {
+                isActive = pathname.startsWith("/dashboard/tasks");
+              } else if (item.href === "/dashboard/shopping") {
+                isActive = pathname.startsWith("/dashboard/shopping");
               } else {
                 isActive = pathname === item.href || 
                           (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
@@ -663,6 +688,24 @@ export function Sidebar() {
             icon: FileText,
             permission: "documents.view",
           },
+          {
+            href: "/dashboard/tasks",
+            label: "Tasks",
+            icon: CheckSquare,
+            permission: "tasks.view",
+          },
+          {
+            href: "/dashboard/shopping",
+            label: "Shopping Lists",
+            icon: ShoppingCart,
+            permission: null,
+          },
+          {
+            href: "/dashboard/messages",
+            label: "Communication",
+            icon: MessageSquare,
+            permission: null,
+          },
         ];
 
   // Memoize filtered navItems based on user permissions
@@ -902,8 +945,31 @@ export function Sidebar() {
       }
     }, [isExpanded, isMobile]);
 
+    // Reset scroll position when sidebar collapses (not just on hover)
+    useEffect(() => {
+      if (!isMobile && navContentRef.current && isCollapsed) {
+        // Reset scroll position when sidebar is collapsed
+        // Use a small delay to ensure the collapse animation completes
+        const timeoutId = setTimeout(() => {
+          scrollPositionRef.current = 0;
+          if (navContentRef.current) {
+            navContentRef.current.scrollTop = 0;
+          }
+        }, 100);
+        
+        return () => clearTimeout(timeoutId);
+      }
+    }, [isCollapsed, isMobile]);
+
     return (
-      <nav ref={navContentRef} className="flex-1 min-h-0 overflow-y-auto pt-6 pb-4 px-3 space-y-1">
+      <nav 
+        ref={navContentRef} 
+        className="flex-1 min-h-0 overflow-y-auto pt-6 pb-4 px-3 space-y-1 scrollbar-hide"
+        style={{
+          scrollbarWidth: 'none', /* Firefox */
+          msOverflowStyle: 'none', /* IE and Edge */
+        }}
+      >
         {navItems.map((item) => {
           const Icon = item.icon;
           const containerExpanded = isMobile ? true : isExpanded;
@@ -913,16 +979,14 @@ export function Sidebar() {
           if (item.href === "/dashboard") {
             isActive = pathname === "/dashboard";
           } else if (item.href === "/dashboard/operations") {
-            // Operations module: active for trips, tasks, maintenance
+            // Operations module: active for trips and maintenance (tasks is now separate)
             isActive = pathname.startsWith("/dashboard/trips") || 
-                      pathname.startsWith("/dashboard/tasks") || 
                       pathname.startsWith("/dashboard/maintenance") ||
                       pathname === "/dashboard/operations";
           } else if (item.href === "/dashboard/inventory") {
-            // Inventory module: active for inventory and shopping
-            isActive = pathname.startsWith("/dashboard/inventory") || 
-                      pathname.startsWith("/dashboard/shopping") ||
-                      pathname === "/dashboard/inventory";
+            // Inventory module: active for inventory only (shopping is now separate)
+            isActive = pathname.startsWith("/dashboard/inventory") &&
+                      !pathname.startsWith("/dashboard/shopping");
           } else if (item.href === "/dashboard/finance") {
             // Finance module: active for expenses and cash
             isActive = pathname.startsWith("/dashboard/expenses") || 
@@ -951,7 +1015,7 @@ export function Sidebar() {
               href={item.href}
               onClick={handleClick}
               prefetch={true}
-              className={`relative flex items-center ${containerExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
+              className={`relative flex items-center ${containerExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 min-h-[44px] rounded-xl transition-all duration-200 group ${
                 isActive
                   ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
                   : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
@@ -960,7 +1024,7 @@ export function Sidebar() {
             >
               <Icon
                 size={20}
-                className={`transition-colors duration-200 ${
+                className={`transition-colors duration-200 flex-shrink-0 ${
                   isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                 }`}
               />
