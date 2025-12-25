@@ -15,6 +15,8 @@ export async function login(formData: FormData) {
     return redirect('/login?message=Email and password are required')
   }
 
+  console.log("Attempting login for:", email)
+
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
@@ -23,7 +25,8 @@ export async function login(formData: FormData) {
   if (error) {
     // Security: Never log or expose the password in any error message or URL
     // Use a generic error message to prevent user enumeration
-    console.error('Login error:', error.message)
+    console.log("🛑 Supabase Login Error:", error.message)
+    console.log("🛑 Error Details:", error)
     return redirect('/login?message=Could not authenticate user')
   }
 

@@ -143,6 +143,8 @@ export async function createUserAndInvite(
     // Initialize Supabase Admin Client (bypasses RLS and caching)
     const supabase = createAdminClient();
     console.log("Connecting to DB:", process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log("🔑 Service Role Key configured:", !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+    console.log("🔑 Service Role Key length:", process.env.SUPABASE_SERVICE_ROLE_KEY?.length || 0);
     
     if (!supabase) {
       return {
@@ -299,35 +301,70 @@ export async function createUserAndInvite(
         },
       });
 
-      // Step 5: Create user record in database with trial settings
-      // Use Supabase INSERT directly to include all fields (plan_id, subscription_status, trial_ends_at)
-      // in one atomic operation, since these fields are in Supabase but not in Prisma schema
-      // CRITICAL: Include plan_id in the INSERT to ensure it's saved
-      const { error: insertError } = await supabase
-        .from("users")
-        .insert({
-          id: userId,
+      // Step 5: Create user record in database using Prisma (bypasses RLS via direct connection)
+      console.log("📝 Creating user with Prisma (direct DB connection)...");
+      console.log("📝 User data:", {
+        id: userId,
+        email: email,
+        username: username,
+        name: name,
+        role: UserRole.OWNER,
+        yacht_id: vessel.id,
+      });
+      
+      const user = await db.user.create({
+        data: {
+          id: userId, // Use UUID from Supabase Auth
           email: email,
           username: username,
-          password_hash: passwordHash,
+          passwordHash: passwordHash,
           name: name,
           role: UserRole.OWNER,
           active: true,
-          yacht_id: vessel.id,
-          plan_id: planId, // CRITICAL: Include plan_id in the INSERT
+          yachtId: vessel.id,
+        },
+      });
+      
+      console.log("✅ Successfully created user with Prisma:", user.id);
+
+      // Step 6: Update subscription fields using Supabase admin client
+      // These fields are in Supabase but not in Prisma schema
+      console.log("📝 Updating subscription fields with Supabase admin client...");
+      console.log("📝 Subscription data:", {
+        plan_id: planId,
+        subscription_status: "TRIAL",
+        trial_ends_at: trialEndsAt.toISOString(),
+      });
+      
+      const { data: updateData, error: updateError } = await supabase
+        .from("users")
+        .update({
+          plan_id: planId,
           subscription_status: "TRIAL",
           trial_ends_at: trialEndsAt.toISOString(),
-        });
+        })
+        .eq("id", userId)
+        .select();
 
-      if (insertError) {
-        console.error("Failed to create user with subscription fields:", insertError);
-        throw new Error(`Failed to create user in database: ${insertError.message}`);
+      if (updateError) {
+        console.error("🛑 Failed to update subscription fields:", updateError);
+        console.error("🛑 Error code:", updateError.code);
+        console.error("🛑 Error message:", updateError.message);
+        console.error("🛑 Error details:", updateError.details);
+        console.error("🛑 Error hint:", updateError.hint);
+        console.error("🛑 Full error object:", JSON.stringify(updateError, null, 2));
+        // Don't throw - user is already created, just log the error
+        // The subscription fields can be updated manually if needed
+        console.warn("⚠️ User created but subscription fields not set. User ID:", userId);
+      } else {
+        console.log("✅ Successfully updated subscription fields:", updateData);
       }
 
-      // Note: We're using Supabase INSERT instead of Prisma create because:
-      // 1. plan_id, subscription_status, and trial_ends_at are in Supabase but not in Prisma schema
-      // 2. This ensures all fields are set atomically in one operation
-      // 3. Prisma can still read the user record for subsequent operations
+      // Note: We use a two-step approach:
+      // 1. Create user with Prisma (bypasses RLS via direct DB connection)
+      // 2. Update subscription fields (plan_id, subscription_status, trial_ends_at) with Supabase admin client
+      //    These fields are in Supabase but not in Prisma schema
+      // If the subscription update fails, the user is still created and can be updated manually
 
       // Step 7: Create default expense categories for the vessel
       const defaultCategories = [

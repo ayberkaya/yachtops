@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/utils/supabase/server";
+import { db } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -9,83 +10,72 @@ import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-async function getSubscriptionData(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
+type PlanDetails = {
+  id: string;
+  name: string;
+  price: number | null;
+  currency: string | null;
+} | null;
+
+type SubscriptionData = {
+  subscription_status: string | null;
+  trial_ends_at: Date | null;
+  plan: PlanDetails;
+  plan_id: string | null;
+} | null;
+
+async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
   try {
-    // Try join query first, but fallback to separate queries if it fails
-    let userWithPlan: any = null;
-    let userError: any = null;
-    let planDetails: any = null;
-    // Since we're using admin client, we don't need to switch clients
-    const clientToUse = supabase;
+    // Use Prisma with raw SQL to fetch subscription fields directly from database
+    // This bypasses both RLS and Supabase API layer entirely via direct DB connection
+    console.log("✅ Using Prisma raw SQL to fetch subscription data for user:", userId);
 
-    // Attempt join query
-    const joinResult = await supabase
-      .from("users")
-      .select("*, plans(*)") // Join with plans table
-      .eq("id", userId)
-      .single();
+    // Fetch user subscription fields using raw SQL (bypasses RLS via direct DB connection)
+    const userData = await db.$queryRaw<Array<{
+      subscription_status: string | null;
+      trial_ends_at: Date | null;
+      plan_id: string | null;
+    }>>`
+      SELECT subscription_status, trial_ends_at, plan_id
+      FROM users
+      WHERE id = ${userId}
+      LIMIT 1
+    `;
 
-    userWithPlan = joinResult.data;
-    userError = joinResult.error;
-
-    // Debug logging
-    console.log("Join Query Result - User Plan ID:", userWithPlan?.plan_id);
-    console.log("Join Query Result - Plans Data:", JSON.stringify(userWithPlan?.plans, null, 2));
-    console.log("Join Query Result - Error:", JSON.stringify(userError || {}, null, 2));
-    console.log("Join Query Result - Raw Response:", JSON.stringify(joinResult, null, 2));
-
-    // If join query failed, try separate queries as fallback
-    if (userError || !userWithPlan) {
-      console.warn("Join query failed, falling back to separate queries. Error:", JSON.stringify(userError || {}, null, 2));
-      
-      // Fetch user data separately
-      const { data: userData, error: userDataError } = await clientToUse
-        .from("users")
-        .select("subscription_status, trial_ends_at, plan_id")
-        .eq("id", userId)
-        .single();
-
-      if (userDataError || !userData) {
-        console.error("Error fetching user data (fallback):", JSON.stringify(userDataError || {}, null, 2));
-        return null;
-      }
-
-      // Successfully fetched user data
-      userWithPlan = userData;
-
-      // Fetch plan details if plan_id exists
-      if (userWithPlan.plan_id) {
-        const { data: plan, error: planError } = await clientToUse
-          .from("plans")
-          .select("id, name, price, currency")
-          .eq("id", userWithPlan.plan_id)
-          .single();
-
-        if (planError) {
-          console.warn("Error fetching plan details (fallback):", JSON.stringify(planError, null, 2));
-        } else {
-          planDetails = plan;
-        }
-      }
-    } else {
-      // Join query succeeded - extract plan details
-      // Handle case where relation returns array vs object
-      // Supabase can return plans as an array or single object depending on relation type
-      planDetails = Array.isArray(userWithPlan?.plans) 
-        ? userWithPlan.plans[0] 
-        : userWithPlan?.plans;
+    if (!userData || userData.length === 0) {
+      console.warn("No subscription data found for user:", userId);
+      return null;
     }
 
-    // If plan_id exists but plans (details) is missing, log a warning
-    if (userWithPlan.plan_id && !planDetails) {
-      console.warn(`Plan ID exists (${userWithPlan.plan_id}) but plan details are missing. This may indicate an RLS issue or missing plan record.`);
+    const userWithPlan = userData[0];
+    let planDetails: PlanDetails = null;
+
+    // Fetch plan details if plan_id exists
+    if (userWithPlan.plan_id) {
+      const planData = await db.$queryRaw<Array<{
+        id: string;
+        name: string;
+        price: number | null;
+        currency: string | null;
+      }>>`
+        SELECT id, name, price, currency
+        FROM plans
+        WHERE id = ${userWithPlan.plan_id}
+        LIMIT 1
+      `;
+
+      if (planData && planData.length > 0) {
+        planDetails = planData[0];
+      } else {
+        console.warn(`Plan ID exists (${userWithPlan.plan_id}) but plan details are missing.`);
+      }
     }
 
     return {
       subscription_status: userWithPlan.subscription_status,
       trial_ends_at: userWithPlan.trial_ends_at,
-      plan: planDetails || null,
-      plan_id: userWithPlan.plan_id, // Include plan_id for fallback display
+      plan: planDetails,
+      plan_id: userWithPlan.plan_id,
     };
   } catch (error) {
     console.error("Error fetching subscription data:", error);
@@ -98,11 +88,18 @@ export default async function BillingPage() {
   const supabase = await createClient();
 
   // Authentication check - verify user is authenticated
-  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  let user = null;
+  try {
+    const { data, error } = await supabase.auth.getUser();
+    if (error) throw error;
+    user = data.user;
+  } catch (error) {
+    // If auth fails (session missing, etc.), redirect immediately
+    redirect('/login');
+  }
 
-  if (authError || !user) {
-    console.error("Authentication error:", JSON.stringify(authError || {}, null, 2));
-    redirect("/auth/signin");
+  if (!user) {
+    redirect('/login');
   }
 
   // Debug log to confirm authentication
@@ -110,8 +107,8 @@ export default async function BillingPage() {
 
   const userId = user.id;
 
-  // Fetch subscription data using authenticated client
-  const subscriptionData = await getSubscriptionData(supabase, userId);
+  // Fetch subscription data using admin client to bypass RLS
+  const subscriptionData = await getSubscriptionData(userId);
 
   // Calculate days left if trial
   let daysLeft: number | null = null;
@@ -234,7 +231,7 @@ export default async function BillingPage() {
                 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground mb-1">
-                    {subscriptionData.subscription_status === "TRIAL" ? "Trial Ends" : "Renewal Date"}
+                    {subscriptionData?.subscription_status === "TRIAL" ? "Trial Ends" : "Renewal Date"}
                   </p>
                   <p className="text-base font-semibold">
                     {getRenewalDate() || "N/A"}
@@ -250,7 +247,7 @@ export default async function BillingPage() {
                   <p className="text-sm font-medium text-muted-foreground mb-1">Monthly Cost</p>
                   <p className="text-base font-semibold">
                     {subscriptionData?.plan 
-                      ? formatPrice(subscriptionData.plan.price, subscriptionData.plan.currency)
+                      ? formatPrice(subscriptionData.plan.price, subscriptionData.plan.currency || "USD")
                       : "N/A"}
                   </p>
                 </div>
@@ -258,7 +255,7 @@ export default async function BillingPage() {
 
               {/* Footer Action */}
               <div className="pt-4 border-t">
-                {subscriptionData.subscription_status === "TRIAL" ? (
+                {subscriptionData?.subscription_status === "TRIAL" ? (
                   <Button asChild className="w-full sm:w-auto">
                     <Link href="/dashboard/settings/billing">
                       Add Payment Method
