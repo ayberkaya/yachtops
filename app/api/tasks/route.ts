@@ -5,7 +5,7 @@ import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
-import { notifyTaskAssignment } from "@/lib/notifications";
+import { sendNotificationToUser, sendNotificationToRole } from "@/lib/notifications";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
 import { unstable_cache } from "next/cache";
@@ -318,18 +318,39 @@ export async function POST(request: NextRequest) {
 
     console.log("POST /api/tasks - Task created successfully:", task.id);
     
-    // Create notification if task is assigned
+    // Send push notifications if task is assigned
     // Don't await to avoid blocking the response, but handle errors
     if (task.assigneeId || task.assigneeRole) {
-      notifyTaskAssignment(
-        task.id,
-        task.assigneeId,
-        task.assigneeRole,
-        task.title
-      ).catch((error) => {
-        console.error("Failed to send task assignment notification:", error);
-        // Don't throw - notification failure shouldn't break task creation
-      });
+      (async () => {
+        try {
+          if (task.assigneeId) {
+            // Notify specific user
+            await sendNotificationToUser(task.assigneeId, {
+              title: "New Task Assigned",
+              body: task.title,
+              url: `/dashboard/tasks/${task.id}`,
+              tag: task.id,
+              requireInteraction: true,
+            });
+          } else if (task.assigneeRole) {
+            // Notify all users with the assigned role
+            await sendNotificationToRole(
+              task.assigneeRole,
+              {
+                title: "New Role Task",
+                body: `A task has been assigned to your department: ${task.title}`,
+                url: `/dashboard/tasks/${task.id}`,
+                tag: task.id,
+                requireInteraction: true,
+              },
+              ensuredTenantId
+            );
+          }
+        } catch (error) {
+          console.error("Failed to send task assignment notification:", error);
+          // Don't throw - notification failure shouldn't break task creation
+        }
+      })();
     }
     
     return NextResponse.json(task, { status: 201 });

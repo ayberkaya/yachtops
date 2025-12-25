@@ -412,19 +412,18 @@ self.addEventListener("push", (event) => {
   }
 
   const options = {
-    title: data.title || "HelmOps",
     body: data.body || "You have a new notification",
-    icon: data.icon || "/icon-192.png?v=v2",
-    badge: "/icon-192.png?v=v2",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png", // Using icon-192.png as badge if badge.png doesn't exist
+    data: data.url ? { url: data.url } : {},
     tag: data.tag || "notification",
-    data: data.data || {},
     requireInteraction: data.requireInteraction || false,
     vibrate: data.vibrate || [200, 100, 200],
     actions: data.actions || [],
   };
 
   event.waitUntil(
-    self.registration.showNotification(options.title, options)
+    self.registration.showNotification(data.title || "HelmOps", options)
   );
 });
 

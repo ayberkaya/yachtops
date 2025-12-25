@@ -349,10 +349,11 @@ export async function POST(request: NextRequest) {
     console.log("Message created successfully:", message.id);
     
     // Notify mentions and channel members (async, don't wait)
-    const { notifyMentions, notifyNewMessage } = await import("@/lib/message-notifications");
+    const { notifyMentions } = await import("@/lib/message-notifications");
+    const { sendNotificationToChannel } = await import("@/lib/notifications");
     const senderName = session!.user.name || session!.user.email;
     
-    // Notify mentions
+    // Notify mentions (keeps existing behavior)
     notifyMentions(
       message.id,
       validated.channelId,
@@ -361,15 +362,25 @@ export async function POST(request: NextRequest) {
       tenantIdFromSession || null
     ).catch(err => console.error("Error sending mention notifications:", err));
     
-    // Notify all channel members about new message
-    notifyNewMessage(
-      message.id,
+    // Fetch channel name for notification (reuse existing channel variable if available, otherwise fetch)
+    const channelForNotification = channel || await db.messageChannel.findUnique({
+      where: { id: validated.channelId },
+      select: { name: true },
+    });
+    
+    const channelName = channelForNotification?.name || "Unknown channel";
+    
+    // Send push notification to channel members (PRIVACY: no message content in body)
+    sendNotificationToChannel(
       validated.channelId,
       session!.user.id,
-      senderName,
-      message.content,
-      tenantIdFromSession || null
-    ).catch(err => console.error("Error sending new message notifications:", err));
+      {
+        title: `New Message in #${channelName}`,
+        body: "You have a new message. Tap to view.",
+        url: `/dashboard/messages/${validated.channelId}`,
+        tag: message.id,
+      }
+    ).catch(err => console.error("Error sending channel notification:", err));
     
     return NextResponse.json(message, { status: 201 });
   } catch (error) {

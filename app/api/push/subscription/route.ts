@@ -1,17 +1,38 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { db } from "@/lib/db";
+import { createClient } from "@/utils/supabase/server";
 import { z } from "zod";
+import { createHash } from "crypto";
 
 const subscriptionSchema = z.object({
-  subscription: z.object({
-    endpoint: z.string(),
-    keys: z.object({
-      p256dh: z.string(),
-      auth: z.string(),
-    }),
+  endpoint: z.string().url(),
+  keys: z.object({
+    p256dh: z.string(),
+    auth: z.string(),
   }),
 });
+
+/**
+ * Convert NextAuth user ID to Supabase UUID format
+ * This matches the conversion used in supabase-auth-sync.ts
+ */
+function getUuidFromUserId(userId: string): string {
+  // If already UUID format, return as is
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(userId)) {
+    return userId;
+  }
+
+  // Convert to UUID format using SHA-1 hash
+  const hash = createHash("sha1").update(userId).digest("hex");
+  return [
+    hash.substring(0, 8),
+    hash.substring(8, 12),
+    "5" + hash.substring(13, 16),
+    "8" + hash.substring(17, 20),
+    hash.substring(20, 32),
+  ].join("-");
+}
 
 export async function GET() {
   try {
@@ -20,13 +41,27 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { pushSubscription: true },
-    });
+    const supabase = await createClient();
+    const supabaseUserId = getUuidFromUserId(session.user.id);
+
+    const { data, error } = await supabase
+      .from("push_subscriptions")
+      .select("id")
+      .eq("user_id", supabaseUserId)
+      .limit(1)
+      .single();
+
+    if (error && error.code !== "PGRST116") {
+      // PGRST116 is "not found" which is fine
+      console.error("Error checking push subscription:", error);
+      return NextResponse.json(
+        { error: "Internal server error" },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
-      subscribed: !!user?.pushSubscription,
+      subscribed: !!data,
     });
   } catch (error) {
     console.error("Error checking push subscription:", error);
@@ -47,13 +82,31 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validated = subscriptionSchema.parse(body);
 
-    // Save subscription to database
-    await db.user.update({
-      where: { id: session.user.id },
-      data: {
-        pushSubscription: JSON.stringify(validated.subscription),
-      },
-    });
+    const supabase = await createClient();
+    const supabaseUserId = getUuidFromUserId(session.user.id);
+
+    // Upsert subscription (insert or update if endpoint exists)
+    const { error } = await supabase
+      .from("push_subscriptions")
+      .upsert(
+        {
+          user_id: supabaseUserId,
+          endpoint: validated.endpoint,
+          p256dh: validated.keys.p256dh,
+          auth: validated.keys.auth,
+        },
+        {
+          onConflict: "endpoint",
+        }
+      );
+
+    if (error) {
+      console.error("Error saving push subscription:", error);
+      return NextResponse.json(
+        { error: "Failed to save subscription", details: error.message },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -72,20 +125,38 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session?.user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Remove subscription from database
-    await db.user.update({
-      where: { id: session.user.id },
-      data: {
-        pushSubscription: null,
-      },
-    });
+    const supabase = await createClient();
+    const supabaseUserId = getUuidFromUserId(session.user.id);
+
+    // Optional: allow deleting by endpoint if provided
+    const searchParams = request.nextUrl.searchParams;
+    const endpoint = searchParams.get("endpoint");
+
+    let query = supabase
+      .from("push_subscriptions")
+      .delete()
+      .eq("user_id", supabaseUserId);
+
+    if (endpoint) {
+      query = query.eq("endpoint", endpoint);
+    }
+
+    const { error } = await query;
+
+    if (error) {
+      console.error("Error removing push subscription:", error);
+      return NextResponse.json(
+        { error: "Failed to remove subscription", details: error.message },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
