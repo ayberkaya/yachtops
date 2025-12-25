@@ -74,12 +74,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       permission: "trips.view",
     },
     {
-      href: "/dashboard/inventory",
-      label: "Inventory",
-      icon: Package,
-      permission: "inventory.view",
-    },
-    {
       href: "/dashboard/finance",
       label: "Finance",
       icon: DollarSign,
@@ -102,6 +96,12 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       label: "Shopping Lists",
       icon: ShoppingCart,
       permission: null,
+    },
+    {
+      href: "/dashboard/inventory",
+      label: "Inventory",
+      icon: Package,
+      permission: "inventory.view",
     },
     {
       href: "/dashboard/messages",
@@ -671,12 +671,6 @@ export function Sidebar() {
             permission: "trips.view",
           },
           {
-            href: "/dashboard/inventory",
-            label: "Inventory",
-            icon: Package,
-            permission: "inventory.view",
-          },
-          {
             href: "/dashboard/finance",
             label: "Finance",
             icon: DollarSign,
@@ -699,6 +693,12 @@ export function Sidebar() {
             label: "Shopping Lists",
             icon: ShoppingCart,
             permission: null,
+          },
+          {
+            href: "/dashboard/inventory",
+            label: "Inventory",
+            icon: Package,
+            permission: "inventory.view",
           },
           {
             href: "/dashboard/messages",
