@@ -2,6 +2,7 @@
 
 import { Sidebar, MobileMenuButton } from "@/components/dashboard/sidebar";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
+import { ModuleTabsWrapper } from "@/components/dashboard/module-tabs-wrapper";
 import { ReactNode } from "react";
 
 interface DashboardClientWrapperProps {
@@ -20,6 +21,7 @@ export function DashboardClientWrapper({ children }: DashboardClientWrapperProps
         </div>
         <div className="p-4 md:p-0">
           <div className="max-w-7xl mx-auto w-full space-y-6">
+            <ModuleTabsWrapper />
             {children}
           </div>
         </div>

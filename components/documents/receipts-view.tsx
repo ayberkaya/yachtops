@@ -52,36 +52,33 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
               No approved receipts found yet.
             </p>
           ) : (
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {receipts.map((receipt) => (
-                <Card 
-                  key={receipt.id} 
-                  className="overflow-hidden"
-                >
-                  <CardContent className="p-3 space-y-2">
-                    <div className="space-y-1">
+            <div className="space-y-0">
+              <div className="border-b border-border">
+                <div className="grid grid-cols-12 gap-4 py-3 px-4 text-sm font-medium text-muted-foreground">
+                  <div className="col-span-3">Category</div>
+                  <div className="col-span-4">Description</div>
+                  <div className="col-span-2">Date</div>
+                  <div className="col-span-2">Amount</div>
+                  <div className="col-span-1 text-right">Actions</div>
+                </div>
+              </div>
+              <div className="divide-y divide-border">
+                {receipts.map((receipt) => (
+                  <div
+                    key={receipt.id}
+                    className="grid grid-cols-12 gap-4 py-3 px-4 hover:bg-accent/50 transition-colors"
+                  >
+                    <div className="col-span-3">
                       <p className="text-sm font-medium">
                         {receipt.expense.category?.name ?? "Uncategorized"}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(
-                          typeof receipt.expense.date === 'string' 
-                            ? new Date(receipt.expense.date) 
-                            : receipt.expense.date,
-                          "MMM d, yyyy"
-                        )}{" "}
-                        •{" "}
-                        {receipt.expense.amount.toLocaleString("en-US", {
-                          style: "currency",
-                          currency: receipt.expense.currency,
-                        })}
-                      </p>
-                      <p className="text-xs line-clamp-2">
+                    </div>
+                    <div className="col-span-4">
+                      <p className="text-sm text-foreground line-clamp-2">
                         {receipt.expense.description}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        Uploaded{" "}
-                        {format(
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Uploaded {format(
                           typeof receipt.uploadedAt === 'string' 
                             ? new Date(receipt.uploadedAt) 
                             : receipt.uploadedAt,
@@ -89,24 +86,43 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
                         )}
                       </p>
                     </div>
-                    <div className="flex justify-between items-center pt-1">
+                    <div className="col-span-2">
+                      <p className="text-sm text-muted-foreground">
+                        {format(
+                          typeof receipt.expense.date === 'string' 
+                            ? new Date(receipt.expense.date) 
+                            : receipt.expense.date,
+                          "MMM d, yyyy"
+                        )}
+                      </p>
+                    </div>
+                    <div className="col-span-2">
+                      <p className="text-sm font-medium">
+                        {receipt.expense.amount.toLocaleString("en-US", {
+                          style: "currency",
+                          currency: receipt.expense.currency,
+                        })}
+                      </p>
+                    </div>
+                    <div className="col-span-1 flex items-center justify-end gap-2">
                       <button
                         onClick={() => setPreviewReceipt(receipt)}
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                        className="text-primary hover:underline text-sm flex items-center gap-1"
+                        title="View receipt"
                       >
-                        <Eye className="h-3 w-3" />
-                        View receipt
+                        <Eye className="h-4 w-4" />
                       </button>
                       <Link
                         href={`/dashboard/expenses/${receipt.expense.id}`}
-                        className="text-xs text-muted-foreground hover:underline"
+                        className="text-muted-foreground hover:text-primary text-sm"
+                        title="View expense"
                       >
-                        View expense
+                        →
                       </Link>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
         </CardContent>

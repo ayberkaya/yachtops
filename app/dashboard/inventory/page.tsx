@@ -1,24 +1,7 @@
 import { redirect } from "next/navigation";
-import { getSession } from "@/lib/get-session";
-import { hasPermission } from "@/lib/permissions";
 
-export default async function InventoryPage() {
-  const session = await getSession();
-
-  if (!session?.user) {
-    redirect("/auth/signin");
-  }
-
-  if (!session.user.yachtId) {
-    redirect("/dashboard");
-  }
-
-  // Check permission
-  if (!hasPermission(session.user, "inventory.view", session.user.permissions)) {
-    redirect("/dashboard");
-  }
-
-  // Redirect to alcohol stock as default
+export default function InventoryPage() {
+  // Redirect to the first inventory sub-page (Items view)
+  // Since /dashboard/inventory is the root, we'll redirect to the first category
   redirect("/dashboard/inventory/alcohol-stock");
 }
-

@@ -25,21 +25,14 @@ import {
   LogOut,
   Activity,
   DollarSign,
-  CheckSquare,
   Users,
-  MessageSquare,
   TrendingUp,
-  ShoppingCart,
   Anchor,
   ChevronRight,
   FileText,
   Package,
-  Wrench,
   FileCheck,
   Settings,
-  ListChecks,
-  Route,
-  ClipboardCheck,
   NotebookPen,
   Clock,
   Shield,
@@ -56,14 +49,12 @@ import { hasPermission, getUserPermissions } from "@/lib/permissions";
 function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
   const [pendingTasksCount, setPendingTasksCount] = useState(0);
   const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
   const [reimbursableCount, setReimbursableCount] = useState(0);
   const [lowStockCount, setLowStockCount] = useState(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [usersMenuOpen, setUsersMenuOpen] = useState(false);
 
   // Define base navItems structure (static, no user dependency)
   const coreNavItems = [
@@ -73,145 +64,29 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       icon: Activity,
       permission: null,
     },
-          {
-            href: "#income-expenses",
-            label: "Finance",
-            icon: DollarSign,
-            permission: "expenses.view",
-            children: [
-              {
-                href: "/dashboard/expenses",
-                label: "All Expenses",
-                permission: "expenses.view",
-              },
-              {
-                href: "/dashboard/expenses/pending",
-                label: "Approval Queue",
-                permission: "expenses.approve",
-              },
-              {
-                href: "/dashboard/expenses/reimbursable",
-                label: "Reimbursements",
-                permission: "expenses.view",
-              },
-              {
-                href: "/dashboard/cash",
-                label: "Cash Ledger",
-                permission: "expenses.view",
-              },
-            ],
-          },
-          {
-            href: "#documents",
-            label: "Compliance",
-            icon: FileText,
-            permission: "documents.view",
-            children: [
-              {
-                href: "/dashboard/documents/receipts",
-                label: "Financial Documents",
-                permission: "documents.receipts.view",
-              },
-              {
-                href: "/dashboard/documents/marina-permissions",
-                label: "Port & Authority Permits",
-                permission: "documents.marina.view",
-              },
-              {
-                href: "/dashboard/documents/vessel",
-                label: "Vessel Certificates",
-                permission: "documents.vessel.view",
-              },
-              {
-                href: "/dashboard/documents/crew",
-                label: "Crew Certifications",
-                permission: "documents.crew.view",
-              },
-            ],
-          },
-          {
-            href: "/dashboard/tasks",
-            label: "Tasks",
-            icon: CheckSquare,
-            permission: "tasks.view",
-          },
-          {
-            href: "/dashboard/shopping",
-            label: "Shopping Lists",
-            icon: ShoppingCart,
-            permission: "shopping.view",
-          },
-          {
-            href: "/dashboard/messages",
-            label: "Messages",
-            icon: MessageSquare,
-            permission: "messages.view",
-          },
-          {
-            href: "#trips",
-            label: "Voyages",
-            icon: Anchor,
-            permission: "trips.view",
-            children: [
-              {
-                href: "/dashboard/trips",
-                label: "Active Voyages",
-                permission: "trips.view",
-                icon: Anchor,
-              },
-              {
-                href: "/dashboard/trips/voyage-planning",
-                label: "Voyage Planning",
-                permission: "trips.view",
-                icon: ListChecks,
-              },
-              {
-                href: "/dashboard/trips/route-fuel",
-                label: "Route & Fuel Estimation",
-                permission: "trips.view",
-                icon: Route,
-              },
-              {
-                href: "/dashboard/trips/post-voyage-report",
-                label: "Post-Voyage Report",
-                permission: "trips.view",
-                icon: ClipboardCheck,
-              },
-            ],
-          },
-          {
-            href: "/dashboard/inventory",
-            label: "Inventory",
-            icon: Package,
-            permission: "inventory.view",
-            children: [
-              {
-                href: "/dashboard/inventory/alcohol-stock",
-                label: "Beverage Stock",
-                permission: "inventory.alcohol.view",
-              },
-              {
-                href: "/dashboard/inventory/food-provisions",
-                label: "Food & Provisions",
-                permission: "inventory.view",
-              },
-              {
-                href: "/dashboard/inventory/cleaning-supplies",
-                label: "Cleaning Supplies",
-                permission: "inventory.view",
-              },
-              {
-                href: "/dashboard/inventory/spare-parts",
-                label: "Spare Parts",
-                permission: "inventory.view",
-              },
-            ],
-          },
     {
-      href: "/dashboard/maintenance",
-      label: "Maintenance",
-      icon: Wrench,
-      permission: "maintenance.view",
+      href: "/dashboard/operations",
+      label: "Operations",
+      icon: Anchor,
+      permission: "trips.view",
+    },
+    {
+      href: "/dashboard/inventory",
+      label: "Inventory",
+      icon: Package,
+      permission: "inventory.view",
+    },
+    {
+      href: "/dashboard/finance",
+      label: "Finance",
+      icon: DollarSign,
+      permission: "expenses.view",
+    },
+    {
+      href: "/dashboard/compliance",
+      label: "Compliance",
+      icon: FileText,
+      permission: "documents.view",
     },
   ];
 
@@ -448,183 +323,57 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             <nav className="px-3 pt-4 pb-4 space-y-1 bg-white">
             {filteredNavItems.map((item) => {
               const Icon = item.icon;
-              const leafActive =
-                item.href !== "#" &&
-                (pathname === item.href ||
-                  (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
-              const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
-              const parentOpen = mobileExpandedItems.has(item.href);
-              const isActive = leafActive || childActive || parentOpen;
-              const showChildren = parentOpen && item.children;
               
-              // Calculate total notifications from children
-              const getChildrenNotificationCount = (item: any): number => {
-                if (!item.children) return 0;
-                let total = 0;
-                item.children.forEach((child: any) => {
-                  if (child.href === "/dashboard/expenses/pending") {
-                    total += pendingExpensesCount;
-                  } else if (child.href === "/dashboard/expenses/reimbursable") {
-                    total += reimbursableCount;
-                  } else if (child.href === "/dashboard/inventory/alcohol-stock") {
-                    total += lowStockCount;
-                  }
-                });
-                return total;
-              };
-              
-              const childrenNotificationCount = getChildrenNotificationCount(item);
+              // Determine if item is active based on pathname
+              let isActive = false;
+              if (item.href === "/dashboard") {
+                isActive = pathname === "/dashboard";
+              } else if (item.href === "/dashboard/operations") {
+                isActive = pathname.startsWith("/dashboard/trips") || 
+                          pathname.startsWith("/dashboard/tasks") || 
+                          pathname.startsWith("/dashboard/maintenance") ||
+                          pathname === "/dashboard/operations";
+              } else if (item.href === "/dashboard/inventory") {
+                isActive = pathname.startsWith("/dashboard/inventory") || 
+                          pathname.startsWith("/dashboard/shopping") ||
+                          pathname === "/dashboard/inventory";
+              } else if (item.href === "/dashboard/finance") {
+                isActive = pathname.startsWith("/dashboard/expenses") || 
+                          pathname.startsWith("/dashboard/cash") ||
+                          pathname === "/dashboard/finance";
+              } else if (item.href === "/dashboard/compliance") {
+                isActive = pathname.startsWith("/dashboard/documents") ||
+                          pathname === "/dashboard/compliance";
+              } else {
+                isActive = pathname === item.href || 
+                          (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+              }
 
               return (
-                <div key={`${item.href}-${item.label}`}>
-                  {item.children ? (
-                    <button
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setMobileExpandedItems((prev) =>
-                          prev.has(item.href) ? new Set() : new Set([item.href])
-                        );
-                      }}
-                      className={`relative flex items-center space-x-2 sm:space-x-3 w-full p-3 sm:p-3.5 rounded-xl transition-all duration-200 group ${
-                        isActive
-                          ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                          : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <Icon
-                        size={20}
-                        className={`transition-colors duration-200 ${
-                          isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-                        }`}
-                      />
-                      <span className="text-sm font-medium flex-1 text-left">
-                        {item.label}
-                      </span>
-                      {item.children && childrenNotificationCount > 0 && (
-                        <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                          {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
-                        </span>
-                      )}
-                      {item.children && (
-                        <ChevronRight 
-                          size={16} 
-                          className={`transition-transform duration-200 ${
-                            isActive ? "text-primary-foreground" : "text-muted-foreground"
-                          } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
-                        />
-                      )}
-                    </button>
-                  ) : (
-                    <Link
-                      href={item.href}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        // Close menu immediately, let Link handle navigation
-                        setMobileMenuOpen(false);
-                      }}
-                      prefetch={true}
-                      className={`relative flex items-center space-x-2 sm:space-x-3 w-full p-3 sm:p-3.5 rounded-xl transition-all duration-200 group ${
-                        isActive
-                          ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                          : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
-                      }`}
-                    >
-                      <Icon
-                        size={20}
-                        className={`transition-colors duration-200 ${
-                          isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-                        }`}
-                      />
-                      <span className="text-sm font-medium flex-1">
-                        {item.label}
-                      </span>
-                      {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
-                        <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
-                          isActive 
-                            ? "bg-white/20 text-white" 
-                            : "bg-red-500 text-white"
-                        }`}>
-                          {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
-                        </span>
-                      )}
-                      {item.href === "/dashboard/messages" && unreadMessagesCount > 0 && (
-                        <span className={`flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold ${
-                          isActive 
-                            ? "bg-white/20 text-white" 
-                            : "bg-red-500 text-white"
-                        }`}>
-                          {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
-                        </span>
-                      )}
-                      {item.children && (
-                        <ChevronRight 
-                          size={16} 
-                          className={`transition-transform duration-200 ${
-                            isActive ? "text-primary-foreground" : "text-muted-foreground"
-                          } ${mobileExpandedItems.has((item as any).href) ? "rotate-90" : ""}`}
-                        />
-                      )}
-                    </Link>
-                  )}
-
-                  {/* Children */}
-                  {showChildren && item.children && (
-                    <div className="overflow-hidden">
-                      <div className="space-y-1">
-                        {item.children.map((child, index) => {
-                          if (
-                            child.permission &&
-                            !hasPermission(user, child.permission as any, user.permissions)
-                          ) {
-                            return null;
-                          }
-                          const childActive = pathname === child.href;
-                          const isPendingApproval = child.href === "/dashboard/expenses/pending";
-                          const isReimbursablePage = child.href === "/dashboard/expenses/reimbursable";
-                          return (
-                            <Link
-                              key={child.href}
-                              href={child.href}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Close menu immediately, let Link handle navigation
-                                setMobileMenuOpen(false);
-                              }}
-                              prefetch={true}
-                              className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
-                                childActive
-                                  ? "sidebar-child-active text-primary bg-accent"
-                                  : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
-                              }`}
-                            >
-                                <span className="flex items-center justify-between">
-                                  <span className="capitalize flex items-center gap-2">
-                                    {child.label}
-                                    {child.href === "/dashboard/inventory/alcohol-stock" && lowStockCount > 0 && (
-                                      <span className="inline-flex items-center justify-center gap-1 rounded-full border border-red-600 bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm w-[19px] h-[19px]">
-                                        {lowStockCount > 99 ? "99+" : lowStockCount}
-                                      </span>
-                                    )}
-                                  </span>
-                                  {isPendingApproval && pendingExpensesCount > 0 && (
-                                    <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                      {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
-                                    </span>
-                                  )}
-                                  {isReimbursablePage && reimbursableCount > 0 && (
-                                  <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                    {reimbursableCount > 99 ? "99+" : reimbursableCount}
-                                  </span>
-                                  )}
-                                </span>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <Link
+                  key={`${item.href}-${item.label}`}
+                  href={item.href}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  prefetch={true}
+                  className={`relative flex items-center space-x-2 sm:space-x-3 w-full p-3 sm:p-3.5 rounded-xl transition-all duration-200 group ${
+                    isActive
+                      ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                      : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  <Icon
+                    size={20}
+                    className={`transition-colors duration-200 ${
+                      isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+                    }`}
+                  />
+                  <span className="text-sm font-medium flex-1">
+                    {item.label}
+                  </span>
+                </Link>
               );
             })}
           </nav>
@@ -674,67 +423,30 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Settings</span>
                 </Link>
                 {hasPermission(user, "users.view", user.permissions) && (
-                  <div className="space-y-1">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setUsersMenuOpen((prev) => !prev);
-                      }}
-                      className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-slate-900 hover:bg-accent rounded-lg transition-colors"
-                      style={{ color: '#0f172a' }}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <Users size={16} className="text-slate-600" />
-                        <span>Users</span>
-                      </div>
-                      <ChevronRight
-                        size={16}
-                        className={`transition-transform duration-200 text-slate-600 ${usersMenuOpen ? "rotate-90" : ""}`}
-                      />
-                    </button>
-                    {usersMenuOpen && (
-                      <div className="space-y-1 ml-4">
-                        <Link
-                          href="/dashboard/users"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMobileMenuOpen(false);
-                          }}
-                          prefetch={true}
-                          className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                        >
-                          <Users size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                          <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Crew Management</span>
-                        </Link>
-                        {canManageUsers(user) && (
-                          <Link
-                            href="/dashboard/users/roles-permissions"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setMobileMenuOpen(false);
-                            }}
-                            prefetch={true}
-                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                          >
-                            <Shield size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                            <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Roles & Permissions</span>
-                          </Link>
-                        )}
-                        <Link
-                          href="/dashboard/users/shifts"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setMobileMenuOpen(false);
-                          }}
-                          prefetch={true}
-                          className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                        >
-                          <Clock size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                          <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Shift Management</span>
-                        </Link>
-                      </div>
-                    )}
-                  </div>
+                  <Link
+                    href="/dashboard/crew"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMobileMenuOpen(false);
+                    }}
+                    prefetch={true}
+                    className={`sidebar-hover relative flex items-center space-x-2 w-full text-sm p-3.5 rounded-xl transition-all duration-200 group ${
+                      pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                    }`}
+                  >
+                    <Users size={16} className={`transition-colors duration-200 ${
+                      pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew"
+                        ? "text-primary-foreground"
+                        : "text-slate-600 group-hover:text-primary"
+                    }`} />
+                    <span className={`transition-colors duration-200 font-medium ${
+                      pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew"
+                        ? "text-primary-foreground"
+                        : "text-slate-900"
+                    }`} style={pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew" ? {} : { color: '#0f172a' }}>Crew</span>
+                  </Link>
                 )}
                 {hasPermission(user, "performance.view", user.permissions) && (
                   <Link
@@ -883,9 +595,6 @@ export function Sidebar() {
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsOpenDesktop, setSettingsOpenDesktop] = useState(false);
-  const [usersMenuOpenDesktop, setUsersMenuOpenDesktop] = useState(false);
-  const [mobileExpandedItems, setMobileExpandedItems] = useState<Set<string>>(new Set());
-  const [desktopExpandedItems, setDesktopExpandedItems] = useState<Set<string>>(new Set());
   const prevCollapsed = useRef<boolean>(false);
 
   // Define base navItems structure (static, no user dependency)
@@ -931,144 +640,28 @@ export function Sidebar() {
             permission: null,
           },
           {
-            href: "#income-expenses",
-            label: "Finance",
-            icon: DollarSign,
-            permission: "expenses.view",
-            children: [
-              {
-                href: "/dashboard/expenses",
-                label: "All Expenses",
-                permission: "expenses.view",
-              },
-              {
-                href: "/dashboard/expenses/pending",
-                label: "Approval Queue",
-                permission: "expenses.approve",
-              },
-              {
-                href: "/dashboard/expenses/reimbursable",
-                label: "Reimbursements",
-                permission: "expenses.view",
-              },
-              {
-                href: "/dashboard/cash",
-                label: "Cash Ledger",
-                permission: "expenses.view",
-              },
-            ],
-          },
-          {
-            href: "#documents",
-            label: "Compliance",
-            icon: FileText,
-            permission: "documents.view",
-            children: [
-              {
-                href: "/dashboard/documents/receipts",
-                label: "Financial Documents",
-                permission: "documents.receipts.view",
-              },
-              {
-                href: "/dashboard/documents/marina-permissions",
-                label: "Port & Authority Permits",
-                permission: "documents.marina.view",
-              },
-              {
-                href: "/dashboard/documents/vessel",
-                label: "Vessel Certificates",
-                permission: "documents.vessel.view",
-              },
-              {
-                href: "/dashboard/documents/crew",
-                label: "Crew Certifications",
-                permission: "documents.crew.view",
-              },
-            ],
-          },
-          {
-            href: "/dashboard/tasks",
-            label: "Tasks",
-            icon: CheckSquare,
-            permission: "tasks.view",
-          },
-          {
-            href: "/dashboard/shopping",
-            label: "Shopping Lists",
-            icon: ShoppingCart,
-            permission: "shopping.view",
-          },
-          {
-            href: "/dashboard/messages",
-            label: "Messages",
-            icon: MessageSquare,
-            permission: "messages.view",
-          },
-          {
-            href: "#trips",
-            label: "Voyages",
+            href: "/dashboard/operations",
+            label: "Operations",
             icon: Anchor,
             permission: "trips.view",
-            children: [
-              {
-                href: "/dashboard/trips",
-                label: "Active Voyages",
-                permission: "trips.view",
-                icon: Anchor,
-              },
-              {
-                href: "/dashboard/trips/voyage-planning",
-                label: "Voyage Planning",
-                permission: "trips.view",
-                icon: ListChecks,
-              },
-              {
-                href: "/dashboard/trips/route-fuel",
-                label: "Route & Fuel Estimation",
-                permission: "trips.view",
-                icon: Route,
-              },
-              {
-                href: "/dashboard/trips/post-voyage-report",
-                label: "Post-Voyage Report",
-                permission: "trips.view",
-                icon: ClipboardCheck,
-              },
-            ],
           },
           {
             href: "/dashboard/inventory",
             label: "Inventory",
             icon: Package,
             permission: "inventory.view",
-            children: [
-              {
-                href: "/dashboard/inventory/alcohol-stock",
-                label: "Beverage Stock",
-                permission: "inventory.alcohol.view",
-              },
-              {
-                href: "/dashboard/inventory/food-provisions",
-                label: "Food & Provisions",
-                permission: "inventory.view",
-              },
-              {
-                href: "/dashboard/inventory/cleaning-supplies",
-                label: "Cleaning Supplies",
-                permission: "inventory.view",
-              },
-              {
-                href: "/dashboard/inventory/spare-parts",
-                label: "Spare Parts",
-                permission: "inventory.view",
-              },
-            ],
           },
           {
-            href: "/dashboard/maintenance",
-            label: "Maintenance",
-            icon: Wrench,
-            permission: "maintenance.view",
+            href: "/dashboard/finance",
+            label: "Finance",
+            icon: DollarSign,
+            permission: "expenses.view",
+          },
+          {
+            href: "/dashboard/compliance",
+            label: "Compliance",
+            icon: FileText,
+            permission: "documents.view",
           },
         ];
 
@@ -1236,13 +829,10 @@ export function Sidebar() {
     }
   }, [pathname]);
 
-  // Close expanded parents when collapsed (or when hover ends in collapsed state)
+  // Track previous collapsed state
   useEffect(() => {
-    if (isCollapsed && !isHovered && desktopExpandedItems.size > 0) {
-      setDesktopExpandedItems(new Set());
-    }
     prevCollapsed.current = isCollapsed;
-  }, [isCollapsed, isHovered, desktopExpandedItems.size]);
+  }, [isCollapsed]);
 
   // Note: auto-expand on route change disabled to keep manual accordion behavior
 
@@ -1288,9 +878,6 @@ export function Sidebar() {
     : user.email[0].toUpperCase();
 
   const NavContent = ({ isMobile = false }: { isMobile?: boolean }) => {
-    const expandedSet = isMobile ? mobileExpandedItems : desktopExpandedItems;
-    const setExpanded = isMobile ? setMobileExpandedItems : setDesktopExpandedItems;
-
     // Save scroll position when scrolling
     useEffect(() => {
       if (!isMobile && navContentRef.current) {
@@ -1316,177 +903,73 @@ export function Sidebar() {
     }, [isExpanded, isMobile]);
 
     return (
-      <nav ref={navContentRef} className="flex-1 overflow-y-auto pt-6 pb-4 px-3 space-y-1" style={{ minHeight: 0 }}>
+      <nav ref={navContentRef} className="flex-1 min-h-0 overflow-y-auto pt-6 pb-4 px-3 space-y-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const containerExpanded = isMobile ? true : isExpanded;
-          const leafActive =
-            item.href !== "#" &&
-            (pathname === item.href ||
-                (item.label === "Compliance" && pathname.startsWith("/dashboard/documents/")) ||
-              (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")));
-          const childActive = item.children?.some((child) => pathname.startsWith(child.href)) ?? false;
-          const parentOpen = expandedSet.has(item.href);
-          const isActive = leafActive || childActive || parentOpen;
-          const showChildren = parentOpen && item.children;
           
-          // Calculate total notifications from children
-          const getChildrenNotificationCount = (item: any): number => {
-            if (!item.children) return 0;
-            let total = 0;
-            item.children.forEach((child: any) => {
-              if (child.href === "/dashboard/expenses/pending") {
-                total += pendingExpensesCount;
-              } else if (child.href === "/dashboard/expenses/reimbursable") {
-                total += reimbursableCount;
-              } else if (child.href === "/dashboard/inventory/alcohol-stock") {
-                total += lowStockCount;
-              }
-            });
-            return total;
-          };
-          
-          const childrenNotificationCount = getChildrenNotificationCount(item);
+          // Determine if item is active based on pathname
+          let isActive = false;
+          if (item.href === "/dashboard") {
+            isActive = pathname === "/dashboard";
+          } else if (item.href === "/dashboard/operations") {
+            // Operations module: active for trips, tasks, maintenance
+            isActive = pathname.startsWith("/dashboard/trips") || 
+                      pathname.startsWith("/dashboard/tasks") || 
+                      pathname.startsWith("/dashboard/maintenance") ||
+                      pathname === "/dashboard/operations";
+          } else if (item.href === "/dashboard/inventory") {
+            // Inventory module: active for inventory and shopping
+            isActive = pathname.startsWith("/dashboard/inventory") || 
+                      pathname.startsWith("/dashboard/shopping") ||
+                      pathname === "/dashboard/inventory";
+          } else if (item.href === "/dashboard/finance") {
+            // Finance module: active for expenses and cash
+            isActive = pathname.startsWith("/dashboard/expenses") || 
+                      pathname.startsWith("/dashboard/cash") ||
+                      pathname === "/dashboard/finance";
+          } else if (item.href === "/dashboard/compliance") {
+            // Compliance module: active for documents
+            isActive = pathname.startsWith("/dashboard/documents") ||
+                      pathname === "/dashboard/compliance";
+          } else {
+            isActive = pathname === item.href || 
+                      (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
+          }
 
-          const handleToggle = (e: React.MouseEvent) => {
-            e.stopPropagation();
-            if (item.children) {
-              e.preventDefault();
-              setExpanded((prev) => (prev.has(item.href) ? new Set() : new Set([item.href])));
-            } else if (isMobile) {
-              setExpanded(new Set());
+          const handleClick = () => {
+            if (isMobile) {
               setMobileMenuOpen(false);
             } else {
-              setExpanded(new Set());
               if (!isCollapsed) setIsCollapsed(true);
             }
           };
 
           return (
-            <div key={`${item.href}-${item.label}`}>
-              <Link
-                href={item.href}
-                onClick={handleToggle}
-                prefetch={true}
-                className={`relative flex items-center ${containerExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
-                  isActive
-                    ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
-                    : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
+            <Link
+              key={`${item.href}-${item.label}`}
+              href={item.href}
+              onClick={handleClick}
+              prefetch={true}
+              className={`relative flex items-center ${containerExpanded ? "space-x-3" : "justify-center"} w-full p-3.5 rounded-xl transition-all duration-200 group ${
+                isActive
+                  ? "sidebar-active bg-primary text-primary-foreground shadow-lg shadow-primary/20"
+                  : "sidebar-hover text-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
+              title={containerExpanded ? undefined : item.label}
+            >
+              <Icon
+                size={20}
+                className={`transition-colors duration-200 ${
+                  isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                 }`}
-                title={containerExpanded ? undefined : item.label}
-              >
-                <Icon
-                  size={20}
-                  className={`transition-colors duration-200 ${
-                    isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
-                  }`}
-                />
-                {containerExpanded && (
-                  <>
-                    <span className="text-sm font-medium flex-1">
-                      {item.label}
-                    </span>
-                    {item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
-                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                        {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
-                      </span>
-                    )}
-                    {item.href === "/dashboard/messages" && unreadMessagesCount > 0 && (
-                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                        {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
-                      </span>
-                    )}
-                    {item.children && childrenNotificationCount > 0 && (
-                      <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                        {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
-                      </span>
-                    )}
-                    {item.children && (
-                      <ChevronRight 
-                        size={16} 
-                        className={`transition-transform duration-200 ${
-                          isActive ? "text-primary-foreground" : "text-muted-foreground"
-                        } ${parentOpen ? "rotate-90" : ""}`}
-                      />
-                    )}
-                  </>
-                )}
-                {!containerExpanded && item.href === "/dashboard/tasks" && pendingTasksCount > 0 && (
-                  <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
-                    {pendingTasksCount > 99 ? "99+" : pendingTasksCount}
-                  </span>
-                )}
-                {!containerExpanded && item.href === "/dashboard/messages" && unreadMessagesCount > 0 && (
-                  <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
-                    {unreadMessagesCount > 99 ? "99+" : unreadMessagesCount}
-                  </span>
-                )}
-                {!containerExpanded && item.children && childrenNotificationCount > 0 && (
-                  <span className="absolute top-1 right-1 flex items-center justify-center min-w-[18px] h-5 px-1 rounded-full bg-red-500 text-white text-[10px] font-semibold z-10">
-                    {childrenNotificationCount > 99 ? "99+" : childrenNotificationCount}
-                  </span>
-                )}
-              </Link>
-
-              {showChildren && item.children && (
-                <div className="overflow-hidden">
-                  <div className="space-y-1">
-                    {item.children.map((child, index) => {
-                      if (
-                        child.permission &&
-                        !hasPermission(user, child.permission as any, user.permissions)
-                      ) {
-                        return null;
-                      }
-                      const childActive = pathname === child.href;
-                      const isPendingApproval = child.href === "/dashboard/expenses/pending";
-                      const isReimbursablePage = child.href === "/dashboard/expenses/reimbursable";
-                      return (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          onClick={() => {
-                            setExpanded(new Set());
-                            if (isMobile) {
-                              setMobileMenuOpen(false);
-                            }
-                          }}
-                          className={`relative ml-9 mt-1 mb-1 block text-base transition-all duration-200 ease-in-out px-3 py-1.5 rounded-lg ${
-                            childActive
-                              ? "sidebar-child-active text-primary bg-accent"
-                              : "sidebar-child-hover text-muted-foreground hover:text-primary hover:bg-accent"
-                          }`}
-                          style={{
-                            animation: `fadeInUp 0.3s ease-out ${index * 0.05}s both`,
-                          }}
-                        >
-                          <span className="flex items-center justify-between">
-                            <span className="capitalize flex items-center gap-2">
-                              {child.label}
-                              {child.href === "/dashboard/inventory/alcohol-stock" && lowStockCount > 0 && (
-                                <span className="inline-flex items-center justify-center gap-1 rounded-full border border-red-600 bg-red-600 px-2 py-0.5 text-[11px] font-bold text-white shadow-sm w-[19px] h-[19px]">
-                                  {lowStockCount > 99 ? "99+" : lowStockCount}
-                                </span>
-                              )}
-                            </span>
-                            {isPendingApproval && pendingExpensesCount > 0 && (
-                              <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                {pendingExpensesCount > 99 ? "99+" : pendingExpensesCount}
-                              </span>
-                            )}
-                            {isReimbursablePage && reimbursableCount > 0 && (
-                              <span className="ml-2 flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-semibold">
-                                {reimbursableCount > 99 ? "99+" : reimbursableCount}
-                              </span>
-                            )}
-                          </span>
-                        </Link>
-                      );
-                    })}
-                  </div>
-                </div>
+              />
+              {containerExpanded && (
+                <span className="text-sm font-medium flex-1">
+                  {item.label}
+                </span>
               )}
-            </div>
+            </Link>
           );
         })}
       </nav>
@@ -1498,13 +981,13 @@ export function Sidebar() {
       {/* Desktop Sidebar */}
       <aside 
         ref={sidebarRef}
-        className={`hidden md:flex bg-card text-card-foreground ${isExpanded ? "w-72" : "w-20"} flex-shrink-0 flex-col shadow-2xl z-20 border-r border-border transition-all duration-300`}
+        className={`hidden md:flex bg-card text-card-foreground ${isExpanded ? "w-72" : "w-20"} flex-shrink-0 flex-col shadow-2xl z-20 border-r border-border transition-all duration-300 h-screen`}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
 
         {/* Logo & Notification Section */}
-        <div className="border-b border-border bg-secondary h-[140px] flex items-center justify-center p-6">
+        <div className="flex-shrink-0 border-b border-border bg-secondary h-[140px] flex items-center justify-center p-6">
           <div className={`flex ${isExpanded ? 'items-center justify-between w-full' : 'flex-col items-center justify-center'} gap-3`}>
             <div className={`flex items-center ${isExpanded ? 'space-x-3' : 'flex-col'}`}>
               <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg flex-shrink-0">
@@ -1531,7 +1014,7 @@ export function Sidebar() {
         <NavContent isMobile={false} />
 
         {/* User Profile Section */}
-        <div className={`p-4 border-t border-border bg-secondary ${isExpanded ? "" : "px-2"}`}>
+        <div className={`flex-shrink-0 p-4 border-t border-border bg-secondary ${isExpanded ? "" : "px-2"}`}>
           {isExpanded ? (
             <>
               <button
@@ -1572,51 +1055,21 @@ export function Sidebar() {
                     <span className="transition-colors duration-200">Settings</span>
                   </Link>
                   {hasPermission(user, "users.view", user.permissions) && (
-                    <div className="space-y-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setUsersMenuOpenDesktop((prev) => !prev);
-                        }}
-                        className="w-full flex items-center justify-between px-3 py-2 text-sm font-medium text-foreground hover:bg-accent rounded-lg transition-colors"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <Users size={16} className="text-muted-foreground" />
-                          <span>Users</span>
-                        </div>
-                        <ChevronRight
-                          size={16}
-                          className={`transition-transform duration-200 text-muted-foreground ${usersMenuOpenDesktop ? "rotate-90" : ""}`}
-                        />
-                      </button>
-                      {usersMenuOpenDesktop && (
-                        <div className="space-y-1 ml-4">
-                          <Link
-                            href="/dashboard/users"
-                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                          >
-                            <Users size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                            <span className="transition-colors duration-200">Crew Management</span>
-                          </Link>
-                          {canManageUsers(user) && (
-                            <Link
-                              href="/dashboard/users/roles-permissions"
-                              className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                            >
-                              <Shield size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                              <span className="transition-colors duration-200">Roles & Permissions</span>
-                            </Link>
-                          )}
-                          <Link
-                            href="/dashboard/users/shifts"
-                            className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                          >
-                            <Clock size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                            <span className="transition-colors duration-200">Shift Management</span>
-                          </Link>
-                        </div>
-                      )}
-                    </div>
+                    <Link
+                      href="/dashboard/crew"
+                      className={`sidebar-hover relative flex items-center space-x-2 w-full text-sm p-3.5 rounded-xl transition-all duration-200 group ${
+                        pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew"
+                          ? "bg-primary text-primary-foreground"
+                          : "text-foreground hover:bg-accent hover:text-accent-foreground"
+                      }`}
+                    >
+                      <Users size={16} className={`transition-colors duration-200 ${
+                        pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew"
+                          ? "text-primary-foreground"
+                          : "text-muted-foreground group-hover:text-primary"
+                      }`} />
+                      <span className="transition-colors duration-200">Crew</span>
+                    </Link>
                   )}
                   {hasPermission(user, "performance.view", user.permissions) && (
                     <Link
