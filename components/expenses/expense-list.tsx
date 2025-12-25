@@ -752,6 +752,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                     <TableHead>Tarih</TableHead>
                     <TableHead>Kategori</TableHead>
                     <TableHead>Amount</TableHead>
+                    <TableHead className="w-[50px] text-right"></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -766,6 +767,13 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                           style: "currency",
                           currency: expense.currency,
                         })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild variant="ghost" size="sm">
+                          <Link href={`/dashboard/expenses/${expense.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}
