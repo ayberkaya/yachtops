@@ -29,11 +29,11 @@ export function ModuleTabsWrapper() {
   ) {
     const links = [
       { href: "/dashboard/inventory", label: "Items" },
-      { href: "/dashboard/shopping", label: "Shopping Lists" },
       { href: "/dashboard/inventory/alcohol-stock", label: "Beverage Stock" },
       { href: "/dashboard/inventory/food-provisions", label: "Food & Provisions" },
       { href: "/dashboard/inventory/cleaning-supplies", label: "Cleaning Supplies" },
       { href: "/dashboard/inventory/spare-parts", label: "Spare Parts" },
+      { href: "/dashboard/inventory/other-items", label: "Other Items" },
     ];
     return <ModuleNav links={links} />;
   }
@@ -47,7 +47,6 @@ export function ModuleTabsWrapper() {
   ) {
     const links = [
       { href: "/dashboard/trips", label: "Voyages" },
-      { href: "/dashboard/tasks", label: "Tasks" },
       { href: "/dashboard/maintenance", label: "Maintenance" },
       { href: "/dashboard/trips/voyage-planning", label: "Voyage Planning" },
       { href: "/dashboard/trips/route-fuel", label: "Route & Fuel" },

@@ -93,9 +93,10 @@ interface StockHistory {
 
 interface CleaningSuppliesViewProps {
   initialStocks: CleaningStock[];
+  readOnly?: boolean;
 }
 
-export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProps) {
+export function CleaningSuppliesView({ initialStocks, readOnly = false }: CleaningSuppliesViewProps) {
   const router = useRouter();
   const [stocks, setStocks] = useState<CleaningStock[]>(initialStocks);
   const [selectedItem, setSelectedItem] = useState<string>("");
@@ -275,10 +276,11 @@ export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProp
   return (
     <div className="space-y-6">
       {/* Add New Stock */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Cleaning Supply to Stock</CardTitle>
-        </CardHeader>
+      {!readOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Cleaning Supply to Stock</CardTitle>
+          </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
@@ -323,7 +325,7 @@ export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProp
               <Button 
                 onClick={handleAddStock} 
                 disabled={isAdding}
-                className="bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
+                className="h-11 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-700 hover:to-blue-700 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add to Stock
@@ -332,6 +334,7 @@ export function CleaningSuppliesView({ initialStocks }: CleaningSuppliesViewProp
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Stock List */}
       <Card>

@@ -95,9 +95,10 @@ interface StockHistory {
 
 interface FoodProvisionsViewProps {
   initialStocks: FoodStock[];
+  readOnly?: boolean;
 }
 
-export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
+export function FoodProvisionsView({ initialStocks, readOnly = false }: FoodProvisionsViewProps) {
   const router = useRouter();
   const [stocks, setStocks] = useState<FoodStock[]>(initialStocks);
   const [selectedFood, setSelectedFood] = useState<string>("");
@@ -278,10 +279,11 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
   return (
     <div className="space-y-6">
       {/* Add New Stock */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl break-words">Add Food Item to Stock</CardTitle>
-        </CardHeader>
+      {!readOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg md:text-xl break-words">Add Food Item to Stock</CardTitle>
+          </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
@@ -327,7 +329,7 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
               <Button 
                 onClick={handleAddStock} 
                 disabled={isAdding}
-                className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+                className="h-11 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add to Stock
@@ -336,6 +338,7 @@ export function FoodProvisionsView({ initialStocks }: FoodProvisionsViewProps) {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Stock List */}
       <Card>

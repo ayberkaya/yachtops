@@ -95,9 +95,10 @@ interface StockHistory {
 
 interface SparePartsViewProps {
   initialStocks: SparePartStock[];
+  readOnly?: boolean;
 }
 
-export function SparePartsView({ initialStocks }: SparePartsViewProps) {
+export function SparePartsView({ initialStocks, readOnly = false }: SparePartsViewProps) {
   const router = useRouter();
   const [stocks, setStocks] = useState<SparePartStock[]>(initialStocks);
   const [selectedPart, setSelectedPart] = useState<string>("");
@@ -281,10 +282,11 @@ export function SparePartsView({ initialStocks }: SparePartsViewProps) {
   return (
     <div className="space-y-6">
       {/* Add New Stock */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Spare Part to Stock</CardTitle>
-        </CardHeader>
+      {!readOnly && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Spare Part to Stock</CardTitle>
+          </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
@@ -328,7 +330,7 @@ export function SparePartsView({ initialStocks }: SparePartsViewProps) {
               <Button 
                 onClick={handleAddStock} 
                 disabled={isAdding}
-                className="bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white"
+                className="h-11 bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-700 hover:to-red-700 text-white"
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Add to Stock
@@ -337,6 +339,7 @@ export function SparePartsView({ initialStocks }: SparePartsViewProps) {
           </div>
         </CardContent>
       </Card>
+      )}
 
       {/* Stock List */}
       <Card>
