@@ -68,12 +68,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       permission: null,
     },
     {
-      href: "/dashboard/operations",
-      label: "Operations",
-      icon: Anchor,
-      permission: "trips.view",
-    },
-    {
       href: "/dashboard/finance",
       label: "Finance",
       icon: DollarSign,
@@ -90,6 +84,12 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       label: "Tasks",
       icon: CheckSquare,
       permission: "tasks.view",
+    },
+    {
+      href: "/dashboard/operations",
+      label: "Operations",
+      icon: Anchor,
+      permission: "trips.view",
     },
     {
       href: "/dashboard/shopping",
@@ -665,12 +665,6 @@ export function Sidebar() {
             permission: null,
           },
           {
-            href: "/dashboard/operations",
-            label: "Operations",
-            icon: Anchor,
-            permission: "trips.view",
-          },
-          {
             href: "/dashboard/finance",
             label: "Finance",
             icon: DollarSign,
@@ -687,6 +681,12 @@ export function Sidebar() {
             label: "Tasks",
             icon: CheckSquare,
             permission: "tasks.view",
+          },
+          {
+            href: "/dashboard/operations",
+            label: "Operations",
+            icon: Anchor,
+            permission: "trips.view",
           },
           {
             href: "/dashboard/shopping",

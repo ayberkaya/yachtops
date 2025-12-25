@@ -151,7 +151,7 @@ export function ChannelList({
                     {unreadCount > 0 && (
                       <Badge 
                         variant="default" 
-                        className="h-5 min-w-5 flex items-center justify-center px-1.5 rounded-full bg-primary text-primary-foreground text-xs font-semibold"
+                        className="h-5 min-w-5 flex items-center justify-center px-1.5 rounded-full bg-[rgb(255,0,0)] text-white text-xs font-semibold"
                       >
                         {unreadCount > 99 ? "99+" : unreadCount}
                       </Badge>

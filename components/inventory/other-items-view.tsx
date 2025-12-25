@@ -49,29 +49,6 @@ interface OtherItemsViewProps {
   initialItems: OtherItem[];
 }
 
-const POPULAR_OTHER_ITEMS = [
-  "Life Jacket",
-  "Snorkel",
-  "Fins",
-  "Fender",
-  "Rope",
-  "Anchor",
-  "Dinghy",
-  "Paddle",
-  "Kayak",
-  "Wakeboard",
-  "Water Skis",
-  "Fishing Rod",
-  "First Aid Kit",
-  "Fire Extinguisher",
-  "Emergency Flare",
-  "Binoculars",
-  "Compass",
-  "GPS Device",
-  "VHF Radio",
-  "Safety Harness",
-];
-
 const ITEM_CATEGORIES = [
   "SAFETY_EQUIPMENT",
   "WATER_SPORTS",
@@ -99,7 +76,6 @@ const UNIT_LABELS: Record<string, string> = {
 export function OtherItemsView({ initialItems }: OtherItemsViewProps) {
   const router = useRouter();
   const [items, setItems] = useState<OtherItem[]>(initialItems);
-  const [selectedItem, setSelectedItem] = useState<string>("");
   const [customItem, setCustomItem] = useState<string>("");
   const [selectedCategory, setSelectedCategory] = useState<string>("OTHER");
   const [selectedUnit, setSelectedUnit] = useState<string>("PIECE");
@@ -110,9 +86,9 @@ export function OtherItemsView({ initialItems }: OtherItemsViewProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
 
   const handleAddItem = async () => {
-    const name = selectedItem || customItem.trim();
+    const name = customItem.trim();
     if (!name) {
-      alert("Please enter or select an item name");
+      alert("Please enter an item name");
       return;
     }
 
@@ -135,7 +111,6 @@ export function OtherItemsView({ initialItems }: OtherItemsViewProps) {
       if (response.ok) {
         const newItem = await response.json();
         setItems([...items, newItem].sort((a, b) => a.name.localeCompare(b.name)));
-        setSelectedItem("");
         setCustomItem("");
         setSelectedCategory("OTHER");
         setSelectedUnit("PIECE");
@@ -258,31 +233,12 @@ export function OtherItemsView({ initialItems }: OtherItemsViewProps) {
         <CardContent>
           <div className="space-y-4">
             <div className="flex flex-col gap-4 md:flex-row">
-              <div className="flex gap-2 w-full md:w-1/2">
-                <Input
-                  placeholder="Enter item name"
-                  value={customItem}
-                  onChange={(e) => {
-                    setCustomItem(e.target.value);
-                    setSelectedItem("");
-                  }}
-                  className="flex-1"
-                />
-              </div>
-              <div className="flex gap-2 w-full md:w-1/2">
-                <Select value={selectedItem} onValueChange={(v) => { setSelectedItem(v); setCustomItem(""); }}>
-                  <SelectTrigger className="flex-1">
-                    <SelectValue placeholder="Or select from popular items" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {POPULAR_OTHER_ITEMS.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+              <Input
+                placeholder="Enter item name"
+                value={customItem}
+                onChange={(e) => setCustomItem(e.target.value)}
+                className="flex-1"
+              />
             </div>
             <div className="flex gap-4">
               <Select value={selectedCategory} onValueChange={setSelectedCategory}>
