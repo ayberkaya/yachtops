@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExpenseCategory, Trip, ExpenseStatus, PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, LayoutGrid, List, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye, CheckCircle2 } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye, CheckCircle2 } from "lucide-react";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
@@ -112,8 +112,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
     const role = String(user.role || "").toUpperCase().trim();
     return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
   });
-  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
-  const [groupBy, setGroupBy] = useState<"none" | "category" | "date" | "trip">("none");
   const [sortBy, setSortBy] = useState<"date" | "amount" | "status">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
@@ -340,46 +338,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
     });
   }, [expenses, sortBy, sortOrder]);
 
-  // Calculate group total (no currency conversion - show as-is)
-  const calculateGroupTotal = (groupExpenses: Expense[]): number => {
-    return groupExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-  };
-
-  // Group expenses
-  const groupedExpenses = useMemo(() => {
-    if (!Array.isArray(sortedExpenses)) {
-      return { "All": [] };
-    }
-    
-    if (groupBy === "none") {
-      return { "All": sortedExpenses };
-    }
-
-    const groups: Record<string, Expense[]> = {};
-    
-    sortedExpenses.forEach((expense) => {
-      let key = "Uncategorized";
-      
-      switch (groupBy) {
-        case "category":
-          key = expense.category.name;
-          break;
-        case "date":
-          key = format(new Date(expense.date), "MMM d, yyyy");
-          break;
-        case "trip":
-          key = expense.trip?.name || "No Trip";
-          break;
-      }
-      
-      if (!groups[key]) {
-        groups[key] = [];
-      }
-      groups[key].push(expense);
-    });
-    
-    return groups;
-  }, [sortedExpenses, groupBy]);
 
   // Export to CSV
   const exportToCSV = () => {
@@ -417,26 +375,28 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
     <div className="space-y-4">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setFiltersOpen((open) => !open)}
-            className="inline-flex items-center gap-2"
-          >
-            <SlidersHorizontal className="h-4 w-4" />
-            <span>{filtersOpen ? "Hide filters" : "Show filters"}</span>
-            {hasActiveFilters && (
-              <Badge variant="secondary" className="ml-1">
-                {Object.values(filters).filter((v) => v !== "").length}
-              </Badge>
-            )}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setFiltersOpen((open) => !open)}
+              className="inline-flex items-center gap-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              <span>{filtersOpen ? "Hide filters" : "Show filters"}</span>
+              {hasActiveFilters && (
+                <Badge variant="secondary" className="ml-1">
+                  {Object.values(filters).filter((v) => v !== "").length}
+                </Badge>
+              )}
+            </Button>
 
-          <Button variant="outline" size="sm" onClick={exportToCSV}>
-            <Download className="h-4 w-4 mr-2" />
-            Export CSV
-          </Button>
+            <Button variant="outline" size="sm" onClick={exportToCSV}>
+              <Download className="h-4 w-4 mr-2" />
+              Export CSV
+            </Button>
+          </div>
 
           {savedFilters.length > 0 && (
             <Dialog>
@@ -482,30 +442,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
-          {/* View Mode Toggle */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
-            className={viewMode === "table" ? "" : "bg-primary text-primary-foreground border-primary shadow-sm"}
-          >
-            {viewMode === "table" ? <LayoutGrid className="mr-2 h-4 w-4" /> : <List className="mr-2 h-4 w-4" />}
-            {viewMode === "table" ? "Card View" : "Table View"}
-          </Button>
-
-          {/* Group By */}
-          <Select value={groupBy} onValueChange={(value) => setGroupBy(value as typeof groupBy)}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Group by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="none">No Grouping</SelectItem>
-              <SelectItem value="category">By Category</SelectItem>
-              <SelectItem value="date">By Date</SelectItem>
-              <SelectItem value="trip">By Trip</SelectItem>
-            </SelectContent>
-          </Select>
-
           {/* Sort By (combined with order) */}
           <Select value={sortValue} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[160px]">
@@ -799,7 +735,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">Loading...</CardContent>
         </Card>
-      ) : Object.keys(groupedExpenses).length === 0 ? (
+      ) : sortedExpenses.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-muted-foreground">No expenses match your current filters.</p>
@@ -808,149 +744,35 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         </Card>
       ) : (
         <div className="space-y-6">
-          {Object.entries(groupedExpenses).map(([groupKey, groupExpenses]) => (
-            <div key={groupKey}>
-              {groupBy !== "none" && (
-                <div className="mb-4 flex items-center justify-between">
-                  <h3 className="text-lg font-semibold">
-                    {groupKey}
-                    <span className="ml-2 text-sm font-normal text-muted-foreground">
-                      ({groupExpenses.length} {groupExpenses.length === 1 ? "expense" : "expenses"})
-                    </span>
-                  </h3>
-                  {groupExpenses.length > 0 && (
-                    <div className="text-sm text-muted-foreground">
-                      Total: {groupExpenses.length} {groupExpenses.length === 1 ? "expense" : "expenses"}
-                    </div>
-                  )}
-                </div>
-              )}
-              
-              {viewMode === "table" ? (
-                <Card>
-                  <CardContent className="p-0">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Description</TableHead>
-                          <TableHead>Category</TableHead>
-                          <TableHead>Trip</TableHead>
-                          <TableHead>Amount</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Reimbursable</TableHead>
-                          <TableHead>Created By</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {groupExpenses.map((expense) => (
-                          <TableRow key={expense.id}>
-                            <TableCell>
-                              {format(new Date(expense.date), "MMM d, yyyy")}
-                            </TableCell>
-                            <TableCell className="max-w-xs truncate">{expense.description}</TableCell>
-                            <TableCell>{expense.category.name}</TableCell>
-                            <TableCell>{expense.trip?.name || "-"}</TableCell>
-                            <TableCell>
-                              {Number(expense.amount).toLocaleString("en-US", {
-                                style: "currency",
-                                currency: expense.currency,
-                              })}
-                            </TableCell>
-                            <TableCell>{getStatusBadge(expense.status)}</TableCell>
-                            <TableCell>
-                              {expense.isReimbursable ? (
-                                <div className="flex flex-col gap-1">
-                                  {!expense.isReimbursed && (
-                                    <Badge variant="outline" className="text-xs w-fit">Reimbursable</Badge>
-                                  )}
-                                  {expense.isReimbursed ? (
-                                    <Badge variant="default" className="text-xs w-fit bg-green-600 text-white">Reimbursed</Badge>
-                                  ) : (
-                                    <Badge variant="secondary" className="text-xs w-fit">Pending</Badge>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground text-sm">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>{expense.createdBy.name || expense.createdBy.email}</TableCell>
-                            <TableCell className="text-right">
-                              <Button asChild variant="ghost" size="sm">
-                                <Link href={`/dashboard/expenses/${expense.id}`}>
-                                  <Eye className="h-4 w-4" />
-                                </Link>
-                              </Button>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                  {groupExpenses.map((expense) => (
-                    <Card key={expense.id} className="flex flex-col">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">
-                            {format(new Date(expense.date), "MMM d, yyyy")}
-                          </CardTitle>
-                          {getStatusBadge(expense.status)}
-                        </div>
-                      </CardHeader>
-                      <CardContent className="flex-1 space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Category:</span>
-                          <span className="font-medium">{expense.category.name}</span>
-                        </div>
-                        {expense.trip && (
-                          <div className="flex items-center justify-between">
-                            <span className="text-muted-foreground">Trip:</span>
-                            <span className="font-medium">{expense.trip.name}</span>
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Amount:</span>
-                          <span className="font-bold text-lg">
-                            {Number(expense.baseAmount || expense.amount).toLocaleString("en-US", {
-                              style: "currency",
-                              currency: expense.currency,
-                            })}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span className="text-muted-foreground">Payment:</span>
-                          <span className="font-medium">{expense.paymentMethod.replace("_", " ")}</span>
-                        </div>
-                        {expense.isReimbursable && (
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <Badge variant="outline" className="text-xs">Reimbursable</Badge>
-                            {expense.isReimbursed ? (
-                              <Badge variant="default" className="text-xs bg-green-600">Reimbursed</Badge>
-                            ) : (
-                              <Badge variant="secondary" className="text-xs">Pending Reimbursement</Badge>
-                            )}
-                          </div>
-                        )}
-                        <div className="flex items-center justify-between pt-2 border-t">
-                          <span className="text-muted-foreground text-xs">Created by:</span>
-                          <span className="text-xs">{expense.createdBy.name || expense.createdBy.email}</span>
-                        </div>
-                      </CardContent>
-                      <div className="p-4 border-t">
-                        <Button asChild variant="outline" size="sm" className="w-full">
-                          <Link href={`/dashboard/expenses/${expense.id}`}>View Details</Link>
-                        </Button>
-                      </div>
-                    </Card>
+          <Card>
+            <CardContent className="p-0">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tarih</TableHead>
+                    <TableHead>Kategori</TableHead>
+                    <TableHead>Amount</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sortedExpenses.map((expense) => (
+                    <TableRow key={expense.id}>
+                      <TableCell>
+                        {format(new Date(expense.date), "MMM d, yyyy")}
+                      </TableCell>
+                      <TableCell>{expense.category.name}</TableCell>
+                      <TableCell>
+                        {Number(expense.amount).toLocaleString("en-US", {
+                          style: "currency",
+                          currency: expense.currency,
+                        })}
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </div>
-              )}
-            </div>
-          ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

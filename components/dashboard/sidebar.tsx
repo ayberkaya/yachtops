@@ -661,6 +661,18 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
             {settingsOpen && (
               <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'min(200px, 30vh)' }}>
+                <Link
+                  href="/dashboard/settings"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  prefetch={true}
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                >
+                  <Settings size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Settings</span>
+                </Link>
                 {hasPermission(user, "users.view", user.permissions) && (
                   <div className="space-y-1">
                     <button
