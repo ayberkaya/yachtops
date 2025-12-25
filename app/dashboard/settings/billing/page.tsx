@@ -48,10 +48,17 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
     }
 
     const userWithPlan = userData[0];
+    console.log("📊 User subscription data:", {
+      subscription_status: userWithPlan.subscription_status,
+      trial_ends_at: userWithPlan.trial_ends_at,
+      plan_id: userWithPlan.plan_id,
+    });
+    
     let planDetails: PlanDetails = null;
 
     // Fetch plan details if plan_id exists
     if (userWithPlan.plan_id) {
+      console.log("🔍 Fetching plan details for plan_id:", userWithPlan.plan_id);
       const planData = await db.$queryRaw<Array<{
         id: string;
         name: string;
@@ -60,15 +67,20 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
       }>>`
         SELECT id, name, price, currency
         FROM plans
-        WHERE id = ${userWithPlan.plan_id}
+        WHERE id = ${userWithPlan.plan_id}::uuid
         LIMIT 1
       `;
 
+      console.log("📦 Plan data result:", planData);
+
       if (planData && planData.length > 0) {
         planDetails = planData[0];
+        console.log("✅ Plan details found:", planDetails);
       } else {
-        console.warn(`Plan ID exists (${userWithPlan.plan_id}) but plan details are missing.`);
+        console.warn(`⚠️ Plan ID exists (${userWithPlan.plan_id}) but plan details are missing.`);
       }
+    } else {
+      console.warn("⚠️ No plan_id found for user:", userId);
     }
 
     return {
@@ -109,6 +121,15 @@ export default async function BillingPage() {
 
   // Fetch subscription data using admin client to bypass RLS
   const subscriptionData = await getSubscriptionData(userId);
+  
+  console.log("📋 Final subscription data for display:", {
+    hasData: !!subscriptionData,
+    subscription_status: subscriptionData?.subscription_status,
+    trial_ends_at: subscriptionData?.trial_ends_at,
+    plan_id: subscriptionData?.plan_id,
+    plan_name: subscriptionData?.plan?.name,
+    has_plan: !!subscriptionData?.plan,
+  });
 
   // Calculate days left if trial
   let daysLeft: number | null = null;
@@ -116,6 +137,17 @@ export default async function BillingPage() {
     const endDate = new Date(subscriptionData.trial_ends_at);
     const now = new Date();
     daysLeft = differenceInDays(endDate, now);
+    console.log("📅 Trial calculation:", {
+      trial_ends_at: subscriptionData.trial_ends_at,
+      endDate: endDate.toISOString(),
+      now: now.toISOString(),
+      daysLeft,
+    });
+  } else {
+    console.log("⚠️ Trial data missing:", {
+      subscription_status: subscriptionData?.subscription_status,
+      trial_ends_at: subscriptionData?.trial_ends_at,
+    });
   }
 
   // Format renewal/trial end date

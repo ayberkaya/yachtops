@@ -327,44 +327,39 @@ export async function createUserAndInvite(
       
       console.log("✅ Successfully created user with Prisma:", user.id);
 
-      // Step 6: Update subscription fields using Supabase admin client
+      // Step 6: Update subscription fields using Prisma raw SQL
       // These fields are in Supabase but not in Prisma schema
-      console.log("📝 Updating subscription fields with Supabase admin client...");
+      // Use raw SQL to bypass RLS and ensure the update succeeds
+      console.log("📝 Updating subscription fields with Prisma raw SQL...");
       console.log("📝 Subscription data:", {
         plan_id: planId,
         subscription_status: "TRIAL",
         trial_ends_at: trialEndsAt.toISOString(),
       });
       
-      const { data: updateData, error: updateError } = await supabase
-        .from("users")
-        .update({
-          plan_id: planId,
-          subscription_status: "TRIAL",
-          trial_ends_at: trialEndsAt.toISOString(),
-        })
-        .eq("id", userId)
-        .select();
-
-      if (updateError) {
-        console.error("🛑 Failed to update subscription fields:", updateError);
-        console.error("🛑 Error code:", updateError.code);
+      try {
+        await db.$executeRaw`
+          UPDATE users
+          SET 
+            plan_id = ${planId}::uuid,
+            subscription_status = 'TRIAL',
+            trial_ends_at = ${trialEndsAt.toISOString()}::timestamp with time zone
+          WHERE id = ${userId}
+        `;
+        console.log("✅ Successfully updated subscription fields with Prisma raw SQL");
+      } catch (updateError: any) {
+        console.error("🛑 Failed to update subscription fields with Prisma raw SQL:", updateError);
         console.error("🛑 Error message:", updateError.message);
-        console.error("🛑 Error details:", updateError.details);
-        console.error("🛑 Error hint:", updateError.hint);
-        console.error("🛑 Full error object:", JSON.stringify(updateError, null, 2));
         // Don't throw - user is already created, just log the error
         // The subscription fields can be updated manually if needed
         console.warn("⚠️ User created but subscription fields not set. User ID:", userId);
-      } else {
-        console.log("✅ Successfully updated subscription fields:", updateData);
       }
 
       // Note: We use a two-step approach:
       // 1. Create user with Prisma (bypasses RLS via direct DB connection)
-      // 2. Update subscription fields (plan_id, subscription_status, trial_ends_at) with Supabase admin client
+      // 2. Update subscription fields (plan_id, subscription_status, trial_ends_at) with Prisma raw SQL
       //    These fields are in Supabase but not in Prisma schema
-      // If the subscription update fails, the user is still created and can be updated manually
+      //    Using raw SQL ensures the update succeeds and bypasses RLS
 
       // Step 7: Create default expense categories for the vessel
       const defaultCategories = [
