@@ -10,12 +10,9 @@ export default async function AdminCreatePage() {
   }
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold">White-Glove Onboarding Terminal</h1>
-        <p className="text-muted-foreground mt-2">
-          Complete technical and commercial workspace configuration for new yacht owners
-        </p>
+    <div className="p-6">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">New Customer Onboarding</h1>
       </div>
       <WhiteGloveOnboarding />
     </div>

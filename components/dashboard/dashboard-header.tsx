@@ -148,7 +148,7 @@ export function DashboardHeader({ userRole, userName, stats = {} }: DashboardHea
           ) : (
             <Badge
               variant="outline"
-              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border-green-500/50 text-green-700 dark:text-green-400 bg-green-50/50 dark:bg-green-950/20"
+              className="flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium border-green-500/50 text-green-700 dark:text-green-400 bg-white"
             >
               <CheckCircle2 className="h-3 w-3" />
               <span className="hidden sm:inline">All Systems Normal</span>

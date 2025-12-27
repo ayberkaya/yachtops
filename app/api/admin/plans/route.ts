@@ -49,7 +49,8 @@ export async function GET(req: NextRequest) {
 
     const { data, error } = await supabase
       .from("plans")
-      .select("*")
+      .select("id, name, price, monthly_price, yearly_price, currency, features, tier, is_popular")
+      .order("tier", { ascending: true })
       .order("min_loa", { ascending: true });
 
     if (error) {

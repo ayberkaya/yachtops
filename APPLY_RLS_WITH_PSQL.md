@@ -96,3 +96,6 @@ Veya Supabase SQL Editor'den `scripts/verify-rls.sql` dosyasını çalıştırı
 
 
 
+
+
+

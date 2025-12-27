@@ -50,6 +50,7 @@ import { canManageUsers } from "@/lib/auth-utils";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
 import { useNavigation } from "@/hooks/use-navigation";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
+import { UserRole } from "@prisma/client";
 
 // Mobile Sheet Component (separated for better organization)
 function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void }) {
@@ -69,6 +70,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   }
 
   const user = session.user;
+  const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
   const initials = user.name
     ? user.name
         .split(" ")
@@ -207,18 +209,20 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
             {settingsOpen && (
               <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'min(200px, 30vh)' }}>
-                <Link
-                  href="/dashboard/my-documents"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuOpen(false);
-                  }}
-                  prefetch={true}
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                >
-                  <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    href="/dashboard/my-documents"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMobileMenuOpen(false);
+                    }}
+                    prefetch={true}
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
+                  </Link>
+                )}
                 {hasPermission(user, "users.view", user.permissions) && (
                   <Link
                     href="/dashboard/crew"
@@ -245,18 +249,20 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     }`} style={pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew" ? {} : { color: '#0f172a' }}>Crew</span>
                   </Link>
                 )}
-                <Link
-                  href="/dashboard/users/notes"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuOpen(false);
-                  }}
-                  prefetch={true}
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                >
-                  <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    href="/dashboard/users/notes"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMobileMenuOpen(false);
+                    }}
+                    prefetch={true}
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
+                  </Link>
+                )}
                 {hasPermission(user, "performance.view", user.permissions) && (
                   <Link
                     href="/dashboard/performance"
@@ -268,21 +274,23 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                   >
                     <TrendingUp size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Performance</span>
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Performance                    </span>
                   </Link>
                 )}
-                <Link
-                  href="/dashboard/settings/billing"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuOpen(false);
-                  }}
-                  prefetch={true}
-                  className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group touch-manipulation min-h-[44px]"
-                >
-                  <CreditCard size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Subscription</span>
-                </Link>
+                {!isAdmin && (
+                  <Link
+                    href="/dashboard/settings/billing"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setMobileMenuOpen(false);
+                    }}
+                    prefetch={true}
+                    className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group touch-manipulation min-h-[44px]"
+                  >
+                    <CreditCard size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                    <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Subscription</span>
+                  </Link>
+                )}
                 <Link
                   href="/dashboard/settings"
                   onClick={(e) => {
@@ -450,6 +458,7 @@ export function Sidebar() {
 
   const user = session.user;
   const userPermissions = getUserPermissions(user, user.permissions);
+  const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
   const initials = user.name
     ? user.name
         .split(" ")
@@ -653,13 +662,15 @@ export function Sidebar() {
 
               {settingsOpenDesktop && (
                 <div className="space-y-2">
-                  <Link
-                    href="/dashboard/my-documents"
-                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                    <span className="transition-colors duration-200">My Documents</span>
-                  </Link>
+                  {!isAdmin && (
+                    <Link
+                      href="/dashboard/my-documents"
+                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                      <span className="transition-colors duration-200">My Documents</span>
+                    </Link>
+                  )}
                   {hasPermission(user, "users.view", user.permissions) && (
                     <Link
                       href="/dashboard/crew"
@@ -677,13 +688,15 @@ export function Sidebar() {
                       <span className="transition-colors duration-200">Crew</span>
                     </Link>
                   )}
-                  <Link
-                    href="/dashboard/users/notes"
-                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                    <span className="transition-colors duration-200">Personal Notes</span>
-                  </Link>
+                  {!isAdmin && (
+                    <Link
+                      href="/dashboard/users/notes"
+                      className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                      <span className="transition-colors duration-200">Personal Notes</span>
+                    </Link>
+                  )}
                   {hasPermission(user, "performance.view", user.permissions) && (
                     <Link
                       href="/dashboard/performance"
@@ -693,13 +706,15 @@ export function Sidebar() {
                       <span className="transition-colors duration-200">Performance</span>
                     </Link>
                   )}
-                  <Link
-                    href="/dashboard/settings/billing"
-                    className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <CreditCard size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                    <span className="transition-colors duration-200">Subscription</span>
-                  </Link>
+                  {!isAdmin && (
+                    <Link
+                      href="/dashboard/settings/billing"
+                      className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                    >
+                      <CreditCard size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                      <span className="transition-colors duration-200">Subscription</span>
+                    </Link>
+                  )}
                   <Link
                     href="/dashboard/settings"
                     className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"

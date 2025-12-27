@@ -6,9 +6,12 @@ import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { hashPassword } from "@/lib/auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-auth-sync";
+import { createAdminClient } from "@/utils/supabase/admin";
 import { uploadFile } from "@/lib/supabase-storage";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { sendModernWelcomeEmail } from "@/utils/mail";
+import { createEmailVerificationToken } from "@/lib/email-verification";
 
 const onboardSchema = z.object({
   ownerName: z.string().min(1, "Owner name is required"),
@@ -21,10 +24,6 @@ const onboardSchema = z.object({
   yachtFlag: z.string().optional(),
   baseCurrency: z.enum(["EUR", "USD", "GBP", "TRY"]).default("EUR"),
   measurementSystem: z.enum(["metric", "imperial"]).default("metric"),
-  inventoryManagement: z.string().transform((val) => val === "true").default("true"),
-  financeBudgeting: z.string().transform((val) => val === "true").default("true"),
-  charterManagement: z.string().transform((val) => val === "true").default("false"),
-  crewScheduling: z.string().transform((val) => val === "true").default("true"),
   planId: z.string().min(1, "Plan is required"),
   billingCycle: z.enum(["monthly", "yearly"]).default("monthly"),
   activateImmediately: z.string().transform((val) => val === "true"),
@@ -86,10 +85,6 @@ export async function onboardNewCustomer(
       yachtFlag: formData.get("yachtFlag") as string,
       baseCurrency: formData.get("baseCurrency") as string || "EUR",
       measurementSystem: formData.get("measurementSystem") as string || "metric",
-      inventoryManagement: formData.get("inventoryManagement") as string || "true",
-      financeBudgeting: formData.get("financeBudgeting") as string || "true",
-      charterManagement: formData.get("charterManagement") as string || "false",
-      crewScheduling: formData.get("crewScheduling") as string || "true",
       planId: formData.get("planId") as string,
       billingCycle: formData.get("billingCycle") as string || "monthly",
       activateImmediately: formData.get("activateImmediately") as string || "false",
@@ -102,6 +97,43 @@ export async function onboardNewCustomer(
     // Get file uploads
     const logoFile = formData.get("logoFile") as File | null;
     const contractFile = formData.get("contractFile") as File | null;
+
+    // Fetch plan features from database
+    const supabase = createAdminClient();
+    let planFeatures: string[] = [];
+    if (supabase && validated.planId) {
+      const { data: planData } = await supabase
+        .from("plans")
+        .select("features")
+        .eq("id", validated.planId)
+        .single();
+      
+      if (planData?.features) {
+        planFeatures = Array.isArray(planData.features) ? planData.features : [];
+      }
+    }
+
+    // Derive feature flags from plan features
+    // Map plan features to module flags
+    const yachtFeatures = {
+      inventoryManagement: planFeatures.some(f => 
+        f.toLowerCase().includes("inventory") || 
+        f.toLowerCase().includes("provision")
+      ),
+      financeBudgeting: planFeatures.some(f => 
+        f.toLowerCase().includes("finance") || 
+        f.toLowerCase().includes("expense") ||
+        f.toLowerCase().includes("budget")
+      ),
+      charterManagement: planFeatures.some(f => 
+        f.toLowerCase().includes("charter")
+      ),
+      crewScheduling: planFeatures.some(f => 
+        f.toLowerCase().includes("crew") || 
+        f.toLowerCase().includes("scheduling") ||
+        f.toLowerCase().includes("shift")
+      ),
+    };
 
     // Check if user already exists
     const existingUser = await db.user.findUnique({
@@ -133,11 +165,10 @@ export async function onboardNewCustomer(
 
     // Use transaction to ensure data integrity
     const result = await db.$transaction(async (tx) => {
-      // Step 1: Create user in Supabase Auth
+      // Step 1: Create user in Supabase Auth (without password, will be set after email verification)
       const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: validated.ownerEmail,
-        password: tempPassword,
-        email_confirm: validated.activateImmediately, // Auto-confirm if activating immediately
+        email_confirm: false, // Don't confirm until email is verified
         user_metadata: {
           full_name: validated.ownerName,
           phone: validated.ownerPhone || null,
@@ -163,13 +194,8 @@ export async function onboardNewCustomer(
         measurementSystem: validated.measurementSystem,
       };
 
-      // Prepare features JSON
-      const features = {
-        inventoryManagement: validated.inventoryManagement,
-        financeBudgeting: validated.financeBudgeting,
-        charterManagement: validated.charterManagement,
-        crewScheduling: validated.crewScheduling,
-      };
+      // Use features derived from plan
+      const features = yachtFeatures;
 
       // Combine notes with internal notes if provided
       const notesContent = {
@@ -183,24 +209,25 @@ export async function onboardNewCustomer(
           flag: validated.yachtFlag || null,
           length: isNaN(yachtLengthNum || 0) ? null : yachtLengthNum,
           notes: JSON.stringify(notesContent),
-          settings: settings,
-          features: features,
+          settings: settings, // Prisma Json type expects object, not string
+          features: features, // Prisma Json type expects object, not string
           logoUrl: null, // Will be set after upload
         },
       });
 
-      // Step 3: Create User record
+      // Step 3: Create User record (with temporary password hash, will be updated after email verification)
       await tx.user.create({
         data: {
           id: userId,
           email: validated.ownerEmail,
           username: username,
-          passwordHash: passwordHash,
+          passwordHash: passwordHash, // Temporary password, will be changed after verification
           name: validated.ownerName,
           phone: validated.ownerPhone || null,
           role: UserRole.OWNER,
           active: true,
           yachtId: yacht.id,
+          emailVerified: false,
         },
       });
 
@@ -294,22 +321,96 @@ export async function onboardNewCustomer(
       }
     }
 
-    // Step 7: Send welcome email (mocked for now - implement email sending)
-    if (validated.activateImmediately) {
-      console.log(`Welcome email would be sent to ${validated.ownerEmail} with credentials`);
-      // TODO: Implement sendWelcomeEmail(result.email, result.tempPassword, validated.languagePreference);
-    } else {
-      console.log(`Payment link email would be sent to ${validated.ownerEmail}`);
-      // TODO: Implement sendPaymentLinkEmail(result.email, validated.languagePreference);
+    // Step 7: Create email verification token and send welcome email
+    let emailSent = false;
+    let emailError: string | null = null;
+    
+    try {
+      // Create email verification token
+      const verificationToken = await createEmailVerificationToken(
+        result.userId,
+        validated.ownerEmail
+      );
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+      const verificationLink = `${appUrl}/verify-email?token=${verificationToken}`;
+      
+      // Get plan name
+      const plan = await db.$queryRaw<Array<{ name: string; features: any }>>`
+        SELECT name, features FROM plans WHERE id = ${validated.planId}::uuid
+      `.catch(() => []);
+      
+      const planName = plan[0]?.name || "Essentials";
+      const planFeatures = Array.isArray(plan[0]?.features) 
+        ? plan[0].features 
+        : typeof plan[0]?.features === 'object' 
+          ? Object.values(plan[0].features) 
+          : [];
+      
+      // Get the final logo URL (may have been updated after upload)
+      const yachtWithLogo = await db.yacht.findUnique({
+        where: { id: result.yachtId },
+        select: { logoUrl: true },
+      });
+      
+      // Construct logo URL if it exists
+      let fullLogoUrl: string | null = null;
+      if (yachtWithLogo?.logoUrl) {
+        const logoPath = yachtWithLogo.logoUrl;
+        
+        if (logoPath.startsWith("http://") || logoPath.startsWith("https://")) {
+          fullLogoUrl = logoPath;
+        } else {
+          const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          if (supabaseUrl) {
+            fullLogoUrl = `${supabaseUrl}/storage/v1/object/public/${logoPath}`;
+          } else {
+            fullLogoUrl = logoPath;
+          }
+        }
+      }
+      
+      await sendModernWelcomeEmail(
+        validated.ownerEmail,
+        validated.yachtName,
+        validated.ownerName,
+        planName,
+        verificationLink,
+        validated.languagePreference,
+        fullLogoUrl,
+        planFeatures
+      );
+      
+      emailSent = true;
+      console.log(`✅ Modern welcome email with verification link sent to ${validated.ownerEmail}`);
+    } catch (error) {
+      emailError = error instanceof Error ? error.message : "Unknown error";
+      console.error("❌ Failed to send welcome email:", error);
+      console.error("Error details:", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        smtpConfigured: !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS),
+      });
+      // Don't fail the entire onboarding if email fails
     }
 
     revalidatePath("/admin/owners");
     
+    // Build success message with email status
+    let successMessage = "Customer onboarded successfully!";
+    if (validated.activateImmediately) {
+      if (emailSent) {
+        successMessage += " Welcome email sent.";
+      } else {
+        successMessage += ` Account created, but email could not be sent. ${emailError ? `Error: ${emailError}` : "Please check SMTP configuration."}`;
+      }
+    } else {
+      successMessage += " Payment link email sent.";
+    }
+    
     return {
       success: true,
-      message: validated.activateImmediately
-        ? "Customer onboarded successfully! Welcome email sent."
-        : "Customer onboarded successfully! Payment link email sent.",
+      message: successMessage,
       data: {
         yachtId: result.yachtId,
         ownerId: result.userId,

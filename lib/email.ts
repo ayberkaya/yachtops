@@ -202,7 +202,7 @@ Powered by HelmOps — Yacht Operations Management
     
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
-      replyTo: fromEmail, // Add reply-to for better deliverability
+      replyTo: process.env.SUPPORT_EMAIL || "support@helmops.com", // Add reply-to for better deliverability
       to: to,
       subject: `Invitation to join ${yachtName} on HelmOps`,
       text: text, // Plain text version (required for spam prevention - improves deliverability)
@@ -396,7 +396,7 @@ Powered by HelmOps — Yacht Operations Management
     
     await transporter.sendMail({
       from: `"${fromName}" <${fromEmail}>`,
-      replyTo: fromEmail,
+      replyTo: process.env.SUPPORT_EMAIL || "support@helmops.com",
       to: to,
       subject: "Welcome to HelmOps - Your 7-Day Trial Started",
       text: text,

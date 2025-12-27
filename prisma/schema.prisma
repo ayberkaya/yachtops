@@ -17,6 +17,9 @@ model User {
   phone                    String?
   role                     UserRole                   @default(CREW)
   active                   Boolean                    @default(true)
+  emailVerified            Boolean                    @default(false) @map("email_verified")
+  emailVerificationToken   String?                    @unique @map("email_verification_token")
+  emailVerificationExpires DateTime?                  @map("email_verification_expires")
   permissions              String?
   notificationPreferences  String?                    @default("{\"desktopEnabled\":true,\"soundEnabled\":true,\"mentionEnabled\":true}") @map("notification_preferences")
   pushSubscription         String?                    @map("push_subscription") // JSON string of PushSubscription

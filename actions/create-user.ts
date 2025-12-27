@@ -5,7 +5,8 @@ import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
 import { hashPassword } from "@/lib/auth-server";
-import { sendWelcomeEmail } from "@/utils/mail";
+import { sendModernWelcomeEmail } from "@/utils/mail";
+import { createEmailVerificationToken } from "@/lib/email-verification";
 import { createAdminClient } from "@/utils/supabase/admin";
 import { revalidatePath } from "next/cache";
 
@@ -253,11 +254,10 @@ export async function createUserAndInvite(
     const passwordHash = await hashPassword(tempPassword);
 
     // Step 1: Create user in Supabase Auth using admin client
-    // CRITICAL: Set email_confirm: true so they can login immediately
+    // Don't confirm email - user will verify via email link
     const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
       email,
-      password: tempPassword,
-      email_confirm: true, // Auto-confirm email so user can login immediately
+      email_confirm: false, // Don't confirm until email is verified
       user_metadata: {
         full_name: name,
         plan_id: planId,
@@ -317,11 +317,12 @@ export async function createUserAndInvite(
           id: userId, // Use UUID from Supabase Auth
           email: email,
           username: username,
-          passwordHash: passwordHash,
+          passwordHash: passwordHash, // Temporary password, will be changed after verification
           name: name,
           role: UserRole.OWNER,
           active: true,
           yachtId: vessel.id,
+          emailVerified: false,
         },
       });
       
@@ -401,14 +402,37 @@ export async function createUserAndInvite(
         )
       );
 
-      // Step 8: Send welcome email
+      // Step 8: Create email verification token and send welcome email
       // Only send email if Auth and DB steps are successful
       try {
-        await sendWelcomeEmail(
+        // Create email verification token
+        const verificationToken = await createEmailVerificationToken(userId, email);
+
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const verificationLink = `${appUrl}/verify-email?token=${verificationToken}`;
+
+        // Get plan features
+        const { data: planData } = await supabase
+          .from("plans")
+          .select("features")
+          .eq("id", planId)
+          .single();
+
+        const planFeatures = Array.isArray(planData?.features) 
+          ? planData.features 
+          : typeof planData?.features === 'object' 
+            ? Object.values(planData.features) 
+            : [];
+
+        await sendModernWelcomeEmail(
           email,
+          vesselName,
           name,
-          tempPassword,
-          actualPlanName
+          actualPlanName,
+          verificationLink,
+          "en", // Default to English for create-user flow
+          null, // No logo URL
+          planFeatures
         );
       } catch (emailError) {
         // Log email error but don't fail the entire operation

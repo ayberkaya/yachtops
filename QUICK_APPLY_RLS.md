@@ -64,3 +64,6 @@ Script şunu gösterecek:
 
 
 
+
+
+

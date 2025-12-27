@@ -86,3 +86,6 @@ ALTER TABLE public.usage_events ENABLE ROW LEVEL SECURITY;
 
 
 
+
+
+
