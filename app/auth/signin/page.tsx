@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -41,7 +41,6 @@ export default function SignInPage() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const redirectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [debugLogs, setDebugLogs] = useState<string[]>([]);
   
   // Get callbackUrl from query params
   const [callbackUrl, setCallbackUrl] = useState<string | null>(null);
@@ -51,18 +50,6 @@ export default function SignInPage() {
       const params = new URLSearchParams(window.location.search);
       const url = params.get("callbackUrl");
       setCallbackUrl(url);
-    }
-  }, []);
-
-  const addDebugLog = useCallback((message: string) => {
-    const timestamp = new Date().toLocaleTimeString();
-    const logMessage = `[${timestamp}] ${message}`;
-    console.log(logMessage);
-    setDebugLogs(prev => [...prev.slice(-9), logMessage]);
-    if (typeof window !== "undefined") {
-      const existing = JSON.parse(localStorage.getItem("signin-debug") || "[]");
-      existing.push(logMessage);
-      localStorage.setItem("signin-debug", JSON.stringify(existing.slice(-20)));
     }
   }, []);
 
@@ -76,7 +63,6 @@ export default function SignInPage() {
   });
 
   const onSubmit = async (data: SignInForm) => {
-    addDebugLog(`Form submitted with email: ${data.email}`);
     setIsLoading(true);
     setError(null);
 
@@ -85,8 +71,6 @@ export default function SignInPage() {
     }
 
     try {
-      addDebugLog("Calling signIn('credentials')...");
-      
       const result = await signIn("credentials", {
         email: data.email,
         password: data.password,
@@ -94,18 +78,13 @@ export default function SignInPage() {
         redirect: false,
       });
 
-      addDebugLog(`signIn result: ${JSON.stringify({ ok: result?.ok, error: result?.error })}`);
-
       if (result?.error) {
-        addDebugLog(`ERROR: ${result.error}`);
         setError("Invalid email or password");
         setIsLoading(false);
         return;
       }
 
       if (result?.ok) {
-        addDebugLog("Login successful, redirecting to dashboard...");
-        
         // Determine redirect target: use callbackUrl if valid, otherwise default to /dashboard
         let target = "/dashboard";
         if (callbackUrl) {
@@ -113,7 +92,6 @@ export default function SignInPage() {
           // Only allow safe redirects to dashboard or admin routes
           if (decodedCallbackUrl.startsWith("/admin") || decodedCallbackUrl.startsWith("/dashboard")) {
             target = decodedCallbackUrl;
-            addDebugLog(`Using callbackUrl: ${target}`);
           }
         }
         
@@ -121,13 +99,11 @@ export default function SignInPage() {
         router.refresh();
         
         // Force immediate redirect using router.replace (prevents back button issues)
-        addDebugLog(`Redirecting to: ${target}`);
         router.replace(target);
         
         // Fallback: If router.replace doesn't work within 200ms, use window.location.replace
         setTimeout(() => {
           if (window.location.pathname === "/auth/signin") {
-            addDebugLog("Router redirect didn't work, using window.location.replace as fallback");
             window.location.replace(target);
           }
         }, 200);
@@ -189,16 +165,6 @@ export default function SignInPage() {
               {error && (
                 <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 animate-fade-in">
                   {error}
-                </div>
-              )}
-
-              {/* Debug Panel - Development Only */}
-              {process.env.NODE_ENV === "development" && debugLogs.length > 0 && (
-                <div className="rounded-lg bg-slate-50 border border-slate-200 p-4 text-xs font-mono max-h-40 overflow-y-auto">
-                  <div className="font-semibold text-slate-700 mb-2">Debug Logs:</div>
-                  {debugLogs.map((log, idx) => (
-                    <div key={idx} className="text-slate-600 mb-1">{log}</div>
-                  ))}
                 </div>
               )}
 
