@@ -208,7 +208,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
             {settingsOpen && (
               <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'min(200px, 30vh)' }}>
                 <Link
-                  href="/dashboard/settings"
+                  href="/dashboard/my-documents"
                   onClick={(e) => {
                     e.stopPropagation();
                     setMobileMenuOpen(false);
@@ -216,8 +216,8 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   prefetch={true}
                   className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                 >
-                  <Settings size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Settings</span>
+                  <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
                 </Link>
                 {hasPermission(user, "users.view", user.permissions) && (
                   <Link
@@ -245,6 +245,18 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                     }`} style={pathname.startsWith("/dashboard/users") || pathname === "/dashboard/crew" ? {} : { color: '#0f172a' }}>Crew</span>
                   </Link>
                 )}
+                <Link
+                  href="/dashboard/users/notes"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  prefetch={true}
+                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                >
+                  <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
+                </Link>
                 {hasPermission(user, "performance.view", user.permissions) && (
                   <Link
                     href="/dashboard/performance"
@@ -260,30 +272,6 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   </Link>
                 )}
                 <Link
-                  href="/dashboard/my-documents"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuOpen(false);
-                  }}
-                  prefetch={true}
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                >
-                  <FileCheck size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>My Documents</span>
-                </Link>
-                <Link
-                  href="/dashboard/users/notes"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setMobileMenuOpen(false);
-                  }}
-                  prefetch={true}
-                  className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                >
-                  <NotebookPen size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
-                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Personal Notes</span>
-                </Link>
-                <Link
                   href="/dashboard/settings/billing"
                   onClick={(e) => {
                     e.stopPropagation();
@@ -294,6 +282,18 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                 >
                   <CreditCard size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
                   <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Subscription</span>
+                </Link>
+                <Link
+                  href="/dashboard/settings"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setMobileMenuOpen(false);
+                  }}
+                  prefetch={true}
+                  className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group touch-manipulation min-h-[44px]"
+                >
+                  <Settings size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
+                  <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Settings</span>
                 </Link>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -654,11 +654,11 @@ export function Sidebar() {
               {settingsOpenDesktop && (
                 <div className="space-y-2">
                   <Link
-                    href="/dashboard/settings"
+                    href="/dashboard/my-documents"
                     className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                   >
-                    <Settings size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                    <span className="transition-colors duration-200">Settings</span>
+                    <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">My Documents</span>
                   </Link>
                   {hasPermission(user, "users.view", user.permissions) && (
                     <Link
@@ -677,6 +677,13 @@ export function Sidebar() {
                       <span className="transition-colors duration-200">Crew</span>
                     </Link>
                   )}
+                  <Link
+                    href="/dashboard/users/notes"
+                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">Personal Notes</span>
+                  </Link>
                   {hasPermission(user, "performance.view", user.permissions) && (
                     <Link
                       href="/dashboard/performance"
@@ -687,25 +694,18 @@ export function Sidebar() {
                     </Link>
                   )}
                   <Link
-                    href="/dashboard/my-documents"
-                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <FileCheck size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                    <span className="transition-colors duration-200">My Documents</span>
-                  </Link>
-                  <Link
-                    href="/dashboard/users/notes"
-                    className="sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
-                  >
-                    <NotebookPen size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
-                    <span className="transition-colors duration-200">Personal Notes</span>
-                  </Link>
-                  <Link
                     href="/dashboard/settings/billing"
                     className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
                   >
                     <CreditCard size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">Subscription</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/settings"
+                    className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
+                  >
+                    <Settings size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
+                    <span className="transition-colors duration-200">Settings</span>
                   </Link>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
