@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
+import { UserRole } from "@prisma/client";
 
 type Props = {
   searchParams: { [key: string]: string | string[] | undefined };
@@ -7,18 +8,11 @@ type Props = {
 
 export default async function AdminPage({ searchParams }: Props) {
   const session = await getSession();
-  if (!session?.user || session.user.role !== "SUPER_ADMIN") {
+  if (!session?.user || (session.user.role !== UserRole.SUPER_ADMIN && session.user.role !== UserRole.ADMIN)) {
     redirect("/");
   }
 
-  // Redirect to /admin/create with searchParams preserved
-  const params = new URLSearchParams();
-  if (typeof searchParams.name === "string") params.set("name", searchParams.name);
-  if (typeof searchParams.email === "string") params.set("email", searchParams.email);
-  if (typeof searchParams.vessel === "string") params.set("vessel", searchParams.vessel);
-  if (typeof searchParams.role === "string") params.set("role", searchParams.role);
-  
-  const queryString = params.toString();
-  redirect(`/admin/create${queryString ? `?${queryString}` : ""}`);
+  // Redirect to /admin/owners (the Sales Hub) - this is the default landing page for admins
+  redirect("/admin/owners");
 }
 

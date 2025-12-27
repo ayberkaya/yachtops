@@ -271,36 +271,39 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
             </div>
           </div>
         </div>
+        {/* Edit button for mobile - hidden on desktop */}
         {canManage && task && (
-          <Dialog open={isEditing} onOpenChange={setIsEditing}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Pencil className="mr-2 h-4 w-4" />
-                Edit
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl">
-              <DialogHeader>
-                <DialogTitle>Edit Task</DialogTitle>
-                <DialogDescription>Update task details</DialogDescription>
-              </DialogHeader>
-              <TaskForm
-                task={task}
-                users={users}
-                trips={trips}
-                onSuccess={() => {
-                  setIsEditing(false);
-                  fetchTask();
-                  router.refresh();
-                }}
-                onDelete={() => {
-                  setIsEditing(false);
-                  router.push("/dashboard/tasks");
-                  router.refresh();
-                }}
-              />
-            </DialogContent>
-          </Dialog>
+          <div className="md:hidden">
+            <Dialog open={isEditing} onOpenChange={setIsEditing}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Pencil className="mr-2 h-4 w-4" />
+                  Edit
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Edit Task</DialogTitle>
+                  <DialogDescription>Update task details</DialogDescription>
+                </DialogHeader>
+                <TaskForm
+                  task={task}
+                  users={users}
+                  trips={trips}
+                  onSuccess={() => {
+                    setIsEditing(false);
+                    fetchTask();
+                    router.refresh();
+                  }}
+                  onDelete={() => {
+                    setIsEditing(false);
+                    router.push("/dashboard/tasks");
+                    router.refresh();
+                  }}
+                />
+              </DialogContent>
+            </Dialog>
+          </div>
         )}
       </div>
 
@@ -497,6 +500,125 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
           </Card>
         </div>
 
+        {/* Right sidebar - Edit button and task info for desktop */}
+        <div className="space-y-6">
+          {canManage && task && (
+            <div className="hidden md:block">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Actions</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <Dialog open={isEditing} onOpenChange={setIsEditing}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline" className="w-full">
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Edit
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Edit Task</DialogTitle>
+                        <DialogDescription>Update task details</DialogDescription>
+                      </DialogHeader>
+                      <TaskForm
+                        task={task}
+                        users={users}
+                        trips={trips}
+                        onSuccess={() => {
+                          setIsEditing(false);
+                          fetchTask();
+                          router.refresh();
+                        }}
+                        onDelete={() => {
+                          setIsEditing(false);
+                          router.push("/dashboard/tasks");
+                          router.refresh();
+                        }}
+                      />
+                    </DialogContent>
+                  </Dialog>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Task Info Card */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Task Information</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {task.assignee && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Assigned to</p>
+                    <p className="text-sm text-muted-foreground">
+                      {task.assignee.name || task.assignee.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {task.assigneeRole && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Assigned to role</p>
+                    <p className="text-sm text-muted-foreground">{task.assigneeRole}</p>
+                  </div>
+                </div>
+              )}
+              {task.dueDate && (
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Due date</p>
+                    <p className="text-sm text-muted-foreground">
+                      {format(new Date(task.dueDate), "PPP")}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {task.trip && (
+                <div className="flex items-center gap-2">
+                  <Ship className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Trip</p>
+                    <p className="text-sm text-muted-foreground">{task.trip.name}</p>
+                  </div>
+                </div>
+              )}
+              {task.createdBy && (
+                <div className="flex items-center gap-2">
+                  <User className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Created by</p>
+                    <p className="text-sm text-muted-foreground">
+                      {task.createdBy.name || task.createdBy.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+              {task.completedBy && (
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-muted-foreground" />
+                  <div>
+                    <p className="text-sm font-medium">Completed by</p>
+                    <p className="text-sm text-muted-foreground">
+                      {task.completedBy.name || task.completedBy.email}
+                    </p>
+                    {task.completedAt && (
+                      <p className="text-xs text-muted-foreground">
+                        {format(new Date(task.completedAt), "PPP 'at' p")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Mark as Completed Button */}

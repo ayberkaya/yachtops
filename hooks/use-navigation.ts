@@ -75,40 +75,58 @@ export function useNavigation() {
 
   // Define base navItems based on user role
   const baseNavItems = useMemo(() => {
-    if (session?.user?.role === "SUPER_ADMIN") {
-      return [
-        {
-          href: "/admin/create",
-          label: "Create User",
-          icon: UserPlus,
-          permission: null,
-        },
-        {
-          href: "/admin/owners",
-          label: "Owners",
-          icon: Users,
-          permission: null,
-        },
-        {
-          href: "/admin/leads",
-          label: "Leads",
-          icon: Inbox,
-          permission: null,
-        },
-        {
-          href: "/admin/pricing",
-          label: "Pricing",
-          icon: Tag,
-          permission: null,
-        },
-        {
-          href: "/admin/usage",
-          label: "Usage Insights",
-          icon: TrendingUp,
-          permission: null,
-        },
-        ...coreNavItems,
-      ];
+    const isAdmin = session?.user?.role === "SUPER_ADMIN" || session?.user?.role === "ADMIN";
+    
+    if (isAdmin) {
+      // For admins, exclude Dashboard from coreNavItems and add admin-specific items
+      const coreNavItemsWithoutDashboard = coreNavItems.filter(item => item.href !== "/dashboard");
+      
+      if (session?.user?.role === "SUPER_ADMIN") {
+        return [
+          {
+            href: "/admin/create",
+            label: "Create User",
+            icon: UserPlus,
+            permission: null,
+          },
+          {
+            href: "/admin/owners",
+            label: "Owners",
+            icon: Users,
+            permission: null,
+          },
+          {
+            href: "/admin/leads",
+            label: "Leads",
+            icon: Inbox,
+            permission: null,
+          },
+          {
+            href: "/admin/pricing",
+            label: "Pricing",
+            icon: Tag,
+            permission: null,
+          },
+          {
+            href: "/admin/usage",
+            label: "Usage Insights",
+            icon: TrendingUp,
+            permission: null,
+          },
+          ...coreNavItemsWithoutDashboard,
+        ];
+      } else {
+        // For ADMIN role (not SUPER_ADMIN), show only owners page
+        return [
+          {
+            href: "/admin/owners",
+            label: "Owners",
+            icon: Users,
+            permission: null,
+          },
+          ...coreNavItemsWithoutDashboard,
+        ];
+      }
     }
     return coreNavItems;
   }, [session?.user?.role]);

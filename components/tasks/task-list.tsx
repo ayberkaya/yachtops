@@ -38,7 +38,7 @@ import {
 } from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2 } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2, ChevronDown } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { TaskCompletionDialog } from "./task-completion-dialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -105,6 +105,7 @@ export function TaskList({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
+  const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
   
   // Update tasks when initialTasks changes (from server refresh)
   useEffect(() => {
@@ -557,6 +558,7 @@ export function TaskList({
             }
             
             const isClickable = isTodo && !canManage;
+            const isExpanded = expandedTasks.has(task.id);
             
             return (
               <div
@@ -569,6 +571,17 @@ export function TaskList({
                 }}
                 className={isClickable ? "cursor-pointer" : ""}
               >
+              <Collapsible open={isExpanded} onOpenChange={(open) => {
+                setExpandedTasks(prev => {
+                  const newSet = new Set(prev);
+                  if (open) {
+                    newSet.add(task.id);
+                  } else {
+                    newSet.delete(task.id);
+                  }
+                  return newSet;
+                });
+              }}>
               <Card 
                 className={`flex flex-col relative pt-[11px] pb-[11px] px-3 md:p-6 gap-0 ${
                   isDone
@@ -635,28 +648,30 @@ export function TaskList({
                     </div>
                   </div>
                 )}
-                <CardHeader className="pb-2 md:pb-3 px-0 pt-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-base md:text-lg">
-                      {isClickable ? (
-                        <span className="hover:underline cursor-pointer">{task.title}</span>
-                      ) : (
-                        <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
-                          {task.title}
-                        </Link>
-                      )}
-                    </CardTitle>
-                    <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
-                      {!isDone && getPriorityBadge(task.priority)}
-                      {isDone && getStatusBadge(task.status)}
+                <CollapsibleTrigger>
+                  <CardHeader className="pb-2 md:pb-3 px-0 pt-0 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-lg -mx-3 md:-mx-6 px-3 md:px-6">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        {isClickable ? (
+                          <span className="hover:underline">{task.title}</span>
+                        ) : (
+                          <span className="hover:underline">{task.title}</span>
+                        )}
+                      </CardTitle>
+                      <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
+                        {!isDone && getPriorityBadge(task.priority)}
+                        {isDone && getStatusBadge(task.status)}
+                      </div>
                     </div>
-                  </div>
-                  {task.description && (
-                    <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
-                      {task.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
+                    {task.description && (
+                      <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
+                        {task.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
                 <CardContent className="flex-1 space-y-1 md:space-y-2 text-xs md:text-sm px-0 pb-0">
                   {task.createdBy && (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
@@ -768,7 +783,9 @@ export function TaskList({
                     )}
                   </div>
                 </div>
+                </CollapsibleContent>
               </Card>
+              </Collapsible>
               </div>
             );
           })}
@@ -817,6 +834,7 @@ export function TaskList({
             }
             
             const isClickable = isTodo && !canManage;
+            const isExpanded = expandedTasks.has(task.id);
             
             return (
               <div
@@ -829,6 +847,17 @@ export function TaskList({
                 }}
                 className={isClickable ? "cursor-pointer" : ""}
               >
+              <Collapsible open={isExpanded} onOpenChange={(open) => {
+                setExpandedTasks(prev => {
+                  const newSet = new Set(prev);
+                  if (open) {
+                    newSet.add(task.id);
+                  } else {
+                    newSet.delete(task.id);
+                  }
+                  return newSet;
+                });
+              }}>
               <Card 
                 className={`flex flex-col relative pt-[11px] pb-[11px] px-3 md:p-6 gap-0 ${
                   isDone
@@ -895,28 +924,30 @@ export function TaskList({
                     </div>
                   </div>
                 )}
-                <CardHeader className="pb-2 md:pb-3 px-0 pt-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <CardTitle className="text-base md:text-lg">
-                      {isClickable ? (
-                        <span className="hover:underline cursor-pointer">{task.title}</span>
-                      ) : (
-                        <Link href={`/dashboard/tasks/${task.id}`} className="hover:underline">
-                          {task.title}
-                        </Link>
-                      )}
-                    </CardTitle>
-                    <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
-                      {!isDone && getPriorityBadge(task.priority)}
-                      {isDone && getStatusBadge(task.status)}
+                <CollapsibleTrigger>
+                  <CardHeader className="pb-2 md:pb-3 px-0 pt-0 cursor-pointer hover:bg-accent/50 transition-colors rounded-t-lg -mx-3 md:-mx-6 px-3 md:px-6">
+                    <div className="flex items-center justify-between gap-2">
+                      <CardTitle className="text-base md:text-lg flex items-center gap-2">
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`} />
+                        {isClickable ? (
+                          <span className="hover:underline">{task.title}</span>
+                        ) : (
+                          <span className="hover:underline">{task.title}</span>
+                        )}
+                      </CardTitle>
+                      <div className="flex flex-col items-end gap-1 md:gap-2 flex-shrink-0">
+                        {!isDone && getPriorityBadge(task.priority)}
+                        {isDone && getStatusBadge(task.status)}
+                      </div>
                     </div>
-                  </div>
-                  {task.description && (
-                    <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
-                      {task.description}
-                    </CardDescription>
-                  )}
-                </CardHeader>
+                    {task.description && (
+                      <CardDescription className="line-clamp-2 mt-1 md:mt-2 text-xs md:text-sm">
+                        {task.description}
+                      </CardDescription>
+                    )}
+                  </CardHeader>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
                 <CardContent className="flex-1 space-y-1 md:space-y-2 text-xs md:text-sm px-0 pb-0">
                   {task.createdBy && (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
@@ -1028,7 +1059,9 @@ export function TaskList({
                     )}
                   </div>
                 </div>
+                </CollapsibleContent>
               </Card>
+              </Collapsible>
               </div>
             );
           })}

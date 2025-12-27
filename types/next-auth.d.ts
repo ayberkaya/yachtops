@@ -32,6 +32,7 @@ declare module "next-auth/jwt" {
     permissions?: string | null;
     rememberMe?: boolean;
     supabaseAccessToken: string;
+    impersonatedBy?: string; // Admin user ID who is impersonating
   }
 }
 

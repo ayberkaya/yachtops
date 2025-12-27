@@ -3,6 +3,8 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
+import { db } from '@/lib/db'
+import { UserRole } from '@prisma/client'
 
 export async function login(formData: FormData) {
   const supabase = await createClient()
@@ -30,7 +32,33 @@ export async function login(formData: FormData) {
     return redirect('/login?message=Could not authenticate user')
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/dashboard')
+  // After successful authentication, get user role from database
+  try {
+    const user = await db.user.findUnique({
+      where: { email },
+      select: { role: true },
+    })
+
+    if (user) {
+      // Strict role-based routing
+      if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+        revalidatePath('/', 'layout')
+        redirect('/admin/owners')
+      } else {
+        // OWNER, CAPTAIN, CREW, and other roles go to dashboard
+        revalidatePath('/', 'layout')
+        redirect('/dashboard')
+      }
+    } else {
+      // User not found in database, default to dashboard
+      revalidatePath('/', 'layout')
+      redirect('/dashboard')
+    }
+  } catch (dbError) {
+    console.error("Error fetching user role:", dbError)
+    // On error, default to dashboard
+    revalidatePath('/', 'layout')
+    redirect('/dashboard')
+  }
 }
 

@@ -15,6 +15,12 @@ export default async function DashboardPage() {
   }
 
   const user = session.user;
+
+  // Strict role-based separation: Admins should NOT see the vessel dashboard
+  if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
+    redirect("/admin/owners");
+  }
+
   const isOwnerOrCaptain = hasAnyRole(user, [UserRole.OWNER, UserRole.CAPTAIN]);
 
   return (

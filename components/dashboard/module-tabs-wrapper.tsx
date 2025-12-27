@@ -39,12 +39,10 @@ export function ModuleTabsWrapper() {
 
   // Operations module tabs (exclude tasks page)
   if (
-    pathname.startsWith("/dashboard/trips") ||
-    pathname.startsWith("/dashboard/maintenance")
+    pathname.startsWith("/dashboard/trips")
   ) {
     const links = [
       { href: "/dashboard/trips", label: "Voyages" },
-      { href: "/dashboard/maintenance", label: "Maintenance" },
       { href: "/dashboard/trips/voyage-planning", label: "Voyage Planning" },
       { href: "/dashboard/trips/route-fuel", label: "Route & Fuel" },
       { href: "/dashboard/trips/post-voyage-report", label: "Post-Voyage Report" },

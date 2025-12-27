@@ -29,6 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         email: { label: "Email or Username", type: "text" },
         password: { label: "Password", type: "password" },
         rememberMe: { label: "Remember Me", type: "text" },
+        impersonateToken: { label: "Impersonate Token", type: "text" },
       },
       async authorize(credentials) {
         const debugMode = process.env.NEXTAUTH_DEBUG === "true" || process.env.DEBUG_AUTH === "1";
@@ -36,6 +37,62 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           if (debugMode) {
             console.log("🔍 [AUTH] Authorize called with identifier:", credentials?.email);
+          }
+          
+          // Check for impersonation token (special case for admin impersonation)
+          if (credentials?.impersonateToken) {
+            const { cookies } = await import("next/headers");
+            const cookieStore = await cookies();
+            const adminId = cookieStore.get("impersonate_admin_id")?.value;
+            
+            if (!adminId) {
+              console.error("❌ [AUTH] Impersonation attempted but no admin session found");
+              return null;
+            }
+            
+            // Verify admin still has permission
+            const admin = await db.user.findUnique({
+              where: { id: adminId },
+              select: { role: true, active: true },
+            });
+            
+            if (!admin || !admin.active || (admin.role !== UserRole.ADMIN && admin.role !== UserRole.SUPER_ADMIN)) {
+              console.error("❌ [AUTH] Admin session invalid for impersonation");
+              return null;
+            }
+            
+            // Get target user by impersonateToken (which is the userId)
+            const targetUser = await db.user.findUnique({
+              where: { id: credentials.impersonateToken },
+              select: {
+                id: true,
+                email: true,
+                username: true,
+                name: true,
+                role: true,
+                yachtId: true,
+                permissions: true,
+                active: true,
+              },
+            });
+            
+            if (!targetUser || !targetUser.active) {
+              console.error("❌ [AUTH] Target user not found or inactive");
+              return null;
+            }
+            
+            // Return target user with impersonation flag
+            return {
+              id: targetUser.id,
+              email: targetUser.email,
+              username: targetUser.username,
+              name: targetUser.name,
+              role: targetUser.role,
+              yachtId: targetUser.yachtId,
+              tenantId: targetUser.yachtId,
+              permissions: targetUser.permissions,
+              impersonatedBy: adminId, // Store admin ID for restoration
+            };
           }
           
           if (!credentials?.email || !credentials?.password) {
@@ -192,6 +249,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.yachtId = user.yachtId;
         token.tenantId = (user as any).tenantId ?? user.yachtId;
         token.permissions = user.permissions;
+        // Store impersonation info if present
+        if ((user as any).impersonatedBy) {
+          token.impersonatedBy = (user as any).impersonatedBy;
+        }
         // Get rememberMe from user object (passed via credentials in signIn)
         const rememberMe = (user as any).rememberMe ?? false;
         token.rememberMe = rememberMe;
