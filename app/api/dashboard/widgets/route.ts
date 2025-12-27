@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { DashboardWidgets, WidgetConfig, DEFAULT_WIDGETS, WidgetType } from "@/types/widgets";
+import { DashboardWidgets, WidgetType } from "@/types/widgets";
+import { getUserWidgetSettings } from "@/lib/dashboard/widget-settings";
 import { z } from "zod";
 
 const updateWidgetsSchema = z.object({
@@ -38,45 +39,8 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const user = await db.user.findUnique({
-      where: { id: session.user.id },
-      select: { dashboardWidgets: true, role: true },
-    });
-
-    if (!user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    let widgets: WidgetConfig[] = [];
-
-    if (user.dashboardWidgets) {
-      try {
-        const parsed = JSON.parse(user.dashboardWidgets) as DashboardWidgets;
-        widgets = parsed.widgets || [];
-      } catch (error) {
-        console.error("Error parsing dashboard widgets:", error);
-      }
-    }
-
-    // If no widgets configured, return defaults for user role
-    if (widgets.length === 0) {
-      widgets = DEFAULT_WIDGETS[user.role as keyof typeof DEFAULT_WIDGETS] || [];
-    } else {
-      // Merge with defaults to ensure new widgets are included
-      // This ensures that if user has old widget config, new widgets from defaults are added
-      const defaultWidgets = DEFAULT_WIDGETS[user.role as keyof typeof DEFAULT_WIDGETS] || [];
-      const existingWidgetIds = new Set(widgets.map(w => w.id));
-      
-      // Add any default widgets that don't exist in user's config
-      defaultWidgets.forEach(defaultWidget => {
-        if (!existingWidgetIds.has(defaultWidget.id)) {
-          widgets.push(defaultWidget);
-        }
-      });
-      
-      // Sort by order
-      widgets.sort((a, b) => a.order - b.order);
-    }
+    // Use the centralized helper function
+    const widgets = await getUserWidgetSettings(session.user.id);
 
     // Cache for 5 minutes - widgets don't change frequently
     return NextResponse.json({ widgets }, {
@@ -86,6 +50,12 @@ export async function GET() {
     });
   } catch (error) {
     console.error("Error fetching dashboard widgets:", error);
+    
+    // Handle user not found error
+    if (error instanceof Error && error.message === "User not found") {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    
     return NextResponse.json(
       { error: "Failed to fetch dashboard widgets" },
       { status: 500 }

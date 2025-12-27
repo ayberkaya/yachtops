@@ -1,20 +1,23 @@
 import type { Session } from "next-auth";
-import { db } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExpenseStatus, TaskStatus } from "@prisma/client";
-// Removed unused date-fns imports - filtering now done server-side
-import { hasPermission } from "@/lib/permissions";
 import { QuickActions } from "./quick-actions";
 import { WidgetCustomizerButton } from "./widgets/widget-customizer-button";
 import { WidgetRenderer } from "./widgets/widget-renderer";
-import { unstable_cache } from "next/cache";
-import { getCachedCashBalanceByCurrency, getCachedRecentExpenses } from "@/lib/server-cache";
+import { getUserWidgetSettings, isWidgetEnabled } from "@/lib/dashboard/widget-settings";
+import {
+  getPendingExpenses,
+  getRecentExpenses,
+  getCreditCardExpenses,
+  getCreditCards,
+  getCashBalances,
+  getUpcomingTrips,
+  getAlcoholStocks,
+  getMarinaPermissions,
+  getMaintenanceLogs,
+  getRoleTasks,
+} from "@/lib/dashboard/dashboard-data";
 
 type DashboardUser = NonNullable<Session["user"]>;
-
-// Cache key helper for yacht-scoped data
-const getCacheKey = (key: string, yachtId: string | null) => 
-  `dashboard-${key}-${yachtId || 'none'}`;
 
 export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
   try {
@@ -24,309 +27,119 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       throw new Error("User must be assigned to a yacht to access dashboard");
     }
     
-    // Cache pending expenses query (revalidates every 30 seconds, skip if yachtId is null)
-    const pendingExpensesPromise = yachtId
-      ? unstable_cache(
-          async () => db.expense.findMany({
-            where: {
-              yachtId: yachtId,
-              status: ExpenseStatus.SUBMITTED,
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              description: true,
-              baseAmount: true,
-              amount: true,
-              currency: true,
-              date: true,
-              createdAt: true,
-              createdBy: {
-                select: { name: true, email: true },
-              },
-              category: {
-                select: { name: true },
-              },
-              trip: {
-                select: { name: true },
-              },
-            },
-            orderBy: { createdAt: "desc" },
-            take: 5,
-          }),
-          [getCacheKey("pending-expenses", yachtId)],
-          { revalidate: 30, tags: [`expenses-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache recent expenses query (skip if yachtId is null)
-    // Use the new cached helper for consistency
-    const recentExpensesPromise = yachtId
-      ? getCachedRecentExpenses(yachtId, 5)
-      : Promise.resolve([]);
-
-    // Cache credit card expenses query (skip if yachtId is null)
-    const creditCardExpensesPromise = yachtId
-      ? unstable_cache(
-          async () => {
-            const { PaymentMethod, ExpenseStatus } = await import("@prisma/client");
-            return db.expense.findMany({
-              where: {
-                yachtId: yachtId,
-                paymentMethod: PaymentMethod.CARD,
-                creditCardId: { not: null },
-                deletedAt: null,
-                // Hide submitted expenses from general listings
-                status: { not: ExpenseStatus.SUBMITTED },
-              },
-              select: {
-                id: true,
-                description: true,
-                baseAmount: true,
-                amount: true,
-                currency: true,
-                date: true,
-                createdAt: true,
-                category: {
-                  select: { name: true },
-                },
-                createdBy: {
-                  select: { name: true, email: true },
-                },
-                creditCard: {
-                  select: {
-                    id: true,
-                    ownerName: true,
-                    lastFourDigits: true,
-                  },
-                },
-              },
-              orderBy: { createdAt: "desc" },
-              take: 20,
-            });
-          },
-          [getCacheKey("credit-card-expenses", yachtId)],
-          { revalidate: 30, tags: [`expenses-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache credit cards query (skip if yachtId is null)
-    const creditCardsPromise = yachtId
-      ? unstable_cache(
-          async () => db.creditCard.findMany({
-            where: {
-              yachtId: yachtId,
-              deletedAt: null,
-            },
-            select: {
-              id: true,
-              ownerName: true,
-              lastFourDigits: true,
-              billingCycleEndDate: true,
-            },
-            orderBy: { createdAt: "desc" },
-          }),
-          [getCacheKey("credit-cards", yachtId)],
-          { revalidate: 60, tags: [`credit-cards-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache cash balance by currency (skip if yachtId is null)
-    const cashBalancesPromise = yachtId
-      ? getCachedCashBalanceByCurrency(yachtId)
-      : Promise.resolve([]);
-
-    // Cache upcoming trips query (skip if yachtId is null)
-    const upcomingTripsPromise = yachtId
-      ? unstable_cache(
-          async () => db.trip.findMany({
-            where: {
-              yachtId: yachtId,
-              startDate: {
-                gte: new Date(),
-              },
-            },
-            select: {
-              id: true,
-              name: true,
-              startDate: true,
-              endDate: true,
-              status: true,
-            },
-            orderBy: { startDate: "asc" },
-            take: 5,
-          }),
-          [getCacheKey("upcoming-trips", yachtId)],
-          { revalidate: 60, tags: [`trips-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache alcohol stocks query (if permission granted and yachtId exists)
-    const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions) && yachtId
-      ? unstable_cache(
-          async () => db.alcoholStock.findMany({
-            where: {
-              yachtId: yachtId,
-            },
-            select: {
-              id: true,
-              name: true,
-              quantity: true,
-              lowStockThreshold: true,
-            },
-          }),
-          [getCacheKey("alcohol-stocks", yachtId)],
-          { revalidate: 60, tags: [`inventory-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache marina permissions query (if permission granted and yachtId exists)
-    const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions) && yachtId
-      ? unstable_cache(
-          async () => db.marinaPermissionDocument.findMany({
-            where: {
-              yachtId: yachtId,
-              expiryDate: {
-                not: null,
-              },
-              deletedAt: null,
-              // Server-side filtering: only get permissions expiring within 30 days or already expired
-              OR: [
-                {
-                  expiryDate: {
-                    lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Within 30 days
-                  },
-                },
-                {
-                  expiryDate: {
-                    lt: new Date(), // Already expired
-                  },
-                },
-              ],
-            },
-            select: {
-              id: true,
-              title: true,
-              expiryDate: true,
-            },
-            take: 50, // Limit to prevent huge payloads
-          }),
-          [getCacheKey("marina-permissions", yachtId)],
-          { revalidate: 60, tags: [`documents-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache maintenance logs query (if permission granted and yachtId exists)
-    const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions) && yachtId
-      ? unstable_cache(
-          async () => db.maintenanceLog.findMany({
-            where: {
-              yachtId: yachtId,
-              nextDueDate: {
-                not: null,
-                // Server-side filtering: only get maintenance due within 30 days
-                gte: new Date(),
-                lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Within 30 days
-              },
-            },
-            select: {
-              id: true,
-              title: true,
-              nextDueDate: true,
-              component: true,
-            },
-            take: 50, // Limit to prevent huge payloads
-          }),
-          [getCacheKey("maintenance-logs", yachtId)],
-          { revalidate: 60, tags: [`maintenance-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-    // Cache role tasks query (if permission granted and yachtId exists)
-    const roleTasksPromise = hasPermission(user, "tasks.view", user.permissions) && yachtId
-      ? unstable_cache(
-          async () => db.task.findMany({
-            where: {
-              yachtId: yachtId,
-              assigneeRole: user.role,
-              status: {
-                not: TaskStatus.DONE,
-              },
-            },
-            select: {
-              id: true,
-              title: true,
-              dueDate: true,
-              status: true,
-              trip: {
-                select: { name: true },
-              },
-            },
-            orderBy: { dueDate: "asc" },
-            take: 100, // Limit to prevent huge payloads
-          }),
-          [getCacheKey("role-tasks", yachtId), user.role],
-          { revalidate: 30, tags: [`tasks-${yachtId}`] }
-        )()
-      : Promise.resolve([]);
-
-  let pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
-
-  try {
-    [
-      pendingExpenses,
-      recentExpenses,
-      creditCardExpenses,
-      creditCards,
-      cashBalances,
-      upcomingTrips,
-      alcoholStocks,
-      marinaPermissions,
-      maintenanceLogs,
-      roleAssignedTasks,
-    ] = await Promise.all([
-      pendingExpensesPromise,
-      recentExpensesPromise,
-      creditCardExpensesPromise,
-      creditCardsPromise,
-      cashBalancesPromise,
-      upcomingTripsPromise,
-      alcoholStocksPromise,
-      marinaPermissionsPromise,
-      maintenanceLogsPromise,
-      roleTasksPromise,
-    ]);
-  } catch (error) {
-    console.error("Error loading dashboard data:", error);
-    // Return error state instead of crashing
-    return (
-      <div className="space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
-        </div>
-        <Card className="border-destructive">
-          <CardHeader>
-            <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
-            <CardDescription>
-              We encountered an error while loading your dashboard data. Please refresh the page to try again.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      </div>
+    // Get user widget settings first to determine what data to fetch
+    const widgets = await getUserWidgetSettings(user.id);
+    
+    // Create a map of enabled widgets for quick lookup
+    const enabledWidgets = new Set(
+      widgets.filter(w => w.enabled).map(w => w.id)
     );
-  }
 
-  const totalPendingAmount = pendingExpenses.reduce(
-    (sum: number, exp: { baseAmount: string | number | null; amount: string | number }) => sum + Number(exp.baseAmount || exp.amount),
-    0
-  );
+    // Conditionally create promises only for enabled widgets
+    const pendingExpensesPromise = enabledWidgets.has("pending_expenses")
+      ? getPendingExpenses(yachtId)
+      : Promise.resolve(undefined);
+
+    const recentExpensesPromise = enabledWidgets.has("recent_expenses")
+      ? getRecentExpenses(yachtId)
+      : Promise.resolve(undefined);
+
+    const creditCardExpensesPromise = enabledWidgets.has("credit_card_expenses")
+      ? getCreditCardExpenses(yachtId)
+      : Promise.resolve(undefined);
+
+    const creditCardsPromise = enabledWidgets.has("credit_card_expenses")
+      ? getCreditCards(yachtId)
+      : Promise.resolve(undefined);
+
+    const cashBalancesPromise = enabledWidgets.has("cash_ledger_summary")
+      ? getCashBalances(yachtId)
+      : Promise.resolve(undefined);
+
+    const upcomingTripsPromise = enabledWidgets.has("upcoming_trips")
+      ? getUpcomingTrips(yachtId)
+      : Promise.resolve(undefined);
+
+    const alcoholStocksPromise = enabledWidgets.has("low_stock_alert")
+      ? getAlcoholStocks(yachtId, user)
+      : Promise.resolve(undefined);
+
+    const marinaPermissionsPromise = enabledWidgets.has("expiring_permissions")
+      ? getMarinaPermissions(yachtId, user)
+      : Promise.resolve(undefined);
+
+    const maintenanceLogsPromise = enabledWidgets.has("upcoming_maintenance")
+      ? getMaintenanceLogs(yachtId, user)
+      : Promise.resolve(undefined);
+
+    const roleTasksPromise = enabledWidgets.has("role_tasks_alert")
+      ? getRoleTasks(yachtId, user)
+      : Promise.resolve(undefined);
+
+    // Execute all promises in parallel (disabled widgets return undefined immediately)
+    let pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
+
+    try {
+      [
+        pendingExpenses,
+        recentExpenses,
+        creditCardExpenses,
+        creditCards,
+        cashBalances,
+        upcomingTrips,
+        alcoholStocks,
+        marinaPermissions,
+        maintenanceLogs,
+        roleAssignedTasks,
+      ] = await Promise.all([
+        pendingExpensesPromise,
+        recentExpensesPromise,
+        creditCardExpensesPromise,
+        creditCardsPromise,
+        cashBalancesPromise,
+        upcomingTripsPromise,
+        alcoholStocksPromise,
+        marinaPermissionsPromise,
+        maintenanceLogsPromise,
+        roleTasksPromise,
+      ]);
+    } catch (error) {
+      console.error("Error loading dashboard data:", error);
+      // Return error state instead of crashing
+      return (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-3xl font-bold">Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {user.name || user.email}</p>
+          </div>
+          <Card className="border-destructive">
+            <CardHeader>
+              <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
+              <CardDescription>
+                We encountered an error while loading your dashboard data. Please refresh the page to try again.
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
+      );
+    }
+
+  // Calculate total pending amount only if pending expenses are available
+  const totalPendingAmount = pendingExpenses
+    ? pendingExpenses.reduce(
+        (sum: number, exp: { baseAmount: string | number | null; amount: string | number }) => sum + Number(exp.baseAmount || exp.amount),
+        0
+      )
+    : 0;
 
   // Client-side filtering for low stock (already fetched minimal data)
-  const lowStockItems = alcoholStocks.filter((stock: { lowStockThreshold: number | null; quantity: number }) => {
-    if (stock.lowStockThreshold === null) return false;
-    return stock.quantity <= stock.lowStockThreshold;
-  });
+  // Return empty array if undefined to match WidgetRenderer's default prop type
+  const lowStockItems = alcoholStocks
+    ? alcoholStocks.filter((stock: { lowStockThreshold: number | null; quantity: number }) => {
+        if (stock.lowStockThreshold === null) return false;
+        return stock.quantity <= stock.lowStockThreshold;
+      })
+    : [];
 
   // Server-side filtering already done, no need to filter again
   const expiringPermissions = marinaPermissions;

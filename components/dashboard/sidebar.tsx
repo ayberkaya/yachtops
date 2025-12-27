@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { completeSignOut } from "@/lib/signout-helper";
 import Link from "next/link";
@@ -48,244 +48,20 @@ import {
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth-utils";
 import { hasPermission, getUserPermissions } from "@/lib/permissions";
+import { useNavigation } from "@/hooks/use-navigation";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 
 // Mobile Sheet Component (separated for better organization)
 function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
-  const [pendingTasksCount, setPendingTasksCount] = useState(0);
-  const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
-  const [reimbursableCount, setReimbursableCount] = useState(0);
-  const [lowStockCount, setLowStockCount] = useState(0);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const [settingsOpen, setSettingsOpen] = useState(false);
-
-  // Define base navItems structure (static, no user dependency)
-  const coreNavItems = [
-    {
-      href: "/dashboard",
-      label: "Dashboard",
-      icon: LayoutDashboard,
-      permission: null,
-    },
-    {
-      href: "/dashboard/trips",
-      label: "Logbook",
-      icon: Ship,
-      permission: "trips.view",
-    },
-    {
-      href: "/dashboard/tasks",
-      label: "Tasks",
-      icon: CheckSquare,
-      permission: "tasks.view",
-    },
-    {
-      href: "/dashboard/finance",
-      label: "Finance",
-      icon: DollarSign,
-      permission: "expenses.view",
-    },
-    {
-      href: "/dashboard/shopping",
-      label: "Shopping",
-      icon: ShoppingCart,
-      permission: "shopping.view",
-    },
-    {
-      href: "/dashboard/inventory",
-      label: "Inventory",
-      icon: Package,
-      permission: "inventory.view",
-    },
-    {
-      href: "/dashboard/documents",
-      label: "Documents",
-      icon: FileText,
-      permission: "documents.view",
-    },
-  ];
-
-  const baseNavItems =
-    session?.user?.role === "SUPER_ADMIN"
-      ? [
-          {
-            href: "/admin/create",
-            label: "Create User",
-            icon: UserPlus,
-            permission: null,
-          },
-          {
-            href: "/admin/owners",
-            label: "Owners",
-            icon: Users,
-            permission: null,
-          },
-          {
-            href: "/admin/leads",
-            label: "Leads",
-            icon: Inbox,
-            permission: null,
-          },
-          {
-            href: "/admin/pricing",
-            label: "Pricing",
-            icon: Tag,
-            permission: null,
-          },
-          ...coreNavItems,
-        ]
-      : coreNavItems;
-
-  // Memoize filtered nav items to prevent infinite loops
-  const filteredNavItems = useMemo(() => {
-    if (!session?.user) return [];
-    return baseNavItems.filter(
-      (item) =>
-        !item.permission ||
-        hasPermission(session.user, item.permission as any, session.user.permissions)
-    );
-  }, [session?.user]);
-
-  // Fetch pending tasks count
-  useEffect(() => {
-    if (!session?.user) return;
-    
-    const fetchPendingTasksCount = async () => {
-      try {
-        const response = await fetch("/api/tasks");
-        if (response.ok) {
-          const result = await response.json();
-          // Handle paginated response: { data: [...], pagination: {...} }
-          const tasks = Array.isArray(result) ? result : (result.data || []);
-          
-          if (!Array.isArray(tasks)) {
-            console.error("Tasks response is not an array:", tasks);
-            setPendingTasksCount(0);
-            return;
-          }
-          
-          const pendingCount = tasks.filter((task: any) => {
-            const isAssignedToUser = task.assigneeId === session.user.id;
-            const isAssignedToRole = task.assigneeRole === session.user.role;
-            const isUnassigned = !task.assigneeId && !task.assigneeRole;
-            const isNotCompleted = task.status !== "DONE";
-            
-            return (isAssignedToUser || isAssignedToRole || isUnassigned) && isNotCompleted;
-          }).length;
-          
-          setPendingTasksCount(pendingCount);
-        }
-      } catch (error) {
-        console.error("Error fetching pending tasks count:", error);
-        setPendingTasksCount(0);
-      }
-    };
-
-    fetchPendingTasksCount();
-    // OPTIMIZED: Increased interval to 2 minutes to reduce bandwidth
-    const interval = setInterval(fetchPendingTasksCount, 120000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // OPTIMIZED: Combined all counts into single request using count-only endpoint
-  useEffect(() => {
-    if (!session?.user) return;
-    
-    const fetchAllCounts = async () => {
-      try {
-        // Use count-only endpoint instead of fetching full lists
-        const [countsRes, lowStockRes] = await Promise.all([
-          fetch("/api/expenses/counts", { 
-            cache: "no-store",
-            // Use cache from api-client if available
-          }),
-          hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)
-            ? fetch("/api/alcohol-stock/low-stock-count", { cache: "no-store" })
-            : Promise.resolve({ ok: false }),
-        ]);
-
-        if (countsRes.ok) {
-          const counts = await countsRes.json();
-          if (hasPermission(session.user, "expenses.approve", session.user.permissions)) {
-            setPendingExpensesCount(counts.pending || 0);
-          }
-          if (hasPermission(session.user, "expenses.view", session.user.permissions)) {
-            setReimbursableCount(counts.reimbursable || 0);
-          }
-        } else {
-          setPendingExpensesCount(0);
-          setReimbursableCount(0);
-        }
-
-        if (lowStockRes.ok && 'json' in lowStockRes) {
-          const data = await lowStockRes.json();
-          setLowStockCount(data.count || 0);
-        } else {
-          setLowStockCount(0);
-        }
-      } catch (error) {
-        console.error("Error fetching counts:", error);
-        setPendingExpensesCount(0);
-        setReimbursableCount(0);
-        setLowStockCount(0);
-      }
-    };
-
-    fetchAllCounts();
-    // OPTIMIZED: Single interval for all counts, increased to 2 minutes
-    const interval = setInterval(fetchAllCounts, 120000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // Fetch unread messages count
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchUnreadMessagesCount = async () => {
-      try {
-        // First, get all accessible channels
-        const channelsResponse = await fetch("/api/channels");
-        if (!channelsResponse.ok) {
-          setUnreadMessagesCount(0);
-          return;
-        }
-        
-        const channels = await channelsResponse.json();
-        if (!Array.isArray(channels) || channels.length === 0) {
-          setUnreadMessagesCount(0);
-          return;
-        }
-
-        // Get unread counts for all channels
-        const channelIds = channels.map((ch: { id: string }) => ch.id);
-        const unreadResponse = await fetch("/api/messages/unread-counts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channelIds }),
-        });
-
-        if (unreadResponse.ok) {
-          const unreadCounts = await unreadResponse.json();
-          const totalUnread = Object.values(unreadCounts).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === "number" ? count : 0),
-            0
-          );
-          setUnreadMessagesCount(totalUnread);
-        } else {
-          setUnreadMessagesCount(0);
-        }
-      } catch (error) {
-        console.error("Error fetching unread messages count:", error);
-        setUnreadMessagesCount(0);
-      }
-    };
-
-    fetchUnreadMessagesCount();
-    // Poll every 2 minutes (same as other counts)
-    const interval = setInterval(fetchUnreadMessagesCount, 120000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
+  
+  // Use navigation hook for shared navigation items
+  const { navItems } = useNavigation();
+  
+  // Use dashboard stats hook for shared stats
+  const stats = useDashboardStats();
 
   // Early return after all hooks (to maintain hook order)
   if (status === "loading" || !session?.user) {
@@ -337,7 +113,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           {/* Mobile Navigation - Always expanded */}
           <div className="flex-1 overflow-y-auto min-h-0 overscroll-contain" style={{ WebkitOverflowScrolling: 'touch' }}>
             <nav className="px-3 pt-4 pb-4 space-y-1 bg-white">
-            {filteredNavItems.map((item) => {
+            {navItems.map((item) => {
               const Icon = item.icon;
               
               // Determine if item is active based on pathname
@@ -605,11 +381,6 @@ export function Sidebar() {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
-  const [pendingTasksCount, setPendingTasksCount] = useState(0);
-  const [pendingExpensesCount, setPendingExpensesCount] = useState(0);
-  const [reimbursableCount, setReimbursableCount] = useState(0);
-  const [lowStockCount, setLowStockCount] = useState(0);
-  const [unreadMessagesCount, setUnreadMessagesCount] = useState(0);
   const sidebarRef = useRef<HTMLElement>(null);
   const navContentRef = useRef<HTMLElement>(null);
   const scrollPositionRef = useRef<number>(0);
@@ -618,95 +389,11 @@ export function Sidebar() {
   const [settingsOpenDesktop, setSettingsOpenDesktop] = useState(false);
   const prevCollapsed = useRef<boolean>(false);
 
-  // Define base navItems structure (static, no user dependency)
-  const baseNavItems =
-    session?.user?.role === "SUPER_ADMIN"
-      ? [
-          {
-            href: "/admin/create",
-            label: "Create User",
-            icon: UserPlus,
-            permission: null,
-          },
-          {
-            href: "/admin/owners",
-            label: "Owners",
-            icon: Users,
-            permission: null,
-          },
-          {
-            href: "/admin/leads",
-            label: "Leads",
-            icon: Inbox,
-            permission: null,
-          },
-          {
-            href: "/admin/pricing",
-            label: "Pricing",
-            icon: Tag,
-            permission: null,
-          },
-          {
-            href: "/admin/usage",
-            label: "Usage Insights",
-            icon: TrendingUp,
-            permission: null,
-          },
-        ]
-      : [
-          {
-            href: "/dashboard",
-            label: "Dashboard",
-            icon: LayoutDashboard,
-            permission: null,
-          },
-          {
-            href: "/dashboard/trips",
-            label: "Logbook",
-            icon: Ship,
-            permission: "trips.view",
-          },
-          {
-            href: "/dashboard/tasks",
-            label: "Tasks",
-            icon: CheckSquare,
-            permission: "tasks.view",
-          },
-          {
-            href: "/dashboard/finance",
-            label: "Finance",
-            icon: DollarSign,
-            permission: "expenses.view",
-          },
-          {
-            href: "/dashboard/shopping",
-            label: "Shopping",
-            icon: ShoppingCart,
-            permission: "shopping.view",
-          },
-          {
-            href: "/dashboard/inventory",
-            label: "Inventory",
-            icon: Package,
-            permission: "inventory.view",
-          },
-          {
-            href: "/dashboard/documents",
-            label: "Documents",
-            icon: FileText,
-            permission: "documents.view",
-          },
-        ];
-
-  // Memoize filtered navItems based on user permissions
-  const navItems = useMemo(() => {
-    if (!session?.user) return [];
-    return baseNavItems.filter(
-      (item) =>
-        !item.permission ||
-        hasPermission(session.user, item.permission as any, session.user.permissions)
-    );
-  }, [session?.user]);
+  // Use navigation hook for shared navigation items
+  const { navItems } = useNavigation();
+  
+  // Use dashboard stats hook for shared stats
+  const stats = useDashboardStats();
 
   useEffect(() => {
     const checkMobile = () => {
@@ -716,144 +403,6 @@ export function Sidebar() {
     window.addEventListener("resize", checkMobile);
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
-
-  // Fetch pending tasks count
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchPendingTasksCount = async () => {
-      try {
-        const response = await fetch("/api/tasks");
-        if (response.ok) {
-          const result = await response.json();
-          // Handle paginated response: { data: [...], pagination: {...} }
-          const tasks = Array.isArray(result) ? result : (result.data || []);
-          
-          if (!Array.isArray(tasks)) {
-            console.error("Tasks response is not an array:", tasks);
-            setPendingTasksCount(0);
-            return;
-          }
-          
-          // Filter tasks: assigned to user, assigned to user's role, or unassigned, and not completed
-          const pendingCount = tasks.filter((task: any) => {
-            const isAssignedToUser = task.assigneeId === session.user.id;
-            const isAssignedToRole = task.assigneeRole === session.user.role;
-            const isUnassigned = !task.assigneeId && !task.assigneeRole;
-            const isNotCompleted = task.status !== "DONE";
-            
-            return (isAssignedToUser || isAssignedToRole || isUnassigned) && isNotCompleted;
-          }).length;
-          
-          setPendingTasksCount(pendingCount);
-        }
-      } catch (error) {
-        console.error("Error fetching pending tasks count:", error);
-        setPendingTasksCount(0);
-      }
-    };
-
-    fetchPendingTasksCount();
-    // OPTIMIZED: Increased interval to 2 minutes to reduce bandwidth
-    const interval = setInterval(fetchPendingTasksCount, 120000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // OPTIMIZED: Combined all counts into single request using count-only endpoint (desktop version)
-  useEffect(() => {
-    if (!session?.user) return;
-    
-    const fetchAllCounts = async () => {
-      try {
-        // Use count-only endpoint instead of fetching full lists
-        const [countsRes, lowStockRes] = await Promise.all([
-          fetch("/api/expenses/counts", { cache: "no-store" }),
-          hasPermission(session.user, "inventory.alcohol.view", session.user.permissions)
-            ? fetch("/api/alcohol-stock/low-stock-count", { cache: "no-store" })
-            : Promise.resolve({ ok: false }),
-        ]);
-
-        if (countsRes.ok) {
-          const counts = await countsRes.json();
-          if (hasPermission(session.user, "expenses.approve", session.user.permissions)) {
-            setPendingExpensesCount(counts.pending || 0);
-          }
-          if (hasPermission(session.user, "expenses.view", session.user.permissions)) {
-            setReimbursableCount(counts.reimbursable || 0);
-          }
-        } else {
-          setPendingExpensesCount(0);
-          setReimbursableCount(0);
-        }
-
-        if (lowStockRes.ok && 'json' in lowStockRes) {
-          const data = await lowStockRes.json();
-          setLowStockCount(data.count || 0);
-        } else {
-          setLowStockCount(0);
-        }
-      } catch (error) {
-        console.error("Error fetching counts:", error);
-        setPendingExpensesCount(0);
-        setReimbursableCount(0);
-        setLowStockCount(0);
-      }
-    };
-
-    fetchAllCounts();
-    // OPTIMIZED: Single interval for all counts, increased to 2 minutes
-    const interval = setInterval(fetchAllCounts, 120000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
-
-  // Fetch unread messages count
-  useEffect(() => {
-    if (!session?.user) return;
-
-    const fetchUnreadMessagesCount = async () => {
-      try {
-        // First, get all accessible channels
-        const channelsResponse = await fetch("/api/channels");
-        if (!channelsResponse.ok) {
-          setUnreadMessagesCount(0);
-          return;
-        }
-        
-        const channels = await channelsResponse.json();
-        if (!Array.isArray(channels) || channels.length === 0) {
-          setUnreadMessagesCount(0);
-          return;
-        }
-
-        // Get unread counts for all channels
-        const channelIds = channels.map((ch: { id: string }) => ch.id);
-        const unreadResponse = await fetch("/api/messages/unread-counts", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channelIds }),
-        });
-
-        if (unreadResponse.ok) {
-          const unreadCounts = await unreadResponse.json();
-          const totalUnread = Object.values(unreadCounts).reduce(
-            (sum: number, count: unknown) => sum + (typeof count === "number" ? count : 0),
-            0
-          );
-          setUnreadMessagesCount(totalUnread);
-        } else {
-          setUnreadMessagesCount(0);
-        }
-      } catch (error) {
-        console.error("Error fetching unread messages count:", error);
-        setUnreadMessagesCount(0);
-      }
-    };
-
-    fetchUnreadMessagesCount();
-    // Poll every 2 minutes (same as other counts)
-    const interval = setInterval(fetchUnreadMessagesCount, 120000);
-    return () => clearInterval(interval);
-  }, [session?.user]);
 
   // Auto-collapse when a menu item is selected
   useEffect(() => {
