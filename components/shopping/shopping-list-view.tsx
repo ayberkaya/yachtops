@@ -14,10 +14,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Plus, ShoppingCart, Pencil, X, CheckCircle2 } from "lucide-react";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
+import { Plus, ShoppingCart, Pencil, X, CheckCircle2, ChevronDown } from "lucide-react";
 import { ShoppingListForm } from "./shopping-list-form";
 import { ShoppingListDetail } from "./shopping-list-detail";
 import { ShoppingListStatus } from "@prisma/client";
+import { cn } from "@/lib/utils";
 
 interface Product {
   id: string;
@@ -59,6 +65,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
   const [selectedList, setSelectedList] = useState<string | null>(null);
   const [isListDialogOpen, setIsListDialogOpen] = useState(false);
   const [editingList, setEditingList] = useState<ShoppingList | null>(null);
+  const [completedOpen, setCompletedOpen] = useState(false);
   const detailRef = useRef<HTMLDivElement>(null);
 
   const getStatusBadge = (status: ShoppingListStatus) => {
@@ -225,62 +232,86 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
                   </div>
                 </div>
               )}
-
-              {/* Completed Lists Section */}
-              {completedLists.length > 0 && (
-                <div>
-                  <h2 className="text-lg font-semibold mb-3">Completed</h2>
-                  <div className="space-y-2">
-                    {completedLists.map((list) => {
-                      return (
-                        <div
-                          key={list.id}
-                          className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors shadow-[2px_4px_6px_0px_rgba(0,0,0,0.3)] border-green-600 bg-green-600 text-white ${
-                            selectedList === list.id ? "bg-green-700" : ""
-                          }`}
-                          onClick={() => setSelectedList(list.id === selectedList ? null : list.id)}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <CheckCircle2 className="h-5 w-5 text-green-200 flex-shrink-0" />
-                                <span className="text-white font-bold">
-                                  {list.name}
-                                </span>
-                                {getStatusBadge(list.status)}
-                              </div>
-                              <div className="text-sm text-white font-semibold">
-                                {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
-                                {" • Created by "}
-                                {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
-                              </div>
-                              {list.description && (
-                                <div className="text-xs mt-1 text-white/90">{list.description}</div>
-                              )}
-                            </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setEditingList(list);
-                                setIsListDialogOpen(true);
-                              }}
-                              className="text-white hover:bg-green-700"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </CardContent>
       </Card>
+
+      {/* Completed Lists Section - Separate Card */}
+      {completedLists.length > 0 && (
+        <Card className="py-2">
+          <Collapsible open={completedOpen} onOpenChange={setCompletedOpen}>
+            <CardHeader className="py-1.5 items-center min-h-0">
+              <CollapsibleTrigger className="w-full flex items-center">
+                <div className="flex items-center justify-between w-full">
+                  <CardTitle className="flex items-center gap-2 text-base">
+                    <CheckCircle2 className="h-4 w-4 text-green-600" />
+                    Completed Lists
+                    <Badge variant="default" className="ml-2 text-xs">
+                      {completedLists.length}
+                    </Badge>
+                  </CardTitle>
+                  <ChevronDown
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200 flex-shrink-0",
+                      completedOpen && "transform rotate-180"
+                    )}
+                  />
+                </div>
+              </CollapsibleTrigger>
+            </CardHeader>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="space-y-2">
+                  {completedLists.map((list) => {
+                    return (
+                      <div
+                        key={list.id}
+                        className={`p-3 border rounded-lg hover:bg-muted/50 cursor-pointer transition-colors shadow-[2px_4px_6px_0px_rgba(0,0,0,0.3)] border-green-600 bg-green-600 text-white ${
+                          selectedList === list.id ? "bg-green-700" : ""
+                        }`}
+                        onClick={() => setSelectedList(list.id === selectedList ? null : list.id)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CheckCircle2 className="h-5 w-5 text-green-200 flex-shrink-0" />
+                              <span className="text-white font-bold">
+                                {list.name}
+                              </span>
+                              {getStatusBadge(list.status)}
+                            </div>
+                            <div className="text-sm text-white font-semibold">
+                              {list._count?.items || 0} item{(list._count?.items || 0) !== 1 ? "s" : ""}
+                              {" • Created by "}
+                              {list.createdBy?.name || list.createdBy?.email || session?.user?.name || session?.user?.email || "Unknown"}
+                            </div>
+                            {list.description && (
+                              <div className="text-xs mt-1 text-white/90">{list.description}</div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setEditingList(list);
+                              setIsListDialogOpen(true);
+                            }}
+                            className="text-white hover:bg-green-700"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+      )}
 
       {/* List Detail */}
       {selectedList && (

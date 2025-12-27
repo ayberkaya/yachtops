@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
-import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole, TaskType } from "@prisma/client";
 import { z } from "zod";
 import { notifyTaskAssignment, notifyTaskCompletion } from "@/lib/notifications";
 import { hasPermission } from "@/lib/permissions";
@@ -17,6 +17,10 @@ const updateTaskSchema = z.object({
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).optional(),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
+  type: z.nativeEnum(TaskType).optional(),
+  cost: z.number().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  serviceProvider: z.string().optional().nullable(),
 });
 
 export async function GET(
@@ -220,6 +224,18 @@ export async function PATCH(
     }
     if (validated.priority !== undefined) {
       updateData.priority = validated.priority as TaskPriority;
+    }
+    if (validated.type !== undefined) {
+      updateData.type = validated.type;
+    }
+    if (validated.cost !== undefined) {
+      updateData.cost = validated.cost;
+    }
+    if (validated.currency !== undefined) {
+      updateData.currency = validated.currency;
+    }
+    if (validated.serviceProvider !== undefined) {
+      updateData.serviceProvider = validated.serviceProvider;
     }
     if (validated.status) {
       updateData.status = validated.status;

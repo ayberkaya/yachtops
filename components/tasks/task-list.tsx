@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,6 +44,7 @@ import { TaskCompletionDialog } from "./task-completion-dialog";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { hasPermission } from "@/lib/permissions";
 import { SessionUser } from "@/lib/auth-utils";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface Task {
   id: string;
@@ -51,6 +52,10 @@ interface Task {
   description: string | null;
   status: TaskStatus;
   priority: TaskPriority;
+  type: string;
+  cost: number | null;
+  currency: string | null;
+  serviceProvider: string | null;
   dueDate: string | null;
   assignee: { id: string; name: string | null; email: string } | null;
   assigneeRole: UserRole | null;
@@ -70,6 +75,7 @@ interface TaskListProps {
 type ViewMode = "table" | "cards";
 export function TaskList({ initialTasks, users, trips, currentUser }: TaskListProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [tasks, setTasks] = useState(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -81,6 +87,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>(() => {
+    const tabParam = searchParams.get("tab");
+    return tabParam && ["all", "general", "maintenance", "repairs"].includes(tabParam) ? tabParam : "all";
+  });
   const groupBy = "none";
 
   const canManage = currentUser.role !== "CREW";
@@ -266,6 +276,11 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
 
   const filteredTasks = useMemo(() => {
     return tasks.filter((t) => {
+      // Tab filtering
+      if (activeTab === "general" && t.type !== "GENERAL") return false;
+      if (activeTab === "maintenance" && t.type !== "MAINTENANCE" && t.type !== "INSPECTION") return false;
+      if (activeTab === "repairs" && t.type !== "REPAIR") return false;
+      
       if (statusFilter !== "all" && t.status !== statusFilter) return false;
       if (assigneeFilter === "unassigned" && t.assignee) return false;
       if (assigneeFilter !== "all" && assigneeFilter !== "unassigned" && t.assignee?.id !== assigneeFilter) return false;
@@ -280,7 +295,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
       }
       return true;
     });
-  }, [tasks, statusFilter, assigneeFilter, dateFrom, dateTo]);
+  }, [tasks, activeTab, statusFilter, assigneeFilter, dateFrom, dateTo]);
 
   // Separate active and completed tasks
   const { activeTasks, completedTasks } = useMemo(() => {
@@ -396,7 +411,15 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         </div>
       </div>
 
-      {filteredTasks.length === 0 ? (
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="all">All</TabsTrigger>
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+          <TabsTrigger value="repairs">Repairs</TabsTrigger>
+        </TabsList>
+        <TabsContent value={activeTab} className="mt-4">
+          {filteredTasks.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
             <div className="p-8 text-center">
@@ -1254,6 +1277,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
           onComplete={handleCompleteTask}
         />
       )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

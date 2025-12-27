@@ -23,14 +23,15 @@ import { DashboardNotificationsPanel } from "@/components/notifications/dashboar
 import {
   Menu,
   LogOut,
-  Activity,
+  LayoutDashboard,
   DollarSign,
   Users,
   TrendingUp,
   Anchor,
+  Ship,
   ChevronRight,
   FileText,
-  Package,
+  Box,
   FileCheck,
   Settings,
   NotebookPen,
@@ -40,9 +41,9 @@ import {
   UserPlus,
   Tag,
   CreditCard,
-  MessageSquare,
   CheckSquare,
   ShoppingCart,
+  Package,
 } from "lucide-react";
 // Force recompile - removed Moon import
 import { canManageUsers } from "@/lib/auth-utils";
@@ -64,20 +65,14 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
     {
       href: "/dashboard",
       label: "Dashboard",
-      icon: Activity,
+      icon: LayoutDashboard,
       permission: null,
     },
     {
-      href: "/dashboard/finance",
-      label: "Finance",
-      icon: DollarSign,
-      permission: "expenses.view",
-    },
-    {
-      href: "/dashboard/compliance",
-      label: "Compliance",
-      icon: FileText,
-      permission: "documents.view",
+      href: "/dashboard/trips",
+      label: "Logbook",
+      icon: Ship,
+      permission: "trips.view",
     },
     {
       href: "/dashboard/tasks",
@@ -86,16 +81,16 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       permission: "tasks.view",
     },
     {
-      href: "/dashboard/operations",
-      label: "Operations",
-      icon: Anchor,
-      permission: "trips.view",
+      href: "/dashboard/finance",
+      label: "Finance",
+      icon: DollarSign,
+      permission: "expenses.view",
     },
     {
       href: "/dashboard/shopping",
-      label: "Shopping Lists",
+      label: "Shopping",
       icon: ShoppingCart,
-      permission: null,
+      permission: "shopping.view",
     },
     {
       href: "/dashboard/inventory",
@@ -104,10 +99,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       permission: "inventory.view",
     },
     {
-      href: "/dashboard/messages",
-      label: "Communication",
-      icon: MessageSquare,
-      permission: null,
+      href: "/dashboard/documents",
+      label: "Documents",
+      icon: FileText,
+      permission: "documents.view",
     },
   ];
 
@@ -349,26 +344,27 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
               let isActive = false;
               if (item.href === "/dashboard") {
                 isActive = pathname === "/dashboard";
-              } else if (item.href === "/dashboard/operations") {
-                isActive = pathname.startsWith("/dashboard/trips") || 
-                          pathname.startsWith("/dashboard/maintenance") ||
-                          pathname === "/dashboard/operations";
-              } else if (item.href === "/dashboard/inventory") {
-                isActive = pathname.startsWith("/dashboard/inventory") &&
-                          !pathname.startsWith("/dashboard/shopping");
+              } else if (item.href === "/dashboard/trips") {
+                // Logbook: active for trips
+                isActive = pathname.startsWith("/dashboard/trips");
+              } else if (item.href === "/dashboard/tasks") {
+                // Tasks: active for tasks and maintenance
+                isActive = pathname.startsWith("/dashboard/tasks") ||
+                          pathname.startsWith("/dashboard/maintenance");
               } else if (item.href === "/dashboard/finance") {
+                // Finance: active for expenses and cash
                 isActive = pathname.startsWith("/dashboard/expenses") || 
                           pathname.startsWith("/dashboard/cash") ||
                           pathname === "/dashboard/finance";
-              } else if (item.href === "/dashboard/compliance") {
-                isActive = pathname.startsWith("/dashboard/documents") ||
-                          pathname === "/dashboard/compliance";
-              } else if (item.href === "/dashboard/messages") {
-                isActive = pathname.startsWith("/dashboard/messages");
-              } else if (item.href === "/dashboard/tasks") {
-                isActive = pathname.startsWith("/dashboard/tasks");
               } else if (item.href === "/dashboard/shopping") {
+                // Shopping: active for shopping pages
                 isActive = pathname.startsWith("/dashboard/shopping");
+              } else if (item.href === "/dashboard/inventory") {
+                // Inventory: active for inventory pages
+                isActive = pathname.startsWith("/dashboard/inventory");
+              } else if (item.href === "/dashboard/documents") {
+                // Documents: active for documents pages
+                isActive = pathname.startsWith("/dashboard/documents");
               } else {
                 isActive = pathname === item.href || 
                           (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
@@ -661,20 +657,14 @@ export function Sidebar() {
           {
             href: "/dashboard",
             label: "Dashboard",
-            icon: Activity,
+            icon: LayoutDashboard,
             permission: null,
           },
           {
-            href: "/dashboard/finance",
-            label: "Finance",
-            icon: DollarSign,
-            permission: "expenses.view",
-          },
-          {
-            href: "/dashboard/compliance",
-            label: "Compliance",
-            icon: FileText,
-            permission: "documents.view",
+            href: "/dashboard/trips",
+            label: "Logbook",
+            icon: Ship,
+            permission: "trips.view",
           },
           {
             href: "/dashboard/tasks",
@@ -683,16 +673,16 @@ export function Sidebar() {
             permission: "tasks.view",
           },
           {
-            href: "/dashboard/operations",
-            label: "Operations",
-            icon: Anchor,
-            permission: "trips.view",
+            href: "/dashboard/finance",
+            label: "Finance",
+            icon: DollarSign,
+            permission: "expenses.view",
           },
           {
             href: "/dashboard/shopping",
-            label: "Shopping Lists",
+            label: "Shopping",
             icon: ShoppingCart,
-            permission: null,
+            permission: "shopping.view",
           },
           {
             href: "/dashboard/inventory",
@@ -701,10 +691,10 @@ export function Sidebar() {
             permission: "inventory.view",
           },
           {
-            href: "/dashboard/messages",
-            label: "Communication",
-            icon: MessageSquare,
-            permission: null,
+            href: "/dashboard/documents",
+            label: "Documents",
+            icon: FileText,
+            permission: "documents.view",
           },
         ];
 
@@ -978,24 +968,27 @@ export function Sidebar() {
           let isActive = false;
           if (item.href === "/dashboard") {
             isActive = pathname === "/dashboard";
-          } else if (item.href === "/dashboard/operations") {
-            // Operations module: active for trips and maintenance (tasks is now separate)
-            isActive = pathname.startsWith("/dashboard/trips") || 
-                      pathname.startsWith("/dashboard/maintenance") ||
-                      pathname === "/dashboard/operations";
-          } else if (item.href === "/dashboard/inventory") {
-            // Inventory module: active for inventory only (shopping is now separate)
-            isActive = pathname.startsWith("/dashboard/inventory") &&
-                      !pathname.startsWith("/dashboard/shopping");
+          } else if (item.href === "/dashboard/trips") {
+            // Logbook: active for trips
+            isActive = pathname.startsWith("/dashboard/trips");
+          } else if (item.href === "/dashboard/tasks") {
+            // Tasks: active for tasks and maintenance
+            isActive = pathname.startsWith("/dashboard/tasks") ||
+                      pathname.startsWith("/dashboard/maintenance");
           } else if (item.href === "/dashboard/finance") {
-            // Finance module: active for expenses and cash
+            // Finance: active for expenses and cash
             isActive = pathname.startsWith("/dashboard/expenses") || 
                       pathname.startsWith("/dashboard/cash") ||
                       pathname === "/dashboard/finance";
-          } else if (item.href === "/dashboard/compliance") {
-            // Compliance module: active for documents
-            isActive = pathname.startsWith("/dashboard/documents") ||
-                      pathname === "/dashboard/compliance";
+          } else if (item.href === "/dashboard/shopping") {
+            // Shopping: active for shopping pages
+            isActive = pathname.startsWith("/dashboard/shopping");
+          } else if (item.href === "/dashboard/inventory") {
+            // Inventory: active for inventory pages
+            isActive = pathname.startsWith("/dashboard/inventory");
+          } else if (item.href === "/dashboard/documents") {
+            // Documents: active for documents pages
+            isActive = pathname.startsWith("/dashboard/documents");
           } else {
             isActive = pathname === item.href || 
                       (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));

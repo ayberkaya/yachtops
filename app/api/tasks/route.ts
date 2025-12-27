@@ -4,7 +4,7 @@ import { canManageUsers } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { z } from "zod";
-import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole, TaskType } from "@prisma/client";
 import { sendNotificationToUser, sendNotificationToRole } from "@/lib/notifications";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
@@ -19,6 +19,10 @@ const taskSchema = z.object({
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
+  type: z.nativeEnum(TaskType).optional().default(TaskType.GENERAL),
+  cost: z.number().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  serviceProvider: z.string().optional().nullable(),
 });
 
 export async function GET(request: NextRequest) {
@@ -298,6 +302,10 @@ export async function POST(request: NextRequest) {
         dueDate: validated.dueDate ? new Date(validated.dueDate) : null,
         status: validated.status,
         priority: (validated.priority || "MEDIUM") as TaskPriority,
+        type: validated.type || TaskType.GENERAL,
+        cost: validated.cost || null,
+        currency: validated.currency || null,
+        serviceProvider: validated.serviceProvider || null,
         createdByUserId: session!.user.id,
       },
       include: {

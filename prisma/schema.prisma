@@ -224,6 +224,10 @@ model Task {
   dueDate         DateTime?        @map("due_date")
   status          TaskStatus       @default(TODO)
   priority        TaskPriority     @default(MEDIUM)
+  type            TaskType         @default(GENERAL)
+  cost            Float?
+  currency        String?          @default("EUR")
+  serviceProvider String?          @map("service_provider")
   createdByUserId String?          @map("created_by_user_id")
   createdAt       DateTime         @default(now()) @map("created_at")
   updatedAt       DateTime         @updatedAt @map("updated_at")
@@ -770,6 +774,13 @@ enum TaskPriority {
   MEDIUM
   HIGH
   URGENT
+}
+
+enum TaskType {
+  GENERAL
+  MAINTENANCE
+  REPAIR
+  INSPECTION
 }
 
 enum ExpenseStatus {

@@ -114,10 +114,10 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
                       </button>
                       <Link
                         href={`/dashboard/expenses/${receipt.expense.id}`}
-                        className="text-muted-foreground hover:text-primary text-sm"
+                        className="text-muted-foreground hover:text-primary text-sm flex items-center"
                         title="View expense"
                       >
-                        →
+                        <Eye className="h-4 w-4" />
                       </Link>
                     </div>
                   </div>
@@ -215,9 +215,10 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
                   <div className="flex gap-4 pt-2">
                     <Link
                       href={`/dashboard/expenses/${previewReceipt.expense.id}`}
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline flex items-center gap-1"
                     >
-                      View expense details →
+                      <Eye className="h-4 w-4" />
+                      View expense details
                     </Link>
                   </div>
                 </div>

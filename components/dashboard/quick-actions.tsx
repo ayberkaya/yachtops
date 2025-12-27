@@ -10,14 +10,16 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, DollarSign, Wallet, CheckSquare } from "lucide-react";
+import { Plus, DollarSign, Wallet, CheckSquare, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskForm } from "@/components/tasks/task-form";
+import { ShoppingListForm } from "@/components/shopping/shopping-list-form";
 
 export function QuickActions() {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isShoppingListDialogOpen, setIsShoppingListDialogOpen] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [trips, setTrips] = useState<{ id: string; name: string }[]>([]);
   const [isLoadingTaskData, setIsLoadingTaskData] = useState(false);
@@ -46,6 +48,16 @@ export function QuickActions() {
         setIsHovered(false);
         setIsTaskDialogOpen(true);
         await fetchTaskData();
+      },
+    },
+    {
+      label: "Add Shopping List",
+      icon: ShoppingCart,
+      href: "/dashboard/shopping",
+      color: "text-orange-600 dark:text-orange-400",
+      onClick: () => {
+        setIsHovered(false);
+        setIsShoppingListDialogOpen(true);
       },
     },
   ];
@@ -152,6 +164,22 @@ export function QuickActions() {
               }}
             />
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Shopping List Dialog */}
+      <Dialog open={isShoppingListDialogOpen} onOpenChange={setIsShoppingListDialogOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>New Shopping List</DialogTitle>
+            <DialogDescription>Create a new shopping list</DialogDescription>
+          </DialogHeader>
+          <ShoppingListForm
+            onSuccess={() => {
+              setIsShoppingListDialogOpen(false);
+              router.refresh();
+            }}
+          />
         </DialogContent>
       </Dialog>
     </div>

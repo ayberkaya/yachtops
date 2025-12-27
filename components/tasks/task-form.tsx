@@ -22,6 +22,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+
+// Define TaskType enum values manually for client-side use
+const TaskType = {
+  GENERAL: "GENERAL",
+  MAINTENANCE: "MAINTENANCE",
+  REPAIR: "REPAIR",
+  INSPECTION: "INSPECTION",
+} as const;
+
+type TaskType = typeof TaskType[keyof typeof TaskType];
 import { Trash2, ChevronDown, X } from "lucide-react";
 
 interface CustomRole {
@@ -41,6 +51,10 @@ const taskSchema = z.object({
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
+  type: z.enum(["GENERAL", "MAINTENANCE", "REPAIR", "INSPECTION"]).default("GENERAL"),
+  cost: z.number().optional().nullable(),
+  currency: z.string().optional().nullable(),
+  serviceProvider: z.string().optional().nullable(),
 });
 
 type TaskFormData = z.infer<typeof taskSchema>;
@@ -73,6 +87,10 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
     defaultValues: task ? {
       ...task,
       assigneeIds: task.assigneeId ? [task.assigneeId] : [],
+      type: task.type || "GENERAL",
+      cost: task.cost || null,
+      currency: task.currency || null,
+      serviceProvider: task.serviceProvider || null,
     } : {
       title: "",
       description: "",
@@ -83,12 +101,18 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
       dueDate: "",
       status: TaskStatus.TODO,
       priority: "MEDIUM" as const,
+      type: "GENERAL",
+      cost: null,
+      currency: "EUR",
+      serviceProvider: null,
     },
   });
 
   const assigneeId = form.watch("assigneeId");
   const assigneeIds = form.watch("assigneeIds") || [];
   const assigneeRole = form.watch("assigneeRole");
+  const taskType = form.watch("type");
+  const showMaintenanceFields = taskType === "MAINTENANCE" || taskType === "REPAIR";
 
   const toggleAssignee = (userId: string) => {
     const current = assigneeIds;
@@ -184,6 +208,10 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           dueDate: data.dueDate || null,
           status: data.status,
           priority: data.priority || "MEDIUM",
+          type: data.type || "GENERAL",
+          cost: data.cost || null,
+          currency: data.currency || null,
+          serviceProvider: data.serviceProvider || null,
         };
 
         const response = await fetch(url, {
@@ -296,6 +324,10 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
         dueDate: data.dueDate || null,
         status: data.status,
         priority: data.priority || "MEDIUM",
+        type: data.type || "GENERAL",
+        cost: data.cost || null,
+        currency: data.currency || null,
+        serviceProvider: data.serviceProvider || null,
       };
 
       console.log("Form data before submit:", data);
@@ -665,17 +697,26 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
             control={form.control}
-            name="dueDate"
+            name="type"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Due Date</FormLabel>
-                <FormControl>
-                  <Input
-                    type="date"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
+                <FormLabel>Type</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value || "GENERAL"}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem value="GENERAL">General</SelectItem>
+                    <SelectItem value="MAINTENANCE">Maintenance</SelectItem>
+                    <SelectItem value="REPAIR">Repair</SelectItem>
+                    <SelectItem value="INSPECTION">Inspection</SelectItem>
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
@@ -705,6 +746,97 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
             )}
           />
         </div>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          <FormField
+            control={form.control}
+            name="dueDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Due Date</FormLabel>
+                <FormControl>
+                  <Input
+                    type="date"
+                    {...field}
+                    value={field.value || ""}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
+
+        {showMaintenanceFields && (
+          <div className="grid gap-4 md:grid-cols-2">
+            <FormField
+              control={form.control}
+              name="serviceProvider"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Service Provider (Optional)</FormLabel>
+                  <FormControl>
+                    <Input 
+                      placeholder="Service provider name" 
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="cost"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Estimated Cost (Optional)</FormLabel>
+                  <FormControl>
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0.00"
+                        {...field}
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === "" ? null : parseFloat(value));
+                        }}
+                        className="flex-1"
+                      />
+                      <FormField
+                        control={form.control}
+                        name="currency"
+                        render={({ field: currencyField }) => (
+                          <Select
+                            onValueChange={currencyField.onChange}
+                            defaultValue={currencyField.value || "EUR"}
+                          >
+                            <FormControl>
+                              <SelectTrigger className="w-[100px]">
+                                <SelectValue />
+                              </SelectTrigger>
+                            </FormControl>
+                            <SelectContent>
+                              <SelectItem value="EUR">EUR</SelectItem>
+                              <SelectItem value="USD">USD</SelectItem>
+                              <SelectItem value="GBP">GBP</SelectItem>
+                              <SelectItem value="TRY">TRY</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        )}
+                      />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <FormLabel>Photo (optional)</FormLabel>

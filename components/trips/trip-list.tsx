@@ -381,7 +381,6 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
                     <div className="text-xs text-muted-foreground space-y-1">
                       <div>
                         {trip._count?.expenses ? `${trip._count.expenses} expenses` : ""}
-                        {trip._count?.tasks ? ` • ${trip._count.tasks} tasks` : ""}
                       </div>
                       {trip.expenseSummary && Object.keys(trip.expenseSummary).length > 0 && (
                         <div className="font-medium text-foreground">
