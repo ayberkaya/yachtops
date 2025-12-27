@@ -15,7 +15,9 @@ import {
   getMarinaPermissions,
   getMaintenanceLogs,
   getRoleTasks,
+  getBriefingStats,
 } from "@/lib/dashboard/dashboard-data";
+import { DashboardHeader } from "./dashboard-header";
 
 type DashboardUser = NonNullable<Session["user"]>;
 
@@ -29,6 +31,9 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
     
     // Get user widget settings first to determine what data to fetch
     const widgets = await getUserWidgetSettings(user.id);
+    
+    // Fetch briefing stats (always fetch for morning briefing)
+    const briefingStatsPromise = getBriefingStats(user);
     
     // Create a map of enabled widgets for quick lookup
     const enabledWidgets = new Set(
@@ -77,10 +82,11 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       : Promise.resolve(undefined);
 
     // Execute all promises in parallel (disabled widgets return undefined immediately)
-    let pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
+    let briefingStats, pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
 
     try {
       [
+        briefingStats,
         pendingExpenses,
         recentExpenses,
         creditCardExpenses,
@@ -92,6 +98,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         maintenanceLogs,
         roleAssignedTasks,
       ] = await Promise.all([
+        briefingStatsPromise,
         pendingExpensesPromise,
         recentExpensesPromise,
         creditCardExpensesPromise,
@@ -147,15 +154,25 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
 
   return (
     <div className="space-y-6">
+      {/* Compact Dashboard Header */}
+      <DashboardHeader
+        userRole={user.role}
+        userName={user.name}
+        stats={{
+          pendingTasks: briefingStats.pendingTasksCount,
+          urgentTasks: briefingStats.urgentTasksCount,
+          expiringDocs: briefingStats.expiringDocsCount,
+          lowStock: briefingStats.lowStockCount,
+          unreadMessages: briefingStats.unreadMessagesCount,
+        }}
+      />
+
       <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <WidgetCustomizerButton />
         </div>
         <div className="flex flex-col gap-2">
-          <p className="text-muted-foreground">
-            Welcome aboard, <span className="font-bold">{user.name || user.email}</span>
-          </p>
           <QuickActions />
         </div>
       </div>

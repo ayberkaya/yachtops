@@ -1,8 +1,9 @@
 import { db } from "@/lib/db";
 import { unstable_cache } from "next/cache";
-import { ExpenseStatus, TaskStatus } from "@prisma/client";
+import { ExpenseStatus, TaskStatus, TaskPriority } from "@prisma/client";
 import { getCachedCashBalanceByCurrency, getCachedRecentExpenses } from "@/lib/server-cache";
 import { hasPermission } from "@/lib/permissions";
+import { withTenantScope } from "@/lib/tenant-guard";
 import type { Session } from "next-auth";
 
 type DashboardUser = NonNullable<Session["user"]>;
@@ -299,6 +300,160 @@ export async function getRoleTasks(yachtId: string | null, user: DashboardUser) 
     }),
     [getCacheKey("role-tasks", yachtId), user.role],
     { revalidate: 30, tags: [`tasks-${yachtId}`] }
+  )();
+}
+
+/**
+ * Fetch briefing stats for the morning briefing component
+ * Returns counts for: pending tasks, urgent tasks, expiring docs, low stock, unread messages
+ */
+export async function getBriefingStats(user: DashboardUser) {
+  const yachtId = user.yachtId;
+  if (!yachtId && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
+    return {
+      pendingTasksCount: 0,
+      urgentTasksCount: 0,
+      expiringDocsCount: 0,
+      lowStockCount: 0,
+      unreadMessagesCount: 0,
+    };
+  }
+
+  const tenantId = yachtId;
+
+  // Create a minimal session object for withTenantScope
+  const mockSession = {
+    user: {
+      yachtId: tenantId || undefined,
+      role: user.role,
+    },
+  } as Session;
+
+  // Build base where clause for tasks
+  const baseWhere: any = {
+    status: {
+      not: TaskStatus.DONE,
+    },
+  };
+
+  // Permission logic: Only OWNER and CAPTAIN can see all tasks
+  const canViewAllTasks = user.role === "OWNER" || user.role === "CAPTAIN";
+  
+  if (!canViewAllTasks) {
+    baseWhere.OR = [
+      { assigneeId: user.id },
+      { assigneeId: null },
+      { assigneeRole: user.role },
+    ];
+  }
+
+  return unstable_cache(
+    async () => {
+      const [
+        pendingTasksCount,
+        urgentTasksCount,
+        expiringDocsCount,
+        lowStockCount,
+        unreadMessagesCount,
+      ] = await Promise.all([
+        // Pending tasks count
+        hasPermission(user, "tasks.view", user.permissions) && tenantId
+          ? db.task.count({
+              where: withTenantScope(mockSession, baseWhere),
+            })
+          : Promise.resolve(0),
+
+        // Urgent tasks count
+        hasPermission(user, "tasks.view", user.permissions) && tenantId
+          ? db.task.count({
+              where: withTenantScope(mockSession, {
+                ...baseWhere,
+                priority: TaskPriority.URGENT,
+              }),
+            })
+          : Promise.resolve(0),
+
+        // Expiring documents count (marina permissions)
+        hasPermission(user, "documents.marina.view", user.permissions) && tenantId
+          ? db.marinaPermissionDocument.count({
+              where: withTenantScope(mockSession, {
+                expiryDate: {
+                  not: null,
+                },
+                deletedAt: null,
+                OR: [
+                  {
+                    expiryDate: {
+                      lte: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Within 30 days
+                    },
+                  },
+                  {
+                    expiryDate: {
+                      lt: new Date(), // Already expired
+                    },
+                  },
+                ],
+              }),
+            })
+          : Promise.resolve(0),
+
+        // Low stock count - fetch all and filter client-side (Prisma doesn't support comparing two columns directly)
+        hasPermission(user, "inventory.alcohol.view", user.permissions) && tenantId
+          ? db.alcoholStock.findMany({
+              where: withTenantScope(mockSession, {
+                lowStockThreshold: {
+                  not: null,
+                },
+              }),
+              select: {
+                quantity: true,
+                lowStockThreshold: true,
+              },
+            }).then(stocks => 
+              stocks.filter(stock => 
+                stock.lowStockThreshold !== null && 
+                stock.quantity <= stock.lowStockThreshold
+              ).length
+            )
+          : Promise.resolve(0),
+
+        // Unread messages count - fetch channels and then unread counts
+        tenantId
+          ? db.messageChannel.findMany({
+              where: withTenantScope(mockSession, {}),
+              select: { id: true },
+            }).then(async (channels) => {
+              if (channels.length === 0) return 0;
+              
+              const channelIds = channels.map(c => c.id);
+              const unreadCount = await db.message.count({
+                where: {
+                  channelId: { in: channelIds },
+                  deletedAt: null,
+                  userId: { not: user.id },
+                  reads: {
+                    none: {
+                      userId: user.id,
+                    },
+                  },
+                },
+              });
+              
+              return unreadCount;
+            })
+          : Promise.resolve(0),
+      ]);
+
+      return {
+        pendingTasksCount,
+        urgentTasksCount,
+        expiringDocsCount,
+        lowStockCount,
+        unreadMessagesCount,
+      };
+    },
+    [getCacheKey("briefing-stats", tenantId), user.role, user.id],
+    { revalidate: 30, tags: [`briefing-${tenantId}`] }
   )();
 }
 

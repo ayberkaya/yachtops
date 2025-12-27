@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { TripList } from "./trip-list";
 import { RouteFuelEstimation } from "./route-fuel-estimation";
+import { ActiveVoyageHero } from "./active-voyage-hero";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Ship, History, Fuel } from "lucide-react";
 import { TripType, TripStatus, TripMovementEvent } from "@prisma/client";
@@ -120,6 +121,13 @@ export function LogbookTabs({
       </TabsList>
 
       <TabsContent value="active" className="mt-6">
+        {/* Show ActiveVoyageHero if there's an ONGOING trip */}
+        {trips.find((t) => t.status === TripStatus.ONGOING) && (
+          <ActiveVoyageHero
+            trip={trips.find((t) => t.status === TripStatus.ONGOING)!}
+            canEdit={canEdit}
+          />
+        )}
         <TripList 
           initialTrips={trips} 
           canManage={canManage} 

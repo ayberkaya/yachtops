@@ -77,28 +77,80 @@ interface TaskListProps {
   users: { id: string; name: string | null; email: string }[];
   trips: { id: string; name: string }[];
   currentUser: SessionUser;
+  currentTab: string;
+  currentStatus: string;
+  currentAssigneeId: string | null;
+  currentDateFrom: string | null;
+  currentDateTo: string | null;
 }
 
 type ViewMode = "table" | "cards";
-export function TaskList({ initialTasks, users, trips, currentUser }: TaskListProps) {
+export function TaskList({ 
+  initialTasks, 
+  users, 
+  trips, 
+  currentUser,
+  currentTab,
+  currentStatus,
+  currentAssigneeId,
+  currentDateFrom,
+  currentDateTo,
+}: TaskListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [tasks, setTasks] = useState(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
-  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
-  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>(() => {
-    const tabParam = searchParams.get("tab");
-    return tabParam && ["all", "general", "maintenance", "repairs"].includes(tabParam) ? tabParam : "all";
-  });
-  const groupBy = "none";
+  
+  // Update tasks when initialTasks changes (from server refresh)
+  useEffect(() => {
+    setTasks(initialTasks);
+  }, [initialTasks]);
+
+  // Helper function to update URL search params
+  const updateSearchParams = (updates: Record<string, string | null>) => {
+    const params = new URLSearchParams(searchParams.toString());
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value === null || value === "" || value === "all") {
+        params.delete(key);
+      } else {
+        params.set(key, value);
+      }
+    });
+    
+    router.push(`/dashboard/tasks?${params.toString()}`);
+  };
+
+  const handleTabChange = (tab: string) => {
+    updateSearchParams({ tab });
+  };
+
+  const handleStatusFilterChange = (status: string) => {
+    updateSearchParams({ status: status === "all" ? null : status });
+  };
+
+  const handleAssigneeChange = (assigneeId: string) => {
+    updateSearchParams({ assigneeId: assigneeId === "all" ? null : assigneeId });
+  };
+
+  const handleDateFromChange = (dateFrom: string) => {
+    updateSearchParams({ dateFrom: dateFrom || null });
+  };
+
+  const handleDateToChange = (dateTo: string) => {
+    updateSearchParams({ dateTo: dateTo || null });
+  };
+
+  const handleApplyFilters = () => {
+    setFiltersOpen(false);
+    // Filters are already applied via URL params, just close the panel
+    router.refresh();
+  };
 
   const canManage = currentUser.role !== "CREW";
   
@@ -281,34 +333,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     }
   };
 
-  const filteredTasks = useMemo(() => {
-    return tasks.filter((t) => {
-      // Tab filtering
-      if (activeTab === "general" && t.type !== "GENERAL") return false;
-      if (activeTab === "maintenance" && t.type !== "MAINTENANCE" && t.type !== "INSPECTION") return false;
-      if (activeTab === "repairs" && t.type !== "REPAIR") return false;
-      
-      if (statusFilter !== "all" && t.status !== statusFilter) return false;
-      if (assigneeFilter === "unassigned" && t.assignee) return false;
-      if (assigneeFilter !== "all" && assigneeFilter !== "unassigned" && t.assignee?.id !== assigneeFilter) return false;
-
-      if (dateFrom) {
-        const d = t.dueDate ? new Date(t.dueDate) : null;
-        if (!d || d < new Date(dateFrom)) return false;
-      }
-      if (dateTo) {
-        const d = t.dueDate ? new Date(t.dueDate) : null;
-        if (!d || d > new Date(dateTo)) return false;
-      }
-      return true;
-    });
-  }, [tasks, activeTab, statusFilter, assigneeFilter, dateFrom, dateTo]);
-
   // Group tasks by their core properties (same task with different assignees)
+  // Note: Filtering is now done server-side, so we just group the tasks we receive
   const groupTasks = useMemo(() => {
     const taskGroups = new Map<string, GroupedTask>();
     
-    filteredTasks.forEach((task) => {
+    tasks.forEach((task) => {
       // Create a group key based on task properties (excluding assignee)
       const groupKey = JSON.stringify({
         title: task.title,
@@ -354,7 +384,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     });
     
     return Array.from(taskGroups.values());
-  }, [filteredTasks]);
+  }, [tasks]);
 
   // Separate active and completed tasks
   const { activeTasks, completedTasks } = useMemo(() => {
@@ -405,10 +435,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   Filters
                 </Button>
               </CollapsibleTrigger>
-              <CollapsibleContent className="absolute left-0 mt-2 w-[min(900px,100vw)] max-w-[calc(100vw-2rem)] rounded-xl border bg-white p-3 shadow-lg flex flex-wrap items-start gap-3 z-20">
+              <CollapsibleContent className="absolute right-0 mt-2 w-[calc(100vw-3rem)] md:w-[min(600px,calc(100vw-4rem))] max-w-[calc(100vw-3rem)] rounded-xl border bg-white dark:bg-background p-3 shadow-lg flex flex-wrap items-start gap-3 z-50 overflow-auto">
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Status</span>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={currentStatus || "all"} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by status" />
                   </SelectTrigger>
@@ -421,7 +451,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
               </div>
               <div className="flex flex-col gap-1">
                 <span className="text-xs text-muted-foreground">Assignee</span>
-                <Select value={assigneeFilter} onValueChange={setAssigneeFilter}>
+                <Select value={currentAssigneeId || "all"} onValueChange={handleAssigneeChange}>
                   <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Filter by assignee" />
                   </SelectTrigger>
@@ -440,8 +470,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 <span className="text-xs text-muted-foreground">Start date</span>
                 <Input
                   type="date"
-                  value={dateFrom}
-                  onChange={(e) => setDateFrom(e.target.value)}
+                  value={currentDateFrom || ""}
+                  onChange={(e) => handleDateFromChange(e.target.value)}
                   className="h-11 w-[170px]"
                 />
               </div>
@@ -449,18 +479,15 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                 <span className="text-xs text-muted-foreground">End date</span>
                 <Input
                   type="date"
-                  value={dateTo}
-                  onChange={(e) => setDateTo(e.target.value)}
+                  value={currentDateTo || ""}
+                  onChange={(e) => handleDateToChange(e.target.value)}
                   className="h-11 w-[170px]"
                 />
               </div>
               <Button
                 size="sm"
                 className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white h-11"
-                onClick={() => {
-                  setFiltersOpen(false);
-                  router.refresh();
-                }}
+                onClick={handleApplyFilters}
               >
                 Apply
               </Button>
@@ -470,14 +497,14 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
         </div>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
+      <Tabs value={currentTab} onValueChange={handleTabChange}>
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="all">All</TabsTrigger>
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
           <TabsTrigger value="repairs">Repairs</TabsTrigger>
         </TabsList>
-        <TabsContent value={activeTab} className="mt-4">
+        <TabsContent value={currentTab} className="mt-4">
           {groupTasks.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">

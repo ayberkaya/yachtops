@@ -38,6 +38,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { TankStatusVisuals } from "./tank-status-visuals";
 
 type TripOption = {
   id: string;
@@ -497,6 +498,13 @@ export function RouteFuelEstimation({
               )}
             </CardContent>
           </Card>
+
+          {/* Tank Status Visuals - Show latest reading */}
+          {tripTankLogs.length > 0 && (
+            <TankStatusVisuals
+              latestTankLog={tripTankLogs[0]} // Latest is first due to desc ordering
+            />
+          )}
 
           {tripTankLogs.length > 0 && (
             <Card>

@@ -1,13 +1,23 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { db } from "@/lib/db";
 import { TaskList } from "@/components/tasks/task-list";
 import { hasPermission } from "@/lib/permissions";
 import { getCachedUsers, getCachedTrips } from "@/lib/server-cache";
-import { withTenantScope } from "@/lib/tenant-guard";
 import { getTenantId } from "@/lib/tenant";
+import { getTasks } from "@/lib/tasks/task-queries";
+import { TaskStatus } from "@prisma/client";
 
-export default async function TasksPage() {
+interface TasksPageProps {
+  searchParams: Promise<{
+    tab?: string;
+    status?: string;
+    assigneeId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>;
+}
+
+export default async function TasksPage({ searchParams }: TasksPageProps) {
   const session = await getSession();
 
   if (!session?.user) {
@@ -25,39 +35,21 @@ export default async function TasksPage() {
     redirect("/dashboard");
   }
 
-  // Build base where clause
-  const baseWhere: any = {};
+  // Read search params
+  const params = await searchParams;
+  const tab = params.tab || "all";
+  const status = (params.status as TaskStatus) || TaskStatus.TODO; // Default to TODO for fast initial load
+  const assigneeId = params.assigneeId || null;
+  const dateFrom = params.dateFrom || null;
+  const dateTo = params.dateTo || null;
 
-  // Only OWNER and CAPTAIN can see all tasks
-  // Other users can only see tasks assigned to them, their role, or unassigned tasks
-  const canViewAllTasks = session.user.role === "OWNER" || session.user.role === "CAPTAIN";
-  
-  if (!canViewAllTasks) {
-    baseWhere.OR = [
-      { assigneeId: session.user.id },
-      { assigneeId: null },
-      { assigneeRole: session.user.role },
-    ];
-  }
-
-  // Fetch tasks with strict tenant scope
-  const tasks = await db.task.findMany({
-    where: withTenantScope(session, baseWhere),
-    include: {
-      assignee: {
-        select: { id: true, name: true, email: true },
-      },
-      completedBy: {
-        select: { id: true, name: true, email: true },
-      },
-      createdBy: {
-        select: { id: true, name: true, email: true },
-      },
-      trip: {
-        select: { id: true, name: true },
-      },
-    },
-    orderBy: { dueDate: "asc" },
+  // Fetch tasks with server-side filtering
+  const tasks = await getTasks(session, {
+    status,
+    tab,
+    assigneeId,
+    dateFrom,
+    dateTo,
   });
 
   // Fetch users and trips for filters/forms (using cached versions)
@@ -77,16 +69,37 @@ export default async function TasksPage() {
         </div>
       </div>
       <TaskList
-        initialTasks={tasks.map((task: { dueDate: Date | null; completedAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
-          ...task,
-          dueDate: task.dueDate ? task.dueDate.toISOString().split('T')[0] : null,
-          completedAt: task.completedAt ? task.completedAt.toISOString() : null,
-          createdAt: task.createdAt.toISOString(),
-          updatedAt: task.updatedAt.toISOString(),
-        }))}
+        initialTasks={tasks.map((task: any) => {
+          const formatDate = (date: Date | string | null): string | null => {
+            if (!date) return null;
+            if (typeof date === 'string') return date;
+            if (date instanceof Date) return date.toISOString();
+            return null;
+          };
+
+          const formatDateOnly = (date: Date | string | null): string | null => {
+            if (!date) return null;
+            if (typeof date === 'string') return date.split('T')[0];
+            if (date instanceof Date) return date.toISOString().split('T')[0];
+            return null;
+          };
+
+          return {
+            ...task,
+            dueDate: formatDateOnly(task.dueDate),
+            completedAt: formatDate(task.completedAt),
+            createdAt: formatDate(task.createdAt) || new Date().toISOString(),
+            updatedAt: formatDate(task.updatedAt) || new Date().toISOString(),
+          };
+        })}
         users={users}
         trips={trips}
         currentUser={session.user}
+        currentTab={tab}
+        currentStatus={status}
+        currentAssigneeId={assigneeId}
+        currentDateFrom={dateFrom}
+        currentDateTo={dateTo}
       />
     </div>
   );
