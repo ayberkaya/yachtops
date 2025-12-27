@@ -23,7 +23,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus, ArrowDownCircle, ArrowUpCircle, Eye } from "lucide-react";
+import { Plus, Eye } from "lucide-react";
 import { CashTransactionType } from "@prisma/client";
 import { format } from "date-fns";
 
@@ -230,10 +230,12 @@ export function CashView() {
             </div>
           ) : (
             <div className="space-y-1.5">
-              {getBalancesByCurrency().map((balance) => (
+              {getBalancesByCurrency().map((balance, index, array) => (
                 <div
                   key={balance.currency}
-                  className="flex items-center justify-between px-1.5 mb-0 rounded-lg bg-muted/50"
+                  className={`flex items-center justify-between px-1.5 mb-0 rounded-lg bg-muted/50 ${
+                    index < array.length - 1 ? "border-b border-border/20" : ""
+                  }`}
                 >
                   <div className="flex items-center gap-2">
                     <div className="text-lg font-bold">{balance.currency}</div>
@@ -326,7 +328,6 @@ export function CashView() {
       <Card>
         <CardHeader>
           <CardTitle>Transaction History</CardTitle>
-          <CardDescription>Cash transaction history</CardDescription>
         </CardHeader>
         <CardContent>
           {(!data.transactions || data.transactions.length === 0) ? (
@@ -338,7 +339,6 @@ export function CashView() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Date</TableHead>
-                  <TableHead>Type</TableHead>
                   <TableHead>Amount</TableHead>
                   <TableHead>Description</TableHead>
                   <TableHead>Created By</TableHead>
@@ -350,20 +350,6 @@ export function CashView() {
                   <TableRow key={transaction.id}>
                     <TableCell>
                       {format(new Date(transaction.createdAt), "MMM d, yyyy HH:mm")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {transaction.type === CashTransactionType.DEPOSIT ? (
-                          <ArrowDownCircle className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <ArrowUpCircle className="h-4 w-4 text-red-600" />
-                        )}
-                        <span>
-                          {transaction.type === CashTransactionType.DEPOSIT
-                            ? "Deposit"
-                            : "Withdrawal"}
-                        </span>
-                      </div>
                     </TableCell>
                     <TableCell>
                       <span

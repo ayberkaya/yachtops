@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
-import { Eye, Download, X } from "lucide-react";
+import { Download, X } from "lucide-react";
 import Link from "next/link";
 
 interface Receipt {
@@ -110,14 +110,14 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
                         className="text-primary hover:underline text-sm flex items-center gap-1"
                         title="View receipt"
                       >
-                        <Eye className="h-4 w-4" />
+                        View
                       </button>
                       <Link
                         href={`/dashboard/expenses/${receipt.expense.id}`}
                         className="text-muted-foreground hover:text-primary text-sm flex items-center"
                         title="View expense"
                       >
-                        <Eye className="h-4 w-4" />
+                        View
                       </Link>
                     </div>
                   </div>
@@ -217,7 +217,6 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
                       href={`/dashboard/expenses/${previewReceipt.expense.id}`}
                       className="text-sm text-primary hover:underline flex items-center gap-1"
                     >
-                      <Eye className="h-4 w-4" />
                       View expense details
                     </Link>
                   </div>
