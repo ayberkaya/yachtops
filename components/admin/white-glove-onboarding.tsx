@@ -70,6 +70,7 @@ export function WhiteGloveOnboarding() {
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [previewMode, setPreviewMode] = useState(false);
   const [successData, setSuccessData] = useState<{
     yachtId: string;
     ownerId: string;
@@ -150,6 +151,7 @@ export function WhiteGloveOnboarding() {
       formData.append("activateImmediately", data.activateImmediately ? "true" : "false");
       formData.append("trialDays", data.trialDays);
       formData.append("internalNotes", data.internalNotes || "");
+      formData.append("previewMode", previewMode ? "true" : "false");
 
       if (data.logoFile) {
         formData.append("logoFile", data.logoFile);
@@ -160,14 +162,20 @@ export function WhiteGloveOnboarding() {
 
       const result = await onboardNewCustomer(formData);
 
-      if (result.success && result.data) {
+      if (result.success) {
         setShowPreview(false);
-        setSuccessData({
-          yachtId: result.data.yachtId,
-          ownerId: result.data.ownerId,
-          ownerEmail: data.ownerEmail,
-          yachtName: data.yachtName,
-        });
+        if (previewMode) {
+          // Preview mode - just show success message, no user created
+          alert(result.message || "✅ Test email sent successfully! No user was created.");
+        } else if (result.data) {
+          // Normal mode - show success modal with user data
+          setSuccessData({
+            yachtId: result.data.yachtId,
+            ownerId: result.data.ownerId,
+            ownerEmail: data.ownerEmail,
+            yachtName: data.yachtName,
+          });
+        }
       } else {
         throw new Error(result.message || "Failed to onboard customer");
       }
@@ -512,6 +520,23 @@ export function WhiteGloveOnboarding() {
                   Enter number of days for free trial (0 = no trial)
                 </p>
               </div>
+
+              {/* Preview Mode Toggle */}
+              <div className="flex items-center justify-between p-4 border rounded-lg bg-amber-50 border-amber-200">
+                <div className="space-y-0.5">
+                  <Label htmlFor="previewMode" className="text-base font-medium cursor-pointer">
+                    Test Mode (Preview Only)
+                  </Label>
+                  <p className="text-sm text-muted-foreground">
+                    Enable this to send a test email without creating a user account. Perfect for testing email design.
+                  </p>
+                </div>
+                <Switch
+                  id="previewMode"
+                  checked={previewMode}
+                  onCheckedChange={setPreviewMode}
+                />
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -548,6 +573,7 @@ export function WhiteGloveOnboarding() {
           ownerEmail: formValues.ownerEmail,
           yachtName: formValues.yachtName,
           planName: selectedPlan?.name || "",
+          planId: formValues.planId,
           logoFile: formValues.logoFile,
           languagePreference: formValues.languagePreference,
         }}

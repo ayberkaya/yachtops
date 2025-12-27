@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { requirePermissionFromSession, FEATURE_KEYS } from "@/lib/feature-gate";
 
-export default async function FinanceLayout({
+export default async function MaintenanceLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -13,12 +13,12 @@ export default async function FinanceLayout({
     redirect("/auth/signin");
   }
 
-  // Check if user's vessel has access to finance module
+  // Check if user's vessel has access to maintenance module
   try {
-    await requirePermissionFromSession(FEATURE_KEYS.FINANCE);
+    await requirePermissionFromSession(FEATURE_KEYS.MAINTENANCE);
   } catch (error) {
     // Feature not available - redirect to dashboard with error message
-    redirect("/dashboard?error=finance_not_available");
+    redirect("/dashboard?error=maintenance_not_available");
   }
 
   return <>{children}</>;

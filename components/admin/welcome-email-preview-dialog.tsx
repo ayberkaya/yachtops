@@ -9,8 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
-import Image from "next/image";
+import { ArrowLeft, Mail, CheckCircle2, Loader2 } from "lucide-react";
 
 type WelcomeEmailPreviewProps = {
   open: boolean;
@@ -20,6 +19,7 @@ type WelcomeEmailPreviewProps = {
     ownerEmail: string;
     yachtName: string;
     planName: string;
+    planId?: string;
     logoFile: File | null;
     languagePreference: "tr" | "en";
   };
@@ -34,7 +34,10 @@ export function WelcomeEmailPreviewDialog({
   onConfirm,
   isSubmitting = false,
 }: WelcomeEmailPreviewProps) {
+  const [emailHtml, setEmailHtml] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [planFeatures, setPlanFeatures] = useState<string[]>([]);
 
   useEffect(() => {
     if (formData.logoFile) {
@@ -46,8 +49,67 @@ export function WelcomeEmailPreviewDialog({
     }
   }, [formData.logoFile]);
 
-  const subject = `Invitation to manage ${formData.yachtName} on HelmOps`;
-  const isTurkish = formData.languagePreference === "tr";
+  useEffect(() => {
+    if (open && formData.planId) {
+      loadPlanFeatures();
+    }
+  }, [open, formData.planId]);
+
+  useEffect(() => {
+    if (open) {
+      generateEmailPreview();
+    }
+  }, [open, formData, planFeatures, logoPreview]);
+
+  const loadPlanFeatures = async () => {
+    if (!formData.planId) return;
+    try {
+      const res = await fetch("/api/admin/plans", { cache: "no-store" });
+      if (res.ok) {
+        const plans = await res.json();
+        const plan = Array.isArray(plans) ? plans.find((p: any) => p.id === formData.planId) : null;
+        if (plan?.features) {
+          setPlanFeatures(Array.isArray(plan.features) ? plan.features : []);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to load plan features:", error);
+    }
+  };
+
+  const generateEmailPreview = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/admin/preview-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          yachtName: formData.yachtName,
+          ownerName: formData.ownerName,
+          planName: formData.planName,
+          planId: formData.planId,
+          languagePreference: formData.languagePreference,
+          logoUrl: logoPreview,
+          planFeatures: planFeatures,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to generate preview");
+      }
+
+      const data = await response.json();
+      setEmailHtml(data.html);
+    } catch (error) {
+      console.error("Failed to generate email preview:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const subject = formData.languagePreference === "tr"
+    ? `Hoş Geldiniz - ${formData.yachtName} için ${formData.planName} Aboneliği Hazır`
+    : `Welcome - ${formData.planName} Subscription Ready for ${formData.yachtName}`;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -61,7 +123,7 @@ export function WelcomeEmailPreviewDialog({
 
         <div className="space-y-6 mt-4">
           {/* Email Preview Container */}
-          <div className="border rounded-lg bg-white shadow-sm">
+          <div className="border rounded-lg bg-white shadow-sm overflow-hidden">
             {/* Email Header */}
             <div className="border-b p-4 bg-slate-50">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -78,72 +140,22 @@ export function WelcomeEmailPreviewDialog({
               </div>
             </div>
 
-            {/* Email Body */}
-            <div className="p-6 space-y-6">
-              {/* Logo */}
-              <div className="flex justify-center">
-                {logoPreview ? (
-                  <div className="relative w-32 h-16">
-                    <Image
-                      src={logoPreview}
-                      alt={`${formData.yachtName} Logo`}
-                      fill
-                      className="object-contain"
-                    />
-                  </div>
-                ) : (
-                  <div className="w-32 h-16 bg-slate-100 rounded-lg flex items-center justify-center text-xs text-muted-foreground">
-                    Yacht Logo
-                  </div>
-                )}
+            {/* Email Body - Real HTML from getModernWelcomeEmailHtml */}
+            {loading ? (
+              <div className="p-12 flex items-center justify-center">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
-
-              {/* Greeting */}
-              <div className="space-y-4">
-                <p className="text-base">
-                  {isTurkish ? "Sayın" : "Dear"} <strong>{formData.ownerName}</strong>,
-                </p>
-
-                <p className="text-base leading-relaxed">
-                  {isTurkish ? (
-                    <>
-                      <strong>{formData.yachtName}</strong> için çalışma alanınız{" "}
-                      <strong>{formData.planName}</strong> aboneliği ile hazırlandı.
-                    </>
-                  ) : (
-                    <>
-                      Your workspace for <strong>{formData.yachtName}</strong> has been prepared with the{" "}
-                      <strong>{formData.planName}</strong> subscription.
-                    </>
-                  )}
-                </p>
-
-                <p className="text-base leading-relaxed">
-                  {isTurkish
-                    ? "Aşağıdaki butona tıklayarak güvenli şifrenizi belirleyebilir ve kontrol panelinize erişebilirsiniz."
-                    : "Click below to set your secure password and access your dashboard."}
-                </p>
+            ) : emailHtml ? (
+              <div
+                className="overflow-auto"
+                style={{ maxHeight: "70vh" }}
+                dangerouslySetInnerHTML={{ __html: emailHtml }}
+              />
+            ) : (
+              <div className="p-12 text-center text-muted-foreground">
+                Failed to load email preview
               </div>
-
-              {/* CTA Button */}
-              <div className="flex justify-center pt-4">
-                <div className="inline-block">
-                  <div className="px-6 py-3 bg-primary text-primary-foreground rounded-lg font-medium text-center cursor-pointer hover:bg-primary/90 transition-colors">
-                    {isTurkish ? "Kontrol Paneline Eriş" : "Access Dashboard"}
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="pt-6 border-t text-sm text-muted-foreground text-center">
-                <p>
-                  {isTurkish
-                    ? "Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın."
-                    : "This email was sent automatically. Please do not reply."}
-                </p>
-                <p className="mt-2">© HelmOps - Yacht Management Platform</p>
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Actions */}

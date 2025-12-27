@@ -14,6 +14,7 @@ import {
   Inbox,
   Tag,
   TrendingUp,
+  Presentation,
   LucideIcon,
 } from "lucide-react";
 
@@ -102,9 +103,9 @@ export function useNavigation() {
             permission: null,
           },
           {
-            href: "/admin/pricing",
-            label: "Pricing",
-            icon: Tag,
+            href: "/admin/sales",
+            label: "Sales Hub",
+            icon: Presentation,
             permission: null,
           },
           {

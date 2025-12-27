@@ -7,12 +7,20 @@ import { ExpenseStatus } from "@prisma/client";
 import { getCachedExpenseCategories, getCachedTrips, getCachedUsers } from "@/lib/server-cache";
 import { withTenantScope } from "@/lib/tenant-guard";
 import { getTenantId } from "@/lib/tenant";
+import { requirePermissionFromSession, FEATURE_KEYS } from "@/lib/feature-gate";
 
 export default async function ExpensesPage() {
   const session = await getSession();
 
   if (!session?.user) {
     redirect("/auth/signin");
+  }
+
+  // Check feature access (plan-based)
+  try {
+    await requirePermissionFromSession(FEATURE_KEYS.FINANCE);
+  } catch (error) {
+    redirect("/dashboard?error=finance_not_available");
   }
 
   // Check permission

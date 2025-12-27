@@ -13,6 +13,7 @@
     "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true next build --turbo",
     "db:seed": "tsx prisma/seed.ts",
+    "db:seed-plans": "tsx prisma/seed-plans.ts",
     "create-super-admin": "tsx scripts/create-super-admin.ts",
     "cleanup-duplicate-channels": "tsx scripts/cleanup-duplicate-channels.ts",
     "create-icons": "./scripts/create-icons.sh",

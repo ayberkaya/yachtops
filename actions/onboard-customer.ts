@@ -32,6 +32,7 @@ const onboardSchema = z.object({
     return isNaN(num) ? 0 : num;
   }),
   internalNotes: z.string().optional(),
+  previewMode: z.string().transform((val) => val === "true").optional(), // Preview mode - don't create user, just send email
 });
 
 export type OnboardCustomerState = {
@@ -90,9 +91,65 @@ export async function onboardNewCustomer(
       activateImmediately: formData.get("activateImmediately") as string || "false",
       trialDays: formData.get("trialDays") as string || "0",
       internalNotes: formData.get("internalNotes") as string || "",
+      previewMode: formData.get("previewMode") as string || "false",
     };
 
     const validated = onboardSchema.parse(rawData);
+    
+    // PREVIEW MODE: Only send email, don't create user
+    if (validated.previewMode) {
+      try {
+        // Fetch plan features
+        const supabase = createAdminClient();
+        let planFeatures: string[] = [];
+        if (supabase && validated.planId) {
+          const { data: planData } = await supabase
+            .from("plans")
+            .select("features, name")
+            .eq("id", validated.planId)
+            .single();
+          
+          if (planData?.features) {
+            planFeatures = Array.isArray(planData.features) ? planData.features : [];
+          }
+        }
+
+        const plan = await db.$queryRaw<Array<{ name: string }>>`
+          SELECT name FROM plans WHERE id = ${validated.planId}::uuid
+        `.catch(() => []);
+        
+        const planName = plan[0]?.name || "Essentials";
+        
+        // Generate mock verification token
+        const mockToken = `preview_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
+        const verificationLink = `${appUrl}/verify-email?token=${mockToken}`;
+
+        // Send email without creating user
+        await sendModernWelcomeEmail(
+          validated.ownerEmail,
+          validated.yachtName,
+          validated.ownerName,
+          planName,
+          verificationLink,
+          validated.languagePreference,
+          null, // No logo in preview
+          planFeatures
+        );
+
+        return {
+          success: true,
+          message: `✅ Preview email sent successfully to ${validated.ownerEmail}. No user was created (preview mode).`,
+        };
+      } catch (error) {
+        console.error("❌ Failed to send preview email:", error);
+        return {
+          success: false,
+          error: "Email send failed",
+          message: `Failed to send preview email: ${error instanceof Error ? error.message : "Unknown error"}`,
+        };
+      }
+    }
     
     // Get file uploads
     const logoFile = formData.get("logoFile") as File | null;

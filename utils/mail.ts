@@ -223,8 +223,8 @@ Safe travels.
  * @param supportContact - Optional support contact info (defaults to mock number)
  */
 /**
- * Generate modern welcome email HTML with verification link
- * Includes plan information, features, and verification button
+ * Generate premium luxury welcome email HTML with verification link
+ * Exclusive, professional design that conveys prestige and sophistication
  */
 export async function getModernWelcomeEmailHtml(
   yachtName: string,
@@ -239,49 +239,85 @@ export async function getModernWelcomeEmailHtml(
   const isTurkish = language === "tr";
   const htmlLang = isTurkish ? "tr" : "en";
   
-  // Language-specific content
+  // Language-specific content with premium messaging
   const content = {
     greeting: isTurkish ? "Sayın" : "Dear",
     welcomeTitle: isTurkish 
-      ? `Hoş Geldiniz - ${yachtName} için ${planName} Aboneliği Hazır`
-      : `Welcome - ${planName} Subscription Ready for ${yachtName}`,
+      ? `Özel Davet - ${yachtName} için ${planName} Üyeliği`
+      : `Exclusive Invitation - ${planName} Membership for ${yachtName}`,
     message1: isTurkish
-      ? `Merhaba <strong style="color: #0f172a; font-weight: 600;">${ownerName}</strong>,`
-      : `Hello <strong style="color: #0f172a; font-weight: 600;">${ownerName}</strong>,`,
+      ? `Sayın <strong style="color: #0f172a; font-weight: 600;">${ownerName}</strong>,`
+      : `Dear <strong style="color: #0f172a; font-weight: 600;">${ownerName}</strong>,`,
     message2: isTurkish
-      ? `<strong style="color: #0f172a; font-weight: 600;">${yachtName}</strong> için çalışma alanınız <strong style="color: #1e40af; font-weight: 600;">${planName}</strong> aboneliği ile hazırlandı.`
-      : `Your workspace for <strong style="color: #0f172a; font-weight: 600;">${yachtName}</strong> has been prepared with the <strong style="color: #1e40af; font-weight: 600;">${planName}</strong> subscription.`,
+      ? `Size özel hazırlanan <strong style="color: #0f172a; font-weight: 600;">${yachtName}</strong> için dijital komuta merkeziniz hazır.`
+      : `Your exclusive digital command center for <strong style="color: #0f172a; font-weight: 600;">${yachtName}</strong> has been prepared.`,
     message3: isTurkish
-      ? "E-posta adresinizi doğrulamak ve güvenli şifrenizi oluşturmak için aşağıdaki butona tıklayın."
-      : "Click the button below to verify your email address and create your secure password.",
-    buttonText: isTurkish ? "E-postayı Doğrula ve Şifre Oluştur" : "Verify Email & Set Password",
-    planLabel: isTurkish ? "Abonelik Planı" : "Subscription Plan",
-    featuresLabel: isTurkish ? "Plan Özellikleri" : "Plan Features",
-    supportLabel: isTurkish ? "Destek" : "Support",
+      ? `Sizin için <strong style="color: #1e40af; font-weight: 600;">${planName}</strong> üyeliği aktifleştirildi. Bu platform, yatınızın tüm operasyonel süreçlerini tek bir merkezden yönetmenizi sağlar.`
+      : `Your <strong style="color: #1e40af; font-weight: 600;">${planName}</strong> membership has been activated. This platform enables you to manage all operational processes of your vessel from a single command center.`,
+    message4: isTurkish
+      ? "Hesabınızı aktifleştirmek ve güvenli şifrenizi belirlemek için aşağıdaki butona tıklayın. Bu işlem sadece birkaç dakika sürer."
+      : "Click the button below to activate your account and set your secure password. This process takes only a few minutes.",
+    buttonText: isTurkish ? "Hesabımı Aktifleştir" : "Activate My Account",
+    planLabel: isTurkish ? "Üyelik Detayları" : "Membership Details",
+    planSubtitle: isTurkish ? "Aktif Abonelik" : "Active Subscription",
+    featuresLabel: isTurkish ? "Üyelik Avantajları" : "Membership Benefits",
+    featuresSubtitle: isTurkish 
+      ? "Bu üyelikle erişebileceğiniz özellikler:"
+      : "Features included with your membership:",
+    nextStepsLabel: isTurkish ? "Sonraki Adımlar" : "Next Steps",
+    nextSteps1: isTurkish 
+      ? "E-posta adresinizi doğrulayın ve güvenli şifrenizi oluşturun"
+      : "Verify your email address and create your secure password",
+    nextSteps2: isTurkish 
+      ? "Dashboard'unuzu keşfedin ve platform özelliklerini inceleyin"
+      : "Explore your dashboard and review platform features",
+    nextSteps3: isTurkish 
+      ? "Mürettebat üyelerinizi ekleyin ve operasyonları başlatın"
+      : "Add crew members and begin operations",
+    supportLabel: isTurkish ? "Özel Destek" : "Concierge Support",
     supportText: isTurkish 
-      ? "Sorularınız için bizimle iletişime geçin:"
-      : "Contact us for any questions:",
+      ? "Herhangi bir sorunuz veya özel bir talebiniz için özel destek ekibimiz 7/24 hizmetinizdedir:"
+      : "Our dedicated support team is available 24/7 for any questions or special requests:",
     footerText: isTurkish
       ? "Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın."
       : "This email was sent automatically. Please do not reply.",
+    welcomeMessage: isTurkish
+      ? "HelmOps Ailesine Hoş Geldiniz"
+      : "Welcome to the HelmOps Family",
   };
 
   const logoSection = logoUrl
-    ? `<img src="${logoUrl}" alt="${yachtName}" style="max-height: 60px; width: auto; margin: 0 auto; display: block;" />`
-    : `<div style="text-align: center;">
-        <h1 style="margin: 0; color: #0f172a; font-size: 32px; font-weight: 700; letter-spacing: -0.5px;">HelmOps</h1>
-        <p style="margin: 5px 0 0; color: #64748b; font-size: 14px; font-weight: 400;">Yacht Management Platform</p>
+    ? `<div style="text-align: center; padding: 20px 0;">
+        <img src="${logoUrl}" alt="${yachtName}" style="max-height: 80px; width: auto; margin: 0 auto; display: block; filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.1));" />
+      </div>`
+    : `<div style="text-align: center; padding: 20px 0;">
+        <h1 style="margin: 0; color: #ffffff; font-size: 36px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; font-family: 'Georgia', 'Times New Roman', serif;">HelmOps</h1>
+        <p style="margin: 8px 0 0; color: #e2e8f0; font-size: 13px; font-weight: 400; letter-spacing: 3px; text-transform: uppercase;">Yacht Management Platform</p>
       </div>`;
 
   const featuresList = planFeatures.length > 0 
-    ? planFeatures.slice(0, 6).map(feature => 
-        `<li style="margin: 8px 0; color: #334155; font-size: 14px; line-height: 1.6;">
-          <span style="color: #1e40af; margin-right: 8px;">✓</span>${feature}
-        </li>`
+    ? planFeatures.map(feature => 
+        `<tr>
+          <td style="padding: 12px 0; vertical-align: top;">
+            <span style="display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 50%; text-align: center; line-height: 24px; margin-right: 12px; vertical-align: top;">
+              <span style="color: #ffffff; font-size: 14px; font-weight: 600;">✓</span>
+            </span>
+          </td>
+          <td style="padding: 12px 0; color: #334155; font-size: 15px; line-height: 1.7; font-weight: 400;">
+            ${feature}
+          </td>
+        </tr>`
       ).join("")
-    : `<li style="margin: 8px 0; color: #334155; font-size: 14px; line-height: 1.6;">
-        <span style="color: #1e40af; margin-right: 8px;">✓</span>${isTurkish ? "Tam özellikli yat yönetimi" : "Full-featured yacht management"}
-      </li>`;
+    : `<tr>
+        <td style="padding: 12px 0; vertical-align: top;">
+          <span style="display: inline-block; width: 24px; height: 24px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 50%; text-align: center; line-height: 24px; margin-right: 12px; vertical-align: top;">
+            <span style="color: #ffffff; font-size: 14px; font-weight: 600;">✓</span>
+          </span>
+        </td>
+        <td style="padding: 12px 0; color: #334155; font-size: 15px; line-height: 1.7; font-weight: 400;">
+          ${isTurkish ? "Tam özellikli yat yönetimi ve operasyon takibi" : "Full-featured yacht management and operations tracking"}
+        </td>
+      </tr>`;
 
   return `
 <!DOCTYPE html>
@@ -291,82 +327,162 @@ export async function getModernWelcomeEmailHtml(
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>${content.welcomeTitle}</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8fafc;">
-  <table role="presentation" style="width: 100%; border-collapse: collapse; background-color: #f8fafc;">
+<body style="margin: 0; padding: 0; font-family: 'Georgia', 'Times New Roman', 'Palatino', serif; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); background-attachment: fixed;">
+  <table role="presentation" style="width: 100%; border-collapse: collapse; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); min-height: 100vh;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <!-- Main Container -->
-        <table role="presentation" style="max-width: 600px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);">
+      <td align="center" style="padding: 60px 20px;">
+        <!-- Main Container with Premium Shadow -->
+        <table role="presentation" style="max-width: 680px; width: 100%; border-collapse: collapse; background-color: #ffffff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15), 0 0 1px rgba(0, 0, 0, 0.1); overflow: hidden;">
           
-          <!-- Header with Logo -->
+          <!-- Premium Header with Elegant Gradient -->
           <tr>
-            <td style="padding: 40px 40px 30px; text-align: center; background: linear-gradient(135deg, #0f172a 0%, #1e40af 100%); border-radius: 12px 12px 0 0;">
-              ${logoSection}
+            <td style="padding: 0; text-align: center; background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #1e40af 100%); position: relative; overflow: hidden;">
+              <!-- Decorative Pattern Overlay -->
+              <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; opacity: 0.05; background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.1) 10px, rgba(255,255,255,.1) 20px);"></div>
+              <div style="padding: 50px 40px 40px; position: relative; z-index: 1;">
+                ${logoSection}
+                <!-- Welcome Badge -->
+                <div style="margin-top: 30px; display: inline-block; padding: 8px 20px; background: rgba(255, 255, 255, 0.15); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 50px; backdrop-filter: blur(10px);">
+                  <p style="margin: 0; color: #ffffff; font-size: 12px; font-weight: 500; letter-spacing: 1.5px; text-transform: uppercase;">${content.welcomeMessage}</p>
+                </div>
+              </div>
             </td>
           </tr>
           
-          <!-- Main Content -->
+          <!-- Elegant Divider -->
           <tr>
-            <td style="padding: 40px;">
-              <!-- Greeting -->
-              <p style="margin: 0 0 20px; color: #334155; font-size: 18px; line-height: 1.6;">
+            <td style="padding: 0;">
+              <div style="height: 3px; background: linear-gradient(90deg, transparent, #1e40af, transparent);"></div>
+            </td>
+          </tr>
+          
+          <!-- Main Content with Premium Typography -->
+          <tr>
+            <td style="padding: 50px 50px 40px;">
+              <!-- Greeting with Elegant Style -->
+              <p style="margin: 0 0 25px; color: #0f172a; font-size: 20px; line-height: 1.6; font-weight: 400; letter-spacing: 0.3px;">
                 ${content.message1}
               </p>
               
-              <!-- Main Message -->
-              <p style="margin: 0 0 30px; color: #334155; font-size: 16px; line-height: 1.8;">
+              <!-- Main Message with Rich Content -->
+              <p style="margin: 0 0 25px; color: #334155; font-size: 17px; line-height: 1.8; font-weight: 300;">
                 ${content.message2}
               </p>
               
-              <p style="margin: 0 0 30px; color: #64748b; font-size: 15px; line-height: 1.7;">
+              <p style="margin: 0 0 40px; color: #475569; font-size: 16px; line-height: 1.9; font-weight: 300;">
                 ${content.message3}
               </p>
               
-              <!-- CTA Button -->
-              <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 35px 0;">
+              <!-- Premium CTA Button -->
+              <table role="presentation" style="width: 100%; border-collapse: collapse; margin: 45px 0;">
                 <tr>
                   <td align="center" style="padding: 0;">
-                    <a href="${verificationLink}" style="display: inline-block; padding: 16px 40px; background-color: #1e40af; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px; text-align: center; box-shadow: 0 4px 6px rgba(30, 64, 175, 0.25); transition: all 0.2s;">
+                    <a href="${verificationLink}" style="display: inline-block; padding: 18px 50px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); color: #ffffff; text-decoration: none; border-radius: 10px; font-weight: 600; font-size: 17px; text-align: center; box-shadow: 0 8px 20px rgba(30, 64, 175, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.1) inset; letter-spacing: 0.5px; text-transform: uppercase; transition: all 0.3s ease;">
                       ${content.buttonText}
                     </a>
                   </td>
                 </tr>
               </table>
               
-              <!-- Plan Information Card -->
-              <div style="margin: 40px 0; padding: 24px; background-color: #f1f5f9; border-radius: 8px; border-left: 4px solid #1e40af;">
-                <h3 style="margin: 0 0 16px; color: #0f172a; font-size: 16px; font-weight: 600;">
-                  ${content.planLabel}: <span style="color: #1e40af;">${planName}</span>
-                </h3>
-                <p style="margin: 0 0 12px; color: #334155; font-size: 14px; font-weight: 500;">
-                  ${content.featuresLabel}:
+              <!-- Premium Membership Card -->
+              <div style="margin: 50px 0; padding: 35px; background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%); border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);">
+                <div style="margin-bottom: 25px; padding-bottom: 20px; border-bottom: 2px solid #e2e8f0;">
+                  <div style="display: flex; align-items: center; justify-content: space-between;">
+                    <div>
+                      <p style="margin: 0 0 5px; color: #64748b; font-size: 12px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">${content.planSubtitle}</p>
+                      <h3 style="margin: 0; color: #0f172a; font-size: 24px; font-weight: 700; letter-spacing: -0.5px;">
+                        ${planName}
+                      </h3>
+                    </div>
+                    <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(30, 64, 175, 0.3);">
+                      <span style="color: #ffffff; font-size: 28px;">⚓</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <p style="margin: 0 0 20px; color: #334155; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">
+                  ${content.featuresSubtitle}
                 </p>
-                <ul style="margin: 0; padding-left: 20px; list-style: none;">
+                
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
                   ${featuresList}
-                </ul>
+                </table>
               </div>
               
-              <!-- Support Section -->
-              <div style="margin: 30px 0; padding-top: 30px; border-top: 1px solid #e2e8f0;">
-                <p style="margin: 0 0 8px; color: #64748b; font-size: 14px; font-weight: 500;">
-                  ${content.supportLabel}:
-                </p>
-                <p style="margin: 0; color: #334155; font-size: 14px;">
-                  <a href="mailto:${supportContact}" style="color: #1e40af; text-decoration: none; font-weight: 500;">${supportContact}</a>
-                </p>
+              <!-- Next Steps Section -->
+              <div style="margin: 40px 0; padding: 30px; background: #ffffff; border-radius: 12px; border: 2px solid #e2e8f0;">
+                <h4 style="margin: 0 0 20px; color: #0f172a; font-size: 18px; font-weight: 600; letter-spacing: 0.3px;">
+                  ${content.nextStepsLabel}
+                </h4>
+                <table role="presentation" style="width: 100%; border-collapse: collapse;">
+                  <tr>
+                    <td style="padding: 12px 0; vertical-align: top; width: 30px;">
+                      <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 50%; text-align: center; line-height: 28px; color: #ffffff; font-weight: 600; font-size: 14px;">1</span>
+                    </td>
+                    <td style="padding: 12px 0; color: #334155; font-size: 15px; line-height: 1.7;">
+                      ${content.nextSteps1}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0; vertical-align: top;">
+                      <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 50%; text-align: center; line-height: 28px; color: #ffffff; font-weight: 600; font-size: 14px;">2</span>
+                    </td>
+                    <td style="padding: 12px 0; color: #334155; font-size: 15px; line-height: 1.7;">
+                      ${content.nextSteps2}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding: 12px 0; vertical-align: top;">
+                      <span style="display: inline-block; width: 28px; height: 28px; background: linear-gradient(135deg, #1e40af 0%, #3b82f6 100%); border-radius: 50%; text-align: center; line-height: 28px; color: #ffffff; font-weight: 600; font-size: 14px;">3</span>
+                    </td>
+                    <td style="padding: 12px 0; color: #334155; font-size: 15px; line-height: 1.7;">
+                      ${content.nextSteps3}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+              
+              <!-- Premium Support Section -->
+              <div style="margin: 40px 0; padding: 30px; background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); border-radius: 12px; border: 1px solid #fbbf24;">
+                <div style="display: flex; align-items: start; gap: 15px;">
+                  <div style="width: 40px; height: 40px; background: #f59e0b; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                    <span style="color: #ffffff; font-size: 20px;">✨</span>
+                  </div>
+                  <div style="flex: 1;">
+                    <p style="margin: 0 0 8px; color: #92400e; font-size: 15px; font-weight: 600; letter-spacing: 0.3px;">
+                      ${content.supportLabel}
+                    </p>
+                    <p style="margin: 0 0 12px; color: #78350f; font-size: 14px; line-height: 1.6;">
+                      ${content.supportText}
+                    </p>
+                    <p style="margin: 0;">
+                      <a href="mailto:${supportContact}" style="color: #1e40af; text-decoration: none; font-weight: 600; font-size: 15px; border-bottom: 2px solid #1e40af; padding-bottom: 2px;">${supportContact}</a>
+                    </p>
+                  </div>
+                </div>
               </div>
             </td>
           </tr>
           
-          <!-- Footer -->
+          <!-- Elegant Footer -->
           <tr>
-            <td style="padding: 30px 40px; background-color: #f8fafc; border-radius: 0 0 12px 12px; border-top: 1px solid #e2e8f0;">
-              <p style="margin: 0 0 10px; color: #94a3b8; font-size: 12px; text-align: center; line-height: 1.5;">
+            <td style="padding: 0;">
+              <div style="height: 3px; background: linear-gradient(90deg, transparent, #1e40af, transparent);"></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px 50px; background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);">
+              <p style="margin: 0 0 15px; color: #64748b; font-size: 12px; text-align: center; line-height: 1.6; font-weight: 300;">
                 ${content.footerText}
               </p>
-              <p style="margin: 0; color: #cbd5e1; font-size: 11px; text-align: center;">
-                © ${new Date().getFullYear()} HelmOps - Yacht Management Platform
-              </p>
+              <div style="text-align: center; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <p style="margin: 0 0 8px; color: #94a3b8; font-size: 11px; font-weight: 400; letter-spacing: 1px; text-transform: uppercase;">
+                  © ${new Date().getFullYear()} HelmOps
+                </p>
+                <p style="margin: 0; color: #cbd5e1; font-size: 10px; font-weight: 300; letter-spacing: 0.5px;">
+                  The Operating System for Superyachts
+                </p>
+              </div>
             </td>
           </tr>
         </table>
