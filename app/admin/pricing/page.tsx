@@ -1,17 +1,20 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { createAdminClient } from "@/utils/supabase/admin";
-import { Tag, Plus } from "lucide-react";
+import { Tag, Plus, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { PricingTable } from "@/components/admin/pricing-table";
+import { Badge } from "@/components/ui/badge";
+import { PlanCard, Plan } from "@/components/admin/pricing/plan-card";
 import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-interface Plan {
+interface PlanData {
   id: string;
   name: string;
   price: number;
+  monthly_price?: number | null;
+  yearly_price?: number | null;
   currency: string;
   min_loa: number;
   max_loa: number | null;
@@ -20,7 +23,15 @@ interface Plan {
   status?: "active" | "archived";
   description?: string;
   sales_pitch?: string;
-  sales_metadata?: any; // JSONB field from database
+  sales_metadata?: any;
+  is_popular?: boolean;
+  tier?: number;
+  limits?: {
+    maxUsers?: number;
+    maxStorage?: number;
+    maxGuests?: number;
+    maxCrewMembers?: number;
+  } | null;
 }
 
 interface Subscriber {
@@ -30,7 +41,7 @@ interface Subscriber {
 }
 
 // Fallback plans if database is empty
-const fallbackPlans: Plan[] = [
+const fallbackPlans: PlanData[] = [
   {
     id: "essentials",
     name: "Essentials",
@@ -94,7 +105,7 @@ export default async function AdminPricingPage() {
   }
 
   // Initialize Supabase Admin Client
-  let plans: Plan[] = fallbackPlans;
+  let plans: PlanData[] = fallbackPlans;
   let subscribersByPlan: Record<string, Subscriber[]> = {};
 
   try {
@@ -174,18 +185,31 @@ export default async function AdminPricingPage() {
           }
         }
 
-        // Map plans with real subscriber counts
+        // Map plans with real subscriber counts and new fields
         plans = (plansData as any[]).map((plan) => ({
           ...plan,
           activeSubscribers: subscribersByPlan[plan.id]?.length || 0,
           status: (plan.status as "active" | "archived") || "active",
+          is_popular: plan.is_popular || false,
+          tier: plan.tier || 0,
+          limits: plan.limits || null,
+          monthly_price: plan.monthly_price || plan.price,
+          yearly_price: plan.yearly_price || null,
         }));
+
+        // Sort by tier
+        plans.sort((a, b) => (a.tier || 0) - (b.tier || 0));
       } else {
         console.warn("No plans found in database or error occurred, using fallback plans");
         plans = fallbackPlans.map((plan) => ({
           ...plan,
           activeSubscribers: 0,
           status: "active" as const,
+          is_popular: false,
+          tier: 0,
+          limits: null,
+          monthly_price: plan.price,
+          yearly_price: null,
         }));
       }
     } else {
@@ -194,6 +218,11 @@ export default async function AdminPricingPage() {
         ...plan,
         activeSubscribers: 0,
         status: "active" as const,
+        is_popular: false,
+        tier: 0,
+        limits: null,
+        monthly_price: plan.price,
+        yearly_price: null,
       }));
     }
   } catch (error) {
@@ -203,16 +232,45 @@ export default async function AdminPricingPage() {
       ...plan,
       activeSubscribers: 0,
       status: "active" as const,
+      is_popular: false,
+      tier: 0,
+      limits: null,
+      monthly_price: plan.price,
+      yearly_price: null,
     }));
   }
+
+  // Calculate revenue overview (mocked for now)
+  const totalARR = plans.reduce((sum, plan) => {
+    const yearlyPrice = plan.yearly_price || (plan.monthly_price || plan.price) * 12;
+    return sum + yearlyPrice * plan.activeSubscribers;
+  }, 0);
+
+  // Convert to formatted currency (using EUR as default)
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "EUR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Tag className="w-6 h-6 text-slate-600" />
-          <h1 className="text-3xl font-bold text-slate-900">Subscription Plans</h1>
+        <div>
+          <div className="flex items-center gap-3 mb-2">
+            <Tag className="w-6 h-6 text-slate-600" />
+            <h1 className="text-3xl font-bold text-slate-900">Subscription Packages</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="gap-1">
+              <TrendingUp className="h-3 w-3" />
+              Total ARR: {formatCurrency(totalARR)}
+            </Badge>
+          </div>
         </div>
         <Button className="bg-slate-900 text-white hover:bg-slate-800">
           <Plus className="w-4 h-4 mr-2" />
@@ -220,8 +278,29 @@ export default async function AdminPricingPage() {
         </Button>
       </div>
 
-      {/* Plans Table with Sheet */}
-      <PricingTable plans={plans} subscribersByPlan={subscribersByPlan} />
+      {/* Plans Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {plans.map((plan) => (
+          <PlanCard
+            key={plan.id}
+            plan={{
+              id: plan.id,
+              name: plan.name,
+              price: plan.price,
+              monthly_price: plan.monthly_price,
+              yearly_price: plan.yearly_price,
+              currency: plan.currency,
+              features: plan.features,
+              activeSubscribers: plan.activeSubscribers,
+              status: plan.status,
+              description: plan.description,
+              isPopular: plan.is_popular,
+              tier: plan.tier,
+              limits: plan.limits,
+            }}
+          />
+        ))}
+      </div>
     </div>
   );
 }

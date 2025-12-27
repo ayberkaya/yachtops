@@ -80,6 +80,9 @@ model Yacht {
   length                    Float?
   registrationNumber        String?                    @map("registration_number")
   notes                     String?
+  settings                  Json?                      // Tenant settings: currency, measurement system, etc.
+  features                  Json?                      // Feature flags: enabled modules
+  logoUrl                   String?                    @map("logo_url")
   createdAt                 DateTime                   @default(now()) @map("created_at")
   updatedAt                 DateTime                   @updatedAt @map("updated_at")
   alcoholStocks             AlcoholStock[]
