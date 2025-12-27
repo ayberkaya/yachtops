@@ -74,8 +74,11 @@ export async function GET(
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // CREW can view their own tasks, unassigned tasks, or tasks assigned to their role
-    if (session!.user.role === "CREW") {
+    // Only OWNER and CAPTAIN can view all tasks
+    // Other users can only view tasks assigned to them, their role, or unassigned tasks
+    const canViewAllTasks = session!.user.role === "OWNER" || session!.user.role === "CAPTAIN";
+    
+    if (!canViewAllTasks) {
       const canView = 
         !task.assigneeId || // Unassigned
         task.assigneeId === session!.user.id || // Assigned to them

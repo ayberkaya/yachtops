@@ -28,11 +28,15 @@ export default async function TasksPage() {
   // Build base where clause
   const baseWhere: any = {};
 
-  // CREW can see their own tasks OR unassigned tasks
-  if (session.user.role === "CREW") {
+  // Only OWNER and CAPTAIN can see all tasks
+  // Other users can only see tasks assigned to them, their role, or unassigned tasks
+  const canViewAllTasks = session.user.role === "OWNER" || session.user.role === "CAPTAIN";
+  
+  if (!canViewAllTasks) {
     baseWhere.OR = [
       { assigneeId: session.user.id },
       { assigneeId: null },
+      { assigneeRole: session.user.role },
     ];
   }
 

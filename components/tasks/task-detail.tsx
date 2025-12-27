@@ -85,6 +85,9 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
       if (response.ok) {
         const data = await response.json();
         setTask(data);
+      } else if (response.status === 403) {
+        // User doesn't have permission to view this task
+        router.push("/dashboard/tasks");
       }
     } catch (error) {
       console.error("Error fetching task:", error);

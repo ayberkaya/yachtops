@@ -55,8 +55,11 @@ export async function GET(request: NextRequest) {
       baseWhere.tripId = tripId;
     }
 
-    // CREW can see their own tasks, unassigned tasks, or tasks assigned to their role
-    if (session!.user.role === "CREW") {
+    // Only OWNER and CAPTAIN can see all tasks
+    // Other users can only see tasks assigned to them, their role, or unassigned tasks
+    const canViewAllTasks = session!.user.role === "OWNER" || session!.user.role === "CAPTAIN";
+    
+    if (!canViewAllTasks) {
       baseWhere.OR = [
         { assigneeId: session!.user.id },
         { assigneeId: null },
@@ -89,8 +92,11 @@ export async function GET(request: NextRequest) {
         if (assigneeIdParam) baseWhereParam.assigneeId = assigneeIdParam;
         if (tripIdParam) baseWhereParam.tripId = tripIdParam;
 
-        // CREW can see their own tasks, unassigned tasks, or tasks assigned to their role
-        if (userRoleParam === "CREW") {
+        // Only OWNER and CAPTAIN can see all tasks
+        // Other users can only see tasks assigned to them, their role, or unassigned tasks
+        const canViewAllTasks = userRoleParam === "OWNER" || userRoleParam === "CAPTAIN";
+        
+        if (!canViewAllTasks) {
           baseWhereParam.OR = [
             { assigneeId: userIdParam },
             { assigneeId: null },
@@ -152,7 +158,9 @@ export async function GET(request: NextRequest) {
         if (assigneeIdParam) baseWhereParam.assigneeId = assigneeIdParam;
         if (tripIdParam) baseWhereParam.tripId = tripIdParam;
 
-        if (userRoleParam === "CREW") {
+        const canViewAllTasks = userRoleParam === "OWNER" || userRoleParam === "CAPTAIN";
+        
+        if (!canViewAllTasks) {
           baseWhereParam.OR = [
             { assigneeId: userIdParam },
             { assigneeId: null },

@@ -65,6 +65,13 @@ interface Task {
   trip: { id: string; name: string } | null;
 }
 
+interface GroupedTask {
+  task: Task;
+  assignees: Array<{ id: string; name: string | null; email: string }>;
+  roles: UserRole[];
+  allTaskIds: string[];
+}
+
 interface TaskListProps {
   initialTasks: Task[];
   users: { id: string; name: string | null; email: string }[];
@@ -297,12 +304,64 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
     });
   }, [tasks, activeTab, statusFilter, assigneeFilter, dateFrom, dateTo]);
 
+  // Group tasks by their core properties (same task with different assignees)
+  const groupTasks = useMemo(() => {
+    const taskGroups = new Map<string, GroupedTask>();
+    
+    filteredTasks.forEach((task) => {
+      // Create a group key based on task properties (excluding assignee)
+      const groupKey = JSON.stringify({
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate,
+        tripId: task.trip?.id || null,
+        type: task.type,
+        priority: task.priority,
+        status: task.status,
+        createdById: task.createdBy?.id || null,
+        cost: task.cost,
+        currency: task.currency,
+        serviceProvider: task.serviceProvider,
+      });
+      
+      if (taskGroups.has(groupKey)) {
+        const group = taskGroups.get(groupKey)!;
+        // Add assignee if not already present
+        if (task.assignee && !group.assignees.some(a => a.id === task.assignee!.id)) {
+          group.assignees.push(task.assignee);
+        }
+        // Add role if not already present
+        if (task.assigneeRole && !group.roles.includes(task.assigneeRole)) {
+          group.roles.push(task.assigneeRole);
+        }
+        // Add task ID
+        if (!group.allTaskIds.includes(task.id)) {
+          group.allTaskIds.push(task.id);
+        }
+        // Update task if this one is more recent or has different status
+        if (task.status !== group.task.status || 
+            (task.completedAt && (!group.task.completedAt || new Date(task.completedAt) > new Date(group.task.completedAt)))) {
+          group.task = task;
+        }
+      } else {
+        taskGroups.set(groupKey, {
+          task,
+          assignees: task.assignee ? [task.assignee] : [],
+          roles: task.assigneeRole ? [task.assigneeRole] : [],
+          allTaskIds: [task.id],
+        });
+      }
+    });
+    
+    return Array.from(taskGroups.values());
+  }, [filteredTasks]);
+
   // Separate active and completed tasks
   const { activeTasks, completedTasks } = useMemo(() => {
-    const active = filteredTasks.filter((t) => t.status !== TaskStatus.DONE);
-    const completed = filteredTasks.filter((t) => t.status === TaskStatus.DONE);
+    const active = groupTasks.filter((g) => g.task.status !== TaskStatus.DONE);
+    const completed = groupTasks.filter((g) => g.task.status === TaskStatus.DONE);
     return { activeTasks: active, completedTasks: completed };
-  }, [filteredTasks]);
+  }, [groupTasks]);
 
   return (
     <div className="space-y-4">
@@ -419,7 +478,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
           <TabsTrigger value="repairs">Repairs</TabsTrigger>
         </TabsList>
         <TabsContent value={activeTab} className="mt-4">
-          {filteredTasks.length === 0 ? (
+          {groupTasks.length === 0 ? (
         <Card>
           <CardContent className="p-8 text-center text-muted-foreground">
             <div className="p-8 text-center">
@@ -435,11 +494,12 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             <div>
               <h2 className="text-xl font-semibold mb-4">Active Tasks</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {activeTasks.map((task) => {
-            const canComplete = !canManage && 
-              (!task.assignee || task.assignee.id === currentUser.id) && 
-              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
-              task.status !== TaskStatus.DONE;
+                {activeTasks.map((groupedTask) => {
+                  const task = groupedTask.task;
+                  const canComplete = !canManage && 
+                    (groupedTask.assignees.some(a => a.id === currentUser.id) || 
+                     groupedTask.roles.includes(currentUser.role)) &&
+                    task.status !== TaskStatus.DONE;
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
@@ -579,17 +639,39 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </span>
                     </p>
                   )}
-                  {task.assignee ? (
+                  {(groupedTask.assignees.length > 0 || groupedTask.roles.length > 0) ? (
+                    <div className="flex flex-col gap-1">
+                      {groupedTask.assignees.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                          <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <div className="flex flex-wrap gap-1.5 md:gap-2">
+                            {groupedTask.assignees.map((assignee, idx) => (
+                              <span key={assignee.id} className="truncate font-bold text-xs md:text-sm">
+                                {assignee.name || assignee.email}{idx < groupedTask.assignees.length - 1 ? "," : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {groupedTask.roles.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                          <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <div className="flex flex-wrap gap-1.5 md:gap-2">
+                            {groupedTask.roles.map((role, idx) => (
+                              <span key={role} className="truncate font-bold text-xs md:text-sm">
+                                {role}{idx < groupedTask.roles.length - 1 ? "," : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
                       <User className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="truncate font-bold">{task.assignee.name || task.assignee.email}</span>
+                      <span className="truncate text-xs md:text-sm">Unassigned</span>
                     </p>
-                  ) : task.assigneeRole ? (
-                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
-                      <User className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="truncate font-bold">{task.assigneeRole}</span>
-                    </p>
-                  ) : null}
+                  )}
                   {task.trip && (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
                       <Ship className="h-3 w-3 md:h-4 md:w-4" />
@@ -637,7 +719,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0 text-destructive hover:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteTask(task.id);
+                          handleDeleteTask(groupedTask.allTaskIds[0]);
                         }}
                       >
                         <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
@@ -672,12 +754,13 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
             <div>
               <h2 className="text-xl font-semibold mb-4">Completed</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {completedTasks.map((task) => {
-            const canComplete = !canManage && 
-              (!task.assignee || task.assignee.id === currentUser.id) && 
-              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
-              task.status !== TaskStatus.DONE;
-            const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
+                {completedTasks.map((groupedTask) => {
+                  const task = groupedTask.task;
+                  const canComplete = !canManage && 
+                    (groupedTask.assignees.some(a => a.id === currentUser.id) || 
+                     groupedTask.roles.includes(currentUser.role)) &&
+                    task.status !== TaskStatus.DONE;
+                  const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
             const isDone = task.status === TaskStatus.DONE;
@@ -816,17 +899,39 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </span>
                     </p>
                   )}
-                  {task.assignee ? (
+                  {(groupedTask.assignees.length > 0 || groupedTask.roles.length > 0) ? (
+                    <div className="flex flex-col gap-1">
+                      {groupedTask.assignees.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                          <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <div className="flex flex-wrap gap-1.5 md:gap-2">
+                            {groupedTask.assignees.map((assignee, idx) => (
+                              <span key={assignee.id} className="truncate font-bold text-xs md:text-sm">
+                                {assignee.name || assignee.email}{idx < groupedTask.assignees.length - 1 ? "," : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {groupedTask.roles.length > 0 && (
+                        <div className="flex flex-wrap items-center gap-1.5 md:gap-2">
+                          <User className="h-3 w-3 md:h-4 md:w-4 flex-shrink-0" />
+                          <div className="flex flex-wrap gap-1.5 md:gap-2">
+                            {groupedTask.roles.map((role, idx) => (
+                              <span key={role} className="truncate font-bold text-xs md:text-sm">
+                                {role}{idx < groupedTask.roles.length - 1 ? "," : ""}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
                       <User className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="truncate font-bold">{task.assignee.name || task.assignee.email}</span>
+                      <span className="truncate text-xs md:text-sm">Unassigned</span>
                     </p>
-                  ) : task.assigneeRole ? (
-                    <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
-                      <User className="h-3 w-3 md:h-4 md:w-4" />
-                      <span className="truncate font-bold">{task.assigneeRole}</span>
-                    </p>
-                  ) : null}
+                  )}
                   {task.trip && (
                     <p className="flex items-center gap-1.5 md:gap-2 text-muted-foreground">
                       <Ship className="h-3 w-3 md:h-4 md:w-4" />
@@ -874,7 +979,7 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                         className="h-7 w-7 md:h-9 md:w-9 flex-shrink-0 text-destructive hover:text-destructive"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleDeleteTask(task.id);
+                          handleDeleteTask(groupedTask.allTaskIds[0]);
                         }}
                       >
                         <Trash2 className="h-3 w-3 md:h-4 md:w-4" />
@@ -926,39 +1031,58 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {activeTasks.map((task) => {
-                  const canComplete = !canManage && 
-              (!task.assignee || task.assignee.id === currentUser.id) && 
-              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
-              task.status !== TaskStatus.DONE;
-                  const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
-                  
-                  const isTodo = task.status === TaskStatus.TODO;
-                  
-                  return (
-                    <TableRow 
-                      key={task.id}
-                      className={`${isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""} cursor-pointer hover:bg-zinc-50/80`}
-                      onClick={(e) => {
-                        // Don't navigate if clicking on buttons or interactive elements
-                        const target = e.target as HTMLElement;
-                        if (target.closest('button') || target.closest('select') || target.closest('a')) {
-                          return;
-                        }
-                        router.push(`/dashboard/tasks/${task.id}`);
-                      }}
-                    >
-                      <TableCell className="font-medium">{task.title}</TableCell>
-                      <TableCell>
-                        {getPriorityBadge(task.priority)}
-                      </TableCell>
-                      <TableCell>
-                        {task.assignee
-                          ? task.assignee.name || task.assignee.email
-                          : task.assigneeRole
-                          ? task.assigneeRole
-                          : "Unassigned"}
-                      </TableCell>
+                      {activeTasks.map((groupedTask) => {
+                        const task = groupedTask.task;
+                        const canComplete = !canManage && 
+                          (groupedTask.assignees.some(a => a.id === currentUser.id) || 
+                           groupedTask.roles.includes(currentUser.role)) &&
+                          task.status !== TaskStatus.DONE;
+                        const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
+                        
+                        const isTodo = task.status === TaskStatus.TODO;
+                        
+                        return (
+                          <TableRow 
+                            key={groupedTask.allTaskIds[0]}
+                            className={`${isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""} cursor-pointer hover:bg-zinc-50/80`}
+                            onClick={(e) => {
+                              // Don't navigate if clicking on buttons or interactive elements
+                              const target = e.target as HTMLElement;
+                              if (target.closest('button') || target.closest('select') || target.closest('a')) {
+                                return;
+                              }
+                              router.push(`/dashboard/tasks/${task.id}`);
+                            }}
+                          >
+                            <TableCell className="font-medium">{task.title}</TableCell>
+                            <TableCell>
+                              {getPriorityBadge(task.priority)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                {groupedTask.assignees.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {groupedTask.assignees.map((assignee, idx) => (
+                                      <span key={assignee.id} className="text-sm">
+                                        {assignee.name || assignee.email}{idx < groupedTask.assignees.length - 1 ? "," : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {groupedTask.roles.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {groupedTask.roles.map((role, idx) => (
+                                      <span key={role} className="text-sm font-medium">
+                                        {role}{idx < groupedTask.roles.length - 1 ? "," : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {groupedTask.assignees.length === 0 && groupedTask.roles.length === 0 && (
+                                  <span className="text-sm text-muted-foreground">Unassigned</span>
+                                )}
+                              </div>
+                            </TableCell>
                       <TableCell>{task.trip?.name || "-"}</TableCell>
                       <TableCell>
                         {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "-"}
@@ -1091,39 +1215,58 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {completedTasks.map((task) => {
-                  const canComplete = !canManage && 
-              (!task.assignee || task.assignee.id === currentUser.id) && 
-              (!task.assigneeRole || task.assigneeRole === currentUser.role) &&
-              task.status !== TaskStatus.DONE;
-                  const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
-                  
-                  const isTodo = task.status === TaskStatus.TODO;
-                  
-                  return (
-                    <TableRow 
-                      key={task.id}
-                      className={`${isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""} cursor-pointer hover:bg-zinc-50/80`}
-                      onClick={(e) => {
-                        // Don't navigate if clicking on buttons or interactive elements
-                        const target = e.target as HTMLElement;
-                        if (target.closest('button') || target.closest('select') || target.closest('a')) {
-                          return;
-                        }
-                        router.push(`/dashboard/tasks/${task.id}`);
-                      }}
-                    >
-                      <TableCell className="font-medium">{task.title}</TableCell>
-                      <TableCell>
-                        {getPriorityBadge(task.priority)}
-                      </TableCell>
-                      <TableCell>
-                        {task.assignee
-                          ? task.assignee.name || task.assignee.email
-                          : task.assigneeRole
-                          ? task.assigneeRole
-                          : "Unassigned"}
-                      </TableCell>
+                      {completedTasks.map((groupedTask) => {
+                        const task = groupedTask.task;
+                        const canComplete = !canManage && 
+                          (groupedTask.assignees.some(a => a.id === currentUser.id) || 
+                           groupedTask.roles.includes(currentUser.role)) &&
+                          task.status !== TaskStatus.DONE;
+                        const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
+                        
+                        const isTodo = task.status === TaskStatus.TODO;
+                        
+                        return (
+                          <TableRow 
+                            key={groupedTask.allTaskIds[0]}
+                            className={`${isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""} cursor-pointer hover:bg-zinc-50/80`}
+                            onClick={(e) => {
+                              // Don't navigate if clicking on buttons or interactive elements
+                              const target = e.target as HTMLElement;
+                              if (target.closest('button') || target.closest('select') || target.closest('a')) {
+                                return;
+                              }
+                              router.push(`/dashboard/tasks/${task.id}`);
+                            }}
+                          >
+                            <TableCell className="font-medium">{task.title}</TableCell>
+                            <TableCell>
+                              {getPriorityBadge(task.priority)}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex flex-col gap-1">
+                                {groupedTask.assignees.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {groupedTask.assignees.map((assignee, idx) => (
+                                      <span key={assignee.id} className="text-sm">
+                                        {assignee.name || assignee.email}{idx < groupedTask.assignees.length - 1 ? "," : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {groupedTask.roles.length > 0 && (
+                                  <div className="flex flex-wrap gap-1">
+                                    {groupedTask.roles.map((role, idx) => (
+                                      <span key={role} className="text-sm font-medium">
+                                        {role}{idx < groupedTask.roles.length - 1 ? "," : ""}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                                {groupedTask.assignees.length === 0 && groupedTask.roles.length === 0 && (
+                                  <span className="text-sm text-muted-foreground">Unassigned</span>
+                                )}
+                              </div>
+                            </TableCell>
                       <TableCell>{task.trip?.name || "-"}</TableCell>
                       <TableCell>
                         {task.dueDate ? format(new Date(task.dueDate), "MMM d, yyyy") : "-"}
