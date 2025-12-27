@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { TripList } from "./trip-list";
 import { RouteFuelEstimation } from "./route-fuel-estimation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -52,9 +53,9 @@ interface TankLog {
 }
 
 interface LogbookTabsProps {
-  activeTrips: Trip[];
-  pastTrips: Trip[];
-  trips: Array<{
+  currentView: "active" | "past" | "fuel";
+  trips: Trip[];
+  tripsForFuelLog?: Array<{
     id: string;
     name: string;
     code: string | null;
@@ -64,8 +65,8 @@ interface LogbookTabsProps {
     departurePort: string | null;
     arrivalPort: string | null;
   }>;
-  movementLogs: MovementLog[];
-  tankLogs: TankLog[];
+  movementLogs?: MovementLog[];
+  tankLogs?: TankLog[];
   canManage: boolean;
   canEdit: boolean;
   currentUser: {
@@ -76,51 +77,65 @@ interface LogbookTabsProps {
 }
 
 export function LogbookTabs({
-  activeTrips,
-  pastTrips,
+  currentView,
   trips,
-  movementLogs,
-  tankLogs,
+  tripsForFuelLog,
+  movementLogs = [],
+  tankLogs = [],
   canManage,
   canEdit,
   currentUser,
 }: LogbookTabsProps) {
-  const [activeTab, setActiveTab] = useState("active");
+  const searchParams = useSearchParams();
+  const basePath = "/dashboard/trips";
+
+  // Create URL with view param
+  const createViewUrl = (view: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("view", view);
+    return `${basePath}?${params.toString()}`;
+  };
 
   return (
-    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+    <Tabs value={currentView} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="active" className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
-          Active Voyages
+        <TabsTrigger value="active" asChild>
+          <Link href={createViewUrl("active")} className="flex items-center gap-2">
+            <Ship className="h-4 w-4" />
+            Active Voyages
+          </Link>
         </TabsTrigger>
-        <TabsTrigger value="past" className="flex items-center gap-2">
-          <History className="h-4 w-4" />
-          Past Voyages
+        <TabsTrigger value="past" asChild>
+          <Link href={createViewUrl("past")} className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Past Voyages
+          </Link>
         </TabsTrigger>
-        <TabsTrigger value="fuel" className="flex items-center gap-2">
-          <Fuel className="h-4 w-4" />
-          Fuel Log
+        <TabsTrigger value="fuel" asChild>
+          <Link href={createViewUrl("fuel")} className="flex items-center gap-2">
+            <Fuel className="h-4 w-4" />
+            Fuel Log
+          </Link>
         </TabsTrigger>
       </TabsList>
 
       <TabsContent value="active" className="mt-6">
         <TripList 
-          initialTrips={activeTrips} 
+          initialTrips={trips} 
           canManage={canManage} 
         />
       </TabsContent>
 
       <TabsContent value="past" className="mt-6">
         <TripList 
-          initialTrips={pastTrips} 
+          initialTrips={trips} 
           canManage={canManage} 
         />
       </TabsContent>
 
       <TabsContent value="fuel" className="mt-6">
         <RouteFuelEstimation
-          trips={trips}
+          trips={tripsForFuelLog || []}
           movementLogs={movementLogs}
           tankLogs={tankLogs}
           canEdit={canEdit}

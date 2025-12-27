@@ -1,16 +1,23 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { TripList } from "@/components/trips/trip-list";
-import { RouteFuelEstimation } from "@/components/trips/route-fuel-estimation";
 import { hasPermission } from "@/lib/permissions";
-import { withTenantScope } from "@/lib/tenant-guard";
 import { getTenantId } from "@/lib/tenant";
 import { LogbookTabs } from "@/components/trips/logbook-tabs";
-import { TripType, TripStatus, TripMovementEvent } from "@prisma/client";
+import { TripStatus, TripMovementEvent } from "@prisma/client";
+import {
+  getActiveTrips,
+  getPastTrips,
+  getFuelLogData,
+} from "@/lib/trips/trip-queries";
 
-export default async function TripsPage() {
+interface TripsPageProps {
+  searchParams: Promise<{ view?: string }>;
+}
+
+export default async function TripsPage({ searchParams }: TripsPageProps) {
+  const params = await searchParams;
+  const view = (params.view as "active" | "past" | "fuel") || "active";
   const session = await getSession();
 
   if (!session?.user) {
@@ -28,83 +35,70 @@ export default async function TripsPage() {
     redirect("/dashboard");
   }
 
-  const [trips, movementLogs, tankLogs] = await Promise.all([
-    db.trip.findMany({
-      where: withTenantScope(session, {}),
-      include: {
-        createdBy: {
-          select: { id: true, name: true, email: true },
-        },
-        expenses: {
-          select: {
-            id: true,
-            amount: true,
-            currency: true,
-            status: true,
-          },
-        },
-        _count: {
-          select: {
-            expenses: true,
-          },
-        },
-      },
-      orderBy: { startDate: "desc" },
-    }),
-    db.tripMovementLog.findMany({
-      where: {
-        trip: withTenantScope(session, {}),
-      },
-      select: {
-        id: true,
-        tripId: true,
-        eventType: true,
-        port: true,
-        eta: true,
-        etd: true,
-        weather: true,
-        seaState: true,
-        notes: true,
-        recordedAt: true,
-      },
-      orderBy: { recordedAt: "desc" },
-    }),
-    db.tripTankLog.findMany({
-      where: {
-        trip: withTenantScope(session, {}),
-      },
-      select: {
-        id: true,
-        tripId: true,
-        fuelLevel: true,
-        freshWater: true,
-        greyWater: true,
-        blackWater: true,
-        recordedAt: true,
-      },
-      orderBy: { recordedAt: "desc" },
-    }),
-  ]);
+  // Conditionally fetch data based on current view
+  let trips: any[] = [];
+  let tripsForFuelLog: any[] | undefined = undefined;
+  let movementLogs: any[] | undefined = undefined;
+  let tankLogs: any[] | undefined = undefined;
 
-  // Calculate expense summaries per trip
-  const tripsWithExpenseSummary = trips.map((trip: any) => {
-    const approvedExpenses = trip.expenses.filter((e: any) => e.status === "APPROVED");
-    const expensesByCurrency: Record<string, number> = {};
-    
-    approvedExpenses.forEach((exp: any) => {
-      const currency = exp.currency;
-      expensesByCurrency[currency] = (expensesByCurrency[currency] || 0) + Number(exp.amount);
-    });
+  try {
+    switch (view) {
+      case "active":
+        // Only fetch active trips
+        trips = await getActiveTrips(session);
+        break;
 
-    return {
-      ...trip,
-      expenseSummary: expensesByCurrency,
-      _count: {
-        ...trip._count,
-        tasks: 0, // Add tasks count with default 0
-      },
-    };
-  });
+      case "past":
+        // Only fetch past trips (limited to 20)
+        trips = await getPastTrips(session, 20);
+        break;
+
+      case "fuel":
+        // Fetch fuel log data (trips, movementLogs, tankLogs)
+        const fuelLogData = await getFuelLogData(session);
+        tripsForFuelLog = fuelLogData.trips.map((trip: any) => ({
+          id: trip.id,
+          name: trip.name,
+          code: trip.code,
+          status: trip.status as TripStatus,
+          startDate: trip.startDate.toISOString(),
+          endDate: trip.endDate ? trip.endDate.toISOString() : null,
+          departurePort: trip.departurePort,
+          arrivalPort: trip.arrivalPort,
+        }));
+        movementLogs = fuelLogData.movementLogs.map((log: any) => ({
+          ...log,
+          eventType: log.eventType as TripMovementEvent,
+          eta: log.eta ? log.eta.toISOString() : null,
+          etd: log.etd ? log.etd.toISOString() : null,
+          recordedAt: log.recordedAt.toISOString(),
+        }));
+        tankLogs = fuelLogData.tankLogs.map((log: any) => ({
+          ...log,
+          recordedAt: log.recordedAt.toISOString(),
+        }));
+        // For fuel view, trips array should be empty (not used)
+        trips = [];
+        break;
+
+      default:
+        // Default to active trips
+        trips = await getActiveTrips(session);
+    }
+  } catch (error) {
+    console.error("Error fetching trips data:", error);
+    // On error, default to empty arrays
+    trips = [];
+  }
+
+  // Transform trips for display (only for active/past views)
+  const tripsForDisplay = trips.map((trip: any) => ({
+    ...trip,
+    startDate: trip.startDate.toISOString().split('T')[0],
+    endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : null,
+    createdAt: trip.createdAt.toISOString(),
+    updatedAt: trip.updatedAt.toISOString(),
+  }));
 
   const canEdit =
     hasPermission(session.user, "trips.edit", session.user.permissions) ||
@@ -118,58 +112,11 @@ export default async function TripsPage() {
         </div>
       </div>
       <LogbookTabs
-        activeTrips={tripsWithExpenseSummary
-          .filter((trip: any) => 
-            trip.status === TripStatus.PLANNED || trip.status === TripStatus.ONGOING
-          )
-          .map((trip: any) => ({
-            ...trip,
-            startDate: trip.startDate.toISOString().split('T')[0],
-            endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : null,
-            createdAt: trip.createdAt.toISOString(),
-            updatedAt: trip.updatedAt.toISOString(),
-          }))}
-        pastTrips={tripsWithExpenseSummary
-          .filter((trip: any) => 
-            trip.status === TripStatus.COMPLETED || trip.status === TripStatus.CANCELLED
-          )
-          .map((trip: any) => ({
-            ...trip,
-            startDate: trip.startDate.toISOString().split('T')[0],
-            endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : null,
-            createdAt: trip.createdAt.toISOString(),
-            updatedAt: trip.updatedAt.toISOString(),
-          }))}
-        trips={trips.map((trip: any) => ({
-          id: trip.id,
-          name: trip.name,
-          code: trip.code,
-          status: trip.status as TripStatus,
-          startDate: trip.startDate.toISOString(),
-          endDate: trip.endDate ? trip.endDate.toISOString() : null,
-          departurePort: trip.departurePort,
-          arrivalPort: trip.arrivalPort,
-        })) as Array<{
-          id: string;
-          name: string;
-          code: string | null;
-          status: TripStatus;
-          startDate: string;
-          endDate: string | null;
-          departurePort: string | null;
-          arrivalPort: string | null;
-        }>}
-        movementLogs={movementLogs.map((log: any) => ({
-          ...log,
-          eventType: log.eventType as TripMovementEvent,
-          eta: log.eta ? log.eta.toISOString() : null,
-          etd: log.etd ? log.etd.toISOString() : null,
-          recordedAt: log.recordedAt.toISOString(),
-        }))}
-        tankLogs={tankLogs.map((log: { id: string; tripId: string; fuelLevel: number | null; freshWater: number | null; greyWater: number | null; blackWater: number | null; recordedAt: Date }) => ({
-          ...log,
-          recordedAt: log.recordedAt.toISOString(),
-        }))}
+        currentView={view}
+        trips={tripsForDisplay}
+        tripsForFuelLog={tripsForFuelLog}
+        movementLogs={movementLogs}
+        tankLogs={tankLogs}
         canManage={canManageUsers(session.user)}
         canEdit={canEdit}
         currentUser={{
