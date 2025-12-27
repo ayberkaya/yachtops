@@ -148,32 +148,32 @@ export default function Home() {
             <div className="relative">
               <div className="relative aspect-[4/3] rounded-2xl bg-white border border-stone-200 shadow-2xl overflow-hidden">
                 {/* Floating Card Effect */}
-                <div className="absolute inset-8 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 shadow-xl flex flex-col">
+                <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 shadow-xl flex flex-col">
                   {/* Mock Header */}
-                  <div className="h-16 border-b border-stone-200 flex items-center px-6 bg-white">
-                    <div className="flex items-center gap-3">
-                      <div className="relative w-8 h-8">
+                  <div className="h-12 border-b border-stone-200 flex items-center px-4 bg-white rounded-t-xl">
+                    <div className="flex items-center gap-2">
+                      <div className="relative w-6 h-6">
                         <Image
                           src="/icon-192.png"
                           alt="HelmOps"
-                          width={32}
-                          height={32}
+                          width={24}
+                          height={24}
                           className="object-contain"
                         />
                       </div>
-                      <div className="h-4 bg-stone-200 rounded w-32"></div>
+                      <div className="h-3 bg-stone-300 rounded w-24 animate-pulse"></div>
                     </div>
                   </div>
                   
-                  {/* Mock Content */}
-                  <div className="flex-1 p-6 space-y-4">
-                    <div className="space-y-3">
-                      <div className="h-4 bg-stone-100 rounded w-3/4"></div>
-                      <div className="h-4 bg-stone-100 rounded w-1/2"></div>
+                  {/* Mock Content - Dashboard Overview */}
+                  <div className="flex-1 p-4 space-y-3 bg-white rounded-b-xl">
+                    <div className="space-y-2">
+                      <div className="h-3 bg-stone-200 rounded w-full"></div>
+                      <div className="h-3 bg-stone-200 rounded w-2/3"></div>
                     </div>
-                    <div className="grid grid-cols-3 gap-4 mt-6">
+                    <div className="grid grid-cols-3 gap-3 mt-4">
                       {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-24 bg-stone-50 rounded-lg border border-stone-200"></div>
+                        <div key={i} className="h-20 bg-gradient-to-br from-stone-100 to-stone-50 rounded-lg border border-stone-200 shadow-sm"></div>
                       ))}
                     </div>
                   </div>
@@ -252,10 +252,11 @@ export default function Home() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-8">
-            {/* Mockup 1 */}
+            {/* Mockup 1 - Grid Layout (Dashboard Overview) */}
             <div className="relative aspect-[4/3] rounded-2xl bg-white border border-stone-200 shadow-xl overflow-hidden">
-              <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 flex flex-col">
-                <div className="h-12 border-b border-stone-200 flex items-center px-4 bg-white">
+              <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 flex flex-col shadow-lg">
+                {/* Browser/App Header */}
+                <div className="h-12 border-b border-stone-200 flex items-center px-4 bg-white rounded-t-xl">
                   <div className="flex items-center gap-2">
                     <div className="relative w-6 h-6">
                       <Image
@@ -266,21 +267,25 @@ export default function Home() {
                         className="object-contain"
                       />
                     </div>
-                    <div className="h-3 bg-stone-200 rounded w-24"></div>
+                    <div className="h-3 bg-stone-300 rounded w-24 animate-pulse"></div>
                   </div>
                 </div>
-                <div className="flex-1 p-4 grid grid-cols-2 gap-3">
+                {/* Grid Content - 2x2 Layout */}
+                <div className="flex-1 p-4 grid grid-cols-2 gap-3 bg-white rounded-b-xl">
                   {[1, 2, 3, 4].map((i) => (
-                    <div key={i} className="h-20 bg-stone-50 rounded-lg border border-stone-200"></div>
+                    <div key={i} className="bg-gradient-to-br from-stone-100 to-stone-50 rounded-lg border border-stone-200 shadow-sm flex items-center justify-center">
+                      <div className="text-stone-400 text-xs font-medium">Widget {i}</div>
+                    </div>
                   ))}
                 </div>
               </div>
             </div>
 
-            {/* Mockup 2 */}
+            {/* Mockup 2 - List/Detail Layout (Operations View) */}
             <div className="relative aspect-[4/3] rounded-2xl bg-white border border-stone-200 shadow-xl overflow-hidden">
-              <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 flex flex-col">
-                <div className="h-12 border-b border-stone-200 flex items-center px-4 bg-white">
+              <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 flex flex-col shadow-lg">
+                {/* Browser/App Header */}
+                <div className="h-12 border-b border-stone-200 flex items-center px-4 bg-white rounded-t-xl">
                   <div className="flex items-center gap-2">
                     <div className="relative w-6 h-6">
                       <Image
@@ -291,14 +296,19 @@ export default function Home() {
                         className="object-contain"
                       />
                     </div>
-                    <div className="h-3 bg-stone-200 rounded w-24"></div>
+                    <div className="h-3 bg-stone-300 rounded w-24 animate-pulse"></div>
                   </div>
                 </div>
-                <div className="flex-1 p-4 space-y-3">
-                  <div className="h-4 bg-stone-100 rounded w-full"></div>
-                  <div className="h-4 bg-stone-100 rounded w-5/6"></div>
-                  <div className="h-4 bg-stone-100 rounded w-4/6"></div>
-                  <div className="mt-4 h-32 bg-stone-50 rounded-lg border border-stone-200"></div>
+                {/* List Content */}
+                <div className="flex-1 p-4 space-y-3 bg-white rounded-b-xl">
+                  <div className="space-y-2">
+                    <div className="h-3 bg-stone-200 rounded w-full"></div>
+                    <div className="h-3 bg-stone-200 rounded w-5/6"></div>
+                    <div className="h-3 bg-stone-200 rounded w-4/6"></div>
+                  </div>
+                  <div className="mt-4 h-32 bg-gradient-to-br from-stone-100 to-stone-50 rounded-lg border border-stone-200 shadow-sm flex items-center justify-center">
+                    <div className="text-stone-400 text-xs font-medium">Detail View</div>
+                  </div>
                 </div>
               </div>
             </div>
@@ -523,3 +533,4 @@ export default function Home() {
     </div>
   );
 }
+

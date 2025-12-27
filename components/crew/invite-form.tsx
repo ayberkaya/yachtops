@@ -24,6 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { inviteCrewMember } from "@/actions/invite";
 import { toast } from "@/components/ui/toast";
 import { useState } from "react";
@@ -31,6 +32,7 @@ import { useState } from "react";
 const inviteFormSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
   role: z.string().min(1, "Please select a role"),
 });
 
@@ -59,6 +61,7 @@ export function InviteCrewForm({ availableRoles, onSuccess }: InviteCrewFormProp
     defaultValues: {
       name: "",
       email: "",
+      phone: "",
       role: availableRoles.length > 0 ? availableRoles[0].value : "",
     },
   });
@@ -69,6 +72,7 @@ export function InviteCrewForm({ availableRoles, onSuccess }: InviteCrewFormProp
     const formData = new FormData();
     formData.append("name", data.name);
     formData.append("email", data.email);
+    formData.append("phone", data.phone || "");
     formData.append("role", data.role);
 
     const result = await inviteCrewMember(formData);
@@ -134,6 +138,23 @@ export function InviteCrewForm({ availableRoles, onSuccess }: InviteCrewFormProp
                       type="email"
                       placeholder="crew.member@example.com"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <PhoneInput
+                      value={field.value}
+                      onChange={field.onChange}
                     />
                   </FormControl>
                   <FormMessage />

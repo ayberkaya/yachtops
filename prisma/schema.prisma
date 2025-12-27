@@ -14,6 +14,7 @@ model User {
   username                 String                     @unique
   passwordHash             String                     @map("password_hash")
   name                     String?
+  phone                    String?
   role                     UserRole                   @default(CREW)
   active                   Boolean                    @default(true)
   permissions              String?

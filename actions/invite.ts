@@ -11,6 +11,7 @@ import { revalidatePath } from "next/cache";
 const inviteSchema = z.object({
   name: z.string().min(1, "Full name is required"),
   email: z.string().email("Invalid email address"),
+  phone: z.string().optional(),
   role: z.string().min(1, "Invalid role selected"), // Can be UserRole enum or custom role ID
 });
 
@@ -57,6 +58,7 @@ export async function inviteCrewMember(
     const rawData = {
       name: formData.get("name") as string,
       email: formData.get("email") as string,
+      phone: formData.get("phone") as string,
       role: formData.get("role") as string,
     };
 

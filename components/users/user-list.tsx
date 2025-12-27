@@ -34,6 +34,7 @@ interface User {
   id: string;
   email: string;
   name: string | null;
+  phone: string | null;
   role: UserRole;
   permissions: string | null;
   customRoleId: string | null;

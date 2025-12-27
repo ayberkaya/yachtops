@@ -915,7 +915,15 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   return (
                     <TableRow 
                       key={task.id}
-                      className={isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""}
+                      className={`${isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""} cursor-pointer hover:bg-zinc-50/80`}
+                      onClick={(e) => {
+                        // Don't navigate if clicking on buttons or interactive elements
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button') || target.closest('select') || target.closest('a')) {
+                          return;
+                        }
+                        router.push(`/dashboard/tasks/${task.id}`);
+                      }}
                     >
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>
@@ -938,7 +946,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                             value={task.status}
                             onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger 
+                              className="w-[140px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -953,7 +964,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleStatusChange(task.id, TaskStatus.DONE)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(task.id, TaskStatus.DONE);
+                                }}
                                 className="h-7"
                               >
                                 <Check className="h-3 w-3 mr-1" />
@@ -964,7 +978,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleStatusChange(task.id, TaskStatus.TODO)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(task.id, TaskStatus.TODO);
+                                }}
                                 className="h-7"
                               >
                                 Undo
@@ -998,7 +1015,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               variant="ghost"
                               size="icon"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteTask(task.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTask(task.id);
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1007,7 +1027,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setEditingTask(task);
                                 setIsDialogOpen(true);
                               }}
@@ -1059,7 +1080,15 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                   return (
                     <TableRow 
                       key={task.id}
-                      className={isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""}
+                      className={`${isTodo ? "bg-amber-50/50 dark:bg-amber-950/20 border-l-4 border-l-amber-400 dark:border-l-amber-500" : ""} cursor-pointer hover:bg-zinc-50/80`}
+                      onClick={(e) => {
+                        // Don't navigate if clicking on buttons or interactive elements
+                        const target = e.target as HTMLElement;
+                        if (target.closest('button') || target.closest('select') || target.closest('a')) {
+                          return;
+                        }
+                        router.push(`/dashboard/tasks/${task.id}`);
+                      }}
                     >
                       <TableCell className="font-medium">{task.title}</TableCell>
                       <TableCell>
@@ -1082,7 +1111,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                             value={task.status}
                             onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
                           >
-                            <SelectTrigger className="w-[140px]">
+                            <SelectTrigger 
+                              className="w-[140px]"
+                              onClick={(e) => e.stopPropagation()}
+                            >
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
@@ -1097,7 +1129,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleStatusChange(task.id, TaskStatus.DONE)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(task.id, TaskStatus.DONE);
+                                }}
                                 className="h-7"
                               >
                                 <Check className="h-3 w-3 mr-1" />
@@ -1108,7 +1143,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => handleStatusChange(task.id, TaskStatus.TODO)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleStatusChange(task.id, TaskStatus.TODO);
+                                }}
                                 className="h-7"
                               >
                                 Undo
@@ -1142,7 +1180,10 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                               variant="ghost"
                               size="icon"
                               className="text-destructive hover:text-destructive"
-                              onClick={() => handleDeleteTask(task.id)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteTask(task.id);
+                              }}
                             >
                               <Trash2 className="h-4 w-4" />
                             </Button>
@@ -1151,7 +1192,8 @@ export function TaskList({ initialTasks, users, trips, currentUser }: TaskListPr
                             <Button
                               variant="ghost"
                               size="icon"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setEditingTask(task);
                                 setIsDialogOpen(true);
                               }}

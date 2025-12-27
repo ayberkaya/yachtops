@@ -21,10 +21,9 @@ export function ModuleTabsWrapper() {
     return <ModuleNav links={links} />;
   }
 
-  // Inventory module tabs
+  // Inventory module tabs (exclude shopping page)
   if (
     pathname.startsWith("/dashboard/inventory") ||
-    pathname.startsWith("/dashboard/shopping") ||
     pathname === "/dashboard/inventory"
   ) {
     const links = [
@@ -38,10 +37,9 @@ export function ModuleTabsWrapper() {
     return <ModuleNav links={links} />;
   }
 
-  // Operations module tabs
+  // Operations module tabs (exclude tasks page)
   if (
     pathname.startsWith("/dashboard/trips") ||
-    pathname.startsWith("/dashboard/tasks") ||
     pathname.startsWith("/dashboard/maintenance") ||
     pathname === "/dashboard/operations"
   ) {

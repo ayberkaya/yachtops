@@ -10,6 +10,7 @@ import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateUserSchema = z.object({
   name: z.string().optional(),
+  phone: z.string().optional(),
   role: z.nativeEnum(UserRole).optional(),
   permissions: z.array(z.string()).nullable().optional(),
   customRoleId: z.string().nullable().optional(),
@@ -95,6 +96,7 @@ export async function PATCH(
 
     const updateData: any = {};
     if (validated.name !== undefined) updateData.name = validated.name;
+    if (validated.phone !== undefined) updateData.phone = validated.phone;
     if (validated.role !== undefined) updateData.role = validated.role;
     if (validated.permissions !== undefined) {
       // If permissions is null, clear custom permissions (use role defaults)

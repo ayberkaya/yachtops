@@ -35,6 +35,7 @@ export default async function UsersPage() {
         id: true,
         email: true,
         name: true,
+        phone: true,
         role: true,
         permissions: true,
         customRoleId: true,

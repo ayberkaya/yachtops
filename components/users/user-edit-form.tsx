@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PhoneInput } from "@/components/ui/phone-input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   DialogFooter,
@@ -24,6 +25,7 @@ import { Permission, DEFAULT_PERMISSIONS, parsePermissions, PERMISSION_GROUPS, P
 
 const userEditSchema = z.object({
   name: z.string().optional(),
+  phone: z.string().optional(),
   role: z.nativeEnum(UserRole),
   customRoleId: z.string().optional().nullable(),
   permissions: z.array(z.string()).optional(),
@@ -43,6 +45,7 @@ interface UserEditFormProps {
     id: string;
     email: string;
     name: string | null;
+    phone: string | null;
     role: UserRole;
     permissions: string | null;
     customRoleId: string | null;
@@ -89,6 +92,7 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
     resolver: zodResolver(userEditSchema),
     defaultValues: {
       name: user.name || "",
+      phone: user.phone || "",
       role: user.role,
       customRoleId: user.customRoleId || null,
       permissions: currentPermissions,
@@ -130,6 +134,7 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
     try {
       const updateData: any = {
         name: data.name,
+        phone: data.phone,
         role: data.role,
       };
 
@@ -213,6 +218,23 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
           <p className="text-sm font-medium mb-2">Email</p>
           <p className="text-sm text-muted-foreground">{user.email}</p>
         </div>
+
+        <FormField
+          control={form.control}
+          name="phone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Phone Number</FormLabel>
+              <FormControl>
+                <PhoneInput
+                  value={field.value || ""}
+                  onChange={field.onChange}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
