@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { TripList } from "./trip-list";
 import { RouteFuelEstimation } from "./route-fuel-estimation";
 import { ActiveVoyageHero } from "./active-voyage-hero";
@@ -88,6 +88,7 @@ export function LogbookTabs({
   currentUser,
 }: LogbookTabsProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const basePath = "/dashboard/trips";
 
   // Create URL with view param
@@ -97,26 +98,25 @@ export function LogbookTabs({
     return `${basePath}?${params.toString()}`;
   };
 
+  // Handle tab change
+  const handleValueChange = (value: string) => {
+    router.push(createViewUrl(value));
+  };
+
   return (
-    <Tabs value={currentView} className="w-full">
+    <Tabs value={currentView} onValueChange={handleValueChange} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="active" asChild>
-          <Link href={createViewUrl("active")} className="flex items-center gap-2">
-            <Ship className="h-4 w-4" />
-            Active Voyages
-          </Link>
+        <TabsTrigger value="active" className="flex items-center gap-2">
+          <Ship className="h-4 w-4" />
+          Active Voyages
         </TabsTrigger>
-        <TabsTrigger value="past" asChild>
-          <Link href={createViewUrl("past")} className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Past Voyages
-          </Link>
+        <TabsTrigger value="past" className="flex items-center gap-2">
+          <History className="h-4 w-4" />
+          Past Voyages
         </TabsTrigger>
-        <TabsTrigger value="fuel" asChild>
-          <Link href={createViewUrl("fuel")} className="flex items-center gap-2">
-            <Fuel className="h-4 w-4" />
-            Fuel Log
-          </Link>
+        <TabsTrigger value="fuel" className="flex items-center gap-2">
+          <Fuel className="h-4 w-4" />
+          Fuel Log
         </TabsTrigger>
       </TabsList>
 

@@ -411,7 +411,7 @@ export async function getBriefingStats(user: DashboardUser) {
           },
         });
         console.log("[DEBUG] All pending tasks found:", allPendingTasks.length);
-        console.log("[DEBUG] Tasks:", allPendingTasks.map(t => ({
+        console.log("[DEBUG] Tasks:", allPendingTasks.map((t: { title: string; priority: string; status: string }) => ({
           title: t.title,
           priority: t.priority,
           status: t.status,
@@ -524,8 +524,8 @@ export async function getBriefingStats(user: DashboardUser) {
                 quantity: true,
                 lowStockThreshold: true,
               },
-            }).then(stocks => 
-              stocks.filter(stock => 
+            }).then((stocks: Array<{ quantity: number; lowStockThreshold: number | null }>) => 
+              stocks.filter((stock: { quantity: number; lowStockThreshold: number | null }) => 
                 stock.lowStockThreshold !== null && 
                 stock.quantity <= stock.lowStockThreshold
               ).length
@@ -537,10 +537,10 @@ export async function getBriefingStats(user: DashboardUser) {
           ? db.messageChannel.findMany({
               where: withTenantScope(mockSession, {}),
               select: { id: true },
-            }).then(async (channels) => {
+            }).then(async (channels: Array<{ id: string }>) => {
               if (channels.length === 0) return 0;
               
-              const channelIds = channels.map(c => c.id);
+              const channelIds = channels.map((c: { id: string }) => c.id);
               const unreadCount = await db.message.count({
                 where: {
                   channelId: { in: channelIds },

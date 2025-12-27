@@ -62,7 +62,7 @@ export async function getTasks(session: Session | null, params: GetTasksParams =
   const status = params.status || TaskStatus.TODO;
   
   // Map tab to type filter
-  const types = mapTabToType(params.tab);
+  const types = mapTabToType(params.tab ?? null);
 
   // Build base where clause
   const baseWhere: any = {};
