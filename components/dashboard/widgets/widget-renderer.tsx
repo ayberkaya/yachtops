@@ -377,10 +377,10 @@ export const WidgetRenderer = memo(function WidgetRenderer({
           )}
           {/* Top Priority Widgets - Side by side on desktop, stacked on mobile */}
           {topPriorityWidgets.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {topPriorityWidgets.map((widget) => (
                 <SortableWidgetWrapper key={widget.id} id={widget.id}>
-                  <div className="flex justify-start">
+                  <div className="flex justify-start w-full">
                     {renderWidget(widget)}
                   </div>
                 </SortableWidgetWrapper>

@@ -28,7 +28,7 @@ export const CashLedgerSummaryWidget = memo(function CashLedgerSummaryWidget({
       className={cn(
         "cursor-pointer transition-all hover:shadow-md hover:border-primary/50",
         "focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2",
-        "gap-3 p-3 w-full md:max-w-[70%]"
+        "gap-3 p-3 w-full"
       )}
       onClick={handleCardClick}
       onKeyDown={(e) => {
@@ -81,10 +81,12 @@ export const CashLedgerSummaryWidget = memo(function CashLedgerSummaryWidget({
           </div>
         ) : (
           <div className="space-y-1.5">
-            {balances.map((balance) => (
+            {balances.map((balance, index, array) => (
               <div
                 key={balance.currency}
-                className="flex items-center justify-between px-1.5 mb-0 rounded-lg bg-muted/50"
+                className={`flex items-center justify-between px-1.5 mb-0 rounded-lg bg-muted/50 ${
+                  index < array.length - 1 ? "border-b border-border/20" : ""
+                }`}
               >
                 <div className="flex items-center gap-2">
                   <div className="text-lg font-bold">{balance.currency}</div>

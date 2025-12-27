@@ -105,7 +105,7 @@ export const CreditCardExpensesWidget = memo(function CreditCardExpensesWidget({
   }, {} as Record<string, number>);
 
   return (
-    <Card className="w-full md:max-w-[70%]">
+    <Card className="w-full">
       <CardHeader>
         <div>
           <CardTitle>Credit Card Expenses</CardTitle>
