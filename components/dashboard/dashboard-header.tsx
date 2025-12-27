@@ -1,7 +1,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Clock, Package, FileText, MessageSquare, CheckCircle2 } from "lucide-react";
+import { Clock, Package, FileText, MessageSquare, CheckCircle2, Sunrise, Sun, Moon } from "lucide-react";
 import Link from "next/link";
 import { useMemo } from "react";
 
@@ -20,12 +20,16 @@ interface DashboardHeaderProps {
 }
 
 export function DashboardHeader({ userRole, userName, stats = {} }: DashboardHeaderProps) {
-  // Determine time-based greeting
-  const greeting = useMemo(() => {
+  // Determine time-based greeting and icon
+  const { greeting, timeIcon } = useMemo(() => {
     const hour = new Date().getHours();
-    if (hour >= 5 && hour < 12) return "Good morning";
-    if (hour >= 12 && hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour >= 5 && hour < 12) {
+      return { greeting: "Good morning", timeIcon: <Sunrise className="h-4 w-4 text-amber-500" /> };
+    }
+    if (hour >= 12 && hour < 18) {
+      return { greeting: "Good afternoon", timeIcon: <Sun className="h-4 w-4 text-amber-500" /> };
+    }
+    return { greeting: "Good evening", timeIcon: <Moon className="h-4 w-4 text-slate-400" /> };
   }, []);
 
   // Determine role title
@@ -48,11 +52,6 @@ export function DashboardHeader({ userRole, userName, stats = {} }: DashboardHea
   }, [stats]);
 
   const hasAlerts = totalAlerts > 0;
-  const statusColor = hasAlerts
-    ? stats.urgentTasks && stats.urgentTasks > 0
-      ? "bg-red-500"
-      : "bg-amber-500"
-    : "bg-green-500";
 
   // Build status pills
   const statusPills = useMemo(() => {
@@ -124,13 +123,8 @@ export function DashboardHeader({ userRole, userName, stats = {} }: DashboardHea
       <div className="flex items-center justify-between gap-4 px-4 py-3 md:px-6 md:py-4">
         {/* Left: Greeting */}
         <div className="flex items-center gap-3">
-          <div className="relative">
-            <div
-              className={`w-2 h-2 rounded-full ${statusColor} animate-pulse`}
-              title={hasAlerts ? "Attention needed" : "All systems normal"}
-            />
-          </div>
           <div className="flex items-center gap-2">
+            {timeIcon}
             <span className="text-lg font-medium text-foreground">
               {greeting}, {displayName}
             </span>

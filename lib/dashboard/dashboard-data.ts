@@ -330,7 +330,7 @@ export async function getBriefingStats(user: DashboardUser) {
   } as Session;
 
   // Build base where clause for tasks
-  const baseWhere: any = {
+  const baseStatusFilter = {
     status: {
       not: TaskStatus.DONE,
     },
@@ -339,39 +339,154 @@ export async function getBriefingStats(user: DashboardUser) {
   // Permission logic: Only OWNER and CAPTAIN can see all tasks
   const canViewAllTasks = user.role === "OWNER" || user.role === "CAPTAIN";
   
+  // Build the where clause for urgent tasks
+  const urgentWhere: any = {
+    ...baseStatusFilter,
+    priority: TaskPriority.URGENT,
+  };
+
+  // Build the where clause for pending (non-urgent) tasks
+  const pendingWhere: any = {
+    ...baseStatusFilter,
+    priority: {
+      not: TaskPriority.URGENT,
+    },
+  };
+
+  // Add permission filter if needed
   if (!canViewAllTasks) {
-    baseWhere.OR = [
-      { assigneeId: user.id },
-      { assigneeId: null },
-      { assigneeRole: user.role },
+    urgentWhere.AND = [
+      {
+        OR: [
+          { assigneeId: user.id },
+          { assigneeId: null },
+          { assigneeRole: user.role },
+        ],
+      },
+    ];
+    pendingWhere.AND = [
+      {
+        OR: [
+          { assigneeId: user.id },
+          { assigneeId: null },
+          { assigneeRole: user.role },
+        ],
+      },
     ];
   }
 
   return unstable_cache(
     async () => {
+      if (!hasPermission(user, "tasks.view", user.permissions) || !tenantId) {
+        return {
+          urgentTasksCount: 0,
+          pendingTasksCount: 0,
+          expiringDocsCount: 0,
+          lowStockCount: 0,
+          unreadMessagesCount: 0,
+        };
+      }
+
+      // Build final where clauses with tenant scope
+      const urgentWhereFinal = withTenantScope(mockSession, urgentWhere);
+      const pendingWhereFinal = withTenantScope(mockSession, pendingWhere);
+
+      // Debug: Log the where clauses and also get all tasks to verify
+      if (process.env.NODE_ENV === "development") {
+        console.log("[DEBUG] Urgent where:", JSON.stringify(urgentWhereFinal, null, 2));
+        console.log("[DEBUG] Pending where:", JSON.stringify(pendingWhereFinal, null, 2));
+        
+        // Get all pending tasks to see what we're counting
+        const allPendingTasks = await db.task.findMany({
+          where: {
+            ...pendingWhereFinal,
+          },
+          select: {
+            id: true,
+            title: true,
+            priority: true,
+            status: true,
+            assigneeId: true,
+            assigneeRole: true,
+          },
+        });
+        console.log("[DEBUG] All pending tasks found:", allPendingTasks.length);
+        console.log("[DEBUG] Tasks:", allPendingTasks.map(t => ({
+          title: t.title,
+          priority: t.priority,
+          status: t.status,
+        })));
+      }
+
+      // Get all tasks to count unique task groups
+      // (tasks with same title, description, etc. are grouped in UI)
+      const [allUrgentTasks, allPendingTasks] = await Promise.all([
+        db.task.findMany({
+          where: urgentWhereFinal,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            dueDate: true,
+            tripId: true,
+            type: true,
+            priority: true,
+            status: true,
+            createdByUserId: true,
+            cost: true,
+            currency: true,
+            serviceProvider: true,
+          },
+        }),
+        db.task.findMany({
+          where: pendingWhereFinal,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            dueDate: true,
+            tripId: true,
+            type: true,
+            priority: true,
+            status: true,
+            createdByUserId: true,
+            cost: true,
+            currency: true,
+            serviceProvider: true,
+          },
+        }),
+      ]);
+
+      // Group tasks by their core properties (same as UI grouping logic)
+      const createGroupKey = (task: any) => JSON.stringify({
+        title: task.title,
+        description: task.description,
+        dueDate: task.dueDate,
+        tripId: task.tripId,
+        type: task.type,
+        priority: task.priority,
+        status: task.status,
+        createdById: task.createdByUserId,
+        cost: task.cost,
+        currency: task.currency,
+        serviceProvider: task.serviceProvider,
+      });
+
+      const urgentTaskGroups = new Set(allUrgentTasks.map(createGroupKey));
+      const pendingTaskGroups = new Set(allPendingTasks.map(createGroupKey));
+
       const [
-        pendingTasksCount,
         urgentTasksCount,
+        pendingTasksCount,
         expiringDocsCount,
         lowStockCount,
         unreadMessagesCount,
       ] = await Promise.all([
-        // Pending tasks count
-        hasPermission(user, "tasks.view", user.permissions) && tenantId
-          ? db.task.count({
-              where: withTenantScope(mockSession, baseWhere),
-            })
-          : Promise.resolve(0),
+        // Urgent tasks count - use unique groups count (matches UI display)
+        Promise.resolve(urgentTaskGroups.size),
 
-        // Urgent tasks count
-        hasPermission(user, "tasks.view", user.permissions) && tenantId
-          ? db.task.count({
-              where: withTenantScope(mockSession, {
-                ...baseWhere,
-                priority: TaskPriority.URGENT,
-              }),
-            })
-          : Promise.resolve(0),
+        // Pending tasks count - use unique groups count (matches UI display)
+        Promise.resolve(pendingTaskGroups.size),
 
         // Expiring documents count (marina permissions)
         hasPermission(user, "documents.marina.view", user.permissions) && tenantId
@@ -444,16 +559,27 @@ export async function getBriefingStats(user: DashboardUser) {
           : Promise.resolve(0),
       ]);
 
+      // Debug: Log the counts
+      if (process.env.NODE_ENV === "development") {
+        console.log("[DEBUG] Briefing stats:", {
+          urgentTasksCount,
+          pendingTasksCount,
+          expiringDocsCount,
+          lowStockCount,
+          unreadMessagesCount,
+        });
+      }
+
       return {
-        pendingTasksCount,
         urgentTasksCount,
+        pendingTasksCount,
         expiringDocsCount,
         lowStockCount,
         unreadMessagesCount,
       };
     },
-    [getCacheKey("briefing-stats", tenantId), user.role, user.id],
-    { revalidate: 30, tags: [`briefing-${tenantId}`] }
+    [`briefing-stats-v3-${tenantId}-${user.role}-${user.id}`],
+    { revalidate: 5, tags: [`briefing-${tenantId}`, `tasks-${tenantId}`] }
   )();
 }
 
