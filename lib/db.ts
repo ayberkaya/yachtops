@@ -34,10 +34,11 @@ const createPrismaClient = () => {
         // Remove existing connection_limit and pool_timeout if present
         url.searchParams.delete("connection_limit");
         url.searchParams.delete("pool_timeout");
-        // Set optimal connection pool settings
-        // connection_limit: 10 allows multiple parallel queries
+        // Set optimal connection pool settings for serverless
+        // connection_limit: 5 is safer for serverless (lower than 10 to prevent max connections)
         // pool_timeout: 60 seconds gives more time to acquire connections
-        url.searchParams.set("connection_limit", "10");
+        // Using Supabase connection pooler (port 6543) which handles pooling better
+        url.searchParams.set("connection_limit", "5");
         url.searchParams.set("pool_timeout", "60");
         databaseUrl = url.toString();
       } catch (e) {
@@ -46,9 +47,9 @@ const createPrismaClient = () => {
           // Remove existing connection_limit and pool_timeout
           databaseUrl = databaseUrl.replace(/[&?]connection_limit=\d+/g, "");
           databaseUrl = databaseUrl.replace(/[&?]pool_timeout=\d+/g, "");
-          databaseUrl = `${databaseUrl}&connection_limit=10&pool_timeout=60`;
+          databaseUrl = `${databaseUrl}&connection_limit=5&pool_timeout=60`;
         } else {
-          databaseUrl = `${databaseUrl}?connection_limit=10&pool_timeout=60`;
+          databaseUrl = `${databaseUrl}?connection_limit=5&pool_timeout=60`;
         }
       }
     }
@@ -93,21 +94,23 @@ const createPrismaClient = () => {
   }
 };
 
-// Use global instance in development to avoid multiple connections
+// Use global instance in ALL environments to avoid multiple connections
+// This is critical for serverless functions (Vercel) to prevent "Max client connections" errors
 // IMPORTANT: After running `prisma generate` or `prisma db push`, you MUST restart
 // the Next.js dev server for schema changes to take effect. The global Prisma
 // Client instance is cached and won't pick up changes until the server restarts.
-if (process.env.NODE_ENV !== "production" && process.env.CLEAR_PRISMA_CACHE === "true") {
+if (process.env.CLEAR_PRISMA_CACHE === "true") {
   globalForPrisma.prisma = undefined;
 }
 
 export const db =
   globalForPrisma.prisma ?? createPrismaClient();
 
-if (process.env.NODE_ENV !== "production") {
-  if (!globalForPrisma.prisma) {
-    globalForPrisma.prisma = db;
-  }
+// Always use global instance to prevent connection pool exhaustion
+// This is especially important in serverless environments where each function
+// would otherwise create a new Prisma Client instance
+if (!globalForPrisma.prisma) {
+  globalForPrisma.prisma = db;
 }
 
 // Runtime validation: Ensure Prisma Client is properly initialized
