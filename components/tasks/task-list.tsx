@@ -38,9 +38,10 @@ import {
 } from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2, ChevronDown } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2, ChevronDown, Mic } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { TaskCompletionDialog } from "./task-completion-dialog";
+import { VoiceTaskForm } from "@/components/ai/voice-task-form";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { hasPermission } from "@/lib/permissions";
 import { SessionUser } from "@/lib/auth-utils";
@@ -100,6 +101,7 @@ export function TaskList({
   const searchParams = useSearchParams();
   const [tasks, setTasks] = useState(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isVoiceTaskDialogOpen, setIsVoiceTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -399,17 +401,26 @@ export function TaskList({
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex items-center gap-2">
           {canManage && (
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button 
-                  onClick={() => setEditingTask(null)}
-                  className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Task
-                </Button>
-              </DialogTrigger>
-            </Dialog>
+            <>
+              <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button 
+                    onClick={() => setEditingTask(null)}
+                    className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    New Task
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+              <Button
+                onClick={() => setIsVoiceTaskDialogOpen(true)}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
+              >
+                <Mic className="mr-2 h-4 w-4" />
+                Voice Task
+              </Button>
+            </>
           )}
           <Button
             variant="outline"
@@ -1480,6 +1491,19 @@ export function TaskList({
           onComplete={handleCompleteTask}
         />
       )}
+
+      <VoiceTaskForm
+        users={users}
+        trips={trips}
+        open={isVoiceTaskDialogOpen}
+        onOpenChange={setIsVoiceTaskDialogOpen}
+        onSuccess={(createdTask) => {
+          if (createdTask) {
+            setTasks((prev) => [createdTask, ...prev]);
+          }
+          router.refresh();
+        }}
+      />
         </TabsContent>
       </Tabs>
     </div>

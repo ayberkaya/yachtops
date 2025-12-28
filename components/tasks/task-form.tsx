@@ -582,7 +582,10 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
                 />
               </div>
               <FormControl>
-                <Input placeholder="Task title" {...field} />
+                <Input 
+                  placeholder="Task title" 
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -764,7 +767,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
                 value={field.value || "none"}
               >
                 <FormControl>
-                  <SelectTrigger>
+                    <SelectTrigger>
                     <SelectValue placeholder="Select trip" />
                   </SelectTrigger>
                 </FormControl>
@@ -842,13 +845,13 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Due Date</FormLabel>
-                <FormControl>
-                  <Input
-                    type="date"
-                    {...field}
-                    value={field.value || ""}
-                  />
-                </FormControl>
+                  <FormControl>
+                    <Input
+                      type="date"
+                      {...field}
+                      value={field.value || ""}
+                    />
+                  </FormControl>
                 <FormMessage />
               </FormItem>
             )}

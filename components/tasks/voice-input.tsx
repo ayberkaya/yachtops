@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { Mic, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Mic, Loader2, Sparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { analyzeVoiceCommand } from "@/actions/voice-task";
 import { TaskIntentResult } from "@/lib/ai/types";
@@ -221,53 +221,21 @@ export function VoiceInput({
   };
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
-      <Button
-        type="button"
-        onClick={handleClick}
-        disabled={disabled || isProcessing}
-        variant={isRecording ? "destructive" : "outline"}
-        size="sm"
-        className={cn(
-          "relative transition-all",
-          isRecording && "animate-pulse"
-        )}
-      >
-        {isProcessing ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            <span className="hidden sm:inline">Yapay Zeka Analiz Ediyor...</span>
-            <span className="sm:hidden">Analiz Ediliyor...</span>
-          </>
-        ) : isRecording ? (
-          <>
-            <Mic className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Dinliyorum...</span>
-            <span className="sm:hidden">Kayıt</span>
-          </>
-        ) : (
-          <>
-            <Mic className="w-4 h-4 mr-2" />
-            <span className="hidden sm:inline">Sesli Görev</span>
-            <span className="sm:hidden">Ses</span>
-          </>
-        )}
-      </Button>
-
-      {isRecording && (
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-          <span className="hidden sm:inline">Kayıt devam ediyor...</span>
-        </div>
+    <Button
+      type="button"
+      onClick={handleClick}
+      disabled={disabled || isProcessing}
+      variant="outline"
+      size="icon"
+      className={cn("h-9 w-9", className)}
+    >
+      {isProcessing ? (
+        <Loader2 className="h-4 w-4 animate-spin" />
+      ) : (
+        <Mic className="h-4 w-4" />
       )}
-
-      {isProcessing && (
-        <div className="flex items-center gap-1 text-sm text-muted-foreground">
-          <Sparkles className="w-4 h-4 animate-pulse" />
-          <span className="hidden sm:inline">AI analiz ediyor...</span>
-        </div>
-      )}
-    </div>
+      <span className="sr-only">Sesli Görev</span>
+    </Button>
   );
 }
 

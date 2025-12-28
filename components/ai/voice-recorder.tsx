@@ -33,7 +33,7 @@ export function VoiceRecorder({
   // Check browser support
   useEffect(() => {
     if (typeof window !== "undefined" && !navigator.mediaDevices?.getUserMedia) {
-      setErrorMessage("Tarayıcınız ses kaydını desteklemiyor");
+      setErrorMessage("Your browser does not support audio recording");
       setStatus("error");
     }
   }, []);
@@ -75,7 +75,7 @@ export function VoiceRecorder({
 
         if (audioChunksRef.current.length === 0) {
           setStatus("error");
-          setErrorMessage("Kayıt alınamadı");
+          setErrorMessage("No audio recorded");
           setIsRecording(false);
           return;
         }
@@ -97,11 +97,11 @@ export function VoiceRecorder({
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Mikrofon erişimi reddedildi. Lütfen tarayıcı ayarlarından izin verin."
+          : "Microphone access denied. Please enable permissions in your browser settings."
       );
       setIsRecording(false);
       if (onError) {
-        onError(errorMessage || "Kayıt başlatılamadı");
+        onError(errorMessage || "Failed to start recording");
       }
     }
   };
@@ -147,15 +147,15 @@ export function VoiceRecorder({
         }, 2000);
       } else {
         setStatus("error");
-        setErrorMessage(result.error || "Görev çıkarılamadı");
+        setErrorMessage(result.error || "Failed to extract task");
         if (onError) {
-          onError(result.error || "Görev çıkarılamadı");
+          onError(result.error || "Failed to extract task");
         }
       }
     } catch (error) {
       console.error("Error processing audio:", error);
       setStatus("error");
-      const errorMsg = error instanceof Error ? error.message : "Ses işlenirken hata oluştu";
+      const errorMsg = error instanceof Error ? error.message : "Error processing audio";
       setErrorMessage(errorMsg);
       if (onError) {
         onError(errorMsg);
@@ -180,117 +180,124 @@ export function VoiceRecorder({
   };
 
   return (
-    <div className={cn("flex flex-col items-center gap-6 py-8", className)}>
-      {/* AI Assistant Visual Indicator */}
+    <div className={cn("flex flex-col items-center gap-10 py-8", className)}>
+      {/* Luxury Microphone Button with Premium Effects */}
       <div className="relative">
-        {/* Outer pulse rings when recording */}
+        {/* Elegant pulse rings when recording */}
         {isRecording && (
           <>
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-ping" style={{ width: '140px', height: '140px', margin: '-10px' }} />
-            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/15 via-purple-500/15 to-pink-500/15 animate-ping" style={{ width: '140px', height: '140px', margin: '-10px', animationDelay: '0.5s' }} />
+            <div className="absolute inset-0 rounded-full bg-primary/25 animate-ping" style={{ width: '140px', height: '140px', margin: '-30px' }} />
+            <div className="absolute inset-0 rounded-full bg-primary/15 animate-ping" style={{ width: '140px', height: '140px', margin: '-30px', animationDelay: '0.5s' }} />
+            <div className="absolute inset-0 rounded-full bg-primary/10 animate-ping" style={{ width: '140px', height: '140px', margin: '-30px', animationDelay: '1s' }} />
           </>
         )}
         
-        {/* Main microphone button */}
         <Button
           onClick={handleClick}
           disabled={disabled || isProcessing || status === "success"}
           size="lg"
           className={cn(
-            "relative rounded-full w-24 h-24 p-0 transition-all duration-300 shadow-2xl",
-            "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500",
-            "hover:from-blue-600 hover:via-purple-600 hover:to-pink-600",
+            "relative w-[168px] h-[159px] rounded-full p-0 transition-all duration-500 ease-out",
+            "bg-gradient-to-br from-primary via-primary to-primary/90",
+            "hover:from-primary/95 hover:via-primary hover:to-primary/85",
+            "text-primary-foreground shadow-[0_8px_32px_rgba(0,0,0,0.12)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4)]",
             "disabled:opacity-50 disabled:cursor-not-allowed",
-            isRecording && "scale-110 shadow-blue-500/50",
-            status === "success" && "bg-gradient-to-br from-green-500 to-emerald-500",
-            status === "error" && "bg-gradient-to-br from-red-500 to-rose-500"
+            "border-2 border-primary/20",
+            "hover:scale-105 active:scale-95",
+            isRecording && "scale-110 shadow-[0_12px_48px_rgba(0,0,0,0.2)] dark:shadow-[0_12px_48px_rgba(0,0,0,0.5)] ring-4 ring-primary/20",
+            status === "success" && "bg-gradient-to-br from-green-600 via-green-600 to-green-700 border-green-500/30 shadow-[0_8px_32px_rgba(34,197,94,0.3)]",
+            status === "error" && "bg-gradient-to-br from-destructive via-destructive to-destructive/90 border-destructive/30"
           )}
         >
-          <div className="absolute inset-0 rounded-full bg-white/20 backdrop-blur-sm" />
+          {/* Inner glow effect */}
+          <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-sm m-0" />
+          
           {isProcessing ? (
-            <Loader2 className="w-8 h-8 animate-spin text-white relative z-10" />
+            <Loader2 className="w-10 h-10 animate-spin relative z-10" />
           ) : status === "success" ? (
-            <CheckCircle2 className="w-8 h-8 text-white relative z-10" />
+            <CheckCircle2 className="w-10 h-10 relative z-10" />
           ) : status === "error" ? (
-            <XCircle className="w-8 h-8 text-white relative z-10" />
+            <XCircle className="w-10 h-10 relative z-10" />
           ) : isRecording ? (
-            <Square className="w-8 h-8 text-white relative z-10 fill-white" />
+            <Square className="w-10 h-10 fill-current relative z-10" />
           ) : (
-            <Mic className="w-8 h-8 text-white relative z-10" />
+            <Mic className="w-10 h-10 relative z-10" />
           )}
         </Button>
       </div>
 
-      {/* Status Messages */}
-      <div className="flex flex-col items-center gap-3 min-h-[80px]">
+      {/* Luxury Status Display */}
+      <div className="flex flex-col items-center gap-5 min-h-[120px] w-full max-w-lg">
         {isRecording && (
-          <div className="flex flex-col items-center gap-2 animate-fade-in">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-              <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                Dinliyorum...
+          <div className="flex flex-col items-center gap-4 animate-fade-in w-full">
+            <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-red-500/10 via-red-500/8 to-red-500/10 border border-red-500/25 backdrop-blur-md shadow-sm">
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shadow-sm shadow-red-500/50" />
+              <span className="text-sm font-semibold text-red-700 dark:text-red-400 uppercase tracking-[0.15em]">
+                Recording
               </span>
             </div>
-            <div className="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400">
+            <div className="text-5xl font-bold text-foreground tracking-tight tabular-nums font-mono">
               {formatTime(recordingTime)}
             </div>
-            <p className="text-sm text-muted-foreground">
-              Durdurmak için tekrar tıklayın
+            <p className="text-sm text-muted-foreground text-center font-medium">
+              Click again to stop recording
             </p>
           </div>
         )}
 
         {isProcessing && (
-          <div className="flex flex-col items-center gap-3 animate-fade-in">
-            <div className="flex items-center gap-2">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
-              <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
-                AI Analiz Ediyor...
+          <div className="flex flex-col items-center gap-4 animate-fade-in w-full">
+            <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-primary/10 via-primary/8 to-primary/10 border border-primary/25 backdrop-blur-md shadow-sm">
+              <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              <span className="text-sm font-semibold text-foreground uppercase tracking-[0.15em]">
+                Processing
               </span>
             </div>
-            <div className="flex gap-1">
-              <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0s' }} />
-              <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '0.2s' }} />
-              <div className="w-2 h-2 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '0.4s' }} />
+            <div className="flex gap-2.5">
+              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce shadow-sm" style={{ animationDelay: '0s' }} />
+              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce shadow-sm" style={{ animationDelay: '0.2s' }} />
+              <div className="w-2.5 h-2.5 rounded-full bg-primary animate-bounce shadow-sm" style={{ animationDelay: '0.4s' }} />
             </div>
-            <p className="text-sm text-muted-foreground text-center max-w-xs">
-              Sesiniz işleniyor ve görev çıkarılıyor
+            <p className="text-sm text-muted-foreground text-center max-w-sm leading-relaxed font-medium">
+              Analyzing audio signal and extracting task parameters...
             </p>
           </div>
         )}
 
         {status === "success" && (
-          <div className="flex flex-col items-center gap-2 animate-fade-in">
-            <div className="flex items-center gap-2">
-              <CheckCircle2 className="w-5 h-5 text-green-600" />
-              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
-                Görev Hazırlandı!
+          <div className="flex flex-col items-center gap-3 animate-fade-in w-full">
+            <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-green-500/10 via-green-500/8 to-green-500/10 border border-green-500/25 backdrop-blur-md shadow-sm">
+              <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400" />
+              <span className="text-sm font-semibold text-green-700 dark:text-green-400 uppercase tracking-[0.15em]">
+                Task Ready
               </span>
             </div>
           </div>
         )}
 
         {errorMessage && (
-          <div className="flex flex-col items-center gap-2 animate-fade-in max-w-xs text-center">
-            <div className="flex items-center gap-2">
-              <XCircle className="w-5 h-5 text-red-600" />
-              <span className="text-sm font-medium text-red-600 dark:text-red-400">
-                Hata
+          <div className="flex flex-col items-center gap-3 animate-fade-in max-w-sm text-center w-full">
+            <div className="flex items-center gap-3 px-5 py-2.5 rounded-xl bg-gradient-to-r from-destructive/10 via-destructive/8 to-destructive/10 border border-destructive/25 backdrop-blur-md shadow-sm">
+              <XCircle className="w-5 h-5 text-destructive" />
+              <span className="text-xs font-semibold text-destructive uppercase tracking-[0.15em]">
+                Error
               </span>
             </div>
-            <p className="text-sm text-red-600/80 dark:text-red-400/80">
+            <p className="text-sm text-muted-foreground leading-relaxed font-medium">
               {errorMessage}
             </p>
           </div>
         )}
 
         {!isRecording && !isProcessing && status === "idle" && (
-          <div className="flex flex-col items-center gap-2 animate-fade-in text-center">
-            <p className="text-base font-medium text-slate-700 dark:text-slate-300">
-              AI Asistanınız Hazır
-            </p>
-            <p className="text-sm text-muted-foreground max-w-xs">
-              Mikrofon butonuna basıp görevinizi söyleyin
+          <div className="flex flex-col items-center gap-4 animate-fade-in text-center w-full">
+            <div className="px-6 py-3 rounded-xl bg-gradient-to-br from-muted/60 via-muted/50 to-muted/60 border border-border/50 backdrop-blur-md shadow-sm">
+              <p className="text-sm font-semibold text-foreground uppercase tracking-[0.15em]">
+                Ready
+              </p>
+            </div>
+            <p className="text-[15px] text-muted-foreground max-w-md leading-relaxed font-medium">
+              Click the microphone button and speak your task. Our AI will analyze and create it automatically.
             </p>
           </div>
         )}
@@ -298,4 +305,3 @@ export function VoiceRecorder({
     </div>
   );
 }
-
