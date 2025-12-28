@@ -56,10 +56,11 @@ CREATE POLICY "Users can delete their own push subscriptions"
 CREATE OR REPLACE FUNCTION update_push_subscriptions_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SET search_path = public
+SECURITY DEFINER
+SET search_path = ''
 AS $$
 BEGIN
-  NEW.updated_at = NOW();
+  NEW.updated_at = pg_catalog.now();
   RETURN NEW;
 END;
 $$;
