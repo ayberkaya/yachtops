@@ -75,8 +75,9 @@ export async function checkPermission(
 
     const plan = yacht.currentPlan;
 
-    // Check if plan is active
-    if (!plan.active) {
+    // Check if plan is active (if active column exists)
+    // If active is false, deny access. If undefined/null, assume active (backward compatibility)
+    if (plan.active === false) {
       console.warn(`[FeatureGate] Plan is inactive: ${plan.name}`);
       return false;
     }
@@ -136,8 +137,9 @@ export async function checkLimit(
 
     const plan = yacht.currentPlan;
 
-    // Check if plan is active
-    if (!plan.active) {
+    // Check if plan is active (if active column exists)
+    // If active is false, deny access. If undefined/null, assume active (backward compatibility)
+    if (plan.active === false) {
       console.warn(`[FeatureGate] Plan is inactive: ${plan.name}`);
       return false;
     }
