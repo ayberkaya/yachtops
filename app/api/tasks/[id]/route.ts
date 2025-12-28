@@ -16,7 +16,7 @@ const updateTaskSchema = z.object({
   assigneeRole: z.nativeEnum(UserRole).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).optional(),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).optional(),
+  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).optional(),
   type: z.nativeEnum(TaskType).optional(),
   cost: z.number().optional().nullable(),
   currency: z.string().optional().nullable(),

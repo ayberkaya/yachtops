@@ -368,7 +368,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
         assigneeRole: (!assigneeRoleValue || assigneeRoleValue === "none") ? null : assigneeRoleValue,
         dueDate: data.dueDate || null,
         status: data.status,
-        priority: data.priority || "MEDIUM",
+        priority: data.priority || "NORMAL",
         type: data.type || "GENERAL",
         cost: data.cost || null,
         currency: data.currency || null,
