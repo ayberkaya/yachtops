@@ -38,10 +38,9 @@ import {
 } from "@/components/ui/collapsible";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2, ChevronDown, Mic } from "lucide-react";
+import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2, ChevronDown } from "lucide-react";
 import { TaskForm } from "./task-form";
 import { TaskCompletionDialog } from "./task-completion-dialog";
-import { VoiceTaskForm } from "@/components/ai/voice-task-form";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { hasPermission } from "@/lib/permissions";
 import { SessionUser } from "@/lib/auth-utils";
@@ -101,7 +100,6 @@ export function TaskList({
   const searchParams = useSearchParams();
   const [tasks, setTasks] = useState(initialTasks);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isVoiceTaskDialogOpen, setIsVoiceTaskDialogOpen] = useState(false);
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>("cards");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -413,13 +411,6 @@ export function TaskList({
                   </Button>
                 </DialogTrigger>
               </Dialog>
-              <Button
-                onClick={() => setIsVoiceTaskDialogOpen(true)}
-                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white"
-              >
-                <Mic className="mr-2 h-4 w-4" />
-                Voice Task
-              </Button>
             </>
           )}
           <Button
@@ -1456,9 +1447,6 @@ export function TaskList({
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editingTask ? "Edit Task" : "New Task"}</DialogTitle>
-            <DialogDescription>
-              {editingTask ? "Update task details" : "Create a new task"}
-            </DialogDescription>
           </DialogHeader>
           <TaskForm
             task={editingTask}
@@ -1492,18 +1480,6 @@ export function TaskList({
         />
       )}
 
-      <VoiceTaskForm
-        users={users}
-        trips={trips}
-        open={isVoiceTaskDialogOpen}
-        onOpenChange={setIsVoiceTaskDialogOpen}
-        onSuccess={(createdTask) => {
-          if (createdTask) {
-            setTasks((prev) => [createdTask, ...prev]);
-          }
-          router.refresh();
-        }}
-      />
         </TabsContent>
       </Tabs>
     </div>

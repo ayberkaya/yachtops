@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Mic, Loader2 } from "lucide-react";
+import { Mic, Loader2, Sparkles, Brain, Radio, Square } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { analyzeVoiceCommand } from "@/actions/voice-task";
 import { TaskIntentResult } from "@/lib/ai/types";
@@ -53,6 +54,14 @@ export function VoiceInput({
 
       setIsRecording(true);
       audioChunksRef.current = [];
+
+      // Notify user that recording has started
+      toast({
+        title: "Kayıt Başladı",
+        description: "Sesiniz kaydediliyor. Kaydı durdurmak için butona tekrar tıklayın.",
+        variant: "default",
+        duration: 3000,
+      });
 
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
@@ -221,21 +230,129 @@ export function VoiceInput({
   };
 
   return (
-    <Button
-      type="button"
-      onClick={handleClick}
-      disabled={disabled || isProcessing}
-      variant="outline"
-      size="icon"
-      className={cn("h-9 w-9", className)}
-    >
-      {isProcessing ? (
-        <Loader2 className="h-4 w-4 animate-spin" />
-      ) : (
-        <Mic className="h-4 w-4" />
+    <div className="relative inline-flex flex-col items-center justify-center mx-auto gap-3">
+      {/* AI Powered Badge - Always visible */}
+      {!isRecording && !isProcessing && (
+        <Badge 
+          variant="outline" 
+          className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] px-2 py-0.5 border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 shadow-sm backdrop-blur-sm"
+        >
+          <Brain className="w-3 h-3 mr-1 text-primary" />
+          <span className="font-semibold text-primary">AI Powered</span>
+        </Badge>
       )}
-      <span className="sr-only">Sesli Görev</span>
-    </Button>
+
+      {/* Premium Recording Indicator - When recording */}
+      {isRecording && (
+        <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-30">
+          <div className="relative rounded-lg px-3 py-1.5 bg-gradient-to-r from-primary/95 via-primary to-primary/95 border border-primary/50 shadow-lg shadow-primary/20 backdrop-blur-md">
+            <div className="flex items-center gap-2">
+              <div className="relative flex items-center justify-center">
+                <Radio className="w-3.5 h-3.5 text-primary-foreground animate-pulse" />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="w-4 h-4 rounded-full bg-red-500/40 animate-ping" />
+                </div>
+              </div>
+              <span className="text-xs font-semibold text-primary-foreground whitespace-nowrap">
+                Kayıt Alınıyor
+              </span>
+            </div>
+            {/* Animated glow effect */}
+            <div className="absolute inset-0 rounded-lg bg-primary/20 animate-pulse blur-sm -z-10" />
+          </div>
+        </div>
+      )}
+
+      <div className="relative inline-flex items-center justify-center">
+        {/* Premium sparkle effect - always visible when not recording */}
+        {!isRecording && !isProcessing && (
+          <div className="absolute -top-1.5 -right-1.5 z-20">
+            <div className="relative">
+              <Sparkles className="w-4.5 h-4.5 text-primary animate-pulse" />
+              <div className="absolute inset-0">
+                <Sparkles className="w-4.5 h-4.5 text-primary/70 animate-ping opacity-75" />
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Subtle pulsing ring when recording - draws attention without being intrusive */}
+        {isRecording && (
+          <div 
+            className="absolute inset-0 rounded-full border-2 border-primary/50 animate-pulse" 
+            style={{ 
+              animationDuration: '2s',
+              width: 'calc(100% + 16px)',
+              height: 'calc(100% + 16px)',
+              margin: '-8px',
+            }} 
+          />
+        )}
+        
+        {/* Premium glow effect when not recording */}
+        {!isRecording && !isProcessing && (
+          <div className="absolute inset-0 rounded-full bg-gradient-to-br from-primary/20 via-primary/10 to-accent/10 blur-sm animate-pulse" />
+        )}
+        
+        <Button
+          type="button"
+          onClick={handleClick}
+          disabled={disabled || isProcessing}
+          variant={isRecording ? "default" : "outline"}
+          size="icon"
+          className={cn(
+            "relative transition-all duration-300 rounded-full",
+            "w-[50px] h-[50px] p-0",
+            isRecording && "h-[60px]",
+            "border-premium shadow-premium",
+            isRecording && [
+              "bg-gradient-to-br from-primary via-primary to-primary/90",
+              "text-primary-foreground",
+              "shadow-lg shadow-primary/40",
+              "ring-2 ring-primary/40",
+              "animate-pulse-scale",
+              "cursor-pointer",
+              "hover:scale-110 hover:ring-2 hover:ring-primary/60 hover:shadow-xl hover:shadow-primary/50",
+              "active:scale-95",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+            ],
+            !isRecording && [
+              "bg-gradient-to-br from-background via-background to-muted/30",
+              "border-primary/30 dark:border-primary/40",
+              "hover:bg-gradient-to-br hover:from-muted/50 hover:via-background hover:to-muted/40",
+              "hover:border-primary/50 dark:hover:border-primary/60",
+              "hover:shadow-premium-lg hover:shadow-primary/10",
+              "hover:scale-105"
+            ],
+            className
+          )}
+        >
+          {isProcessing ? (
+            <Loader2 className="size-6 animate-spin text-primary" />
+          ) : isRecording ? (
+            <div className="relative flex flex-col items-center justify-center gap-1">
+              {/* Sound waves animation */}
+              <div className="flex items-end gap-0.5 h-5">
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-1" style={{ height: '40%' }} />
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-2" style={{ height: '60%' }} />
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-3" style={{ height: '80%' }} />
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-4" style={{ height: '100%' }} />
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-3" style={{ height: '80%' }} />
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-2" style={{ height: '60%' }} />
+                <div className="w-0.5 bg-current rounded-full animate-sound-wave-1" style={{ height: '40%' }} />
+              </div>
+              {/* Minimal "Tap to Stop" text inside button */}
+              <div className="text-[8px] font-bold text-primary-foreground/90 leading-none tracking-tight animate-pulse">
+                STOP
+              </div>
+            </div>
+          ) : (
+            <Mic className="size-6 text-primary" />
+          )}
+          <span className="sr-only">Voice Task (Premium)</span>
+        </Button>
+      </div>
+    </div>
   );
 }
 

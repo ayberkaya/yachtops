@@ -524,8 +524,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
           name="title"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
-                <FormLabel>Title *</FormLabel>
+              <div className="flex justify-center">
                 <VoiceInput
                   onSuccess={(data: TaskIntentResult, transcript: string) => {
                     // Map AI priority to form priority
@@ -581,6 +580,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
                   disabled={isLoading || isDeleting}
                 />
               </div>
+              <FormLabel>Title *</FormLabel>
               <FormControl>
                 <Input 
                   placeholder="Task title" 

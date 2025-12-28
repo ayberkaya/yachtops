@@ -10,17 +10,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, DollarSign, Wallet, CheckSquare, ShoppingCart, Mic } from "lucide-react";
+import { Plus, DollarSign, Wallet, CheckSquare, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskForm } from "@/components/tasks/task-form";
 import { ShoppingListForm } from "@/components/shopping/shopping-list-form";
-import { VoiceTaskForm } from "@/components/ai/voice-task-form";
 
 export function QuickActions() {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
-  const [isVoiceTaskDialogOpen, setIsVoiceTaskDialogOpen] = useState(false);
   const [isShoppingListDialogOpen, setIsShoppingListDialogOpen] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [trips, setTrips] = useState<{ id: string; name: string }[]>([]);
@@ -49,17 +47,6 @@ export function QuickActions() {
       onClick: async () => {
         setIsHovered(false);
         setIsTaskDialogOpen(true);
-        await fetchTaskData();
-      },
-    },
-    {
-      label: "Voice Task",
-      icon: Mic,
-      href: "/dashboard/tasks",
-      color: "text-pink-600 dark:text-pink-400",
-      onClick: async () => {
-        setIsHovered(false);
-        setIsVoiceTaskDialogOpen(true);
         await fetchTaskData();
       },
     },
@@ -169,7 +156,6 @@ export function QuickActions() {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>New Task</DialogTitle>
-            <DialogDescription>Create a new task</DialogDescription>
           </DialogHeader>
           {isLoadingTaskData ? (
             <div className="py-8 text-center text-muted-foreground">Loading...</div>
@@ -185,17 +171,6 @@ export function QuickActions() {
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Voice Task Dialog */}
-      <VoiceTaskForm
-        users={users}
-        trips={trips}
-        open={isVoiceTaskDialogOpen}
-        onOpenChange={setIsVoiceTaskDialogOpen}
-        onSuccess={() => {
-          router.refresh();
-        }}
-      />
 
       {/* Shopping List Dialog */}
       <Dialog open={isShoppingListDialogOpen} onOpenChange={setIsShoppingListDialogOpen}>

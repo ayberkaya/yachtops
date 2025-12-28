@@ -455,9 +455,94 @@ section[class*="relative"] > * {
   }
 }
 
+@keyframes gentle-breathe {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.2;
+    transform: scale(1.02);
+  }
+}
+
 .animate-music-bar {
   animation: music-bar 1.2s ease-in-out infinite;
   will-change: height, opacity;
+}
+
+.animate-gentle-breathe {
+  animation: gentle-breathe 3s ease-in-out infinite;
+}
+
+/* Sound wave animations for voice recording */
+@keyframes sound-wave-1 {
+  0%, 100% {
+    height: 40%;
+  }
+  50% {
+    height: 80%;
+  }
+}
+
+@keyframes sound-wave-2 {
+  0%, 100% {
+    height: 60%;
+  }
+  50% {
+    height: 100%;
+  }
+}
+
+@keyframes sound-wave-3 {
+  0%, 100% {
+    height: 80%;
+  }
+  50% {
+    height: 40%;
+  }
+}
+
+@keyframes sound-wave-4 {
+  0%, 100% {
+    height: 100%;
+  }
+  50% {
+    height: 60%;
+  }
+}
+
+.animate-sound-wave-1 {
+  animation: sound-wave-1 0.6s ease-in-out infinite;
+}
+
+.animate-sound-wave-2 {
+  animation: sound-wave-2 0.8s ease-in-out infinite;
+  animation-delay: 0.1s;
+}
+
+.animate-sound-wave-3 {
+  animation: sound-wave-3 0.7s ease-in-out infinite;
+  animation-delay: 0.2s;
+}
+
+.animate-sound-wave-4 {
+  animation: sound-wave-4 0.9s ease-in-out infinite;
+  animation-delay: 0.15s;
+}
+
+/* Pulse scale animation for recording button */
+@keyframes pulse-scale {
+  0%, 100% {
+    transform: scale(1.05);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+.animate-pulse-scale {
+  animation: pulse-scale 1.5s ease-in-out infinite;
 }
 
 
