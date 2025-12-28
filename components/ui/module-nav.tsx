@@ -134,7 +134,6 @@ export function ModuleNav({ links }: ModuleNavProps) {
           {links.map((link) => {
             const isActive =
               pathname === link.href || pathname.startsWith(link.href + "/");
-            const Icon = link.icon;
             
             return (
               <Link
@@ -163,13 +162,7 @@ export function ModuleNav({ links }: ModuleNavProps) {
                 />
 
                 {/* Content */}
-                <div className="relative flex items-center gap-1.5 md:gap-2 z-10">
-                  {Icon && (
-                    <Icon 
-                      size={15} 
-                      className="flex-shrink-0 transition-colors duration-300 text-foreground group-hover:text-foreground/80"
-                    />
-                  )}
+                <div className="relative flex items-center justify-center z-10">
                   <motion.span 
                     className="leading-tight relative"
                     animate={{

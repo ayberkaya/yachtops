@@ -54,12 +54,15 @@ CREATE POLICY "Users can delete their own push subscriptions"
 -- ============================================================================
 
 CREATE OR REPLACE FUNCTION update_push_subscriptions_updated_at()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 CREATE TRIGGER update_push_subscriptions_updated_at
   BEFORE UPDATE ON public.push_subscriptions

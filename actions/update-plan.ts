@@ -155,7 +155,7 @@ export async function updatePlanAction(
       return {
         success: false,
         error: "Validation error",
-        message: error.errors.map((e) => e.message).join(", "),
+        message: error.issues.map((e) => e.message).join(", "),
       };
     }
 

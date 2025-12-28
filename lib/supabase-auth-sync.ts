@@ -35,7 +35,7 @@ export function getSupabaseAdmin() {
  * CUID veya String ID'yi Supabase uyumlu UUID formatına çevirir.
  * Deterministiktir: Aynı Input her zaman aynı UUID'yi üretir.
  */
-function getUuidFromUserId(userId: string): string {
+export function getUuidFromUserId(userId: string): string {
   // Eğer zaten UUID formatındaysa dokunma
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
   if (uuidRegex.test(userId)) {

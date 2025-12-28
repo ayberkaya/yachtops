@@ -69,16 +69,13 @@ export function SalesHub() {
       const data = await res.json();
       
       // Use NextAuth signIn with impersonation token
+      // Note: When redirect is true, signIn returns void, so we can't check for errors
       const { signIn } = await import("next-auth/react");
-      const result = await signIn("credentials", {
+      await signIn("credentials", {
         impersonateToken: ownerId,
         redirect: true,
         callbackUrl: "/dashboard",
       });
-
-      if (result?.error) {
-        alert("Failed to switch user session");
-      }
     } catch (error: any) {
       console.error("Impersonation error:", error);
       alert("An error occurred while switching user");

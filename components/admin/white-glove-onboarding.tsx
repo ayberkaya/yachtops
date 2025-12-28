@@ -84,7 +84,7 @@ export function WhiteGloveOnboarding() {
     watch,
     setValue,
     formState: { errors },
-  } = useForm<OnboardingFormData>({
+  } = useForm({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
       languagePreference: "en",
@@ -121,7 +121,7 @@ export function WhiteGloveOnboarding() {
   };
 
   // Handle form validation and show preview
-  const onFormSubmit = (data: OnboardingFormData) => {
+  const onFormSubmit = (data: OnboardingFormData): void => {
     // Validate form
     if (!data.ownerName || !data.ownerEmail || !data.yachtName || !data.planId) {
       return;
@@ -139,17 +139,17 @@ export function WhiteGloveOnboarding() {
       formData.append("ownerName", data.ownerName.trim());
       formData.append("ownerEmail", data.ownerEmail.trim());
       formData.append("ownerPhone", data.ownerPhone || "");
-      formData.append("languagePreference", data.languagePreference);
+      formData.append("languagePreference", data.languagePreference || "en");
       formData.append("yachtName", data.yachtName.trim());
-      formData.append("yachtType", data.yachtType);
+      formData.append("yachtType", data.yachtType || "Motor Yacht");
       formData.append("yachtLength", data.yachtLength || "");
       formData.append("yachtFlag", data.yachtFlag || "");
-      formData.append("baseCurrency", data.baseCurrency);
-      formData.append("measurementSystem", data.measurementSystem);
-      formData.append("planId", data.planId);
-      formData.append("billingCycle", data.billingCycle);
+      formData.append("baseCurrency", data.baseCurrency || "EUR");
+      formData.append("measurementSystem", data.measurementSystem || "metric");
+      formData.append("planId", data.planId || "");
+      formData.append("billingCycle", data.billingCycle || "monthly");
       formData.append("activateImmediately", data.activateImmediately ? "true" : "false");
-      formData.append("trialDays", data.trialDays);
+      formData.append("trialDays", data.trialDays || "0");
       formData.append("internalNotes", data.internalNotes || "");
       formData.append("previewMode", previewMode ? "true" : "false");
 
@@ -574,8 +574,8 @@ export function WhiteGloveOnboarding() {
           yachtName: formValues.yachtName,
           planName: selectedPlan?.name || "",
           planId: formValues.planId,
-          logoFile: formValues.logoFile,
-          languagePreference: formValues.languagePreference,
+          logoFile: formValues.logoFile ?? null,
+          languagePreference: formValues.languagePreference || "en",
         }}
         onConfirm={handleConfirmSubmit}
         isSubmitting={submitting}

@@ -45,8 +45,8 @@ export async function GET(request: NextRequest) {
 
   // Fetch yacht names
   const yachtIds = ownersWithSubscription
-    .map((o) => o.yacht_id)
-    .filter((v): v is string => Boolean(v));
+    .map((o: { yacht_id: string | null }) => o.yacht_id)
+    .filter((v: string | null): v is string => Boolean(v));
 
   const yachts = yachtIds.length
     ? await db.yacht.findMany({
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
       })
     : [];
 
-  const yachtMap = new Map(yachts.map((y) => [y.id, y.name]));
+  const yachtMap = new Map(yachts.map((y: { id: string; name: string }) => [y.id, y.name]));
 
   // Fetch plan names using Supabase admin client (plans table is in Supabase)
   const { createAdminClient } = await import("@/utils/supabase/admin");
@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
   
   if (supabase) {
     const planIds = ownersWithSubscription
-      .map((o) => o.plan_id)
-      .filter((v): v is string => Boolean(v));
+      .map((o: { plan_id: string | null }) => o.plan_id)
+      .filter((v: string | null): v is string => Boolean(v));
 
     if (planIds.length > 0) {
       const { data: plansData } = await supabase
@@ -74,13 +74,25 @@ export async function GET(request: NextRequest) {
         .in("id", planIds);
 
       if (plansData) {
-        planMap = new Map(plansData.map((p) => [p.id, p.name]));
+        planMap = new Map(plansData.map((p: { id: string; name: string }) => [p.id, p.name]));
       }
     }
   }
 
   // Transform to match expected format
-  const owners = ownersWithSubscription.map((o) => ({
+  const owners = ownersWithSubscription.map((o: {
+    id: string;
+    name: string | null;
+    email: string;
+    username: string;
+    role: string;
+    yacht_id: string | null;
+    active: boolean;
+    created_at: Date;
+    subscription_status: string | null;
+    plan_id: string | null;
+    trial_ends_at: Date | null;
+  }) => ({
     id: o.id,
     name: o.name,
     email: o.email,
@@ -98,8 +110,8 @@ export async function GET(request: NextRequest) {
 
   if (includeUsers && owners.length) {
     const tenantIds = owners
-      .map((o) => o.yachtId)
-      .filter((v): v is string => Boolean(v));
+      .map((o: { yachtId: string | null }) => o.yachtId)
+      .filter((v: string | null): v is string => Boolean(v));
 
     const users = tenantIds.length
       ? await db.user.findMany({
@@ -135,7 +147,7 @@ export async function GET(request: NextRequest) {
       {} as Record<string, typeof users>
     );
 
-    const enriched = owners.map((owner) => ({
+    const enriched = owners.map((owner: typeof owners[number]) => ({
       ...owner,
       users: owner.yachtId ? grouped[owner.yachtId] || [] : [],
     }));

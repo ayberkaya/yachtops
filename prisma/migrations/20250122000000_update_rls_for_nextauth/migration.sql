@@ -11,7 +11,11 @@ DROP FUNCTION IF EXISTS get_user_yacht_id() CASCADE;
 -- Create updated function that works with both Supabase Auth and NextAuth
 -- Note: This function requires users to be synced to Supabase Auth via syncUserToSupabaseAuth()
 CREATE OR REPLACE FUNCTION get_user_yacht_id()
-RETURNS TEXT AS $$
+RETURNS TEXT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
 DECLARE
   current_user_id TEXT;
   user_yacht_id TEXT;
@@ -42,7 +46,7 @@ BEGIN
   
   RETURN user_yacht_id;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION get_user_yacht_id() TO authenticated;

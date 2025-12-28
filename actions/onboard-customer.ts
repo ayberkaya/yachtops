@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { UserRole } from "@prisma/client";
+import { UserRole, Prisma } from "@prisma/client";
 import { hashPassword } from "@/lib/auth-server";
 import { getSupabaseAdmin } from "@/lib/supabase-auth-sync";
 import { createAdminClient } from "@/utils/supabase/admin";
@@ -221,7 +221,7 @@ export async function onboardNewCustomer(
     const username = validated.ownerEmail.split("@")[0];
 
     // Use transaction to ensure data integrity
-    const result = await db.$transaction(async (tx) => {
+    const result = await db.$transaction(async (tx: Prisma.TransactionClient) => {
       // Step 1: Create user in Supabase Auth (without password, will be set after email verification)
       const { data: authUser, error: authError } = await supabaseAdmin.auth.admin.createUser({
         email: validated.ownerEmail,
@@ -482,7 +482,7 @@ export async function onboardNewCustomer(
       return {
         success: false,
         error: "Validation error",
-        message: error.errors.map((e) => e.message).join(", "),
+        message: error.issues.map((e) => e.message).join(", "),
       };
     }
 

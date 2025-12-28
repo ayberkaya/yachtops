@@ -86,7 +86,7 @@ model Yacht {
   settings                  Json?                      // Tenant settings: currency, measurement system, etc.
   features                  Json?                      // Feature flags: enabled modules
   logoUrl                   String?                    @map("logo_url")
-  currentPlanId             String?                    @map("current_plan_id")
+  currentPlanId             String?                    @map("current_plan_id") @db.Uuid
   subscriptionStatus        String?                    @map("subscription_status") // ACTIVE, TRIAL, EXPIRED, etc.
   createdAt                 DateTime                   @default(now()) @map("created_at")
   updatedAt                 DateTime                   @updatedAt @map("updated_at")
@@ -1063,16 +1063,16 @@ model Feedback {
 }
 
 model Plan {
-  id           String   @id @default(cuid())
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name         String   @unique
   features     String[] // Array of feature keys (e.g., ["module:logbook", "module:finance"])
-  limits       Json     // Numeric limits (e.g., { "max_users": 5, "storage_mb": 2048 })
+  limits       Json?    // Numeric limits (e.g., { "max_users": 5, "storage_mb": 2048 })
   monthlyPrice Float?   @map("monthly_price")
   annualPrice  Float?   @map("annual_price")
   currency     String   @default("USD")
   active       Boolean  @default(true)
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz
   yachts       Yacht[]
 
   @@map("plans")

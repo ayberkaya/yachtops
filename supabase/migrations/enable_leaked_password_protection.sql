@@ -1,0 +1,37 @@
+-- ============================================================================
+-- Enable Leaked Password Protection
+-- ============================================================================
+-- This migration documents the need to enable leaked password protection
+-- in Supabase Auth. This feature prevents users from using compromised
+-- passwords by checking against HaveIBeenPwned.org.
+--
+-- IMPORTANT: This setting must be enabled via the Supabase Dashboard or
+-- Management API, as it is not configurable via SQL.
+-- ============================================================================
+
+-- ============================================================================
+-- How to Enable Leaked Password Protection
+-- ============================================================================
+-- 
+-- Option 1: Via Supabase Dashboard (Recommended)
+-- ------------------------------------------------
+-- 1. Go to your Supabase project dashboard
+-- 2. Navigate to: Authentication → Settings → Password
+-- 3. Enable "Leaked Password Protection"
+-- 4. Save changes
+--
+-- Option 2: Via Management API
+-- -----------------------------
+-- Use the Supabase Management API to update auth settings:
+--
+-- PATCH /v1/projects/{project_ref}/config/auth
+-- {
+--   "EXTERNAL_PASSWORD_CHECK_ENABLED": true
+-- }
+--
+-- Reference: https://supabase.com/docs/guides/auth/password-security#password-strength-and-leaked-password-protection
+-- ============================================================================
+
+-- Note: This migration file serves as documentation only.
+-- The actual setting must be configured via the Supabase Dashboard or API.
+

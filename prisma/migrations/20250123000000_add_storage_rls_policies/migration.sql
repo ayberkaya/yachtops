@@ -48,13 +48,18 @@ END $$;
 
 -- Create or replace function to get yacht_id from JWT user_metadata
 CREATE OR REPLACE FUNCTION get_jwt_yacht_id()
-RETURNS TEXT AS $$
+RETURNS TEXT
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
 BEGIN
   -- Extract yacht_id from JWT user_metadata
   -- Format: auth.jwt() -> 'user_metadata' -> 'yacht_id'
   RETURN (auth.jwt() -> 'user_metadata' ->> 'yacht_id')::TEXT;
 END;
-$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+$$;
 
 -- Grant execute permission to authenticated users
 GRANT EXECUTE ON FUNCTION get_jwt_yacht_id() TO authenticated;

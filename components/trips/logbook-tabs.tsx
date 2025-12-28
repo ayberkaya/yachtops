@@ -6,7 +6,6 @@ import { TripList } from "./trip-list";
 import { RouteFuelEstimation } from "./route-fuel-estimation";
 import { ActiveVoyageHero } from "./active-voyage-hero";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Ship, History, Fuel } from "lucide-react";
 import { TripType, TripStatus, TripMovementEvent } from "@prisma/client";
 
 interface Trip {
@@ -106,16 +105,13 @@ export function LogbookTabs({
   return (
     <Tabs value={currentView} onValueChange={handleValueChange} className="w-full">
       <TabsList className="grid w-full grid-cols-3">
-        <TabsTrigger value="active" className="flex items-center gap-2">
-          <Ship className="h-4 w-4" />
+        <TabsTrigger value="active">
           Active Voyages
         </TabsTrigger>
-        <TabsTrigger value="past" className="flex items-center gap-2">
-          <History className="h-4 w-4" />
+        <TabsTrigger value="past">
           Past Voyages
         </TabsTrigger>
-        <TabsTrigger value="fuel" className="flex items-center gap-2">
-          <Fuel className="h-4 w-4" />
+        <TabsTrigger value="fuel">
           Fuel Log
         </TabsTrigger>
       </TabsList>
