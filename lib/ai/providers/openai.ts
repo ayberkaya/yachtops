@@ -100,6 +100,9 @@ export class OpenAIProvider implements AIServiceProvider {
       - Şu anki zaman: ${context.currentTime}
       - Bugünün tarihi: ${now.toISOString().split("T")[0]}
       - Yarının tarihi: ${tomorrowISO}
+      - Mevcut yıl: ${now.getFullYear()}
+      - Mevcut ay: ${now.getMonth() + 1} (${['Ocak', 'Şubat', 'Mart', 'Nisan', 'Mayıs', 'Haziran', 'Temmuz', 'Ağustos', 'Eylül', 'Ekim', 'Kasım', 'Aralık'][now.getMonth()]})
+      - Mevcut gün: ${now.getDate()}
       - Tekne: ${context.vesselName || "Bilinmiyor"}
       - Personel Listesi (ID - İsim - Rol):
         ${context.crewList.length > 0 
@@ -166,11 +169,34 @@ export class OpenAIProvider implements AIServiceProvider {
          - NOT: Bu alan şu an JSON'da yok ama gelecekte eklenebilir, şimdilik sadece assigneeId kullan
       
       4. TARİH (dueDate):
-         - "sabah", "sabah yapılsın", "sabah yapılacak" → yarının tarihi (${tomorrowISO})
-         - "bugün", "bugün yapılsın" → bugünün tarihi (${now.toISOString().split("T")[0]})
-         - "yarın", "yarın yapılsın" → yarının tarihi (${tomorrowISO})
-         - "bu hafta" → bugünden 7 gün sonra
-         - Belirli bir tarih belirtilmişse ISO formatında (YYYY-MM-DD) döndür
+         - Göreceli tarihler:
+           * "sabah", "sabah yapılsın", "sabah yapılacak" → yarının tarihi (${tomorrowISO})
+           * "bugün", "bugün yapılsın" → bugünün tarihi (${now.toISOString().split("T")[0]})
+           * "yarın", "yarın yapılsın" → yarının tarihi (${tomorrowISO})
+           * "akşam", "akşam yapılsın" → bugünün tarihi (${now.toISOString().split("T")[0]})
+           * "bu hafta" → bugünden 7 gün sonra
+           * "gelecek hafta" → bugünden 14 gün sonra
+           * "bu ay" → ayın son günü
+           * "gelecek ay" → bir sonraki ayın son günü
+         
+         - Belirli tarihler (Türkçe ay isimleri ile):
+           * Türkçe ay isimleri: Ocak, Şubat, Mart, Nisan, Mayıs, Haziran, Temmuz, Ağustos, Eylül, Ekim, Kasım, Aralık
+           * "3 Ocak", "15 Şubat", "Ocak 3", "Şubat 15" → Belirtilen gün ve ay (yıl belirtilmediyse mevcut yıl)
+           * "3 Ocağa kadar", "15 Şubata kadar", "3 Ocağa", "15 Şubata" → Belirtilen tarih (kadar/e kadar/a kadar = deadline)
+           * "Ocak 3'e kadar", "Şubat 15'e kadar" → Belirtilen tarih
+           * "3 Ocak 2025", "15 Şubat 2025" → Belirtilen tam tarih
+           * "3. Ocak", "15. Şubat" → Nokta ile ayrılmış format da geçerli
+         
+         - Tarih formatı örnekleri:
+           * "3 Ocağa kadar yapılacak" → ${now.getFullYear()}-01-03
+           * "15 Şubata kadar" → ${now.getFullYear()}-02-15
+           * "Mart 20'ye kadar" → ${now.getFullYear()}-03-20
+           * "Nisan 5'e kadar" → ${now.getFullYear()}-04-05
+           * "Mayıs 10'a kadar" → ${now.getFullYear()}-05-10
+         
+         - ÖNEMLİ: Yıl belirtilmediğinde mevcut yılı kullan (${now.getFullYear()})
+         - ÖNEMLİ: Geçmiş bir tarih belirtilmişse (örn: bugün 15 Ocak ve "3 Ocak" denmişse), gelecek yıl olarak yorumla
+         - Tarihi ISO formatında (YYYY-MM-DD) döndür
          - Belirtilmemişse null döndür
       
       5. LOKASYON (location):
@@ -233,6 +259,23 @@ export class OpenAIProvider implements AIServiceProvider {
       → assigneeId: Burak'ın ID'si
       → location: "Deck"
       → dueDate: Yarının tarihi
+      
+      Örnek 2b - Belirli Tarih ile:
+      Input: "Güverte temizlenecek. 15 Şubata kadar yapılacak. Burak yapsın."
+      → title: "Güverte Temizliği"
+      → description: "Güverte temizlenecek. Burak yapsın."
+      → priority: "Normal"
+      → assigneeId: Burak'ın ID'si
+      → location: "Deck"
+      → dueDate: ${now.getFullYear()}-02-15 (veya gelecek yıl eğer bugün 15 Şubat'tan sonraysa)
+      
+      Örnek 2c - Tarih Formatları:
+      Input: "Motor bakımı yapılacak. 3 Ocağa kadar."
+      → dueDate: ${now.getFullYear()}-01-03
+      Input: "Yakıt ikmali yapılacak. Mart 20'ye kadar."
+      → dueDate: ${now.getFullYear()}-03-20
+      Input: "Tekne yıkanacak. Nisan 5'e kadar."
+      → dueDate: ${now.getFullYear()}-04-05
       
       Örnek 3 - Motor Bakımı:
       Input: "Motor bakımı yapılacak. Kaptan yapsın. Önemli."
@@ -517,6 +560,48 @@ export class OpenAIProvider implements AIServiceProvider {
     };
     const normalizedPriority = priorityMap[result.priority?.toLowerCase() || "normal"] || "Normal";
     
+    // Tarih parse ve doğrulama
+    let dueDate = result.dueDate || null;
+    if (dueDate) {
+      // Eğer tarih string ise ve ISO formatında değilse, parse et
+      if (typeof dueDate === 'string') {
+        // ISO formatında mı kontrol et (YYYY-MM-DD)
+        const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/;
+        if (!isoDateRegex.test(dueDate)) {
+          // Türkçe ay isimlerini parse et
+          const monthMap: Record<string, number> = {
+            'ocak': 1, 'şubat': 2, 'mart': 3, 'nisan': 4, 'mayıs': 5, 'haziran': 6,
+            'temmuz': 7, 'ağustos': 8, 'eylül': 9, 'ekim': 10, 'kasım': 11, 'aralık': 12
+          };
+          
+          // "3 Ocak", "15 Şubat", "3 Ocağa kadar" gibi formatları parse et
+          const dateMatch = dueDate.toLowerCase().match(/(\d{1,2})\s*(ocak|şubat|mart|nisan|mayıs|haziran|temmuz|ağustos|eylül|ekim|kasım|aralık)/);
+          if (dateMatch) {
+            const day = parseInt(dateMatch[1]);
+            const monthName = dateMatch[2];
+            const month = monthMap[monthName];
+            const year = now.getFullYear();
+            
+            // Geçmiş bir tarihse gelecek yıl olarak yorumla
+            const parsedDate = new Date(year, month - 1, day);
+            if (parsedDate < now) {
+              parsedDate.setFullYear(year + 1);
+            }
+            
+            dueDate = parsedDate.toISOString().split("T")[0];
+          } else {
+            // Diğer formatları dene
+            const parsed = new Date(dueDate);
+            if (!isNaN(parsed.getTime())) {
+              dueDate = parsed.toISOString().split("T")[0];
+            } else {
+              dueDate = null; // Parse edilemezse null
+            }
+          }
+        }
+      }
+    }
+    
     // Tip güvenliği için basit bir map
     return {
       title: result.title || text.split(".")[0] || "Yeni Görev", // Fallback: ilk cümle veya "Yeni Görev"
@@ -525,7 +610,7 @@ export class OpenAIProvider implements AIServiceProvider {
       assigneeId: assigneeId,
       department: result.department,
       location: result.location,
-      dueDate: result.dueDate || null,
+      dueDate: dueDate,
       isTaskIntent: result.isTaskIntent ?? true,
       adminNote: result.adminNote
     };
