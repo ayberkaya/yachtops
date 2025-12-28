@@ -21,10 +21,11 @@ export interface IntentContext {
   locations: string[]; // ["Engine Room", "Sun Deck"...]
   currentTime: string;
   vesselName?: string;
+  language?: "tr" | "en"; // Language preference for prompts and transcription
 }
 
 export interface AIServiceProvider {
-  transcribe(audioFile: File | Blob): Promise<TranscribeResult>;
+  transcribe(audioFile: File | Blob, language?: "tr" | "en"): Promise<TranscribeResult>;
   extractTaskIntent(text: string, context: IntentContext): Promise<TaskIntentResult>;
 }
 

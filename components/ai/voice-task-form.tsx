@@ -76,16 +76,16 @@ export function VoiceTaskForm({
     switch (priority) {
       case "Urgent":
       case "Critical":
-        return "URGENT";
+        return "URGENT" as TaskPriority;
       case "High":
-        return "HIGH";
+        return "HIGH" as TaskPriority;
       case "Normal":
       case "Medium":
-        return "NORMAL";
+        return "NORMAL" as TaskPriority;
       case "Low":
-        return "NORMAL"; // Low artık yok, Normal olarak map et
+        return "NORMAL" as TaskPriority; // Low artık yok, Normal olarak map et
       default:
-        return "NORMAL";
+        return "NORMAL" as TaskPriority;
     }
   };
 

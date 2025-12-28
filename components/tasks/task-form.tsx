@@ -68,7 +68,7 @@ interface TaskFormProps {
     title?: string;
     description?: string;
     assigneeId?: string | null;
-    priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+      priority?: "NORMAL" | "HIGH" | "URGENT" | "LOW" | "MEDIUM"; // Support both old and new formats
     dueDate?: string | null;
   };
   users: { id: string; name: string | null; email: string; role?: UserRole; customRoleId?: string | null; customRole?: { id: string; name: string } | null }[];
@@ -124,7 +124,22 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
     if (initialData && !task) {
       if (initialData.title) form.setValue("title", initialData.title);
       if (initialData.description) form.setValue("description", initialData.description);
-      if (initialData.priority) form.setValue("priority", initialData.priority);
+      if (initialData.priority) {
+        // Convert AI priority format to Prisma TaskPriority enum
+        const priorityMap: Record<string, "NORMAL" | "HIGH" | "URGENT"> = {
+          "Normal": "NORMAL",
+          "High": "HIGH",
+          "Urgent": "URGENT",
+          // Legacy support
+          "LOW": "NORMAL",
+          "MEDIUM": "NORMAL",
+          "NORMAL": "NORMAL",
+          "HIGH": "HIGH",
+          "URGENT": "URGENT",
+        };
+        const mappedPriority: "NORMAL" | "HIGH" | "URGENT" = priorityMap[initialData.priority] || "NORMAL";
+        form.setValue("priority", mappedPriority);
+      }
       if (initialData.assigneeId) {
         form.setValue("assigneeId", initialData.assigneeId);
         form.setValue("assigneeIds", [initialData.assigneeId]);

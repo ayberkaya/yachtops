@@ -61,11 +61,15 @@ export async function analyzeVoiceCommand(formData: FormData) {
     // 5. AI Servis Çağrısı
     const aiService = getAIService();
 
+    // 5.0. Language preference (default: Turkish, can be extended to read from user preferences)
+    const language = "tr" as "tr" | "en"; // TODO: Read from user preferences when available
+
     // 5.1. Sesi metne çevir
-    const transcription = await aiService.transcribe(audioFile);
+    const transcription = await aiService.transcribe(audioFile, language);
     const transcript = transcription.text;
 
     // 5.2. Niyeti okut
+    const locale: "en-US" | "tr-TR" = language === "en" ? "en-US" : "tr-TR";
     const context = {
       crewList: crewList,
       vesselName: user.yacht.name,
@@ -79,7 +83,8 @@ export async function analyzeVoiceCommand(formData: FormData) {
         "Bow",
         "Stern",
       ],
-      currentTime: new Date().toLocaleString("tr-TR"),
+      currentTime: new Date().toLocaleString(locale),
+      language: language,
     };
 
     const taskIntent = await aiService.extractTaskIntent(transcript, context);

@@ -43,11 +43,15 @@ export async function analyzeVoiceCommand(formData: FormData) {
     // 2. AI Servisini Başlat
     const aiService = getAIService();
 
+    // 2.5. Language preference (default: Turkish, can be extended to read from user preferences)
+    const language = "tr" as "tr" | "en"; // TODO: Read from user preferences when available
+
     // 3. Sesi Yazıya Çevir (Whisper)
-    const transcription = await aiService.transcribe(audioFile);
+    const transcription = await aiService.transcribe(audioFile, language);
     console.log("Transkript:", transcription.text);
 
     // 4. Niyeti Okut (Context Injection)
+    const locale: "en-US" | "tr-TR" = language === "en" ? "en-US" : "tr-TR";
     const intent = await aiService.extractTaskIntent(transcription.text, {
       crewList: crewList,
       locations: [
@@ -59,8 +63,9 @@ export async function analyzeVoiceCommand(formData: FormData) {
         "Sun Deck",
         "Lazarette",
       ], // İleride DB'den çekilecek
-      currentTime: new Date().toLocaleString("tr-TR"),
+      currentTime: new Date().toLocaleString(locale),
       vesselName: user.yacht.name,
+      language: language,
     });
 
     return { success: true, data: intent, transcript: transcription.text };
