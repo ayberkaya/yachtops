@@ -180,61 +180,121 @@ export function VoiceRecorder({
   };
 
   return (
-    <div className={cn("flex flex-col items-center gap-2", className)}>
-      <Button
-        onClick={handleClick}
-        disabled={disabled || isProcessing || status === "success"}
-        variant={isRecording ? "destructive" : "default"}
-        size="lg"
-        className={cn(
-          "rounded-full w-16 h-16 p-0 transition-all",
-          isRecording && "animate-pulse",
-          status === "success" && "bg-green-600 hover:bg-green-700",
-          status === "error" && "bg-red-600 hover:bg-red-700"
+    <div className={cn("flex flex-col items-center gap-6 py-8", className)}>
+      {/* AI Assistant Visual Indicator */}
+      <div className="relative">
+        {/* Outer pulse rings when recording */}
+        {isRecording && (
+          <>
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/20 via-purple-500/20 to-pink-500/20 animate-ping" style={{ width: '140px', height: '140px', margin: '-10px' }} />
+            <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/15 via-purple-500/15 to-pink-500/15 animate-ping" style={{ width: '140px', height: '140px', margin: '-10px', animationDelay: '0.5s' }} />
+          </>
         )}
-      >
-        {isProcessing ? (
-          <Loader2 className="w-6 h-6 animate-spin" />
-        ) : status === "success" ? (
-          <CheckCircle2 className="w-6 h-6" />
-        ) : status === "error" ? (
-          <XCircle className="w-6 h-6" />
-        ) : isRecording ? (
-          <Square className="w-6 h-6" />
-        ) : (
-          <Mic className="w-6 h-6" />
+        
+        {/* Main microphone button */}
+        <Button
+          onClick={handleClick}
+          disabled={disabled || isProcessing || status === "success"}
+          size="lg"
+          className={cn(
+            "relative rounded-full w-24 h-24 p-0 transition-all duration-300 shadow-2xl",
+            "bg-gradient-to-br from-blue-500 via-purple-500 to-pink-500",
+            "hover:from-blue-600 hover:via-purple-600 hover:to-pink-600",
+            "disabled:opacity-50 disabled:cursor-not-allowed",
+            isRecording && "scale-110 shadow-blue-500/50",
+            status === "success" && "bg-gradient-to-br from-green-500 to-emerald-500",
+            status === "error" && "bg-gradient-to-br from-red-500 to-rose-500"
+          )}
+        >
+          <div className="absolute inset-0 rounded-full bg-white/20 backdrop-blur-sm" />
+          {isProcessing ? (
+            <Loader2 className="w-8 h-8 animate-spin text-white relative z-10" />
+          ) : status === "success" ? (
+            <CheckCircle2 className="w-8 h-8 text-white relative z-10" />
+          ) : status === "error" ? (
+            <XCircle className="w-8 h-8 text-white relative z-10" />
+          ) : isRecording ? (
+            <Square className="w-8 h-8 text-white relative z-10 fill-white" />
+          ) : (
+            <Mic className="w-8 h-8 text-white relative z-10" />
+          )}
+        </Button>
+      </div>
+
+      {/* Status Messages */}
+      <div className="flex flex-col items-center gap-3 min-h-[80px]">
+        {isRecording && (
+          <div className="flex flex-col items-center gap-2 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+              <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                Dinliyorum...
+              </span>
+            </div>
+            <div className="text-2xl font-mono font-bold text-blue-600 dark:text-blue-400">
+              {formatTime(recordingTime)}
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Durdurmak için tekrar tıklayın
+            </p>
+          </div>
         )}
-      </Button>
 
-      {isRecording && (
-        <div className="text-sm text-muted-foreground">
-          {formatTime(recordingTime)}
-        </div>
-      )}
+        {isProcessing && (
+          <div className="flex flex-col items-center gap-3 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 animate-spin text-blue-600" />
+              <span className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+                AI Analiz Ediyor...
+              </span>
+            </div>
+            <div className="flex gap-1">
+              <div className="w-2 h-2 rounded-full bg-blue-500 animate-bounce" style={{ animationDelay: '0s' }} />
+              <div className="w-2 h-2 rounded-full bg-purple-500 animate-bounce" style={{ animationDelay: '0.2s' }} />
+              <div className="w-2 h-2 rounded-full bg-pink-500 animate-bounce" style={{ animationDelay: '0.4s' }} />
+            </div>
+            <p className="text-sm text-muted-foreground text-center max-w-xs">
+              Sesiniz işleniyor ve görev çıkarılıyor
+            </p>
+          </div>
+        )}
 
-      {isProcessing && (
-        <div className="text-sm text-muted-foreground">
-          Ses işleniyor...
-        </div>
-      )}
+        {status === "success" && (
+          <div className="flex flex-col items-center gap-2 animate-fade-in">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-green-600" />
+              <span className="text-lg font-semibold text-green-600 dark:text-green-400">
+                Görev Hazırlandı!
+              </span>
+            </div>
+          </div>
+        )}
 
-      {status === "success" && (
-        <div className="text-sm text-green-600 dark:text-green-400">
-          Görev oluşturuldu!
-        </div>
-      )}
+        {errorMessage && (
+          <div className="flex flex-col items-center gap-2 animate-fade-in max-w-xs text-center">
+            <div className="flex items-center gap-2">
+              <XCircle className="w-5 h-5 text-red-600" />
+              <span className="text-sm font-medium text-red-600 dark:text-red-400">
+                Hata
+              </span>
+            </div>
+            <p className="text-sm text-red-600/80 dark:text-red-400/80">
+              {errorMessage}
+            </p>
+          </div>
+        )}
 
-      {errorMessage && (
-        <div className="text-sm text-red-600 dark:text-red-400 max-w-xs text-center">
-          {errorMessage}
-        </div>
-      )}
-
-      {!isRecording && !isProcessing && status === "idle" && (
-        <div className="text-xs text-muted-foreground text-center max-w-xs">
-          Mikrofon butonuna basıp görevinizi söyleyin
-        </div>
-      )}
+        {!isRecording && !isProcessing && status === "idle" && (
+          <div className="flex flex-col items-center gap-2 animate-fade-in text-center">
+            <p className="text-base font-medium text-slate-700 dark:text-slate-300">
+              AI Asistanınız Hazır
+            </p>
+            <p className="text-sm text-muted-foreground max-w-xs">
+              Mikrofon butonuna basıp görevinizi söyleyin
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

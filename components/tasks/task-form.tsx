@@ -64,13 +64,20 @@ type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
   task?: any;
+  initialData?: {
+    title?: string;
+    description?: string;
+    assigneeId?: string | null;
+    priority?: "LOW" | "MEDIUM" | "HIGH" | "URGENT";
+    dueDate?: string | null;
+  };
   users: { id: string; name: string | null; email: string; role?: UserRole; customRoleId?: string | null; customRole?: { id: string; name: string } | null }[];
   trips: { id: string; name: string }[];
   onSuccess: (createdTask?: any) => void;
   onDelete?: () => void;
 }
 
-export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormProps) {
+export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete }: TaskFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [photoFile, setPhotoFile] = useState<File | null>(null);
@@ -96,21 +103,37 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
       currency: task.currency || null,
       serviceProvider: task.serviceProvider || null,
     } : {
-      title: "",
-      description: "",
-      assigneeId: null,
-      assigneeIds: [],
+      title: initialData?.title || "",
+      description: initialData?.description || "",
+      assigneeId: initialData?.assigneeId || null,
+      assigneeIds: initialData?.assigneeId ? [initialData.assigneeId] : [],
       assigneeRole: null,
       tripId: null,
-      dueDate: "",
+      dueDate: initialData?.dueDate || "",
       status: TaskStatus.TODO,
-      priority: "MEDIUM" as const,
+      priority: initialData?.priority || "MEDIUM" as const,
       type: "GENERAL",
       cost: null,
       currency: "EUR",
       serviceProvider: null,
     },
   });
+
+  // Update form when initialData changes (for voice task)
+  useEffect(() => {
+    if (initialData && !task) {
+      if (initialData.title) form.setValue("title", initialData.title);
+      if (initialData.description) form.setValue("description", initialData.description);
+      if (initialData.priority) form.setValue("priority", initialData.priority);
+      if (initialData.assigneeId) {
+        form.setValue("assigneeId", initialData.assigneeId);
+        form.setValue("assigneeIds", [initialData.assigneeId]);
+      }
+      if (initialData.dueDate) {
+        form.setValue("dueDate", initialData.dueDate);
+      }
+    }
+  }, [initialData, task, form]);
 
   const assigneeId = form.watch("assigneeId");
   const assigneeIds = form.watch("assigneeIds") || [];
@@ -164,12 +187,14 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   }, []);
 
   const onSubmit = async (data: TaskFormData) => {
+    console.log("onSubmit called", { task, data });
     setIsLoading(true);
     setError(null);
 
     try {
       // For editing, we only update the single task (not create multiple)
-      if (task) {
+      if (task?.id) {
+        console.log("Editing existing task:", task.id);
         const url = `/api/tasks/${task.id}`;
         const method = "PATCH";
 
@@ -277,6 +302,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
       }
 
       // For creating new tasks, handle multiple assignees
+      console.log("Creating new task");
       const url = "/api/tasks";
       const method = "POST";
 
@@ -348,11 +374,13 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           assigneeId: assigneeId || null,
         };
 
+        console.log("Sending POST request to:", url, { method, cleanedData });
         const response = await fetch(url, {
           method,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(cleanedData),
         });
+        console.log("Response received:", { status: response.status, ok: response.ok, statusText: response.statusText });
 
         // Check if response is JSON before parsing
         const contentType = response.headers.get("content-type");
@@ -941,7 +969,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
             </Button>
           )}
           <Button type="submit" disabled={isLoading || isDeleting}>
-            {isLoading ? "Saving..." : task ? "Update" : "Create"}
+            {isLoading ? "Saving..." : task?.id ? "Update" : "Create"}
           </Button>
         </DialogFooter>
       </form>

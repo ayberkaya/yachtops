@@ -34,7 +34,7 @@ export async function analyzeVoiceCommand(formData: FormData) {
 
     if (!user?.yacht) throw new Error("Kullanıcı bir tekneye bağlı değil");
 
-    const crewList = user.yacht.users.map((u) => ({
+    const crewList = user.yacht.users.map((u: { id: string; name: string | null; role: string | null }) => ({
       id: u.id,
       name: u.name || "Bilinmiyor",
       role: u.role || "CREW",

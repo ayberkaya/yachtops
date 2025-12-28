@@ -52,7 +52,7 @@ export async function analyzeVoiceCommand(formData: FormData) {
       },
     });
 
-    const crewList = crewMembers.map((member) => ({
+    const crewList = crewMembers.map((member: { id: string; name: string | null; role: string | null }) => ({
       id: member.id,
       name: member.name || "Bilinmiyor",
       role: member.role || "CREW",

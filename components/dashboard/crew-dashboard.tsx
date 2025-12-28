@@ -315,7 +315,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+      <div className="flex flex-col gap-4">
         <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold">My Dashboard</h1>
           <WidgetCustomizerButton />
