@@ -220,9 +220,14 @@ export async function getVesselFeatures(vesselId: string): Promise<string[]> {
       },
     });
 
-    if (!yacht?.currentPlan || !yacht.currentPlan.active) {
+    if (!yacht?.currentPlan) {
       return [];
     }
+    // If active is false, return empty (plan is inactive)
+    if (yacht.currentPlan.active === false) {
+      return [];
+    }
+    // If active is undefined/null, assume it's active (backward compatibility)
 
     return yacht.currentPlan.features;
   } catch (error) {
@@ -247,9 +252,14 @@ export async function getVesselLimits(
       },
     });
 
-    if (!yacht?.currentPlan || !yacht.currentPlan.active) {
+    if (!yacht?.currentPlan) {
       return null;
     }
+    // If active is false, return null (plan is inactive)
+    if (yacht.currentPlan.active === false) {
+      return null;
+    }
+    // If active is undefined/null, assume it's active (backward compatibility)
 
     return yacht.currentPlan.limits as Record<string, number> | null;
   } catch (error) {
