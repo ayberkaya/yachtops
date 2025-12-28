@@ -58,6 +58,9 @@ export async function analyzeVoiceCommand(formData: FormData) {
       role: member.role || "CREW",
     }));
 
+    // Database queries are done, connection can be released
+    // Now start AI operations (which don't need DB connection)
+    
     // 5. AI Servis Çağrısı
     const aiService = getAIService();
 
