@@ -33,6 +33,9 @@ const TaskType = {
 
 type TaskType = typeof TaskType[keyof typeof TaskType];
 import { Trash2, ChevronDown, X } from "lucide-react";
+import { VoiceInput } from "./voice-input";
+import { TaskIntentResult } from "@/lib/ai/types";
+import { useToast } from "@/components/ui/toast";
 
 interface CustomRole {
   id: string;
@@ -74,6 +77,7 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
   const [isDeleting, setIsDeleting] = useState(false);
   const [customRoles, setCustomRoles] = useState<CustomRole[]>([]);
   const [loadingRoles, setLoadingRoles] = useState(true);
+  const { toast } = useToast();
 
   // Filter out OWNER role users from assignee selection
   const assignableUsers = users.filter((user) => {
@@ -492,7 +496,63 @@ export function TaskForm({ task, users, trips, onSuccess, onDelete }: TaskFormPr
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Title *</FormLabel>
+              <div className="flex items-center justify-between">
+                <FormLabel>Title *</FormLabel>
+                <VoiceInput
+                  onSuccess={(data: TaskIntentResult, transcript: string) => {
+                    // Map AI priority to form priority
+                    const priorityMap: Record<string, "LOW" | "MEDIUM" | "HIGH" | "URGENT"> = {
+                      Low: "LOW",
+                      Medium: "MEDIUM",
+                      High: "HIGH",
+                      Critical: "URGENT",
+                    };
+
+                    // Fill form with AI data
+                    form.setValue("title", data.title || "");
+                    form.setValue("description", data.description || transcript || "");
+                    form.setValue("priority", priorityMap[data.priority] || "MEDIUM");
+                    
+                    // Set assignee if provided
+                    if (data.assigneeId) {
+                      const assigneeExists = users.some((u) => u.id === data.assigneeId);
+                      if (assigneeExists) {
+                        form.setValue("assigneeId", data.assigneeId);
+                        form.setValue("assigneeIds", [data.assigneeId]);
+                      } else {
+                        // ID bulunamadı, console'da logla (debug için)
+                        console.warn("Assignee ID not found in users list:", data.assigneeId);
+                      }
+                    }
+                    
+                    // Debug: AI'dan gelen veriyi logla
+                    console.log("AI Response:", {
+                      title: data.title,
+                      priority: data.priority,
+                      assigneeId: data.assigneeId,
+                      dueDate: data.dueDate,
+                      description: data.description,
+                    });
+
+                    // Set due date if provided
+                    if (data.dueDate) {
+                      // Convert ISO string to date input format (YYYY-MM-DD)
+                      const date = new Date(data.dueDate);
+                      if (!isNaN(date.getTime())) {
+                        const dateString = date.toISOString().split("T")[0];
+                        form.setValue("dueDate", dateString);
+                      }
+                    }
+
+                    toast({
+                      title: "Form Dolduruldu",
+                      description: "AI tarafından dolduruldu. Lütfen kontrol edip kaydedin.",
+                      variant: "success",
+                    });
+                  }}
+                  disabled={isLoading || isDeleting}
+                />
+              </div>
               <FormControl>
                 <Input placeholder="Task title" {...field} />
               </FormControl>

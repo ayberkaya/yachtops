@@ -10,15 +10,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Plus, DollarSign, Wallet, CheckSquare, ShoppingCart } from "lucide-react";
+import { Plus, DollarSign, Wallet, CheckSquare, ShoppingCart, Mic } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TaskForm } from "@/components/tasks/task-form";
 import { ShoppingListForm } from "@/components/shopping/shopping-list-form";
+import { VoiceTaskForm } from "@/components/ai/voice-task-form";
 
 export function QuickActions() {
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
   const [isTaskDialogOpen, setIsTaskDialogOpen] = useState(false);
+  const [isVoiceTaskDialogOpen, setIsVoiceTaskDialogOpen] = useState(false);
   const [isShoppingListDialogOpen, setIsShoppingListDialogOpen] = useState(false);
   const [users, setUsers] = useState<{ id: string; name: string | null; email: string }[]>([]);
   const [trips, setTrips] = useState<{ id: string; name: string }[]>([]);
@@ -51,6 +53,17 @@ export function QuickActions() {
       },
     },
     {
+      label: "Voice Task",
+      icon: Mic,
+      href: "/dashboard/tasks",
+      color: "text-pink-600 dark:text-pink-400",
+      onClick: async () => {
+        setIsHovered(false);
+        setIsVoiceTaskDialogOpen(true);
+        await fetchTaskData();
+      },
+    },
+    {
       label: "Add Shopping List",
       icon: ShoppingCart,
       href: "/dashboard/shopping",
@@ -74,13 +87,19 @@ export function QuickActions() {
 
       if (usersRes.ok) {
         const usersData = await usersRes.json();
-        setUsers(usersData);
+        // Handle both array and object with data property
+        const usersArray = Array.isArray(usersData) ? usersData : (usersData?.data || []);
+        setUsers(usersArray);
       }
 
       if (tripsRes.ok) {
-        const tripsData = await tripsRes.json();
+        const tripsResponse = await tripsRes.json();
+        // API returns { data: trips[], pagination: {...} }
+        const tripsData = tripsResponse?.data || tripsResponse;
+        // Ensure it's an array before mapping
+        const tripsArray = Array.isArray(tripsData) ? tripsData : [];
         // Map to only id and name
-        const mappedTrips = tripsData.map((trip: any) => ({
+        const mappedTrips = tripsArray.map((trip: any) => ({
           id: trip.id,
           name: trip.name,
         }));
@@ -124,7 +143,7 @@ export function QuickActions() {
             const Icon = action.icon;
             return (
               <button
-                key={action.href}
+                key={`${action.label}-${index}`}
                 onClick={action.onClick}
                 className={cn(
                   "w-full flex items-center gap-3 px-4 py-3 text-left text-slate-900 hover:bg-accent hover:text-accent-foreground transition-all duration-200 hover:translate-x-1",
@@ -166,6 +185,17 @@ export function QuickActions() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Voice Task Dialog */}
+      <VoiceTaskForm
+        users={users}
+        trips={trips}
+        open={isVoiceTaskDialogOpen}
+        onOpenChange={setIsVoiceTaskDialogOpen}
+        onSuccess={() => {
+          router.refresh();
+        }}
+      />
 
       {/* Shopping List Dialog */}
       <Dialog open={isShoppingListDialogOpen} onOpenChange={setIsShoppingListDialogOpen}>
