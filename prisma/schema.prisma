@@ -83,8 +83,8 @@ model Yacht {
   length                    Float?
   registrationNumber        String?                    @map("registration_number")
   notes                     String?
-  settings                  Json?                      // Tenant settings: currency, measurement system, etc.
-  features                  Json?                      // Feature flags: enabled modules
+  settings                  Json? // Tenant settings: currency, measurement system, etc.
+  features                  Json? // Feature flags: enabled modules
   logoUrl                   String?                    @map("logo_url")
   currentPlanId             String?                    @map("current_plan_id") @db.Uuid
   subscriptionStatus        String?                    @map("subscription_status") // ACTIVE, TRIAL, EXPIRED, etc.
@@ -317,16 +317,16 @@ model ExpenseCategory {
 }
 
 model CreditCard {
-  id                String    @id @default(cuid())
-  yachtId           String    @map("yacht_id")
-  ownerName         String    @map("owner_name")
-  lastFourDigits    String    @map("last_four_digits")
-  billingCycleEndDate Int?    @map("billing_cycle_end_date") // Day of month (1-31)
-  createdAt         DateTime  @default(now()) @map("created_at")
-  updatedAt         DateTime  @updatedAt @map("updated_at")
-  deletedAt         DateTime? @map("deleted_at")
-  expenses          Expense[]
-  yacht             Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(cuid())
+  yachtId             String    @map("yacht_id")
+  ownerName           String    @map("owner_name")
+  lastFourDigits      String    @map("last_four_digits")
+  billingCycleEndDate Int?      @map("billing_cycle_end_date") // Day of month (1-31)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+  deletedAt           DateTime? @map("deleted_at")
+  expenses            Expense[]
+  yacht               Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
   @@index([deletedAt])
   @@index([yachtId, deletedAt])
@@ -687,6 +687,7 @@ model AlcoholStock {
   yacht             Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
   @@unique([yachtId, name])
+  @@index([yachtId])
   @@index([yachtId, lowStockThreshold])
   @@index([yachtId, quantity])
   @@map("alcohol_stocks")
@@ -1065,7 +1066,7 @@ model Plan {
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name         String   @unique
   features     String[] // Array of feature keys (e.g., ["module:logbook", "module:finance"])
-  limits       Json?    // Numeric limits (e.g., { "max_users": 5, "storage_mb": 2048 })
+  limits       Json? // Numeric limits (e.g., { "max_users": 5, "storage_mb": 2048 })
   monthlyPrice Float?   @map("monthly_price")
   annualPrice  Float?   @map("annual_price")
   currency     String   @default("USD")
