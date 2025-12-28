@@ -97,14 +97,14 @@ CREATE POLICY "Admins can do everything" ON public.users
   USING (
     EXISTS (
       SELECT 1 FROM public.users
-      WHERE id = (SELECT (auth.uid())::TEXT)
+      WHERE id = (select auth.uid())::TEXT
       AND role IN ('SUPER_ADMIN', 'ADMIN')
     )
   )
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.users
-      WHERE id = (SELECT (auth.uid())::TEXT)
+      WHERE id = (select auth.uid())::TEXT
       AND role IN ('SUPER_ADMIN', 'ADMIN')
     )
   );
@@ -139,7 +139,7 @@ CREATE POLICY "plans_select_policy" ON public.plans
     -- Admins can view all plans
     EXISTS (
       SELECT 1 FROM public.users
-      WHERE id = (SELECT (auth.uid())::TEXT)
+      WHERE id = (select auth.uid())::TEXT
       AND role IN ('SUPER_ADMIN', 'ADMIN')
     )
     OR

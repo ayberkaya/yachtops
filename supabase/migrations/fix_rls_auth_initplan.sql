@@ -58,23 +58,21 @@ CREATE POLICY "users_delete_own" ON public.users
   );
 
 -- Drop and recreate users_insert_authenticated to exclude admins
+-- Note: This policy is only for non-admin users. Admins are covered by "Admins can do everything"
 DROP POLICY IF EXISTS "users_insert_authenticated" ON public.users;
 
 CREATE POLICY "users_insert_authenticated" ON public.users
   FOR INSERT
   WITH CHECK (
-    -- Allow insert for non-admin authenticated users
-    -- Admins are covered by "Admins can do everything"
+    -- Only allow insert for non-admin authenticated users
+    -- Admins are covered by "Admins can do everything" policy
     -- This policy allows any authenticated user to insert (app handles validation)
+    -- but excludes admins to avoid multiple permissive policies warning
     NOT EXISTS (
       SELECT 1 FROM public.users
       WHERE id = (select auth.uid())::TEXT
       AND role IN ('SUPER_ADMIN', 'ADMIN')
     )
-    OR
-    -- If user is admin, they're covered by admin policy, but we still allow
-    -- This is a fallback - admin policy should handle it
-    true
   );
 
 -- Note: users_select_own and users_update_own don't conflict because:
