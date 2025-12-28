@@ -47,6 +47,27 @@ export class OpenAIProvider implements AIServiceProvider {
       Sen profesyonel bir Süper Yat Yönetim Asistanısın (Yachtops).
       Görevin: Kaptanın sesli komutunu (transcript) analiz edip yapılandırılmış bir görev kartı oluşturmak.
       
+      ÖNEMLİ: TRANSCRIPT İŞLEME VE TEMİZLEME:
+      - Kullanıcı konuşurken duraklayabilir, kelimeleri yanlış söyleyebilir, araya alakasız sesler girebilir
+      - "ıııı", "aaa", "eee", "şey", "yani", "hani" gibi filler kelimeleri ve sesleri GÖRMEZDEN GEL
+      - Yanlış söylenen kelimeleri doğru şekilde yorumla (örn: "sintine" yerine "sintin" dediyse "sintine" olarak anla)
+      - Alakasız konuşmaları, arka plan seslerini, tekrarları filtrele
+      - Sadece görevle ilgili anlamlı kısımları al
+      - Örnek: "ıııı sintinedeki yağın temizlenmesi gerekiyor aaa acil sabah yapılacak şey Burak yapsın"
+        → Temizlenmiş: "sintinedeki yağın temizlenmesi gerekiyor acil sabah yapılacak Burak yapsın"
+      - Örnek: "güverte temizlenecek yani şey sabah yapılsın hani Burak yapsın acil"
+        → Temizlenmiş: "güverte temizlenecek sabah yapılsın Burak yapsın acil"
+      - Örnek: "motor bakımı yapılacak ıııı kaptan yapsın önemli"
+        → Temizlenmiş: "motor bakımı yapılacak kaptan yapsın önemli"
+      
+      TRANSCRIPT TEMİZLEME KURALLARI:
+      1. Filler kelimeleri çıkar: "ıııı", "aaa", "eee", "şey", "yani", "hani", "işte", "falan", "filan"
+      2. Tekrarları birleştir: "sabah sabah" → "sabah"
+      3. Yanlış söylenen kelimeleri düzelt: "sintin" → "sintine", "güvert" → "güverte", "motor" → "motor"
+      4. Alakasız cümleleri çıkar: Görevle ilgili olmayan kısımları atla
+      5. Duraklamaları göz ardı et: "..." veya uzun boşlukları kaldır
+      6. Sadece görevle ilgili anlamlı içeriği koru
+      
       YAT SEKTÖRÜ BİLGİSİ:
       - Süper yatlar lüks teknelerdir, profesyonel mürettebat ile çalışır
       - Yat sektöründe kullanılan özel terimler:
@@ -385,11 +406,24 @@ export class OpenAIProvider implements AIServiceProvider {
       - SADECE JSON formatında yanıt ver, başka açıklama ekleme!
     `;
 
+    // Transcript'i önceden temizle (basit filtreleme)
+    const cleanedText = text
+      // Filler kelimeleri ve sesleri kaldır
+      .replace(/\b(ıııı|aaa|eee|şey|yani|hani|işte|falan|filan|yok|tamam|evet|hayır)\b/gi, ' ')
+      // Tekrarlanan kelimeleri birleştir (basit yaklaşım)
+      .replace(/\b(\w+)\s+\1\b/gi, '$1')
+      // Fazla boşlukları temizle
+      .replace(/\s+/g, ' ')
+      .trim();
+
     const completion = await this.openai.chat.completions.create({
       model: this.model,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: text }
+        { 
+          role: "user", 
+          content: `Orijinal transcript: "${text}"\n\nTemizlenmiş transcript: "${cleanedText}"\n\nLütfen temizlenmiş transcript'i kullanarak görev kartı oluştur. Eğer temizlenmiş transcript'te eksik veya yanlış bir şey varsa, orijinal transcript'e bakarak düzelt. Yanlış söylenen kelimeleri doğru şekilde yorumla (örn: "sintin" → "sintine", "güvert" → "güverte").` 
+        }
       ],
       response_format: { type: "json_object" },
       temperature: 0.3, // Biraz daha esnek ama hala tutarlı

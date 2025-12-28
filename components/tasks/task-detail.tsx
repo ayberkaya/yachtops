@@ -123,7 +123,7 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
-        className={isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}
+        className={isUrgent ? "urgent-blink" : isNormal ? "bg-amber-200 text-[#2b303b]" : ""}
         style={isUrgent ? { animation: "blinkRed 1s ease-in-out infinite" } : undefined}
       >
         {priorityStr}

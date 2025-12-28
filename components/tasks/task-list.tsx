@@ -189,7 +189,7 @@ export function TaskList({
     return (
       <Badge 
         variant={variants[priorityStr] || "secondary"}
-        className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 ${isUrgent ? "urgent-blink" : isMedium ? "bg-amber-200 text-[#2b303b]" : ""}`}
+        className={`text-[10px] md:text-xs px-1.5 md:px-2 py-0.5 md:py-1 ${isUrgent ? "urgent-blink" : isNormal ? "bg-amber-200 text-[#2b303b]" : ""}`}
         style={
           isUrgent 
             ? { animation: "blinkRed 1s ease-in-out infinite" } 
@@ -611,16 +611,15 @@ export function TaskList({
                         backgroundColor: "rgba(255, 102, 0, 0.2)",
                         backdropFilter: "none"
                       }
-                    : {
-                        backdropFilter: "none"
-                      }
                     : isTodo
                     ? {
                         borderColor: "rgba(254, 230, 133, 1)",
                         backgroundColor: "rgba(254, 230, 133, 0.2)",
                         backdropFilter: "none"
                       }
-                    : undefined
+                    : {
+                        backdropFilter: "none"
+                      }
                 }
               >
                 {isDone && (
@@ -879,16 +878,15 @@ export function TaskList({
                         backgroundColor: "rgba(255, 102, 0, 0.2)",
                         backdropFilter: "none"
                       }
-                    : {
-                        backdropFilter: "none"
-                      }
                     : isTodo
                     ? {
                         borderColor: "rgba(254, 230, 133, 1)",
                         backgroundColor: "rgba(254, 230, 133, 0.2)",
                         backdropFilter: "none"
                       }
-                    : undefined
+                    : {
+                        backdropFilter: "none"
+                      }
                 }
               >
                 {isDone && (
