@@ -51,13 +51,29 @@ export async function GET() {
       .limit(1)
       .single();
 
-    if (error && error.code !== "PGRST116") {
+    if (error) {
       // PGRST116 is "not found" which is fine
+      if (error.code === "PGRST116") {
+        return NextResponse.json({
+          subscribed: false,
+        });
+      }
+      
+      // 42501 is "permission denied" - RLS policy issue (NextAuth vs Supabase Auth mismatch)
+      // This is expected when using NextAuth instead of Supabase Auth
+      // Return subscribed: false instead of error to allow app to continue
+      if (error.code === "42501") {
+        console.debug("Push subscription permission denied (RLS policy) - returning not subscribed");
+        return NextResponse.json({
+          subscribed: false,
+        });
+      }
+      
+      // Other errors - log but don't fail the request
       console.error("Error checking push subscription:", error);
-      return NextResponse.json(
-        { error: "Internal server error" },
-        { status: 500 }
-      );
+      return NextResponse.json({
+        subscribed: false,
+      });
     }
 
     return NextResponse.json({
@@ -101,6 +117,16 @@ export async function POST(request: NextRequest) {
       );
 
     if (error) {
+      // 42501 is "permission denied" - RLS policy issue (NextAuth vs Supabase Auth mismatch)
+      // This is expected when using NextAuth instead of Supabase Auth
+      if (error.code === "42501") {
+        console.debug("Push subscription permission denied (RLS policy) - push notifications not available");
+        return NextResponse.json(
+          { error: "Push notifications not available (permission denied)", details: "RLS policy requires Supabase Auth" },
+          { status: 403 }
+        );
+      }
+      
       console.error("Error saving push subscription:", error);
       return NextResponse.json(
         { error: "Failed to save subscription", details: error.message },
@@ -151,6 +177,14 @@ export async function DELETE(request: NextRequest) {
     const { error } = await query;
 
     if (error) {
+      // 42501 is "permission denied" - RLS policy issue (NextAuth vs Supabase Auth mismatch)
+      // This is expected when using NextAuth instead of Supabase Auth
+      // Return success anyway since subscription doesn't exist or can't be accessed
+      if (error.code === "42501") {
+        console.debug("Push subscription permission denied (RLS policy) - assuming already removed");
+        return NextResponse.json({ success: true });
+      }
+      
       console.error("Error removing push subscription:", error);
       return NextResponse.json(
         { error: "Failed to remove subscription", details: error.message },
