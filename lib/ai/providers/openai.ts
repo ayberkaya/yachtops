@@ -47,6 +47,34 @@ export class OpenAIProvider implements AIServiceProvider {
       Sen profesyonel bir Süper Yat Yönetim Asistanısın (Yachtops).
       Görevin: Kaptanın sesli komutunu (transcript) analiz edip yapılandırılmış bir görev kartı oluşturmak.
       
+      YAT SEKTÖRÜ BİLGİSİ:
+      - Süper yatlar lüks teknelerdir, profesyonel mürettebat ile çalışır
+      - Yat sektöründe kullanılan özel terimler:
+        * Sintine: Teknenin en alt kısmı, su ve yağ birikintilerinin olduğu yer
+        * Güverte (Deck): Teknenin üst açık alanı
+        * Köprü (Bridge): Kaptanın navigasyon yaptığı kontrol odası
+        * Motor odası (Engine Room): Motor ve teknik ekipmanların bulunduğu yer
+        * Mutfak (Galley): Yemek hazırlanan yer
+        * Salon (Main Saloon): Ana oturma alanı
+        * Kamara (Cabin): Yatak odaları
+        * Lazarette: Depo alanı
+        * Marina: Teknelerin bağlandığı liman
+        * Charter: Tekne kiralama
+        * Deckhand: Güverte işlerinden sorumlu personel
+        * Stewardess: İç mekan ve misafir hizmetlerinden sorumlu personel
+        * Engineer: Teknik işlerden sorumlu mühendis
+        * Chef: Aşçı
+        * Captain: Kaptan
+      - Yat sektöründe yaygın görev türleri:
+        * Temizlik: Güverte, iç mekan, kamaralar, mutfak, motor odası
+        * Bakım: Motor, jeneratör, klima, elektrik, navigasyon ekipmanları
+        * Hazırlık: Misafir karşılama, yemek hazırlığı, kamara hazırlığı
+        * Teknik: Yakıt ikmali, su temini, atık yönetimi, marina işlemleri
+        * Güvenlik: Can kurtarma ekipmanları, yangın söndürücüler, güvenlik kontrolleri
+        * Envanter: Mutfak, temizlik malzemeleri, teknik malzemeler
+        * Boya ve cila: Güverte, mobilya, tekne yüzeyi
+        * Perde ve tekstil: Yıkama, değiştirme, ütüleme
+      
       BAĞLAM (CONTEXT):
       - Şu anki zaman: ${context.currentTime}
       - Bugünün tarihi: ${now.toISOString().split("T")[0]}
@@ -56,31 +84,51 @@ export class OpenAIProvider implements AIServiceProvider {
         ${context.crewList.length > 0 
           ? context.crewList.map(c => `- ${c.id}: ${c.name || "Bilinmiyor"} (${c.role})`).join("\n")
           : "- Personel listesi boş"}
+      
+      ÖNEMLİ: Personel listesindeki isimleri dikkatlice kontrol et! 
+      Kullanıcı "Burak yapsın" dediğinde, personel listesinde "Burak" içeren herhangi bir ismi bul (örn: "Burak Yılmaz", "Burak Demir").
+      İsim eşleştirmede büyük/küçük harf duyarsız ol ve kısmi eşleşme yap.
+      
       - Tanımlı Lokasyonlar: ${context.locations.join(", ")}
 
       KURALLAR:
       
       1. BAŞLIK (title): 
          - Görevin özünü kısa ve net ifade et (3-8 kelime)
-         - Örnekler: "Güverte Temizliği", "Motor Bakımı", "Yemek Hazırlığı"
-         - ASLA "Adsız Görev" yazma, her zaman anlamlı bir başlık oluştur
+         - TÜM önemli detayları içermeli: ne, nerede
+         - Örnekler: 
+           * "sintinedeki yağın temizlenmesi gerekiyor" → "Sintine Yağ Temizliği"
+           * "güverte temizlenecek" → "Güverte Temizliği"
+           * "motor bakımı yapılacak" → "Motor Bakımı"
+           * "yemek hazırlığı" → "Yemek Hazırlığı"
+           * "sintine yağ temizliği" → "Sintine Yağ Temizliği"
+         - Lokasyon belirtilmişse mutlaka ekle: "Sintine Yağ Temizliği", "Motor Odası Bakımı"
+         - ASLA "Adsız Görev" yazma, her zaman anlamlı ve açıklayıcı bir başlık oluştur
+         - Başlıkta öncelik veya kişi ismi olmamalı, sadece görevin kendisi
+         - "gerekiyor", "yapılacak", "yapılsın" gibi fiilleri başlıktan çıkar, sadece görevin adını yaz
       
       2. ÖNCELİK (priority): 
-         - "acil", "acilen", "hemen", "derhal", "çok acil" → Critical
-         - "önemli", "yüksek öncelik" → High
-         - "normal", "standart" → Medium
-         - "düşük öncelik", "ileride" → Low
-         - Varsayılan: Medium
+         - ÇOK DİKKATLİ OL! Öncelik belirlemede şu kelimelere dikkat et:
+         - "acil", "acilen", "hemen", "derhal", "çok acil", "acil yapılsın", "acil yapılacak" → Urgent
+         - "önemli", "yüksek öncelik", "öncelikli" → High
+         - "normal", "standart", belirtilmemişse → Normal
+         - ÖNEMLİ: "acil" kelimesi cümlenin herhangi bir yerinde geçiyorsa → Urgent
+         - Örnek: "sintinedeki yağın temizlenmesi gerekiyor. acil. sabah yapılacak" → Urgent
+         - Varsayılan: Normal (sadece hiçbir öncelik belirtilmemişse)
       
       3. ATANAN (assigneeId):
          - Personel listesindeki isimleri büyük/küçük harf duyarsız ara
          - Kısmi eşleşme yap (örn: "Burçin" → "Burçin Yılmaz" ile eşleşir, "Ahmet" → "Ahmet Demir" ile eşleşir)
-         - İsim eşleştirme örnekleri:
+         - İsim eşleştirme örnekleri (TÜM varyasyonları kontrol et):
            * "Burçin yapacak" → personel listesinde "Burçin" içeren kişinin ID'si
            * "Ahmet'e ver" → personel listesinde "Ahmet" içeren kişinin ID'si
            * "Mehmet yapsın" → personel listesinde "Mehmet" içeren kişinin ID'si
            * "Burak yapsın" → personel listesinde "Burak" içeren kişinin ID'si
            * "Ayşe yapsın" → personel listesinde "Ayşe" içeren kişinin ID'si
+           * "Burak'a ver" → personel listesinde "Burak" içeren kişinin ID'si
+           * "Burak yapacak" → personel listesinde "Burak" içeren kişinin ID'si
+         - İsim farklı yazılmış olabilir, benzer sesli harfleri kontrol et (Burak, Burak, Burak)
+         - Personel listesindeki TÜM isimleri kontrol et, en yakın eşleşmeyi bul
          - Bulduğun kişinin TAM ID'sini döndür (personel listesindeki ID formatında)
          - Bulamazsan veya emin değilsen null döndür
          - ÖNEMLİ: Sadece personel listesinde olan ID'leri kullan!
@@ -111,15 +159,24 @@ export class OpenAIProvider implements AIServiceProvider {
          - "köprü" → "Bridge"
       
       6. AÇIKLAMA (description):
-         - SADECE görevle ilgili bilgileri yaz
-         - Assignee bilgilerini ÇIKARMA: "Burak yapsın", "Ayşe yapacak", "Burçin'e ver" gibi ifadeleri description'dan çıkar
-         - Role bilgilerini ÇIKARMA: "kaptan yapsın", "mürettebat yapsın" gibi ifadeleri description'dan çıkar
+         - TÜM bilgileri koru! Description'da görevin tam detaylarını yaz
+         - Görevin ne olduğunu, nerede yapılacağını, ne zaman yapılacağını, ek talimatları açıkla
+         - ÖNEMLİ: Description'da ÖNCELİK bilgisini ÇIKARMA! "acil", "acilen", "hemen", "önemli" gibi öncelik ifadelerini description'dan çıkar
+         - ÖNEMLİ: Description'da kişi isimlerini ve "yapsın", "yapacak" gibi atama ifadelerini çıkar
+         - Örnek: "sintinedeki yağın temizlenmesi gerekiyor. acil. sabah yapılacak. Burak yapsın. iş bitince haber verin"
+           → Description: "Sintinedeki yağın temizlenmesi gerekiyor. Sabah yapılacak. İş bitince haber verin."
+           → priority: "Urgent" (acil kelimesi var ama description'dan çıkarıldı)
+           → assigneeId: Burak'ın ID'si (personel listesinden)
          - Örnek: "Güverte temizlenecek, sabah yapılsın. Burak yapsın. Acil."
-           → Description: "Güverte temizlenecek, sabah yapılsın. Acil." (Burak yapsın kısmı çıkarıldı)
-         - Örnek: "Motor bakımı yapılacak. Kaptan yapsın."
-           → Description: "Motor bakımı yapılacak." (Kaptan yapsın kısmı çıkarıldı)
-         - Görevin ne olduğunu, nerede yapılacağını, ne zaman yapılacağını, önceliğini açıkla
-         - Kısa ve öz tut (gereksiz tekrarlar yapma)
+           → Description: "Güverte temizlenecek, sabah yapılsın."
+           → priority: "Urgent" (acil kelimesi var ama description'dan çıkarıldı)
+           → assigneeId: Burak'ın ID'si
+         - Örnek: "Motor bakımı yapılacak. Kaptan yapsın. Önemli."
+           → Description: "Motor bakımı yapılacak."
+           → priority: "High" (önemli kelimesi var ama description'dan çıkarıldı)
+           → assigneeId: null (rol belirtilmiş, kişi değil)
+         - "iş bitince haber verin", "tamamlayınca bildirin" gibi ek talimatları MUTLAKA description'a ekle
+         - Kısa ve öz tut ama hiçbir önemli bilgiyi atlama (öncelik hariç)
       
       7. GÖREV NİYETİ (isTaskIntent):
          - Eğer kullanıcı görevle alakasız bir şey derse (örn: "Hava nasıl?") → false
@@ -128,22 +185,201 @@ export class OpenAIProvider implements AIServiceProvider {
       ÇIKTI FORMATI (JSON - ZORUNLU):
       {
         "title": "Güverte Temizliği",
-        "description": "Güverte temizlenecek, sabah yapılsın. Acil.",
-        "priority": "Critical",
+        "description": "Güverte temizlenecek, sabah yapılsın.",
+        "priority": "Urgent",
         "assigneeId": "clx123abc456def789" veya null,
         "location": "Deck",
         "dueDate": "${tomorrowISO}" veya null,
         "isTaskIntent": true
       }
       
-      ÖNEMLİ: Description'da ASLA kişi ismi veya rol bilgisi olmamalı!
-      Örnek: "Güverte temizlenecek, sabah yapılsın. Burak yapsın. Acil."
-      → Description: "Güverte temizlenecek, sabah yapılsın. Acil." (Burak yapsın çıkarıldı)
-      → assigneeId: Burak'ın ID'si (personel listesinden)
+      YAT SEKTÖRÜ ÖRNEKLERİ (KAPSAMLI - 20+ ÖRNEK):
+      
+      Örnek 1 - Sintine Temizliği:
+      Input: "sintinedeki yağın temizlenmesi gerekiyor. acil. sabah yapılacak. Burak yapsın. iş bitince haber verin"
+      → title: "Sintine Yağ Temizliği"
+      → description: "Sintinedeki yağın temizlenmesi gerekiyor. Sabah yapılacak. İş bitince haber verin."
+      → priority: "Urgent" (acil kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: Burak'ın ID'si
+      → location: "Lazarette" veya null
+      → dueDate: Yarının tarihi
+      
+      Örnek 2 - Güverte Temizliği:
+      Input: "Güverte temizlenecek, sabah yapılsın. Burak yapsın. Acil."
+      → title: "Güverte Temizliği"
+      → description: "Güverte temizlenecek, sabah yapılsın."
+      → priority: "Urgent" (acil kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: Burak'ın ID'si
+      → location: "Deck"
+      → dueDate: Yarının tarihi
+      
+      Örnek 3 - Motor Bakımı:
+      Input: "Motor bakımı yapılacak. Kaptan yapsın. Önemli."
+      → title: "Motor Bakımı"
+      → description: "Motor bakımı yapılacak."
+      → priority: "High" (önemli kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null (rol belirtilmiş)
+      → location: "Engine Room"
+      → dueDate: null
+      
+      Örnek 4 - Yemek Hazırlığı:
+      Input: "Yarın misafirler gelecek, öğle yemeği hazırlansın. Chef yapsın. Menüyü bana gösterin."
+      → title: "Misafir Öğle Yemeği Hazırlığı"
+      → description: "Yarın misafirler gelecek, öğle yemeği hazırlansın. Menüyü bana gösterin."
+      → priority: "Normal"
+      → assigneeId: null (chef rolü)
+      → location: "Galley"
+      → dueDate: Yarının tarihi
+      
+      Örnek 5 - Yakıt İkmali:
+      Input: "Yakıt ikmali yapılacak, marina'ya gidince. Acil değil ama bu hafta yapılsın."
+      → title: "Yakıt İkmali"
+      → description: "Yakıt ikmali yapılacak, marina'ya gidince. Bu hafta yapılsın."
+      → priority: "Normal"
+      → assigneeId: null
+      → location: null
+      → dueDate: 7 gün sonra
+      
+      Örnek 6 - Teknik Kontrol:
+      Input: "Jeneratör kontrolü yapılsın. Mühendis yapsın. Hemen."
+      → title: "Jeneratör Kontrolü"
+      → description: "Jeneratör kontrolü yapılsın."
+      → priority: "Urgent" (hemen kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null (engineer rolü)
+      → location: "Engine Room"
+      → dueDate: Bugünün tarihi
+      
+      Örnek 7 - Güverte Ekipmanı:
+      Input: "Güverte mobilyaları temizlensin, cilalansın. Deckhand yapsın. Sabah."
+      → title: "Güverte Mobilya Temizliği ve Cilalama"
+      → description: "Güverte mobilyaları temizlensin, cilalansın. Sabah."
+      → priority: "Normal"
+      → assigneeId: null (deckhand rolü)
+      → location: "Deck"
+      → dueDate: Yarının tarihi
+      
+      Örnek 8 - Su Temini:
+      Input: "Temiz su tankları doldurulsun. Marina'da yapılacak. Önemli."
+      → title: "Temiz Su Tankı Doldurma"
+      → description: "Temiz su tankları doldurulsun. Marina'da yapılacak."
+      → priority: "High" (önemli kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null
+      → location: null
+      → dueDate: null
+      
+      Örnek 9 - Misafir Karşılama:
+      Input: "Yarın charter misafirleri gelecek, karşılama hazırlığı yapılsın. Stewardess yapsın. Çiçekler, havlular hazır olsun."
+      → title: "Charter Misafir Karşılama Hazırlığı"
+      → description: "Yarın charter misafirleri gelecek, karşılama hazırlığı yapılsın. Çiçekler, havlular hazır olsun."
+      → priority: "Normal"
+      → assigneeId: null (stewardess rolü)
+      → location: null
+      → dueDate: Yarının tarihi
+      
+      Örnek 10 - Güvenlik Kontrolü:
+      Input: "Can kurtarma ekipmanları kontrol edilsin. Acil. Bugün yapılsın."
+      → title: "Can Kurtarma Ekipmanı Kontrolü"
+      → description: "Can kurtarma ekipmanları kontrol edilsin. Bugün yapılsın."
+      → priority: "Urgent" (acil kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null
+      → location: "Deck"
+      → dueDate: Bugünün tarihi
+      
+      Örnek 11 - Mutfak Envanteri:
+      Input: "Mutfak envanteri kontrol edilsin, eksikler listelensin. Chef yapsın. Bu hafta."
+      → title: "Mutfak Envanter Kontrolü"
+      → description: "Mutfak envanteri kontrol edilsin, eksikler listelensin. Bu hafta."
+      → priority: "Normal"
+      → assigneeId: null (chef rolü)
+      → location: "Galley"
+      → dueDate: 7 gün sonra
+      
+      Örnek 12 - Tekne Yıkama:
+      Input: "Tekne yıkanacak, köpüklü yıkama. Deckhand yapsın. Sabah erken."
+      → title: "Tekne Köpüklü Yıkama"
+      → description: "Tekne yıkanacak, köpüklü yıkama. Sabah erken."
+      → priority: "Normal"
+      → assigneeId: null (deckhand rolü)
+      → location: "Deck"
+      → dueDate: Yarının tarihi
+      
+      Örnek 13 - Elektrik Sistemi:
+      Input: "Elektrik panosu kontrol edilsin. Mühendis yapsın. Önemli, bugün yapılsın."
+      → title: "Elektrik Panosu Kontrolü"
+      → description: "Elektrik panosu kontrol edilsin. Bugün yapılsın."
+      → priority: "High" (önemli kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null (engineer rolü)
+      → location: "Engine Room"
+      → dueDate: Bugünün tarihi
+      
+      Örnek 14 - İç Mekan Temizliği:
+      Input: "Salon temizlensin, perdeler yıkansın. Stewardess yapsın. Yarın."
+      → title: "Salon Temizliği ve Perde Yıkama"
+      → description: "Salon temizlensin, perdeler yıkansın. Yarın."
+      → priority: "Normal"
+      → assigneeId: null (stewardess rolü)
+      → location: "Main Saloon"
+      → dueDate: Yarının tarihi
+      
+      Örnek 15 - Marina İşlemleri:
+      Input: "Marina'ya gidince belgeler teslim edilsin. Kaptan yapsın. Acil değil."
+      → title: "Marina Belge Teslimi"
+      → description: "Marina'ya gidince belgeler teslim edilsin."
+      → priority: "Normal"
+      → assigneeId: null (captain rolü)
+      → location: null
+      → dueDate: null
+      
+      Örnek 16 - Klima Bakımı:
+      Input: "Klima filtreleri değiştirilsin. Mühendis yapsın. Bu hafta."
+      → title: "Klima Filtre Değişimi"
+      → description: "Klima filtreleri değiştirilsin. Bu hafta."
+      → priority: "Normal"
+      → assigneeId: null (engineer rolü)
+      → location: null
+      → dueDate: 7 gün sonra
+      
+      Örnek 17 - Tekne Boyası:
+      Input: "Güverte boyası yenilenecek. Deckhand yapsın. Önemli, bu ay içinde."
+      → title: "Güverte Boya Yenileme"
+      → description: "Güverte boyası yenilenecek. Bu ay içinde."
+      → priority: "High" (önemli kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null (deckhand rolü)
+      → location: "Deck"
+      → dueDate: null
+      
+      Örnek 18 - Misafir Odaları:
+      Input: "Misafir kamaraları hazırlansın, yataklar değiştirilsin. Stewardess yapsın. Yarın sabah."
+      → title: "Misafir Kamara Hazırlığı"
+      → description: "Misafir kamaraları hazırlansın, yataklar değiştirilsin. Yarın sabah."
+      → priority: "Normal"
+      → assigneeId: null (stewardess rolü)
+      → location: "Cabins"
+      → dueDate: Yarının tarihi
+      
+      Örnek 19 - Atık Yönetimi:
+      Input: "Atık su tankı boşaltılsın. Marina'da yapılacak. Acil değil."
+      → title: "Atık Su Tankı Boşaltma"
+      → description: "Atık su tankı boşaltılsın. Marina'da yapılacak."
+      → priority: "Normal"
+      → assigneeId: null
+      → location: null
+      → dueDate: null
+      
+      Örnek 20 - Navigasyon Ekipmanı:
+      Input: "GPS ve radar kontrol edilsin. Kaptan yapsın. Önemli, bugün."
+      → title: "GPS ve Radar Kontrolü"
+      → description: "GPS ve radar kontrol edilsin. Bugün."
+      → priority: "High" (önemli kelimesi var ama description'dan çıkarıldı)
+      → assigneeId: null (captain rolü)
+      → location: "Bridge"
+      → dueDate: Bugünün tarihi
+      
+      ÖNEMLİ NOT: Tüm örneklerde öncelik bilgisi (acil, önemli, hemen, vs.) description'dan ÇIKARILMIŞTIR!
       
       ÖNEMLİ KURALLAR:
       - title ASLA boş olmamalı, ASLA "Adsız Görev" yazma
-      - priority: "Low", "Medium", "High", veya "Critical" olmalı (başka değer yok)
+      - priority: "Normal", "High", veya "Urgent" olmalı (başka değer yok)
       - assigneeId: Personel listesindeki TAM ID veya null
       - dueDate: ISO format (YYYY-MM-DD) veya null
       - SADECE JSON formatında yanıt ver, başka açıklama ekleme!
@@ -156,7 +392,7 @@ export class OpenAIProvider implements AIServiceProvider {
         { role: "user", content: text }
       ],
       response_format: { type: "json_object" },
-      temperature: 0.2, // Yaratıcılık düşük, tutarlılık yüksek
+      temperature: 0.3, // Biraz daha esnek ama hala tutarlı
     });
 
     const content = completion.choices[0].message.content;
@@ -174,6 +410,46 @@ export class OpenAIProvider implements AIServiceProvider {
     
     // Assignee ID'yi doğrula - personel listesinde var mı kontrol et
     let assigneeId = result.assigneeId || null;
+    
+    // Eğer assigneeId yoksa veya geçersizse, description'dan isim çıkarmayı dene
+    if (!assigneeId && result.description && context.crewList.length > 0) {
+      // Description'dan isim çıkarmayı dene (örnek: "Burak yapsın", "Burak'a ver")
+      const namePatterns = context.crewList.map(c => {
+        if (c.name) {
+          const nameParts = c.name.split(' '); // "Burak Yılmaz" -> ["Burak", "Yılmaz"]
+          return nameParts[0]; // İlk ismi al
+        }
+        return null;
+      }).filter(Boolean);
+      
+      for (const name of namePatterns) {
+        if (name && result.description.toLowerCase().includes(name.toLowerCase())) {
+          // "yapsın", "yapacak", "yap", "ver", "yapılsın" gibi fiilleri kontrol et
+          const verbs = ['yapsın', 'yapacak', 'yap', 'ver', 'yapılsın', 'yapsın', 'yapıyor'];
+          const hasVerb = verbs.some(verb => 
+            result.description.toLowerCase().includes(`${name.toLowerCase()} ${verb}`) ||
+            result.description.toLowerCase().includes(`${name.toLowerCase()}'${verb}`) ||
+            result.description.toLowerCase().includes(`${name.toLowerCase()}'a ${verb}`)
+          );
+          
+          if (hasVerb) {
+            // İsmi bul, personel listesinde ara
+            const foundUser = context.crewList.find(c => 
+              c.name && (
+                c.name.toLowerCase().includes(name.toLowerCase()) ||
+                c.name.toLowerCase().split(' ')[0] === name.toLowerCase()
+              )
+            );
+            if (foundUser) {
+              assigneeId = foundUser.id;
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // ID geçerliliğini kontrol et
     if (assigneeId && context.crewList.length > 0) {
       const assigneeExists = context.crewList.some(c => c.id === assigneeId);
       if (!assigneeExists) {
@@ -181,7 +457,10 @@ export class OpenAIProvider implements AIServiceProvider {
         const assigneeName = result.assigneeName || result.assignee || "";
         if (assigneeName) {
           const foundUser = context.crewList.find(c => 
-            c.name && c.name.toLowerCase().includes(assigneeName.toLowerCase())
+            c.name && (
+              c.name.toLowerCase().includes(assigneeName.toLowerCase()) ||
+              c.name.toLowerCase().split(' ')[0] === assigneeName.toLowerCase()
+            )
           );
           if (foundUser) {
             assigneeId = foundUser.id;
@@ -195,14 +474,14 @@ export class OpenAIProvider implements AIServiceProvider {
     }
     
     // Priority'yi normalize et (büyük/küçük harf duyarsız)
-    const priorityMap: Record<string, "Low" | "Medium" | "High" | "Critical"> = {
-      "low": "Low",
-      "medium": "Medium",
+    const priorityMap: Record<string, "Normal" | "High" | "Urgent"> = {
+      "normal": "Normal",
+      "medium": "Normal", // Medium artık Normal
       "high": "High",
-      "critical": "Critical",
-      "urgent": "Critical", // Urgent de Critical olarak map et
+      "urgent": "Urgent",
+      "critical": "Urgent", // Critical artık Urgent
     };
-    const normalizedPriority = priorityMap[result.priority?.toLowerCase() || "medium"] || "Medium";
+    const normalizedPriority = priorityMap[result.priority?.toLowerCase() || "normal"] || "Normal";
     
     // Tip güvenliği için basit bir map
     return {

@@ -53,7 +53,7 @@ const taskSchema = z.object({
   assigneeRole: z.union([z.nativeEnum(UserRole), z.string()]).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
-  priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
+  priority: z.enum(["NORMAL", "HIGH", "URGENT"]).default("NORMAL"),
   type: z.enum(["GENERAL", "MAINTENANCE", "REPAIR", "INSPECTION"]).default("GENERAL"),
   cost: z.number().optional().nullable(),
   currency: z.string().optional().nullable(),
@@ -111,7 +111,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
       tripId: null,
       dueDate: initialData?.dueDate || "",
       status: TaskStatus.TODO,
-      priority: initialData?.priority || "MEDIUM" as const,
+      priority: initialData?.priority || "NORMAL" as const,
       type: "GENERAL",
       cost: null,
       currency: "EUR",
@@ -236,7 +236,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
           assigneeRole: (!assigneeRoleValue || assigneeRoleValue === "none") ? null : assigneeRoleValue,
           dueDate: data.dueDate || null,
           status: data.status,
-          priority: data.priority || "MEDIUM",
+          priority: data.priority || "NORMAL",
           type: data.type || "GENERAL",
           cost: data.cost || null,
           currency: data.currency || null,
@@ -528,17 +528,18 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
                 <VoiceInput
                   onSuccess={(data: TaskIntentResult, transcript: string) => {
                     // Map AI priority to form priority
-                    const priorityMap: Record<string, "LOW" | "MEDIUM" | "HIGH" | "URGENT"> = {
-                      Low: "LOW",
-                      Medium: "MEDIUM",
+                    const priorityMap: Record<string, "NORMAL" | "HIGH" | "URGENT"> = {
+                      Normal: "NORMAL",
+                      Medium: "NORMAL",
                       High: "HIGH",
+                      Urgent: "URGENT",
                       Critical: "URGENT",
                     };
 
                     // Fill form with AI data
                     form.setValue("title", data.title || "");
                     form.setValue("description", data.description || transcript || "");
-                    form.setValue("priority", priorityMap[data.priority] || "MEDIUM");
+                    form.setValue("priority", priorityMap[data.priority] || "NORMAL");
                     
                     // Set assignee if provided
                     if (data.assigneeId) {
@@ -819,15 +820,14 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Priority</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value || "MEDIUM"}>
+                <Select onValueChange={field.onChange} defaultValue={field.value || "NORMAL"}>
                   <FormControl>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
                   </FormControl>
                   <SelectContent>
-                    <SelectItem key="LOW" value="LOW">Low</SelectItem>
-                    <SelectItem key="MEDIUM" value="MEDIUM">Medium</SelectItem>
+                    <SelectItem key="NORMAL" value="NORMAL">Normal</SelectItem>
                     <SelectItem key="HIGH" value="HIGH">High</SelectItem>
                     <SelectItem key="URGENT" value="URGENT">Urgent</SelectItem>
                   </SelectContent>

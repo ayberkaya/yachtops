@@ -74,16 +74,18 @@ export function VoiceTaskForm({
   // Convert AI priority to Prisma TaskPriority
   const mapPriority = (priority: string): TaskPriority => {
     switch (priority) {
+      case "Urgent":
       case "Critical":
         return "URGENT";
       case "High":
         return "HIGH";
+      case "Normal":
       case "Medium":
-        return "MEDIUM";
+        return "NORMAL";
       case "Low":
-        return "LOW";
+        return "NORMAL"; // Low artık yok, Normal olarak map et
       default:
-        return "MEDIUM";
+        return "NORMAL";
     }
   };
 

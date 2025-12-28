@@ -209,19 +209,19 @@ export function VoiceRecorder({
             status === "error" && "bg-gradient-to-br from-destructive via-destructive to-destructive/90 border-destructive/30"
           )}
         >
-          {/* Inner glow effect */}
-          <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-sm m-0" />
+          {/* Inner glow effect with continuous animation */}
+          <div className="absolute inset-0 rounded-full bg-white/10 backdrop-blur-sm m-0 animate-gentle-breathe" />
           
           {isProcessing ? (
-            <Loader2 className="w-10 h-10 animate-spin relative z-10" />
+            <Loader2 className="size-6 animate-spin relative z-10" />
           ) : status === "success" ? (
-            <CheckCircle2 className="w-10 h-10 relative z-10" />
+            <CheckCircle2 className="size-6 relative z-10" />
           ) : status === "error" ? (
-            <XCircle className="w-10 h-10 relative z-10" />
+            <XCircle className="size-6 relative z-10" />
           ) : isRecording ? (
-            <Square className="w-10 h-10 fill-current relative z-10" />
+            <Square className="size-6 fill-current relative z-10" />
           ) : (
-            <Mic className="w-10 h-10 relative z-10" />
+            <Mic className="size-6 relative z-10" />
           )}
         </Button>
       </div>

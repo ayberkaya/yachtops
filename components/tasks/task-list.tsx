@@ -176,15 +176,14 @@ export function TaskList({
 
   const getPriorityBadge = (priority: TaskPriority | string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      LOW: "outline",
-      MEDIUM: "secondary",
+      NORMAL: "secondary",
       HIGH: "default",
       URGENT: "destructive",
     };
 
     const priorityStr = typeof priority === "string" ? priority : priority;
     const isUrgent = priorityStr === "URGENT";
-    const isMedium = priorityStr === "MEDIUM";
+    const isNormal = priorityStr === "NORMAL";
     const isHigh = priorityStr === "HIGH";
     
     return (
@@ -536,7 +535,6 @@ export function TaskList({
             const isDone = task.status === TaskStatus.DONE;
             const isUrgent = String(task.priority) === "URGENT";
             const isHighPriority = task.priority === TaskPriority.HIGH;
-            const isLowPriority = task.priority === TaskPriority.LOW;
             
             // Determine card border color
             let cardBorderColor: string | undefined;
@@ -548,8 +546,6 @@ export function TaskList({
               cardBorderColor = "rgba(231, 0, 11, 1)";
             } else if (isHighPriority) {
               cardBorderColor = "rgba(255, 102, 0, 1)";
-            } else if (isLowPriority) {
-              cardBorderColor = "rgba(92, 92, 92, 1)";
             } else if (isTodo) {
               cardBorderColor = "rgba(254, 230, 133, 1)";
             }
@@ -592,8 +588,6 @@ export function TaskList({
                     ? "border-2 border-red-600 dark:border-red-600"
                     : isHighPriority
                     ? "border-2"
-                    : isLowPriority
-                    ? "border-2"
                     : isTodo 
                     ? "border-2 border-amber-200 dark:border-amber-200 bg-amber-50/30 dark:bg-amber-950/20" 
                     : ""
@@ -617,10 +611,7 @@ export function TaskList({
                         backgroundColor: "rgba(255, 102, 0, 0.2)",
                         backdropFilter: "none"
                       }
-                    : isLowPriority
-                    ? {
-                        borderColor: "rgba(92, 92, 92, 1)",
-                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    : {
                         backdropFilter: "none"
                       }
                     : isTodo
@@ -812,7 +803,6 @@ export function TaskList({
             const isDone = task.status === TaskStatus.DONE;
             const isUrgent = String(task.priority) === "URGENT";
             const isHighPriority = task.priority === TaskPriority.HIGH;
-            const isLowPriority = task.priority === TaskPriority.LOW;
             
             // Determine card border color
             let cardBorderColor: string | undefined;
@@ -824,8 +814,6 @@ export function TaskList({
               cardBorderColor = "rgba(231, 0, 11, 1)";
             } else if (isHighPriority) {
               cardBorderColor = "rgba(255, 102, 0, 1)";
-            } else if (isLowPriority) {
-              cardBorderColor = "rgba(92, 92, 92, 1)";
             } else if (isTodo) {
               cardBorderColor = "rgba(254, 230, 133, 1)";
             }
@@ -868,8 +856,6 @@ export function TaskList({
                     ? "border-2 border-red-600 dark:border-red-600"
                     : isHighPriority
                     ? "border-2"
-                    : isLowPriority
-                    ? "border-2"
                     : isTodo 
                     ? "border-2 border-amber-200 dark:border-amber-200 bg-amber-50/30 dark:bg-amber-950/20" 
                     : ""
@@ -893,10 +879,7 @@ export function TaskList({
                         backgroundColor: "rgba(255, 102, 0, 0.2)",
                         backdropFilter: "none"
                       }
-                    : isLowPriority
-                    ? {
-                        borderColor: "rgba(92, 92, 92, 1)",
-                        backgroundColor: "rgba(255, 255, 255, 0.2)",
+                    : {
                         backdropFilter: "none"
                       }
                     : isTodo

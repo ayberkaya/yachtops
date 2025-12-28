@@ -111,15 +111,14 @@ export function TaskDetail({ taskId, users, trips, currentUser }: TaskDetailProp
 
   const getPriorityBadge = (priority: TaskPriority | string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      LOW: "outline",
-      MEDIUM: "secondary",
+      NORMAL: "secondary",
       HIGH: "default",
       URGENT: "destructive",
     };
 
     const priorityStr = typeof priority === "string" ? priority : priority;
     const isUrgent = priorityStr === "URGENT";
-    const isMedium = priorityStr === "MEDIUM";
+    const isNormal = priorityStr === "NORMAL";
     
     return (
       <Badge 

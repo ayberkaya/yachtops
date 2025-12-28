@@ -232,7 +232,7 @@ model Task {
   completedAt     DateTime?        @map("completed_at")
   dueDate         DateTime?        @map("due_date")
   status          TaskStatus       @default(TODO)
-  priority        TaskPriority     @default(MEDIUM)
+  priority        TaskPriority     @default(NORMAL)
   type            TaskType         @default(GENERAL)
   cost            Float?
   currency        String?          @default("EUR")
@@ -779,8 +779,7 @@ enum TaskStatus {
 }
 
 enum TaskPriority {
-  LOW
-  MEDIUM
+  NORMAL
   HIGH
   URGENT
 }

@@ -7,7 +7,7 @@ export interface TranscribeResult {
 export interface TaskIntentResult {
   title: string;
   description: string;
-  priority: "Low" | "Medium" | "High" | "Critical";
+  priority: "Normal" | "High" | "Urgent";
   assigneeId: string | null; // UUID
   department?: string; // "Deck", "Engineering" vb.
   location?: string;
