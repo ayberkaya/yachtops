@@ -59,9 +59,17 @@ export async function checkPermission(
       return false;
     }
 
-    // If no plan assigned, deny access (default to most restrictive)
+    // If no plan assigned, check environment
     if (!yacht.currentPlan) {
       console.warn(`[FeatureGate] No plan assigned to yacht: ${vesselId}`);
+      
+      // In development, allow all features if no plan is assigned (for easier testing)
+      // In production, deny access (default to most restrictive)
+      if (process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "development") {
+        console.warn(`[FeatureGate] Development mode: Allowing access without plan (yacht: ${vesselId})`);
+        return true;
+      }
+      
       return false;
     }
 
@@ -112,9 +120,17 @@ export async function checkLimit(
       return false;
     }
 
-    // If no plan assigned, deny (default to most restrictive)
+    // If no plan assigned, check environment
     if (!yacht.currentPlan) {
       console.warn(`[FeatureGate] No plan assigned to yacht: ${vesselId}`);
+      
+      // In development, allow unlimited if no plan is assigned (for easier testing)
+      // In production, deny access (default to most restrictive)
+      if (process.env.NODE_ENV === "development" || process.env.VERCEL_ENV === "development") {
+        console.warn(`[FeatureGate] Development mode: Allowing unlimited access without plan (yacht: ${vesselId})`);
+        return true;
+      }
+      
       return false;
     }
 

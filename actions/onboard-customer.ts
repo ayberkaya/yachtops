@@ -269,6 +269,8 @@ export async function onboardNewCustomer(
           settings: settings, // Prisma Json type expects object, not string
           features: features, // Prisma Json type expects object, not string
           logoUrl: null, // Will be set after upload
+          currentPlanId: validated.planId, // Assign plan to yacht
+          subscriptionStatus: validated.activateImmediately ? "ACTIVE" : "PENDING",
         },
       });
 

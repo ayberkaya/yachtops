@@ -2,15 +2,13 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-import { createClient } from '@/utils/supabase/server'
-import { db } from '@/lib/db'
+import { signIn } from '@/lib/auth-config'
 import { UserRole } from '@prisma/client'
 
 export async function login(formData: FormData) {
-  const supabase = await createClient()
-
   const email = formData.get('email') as string
   const password = formData.get('password') as string
+  const rememberMe = formData.get('rememberMe') === 'on' || formData.get('rememberMe') === 'true'
 
   // Validate inputs
   if (!email || !password) {
@@ -19,46 +17,46 @@ export async function login(formData: FormData) {
 
   console.log("Attempting login for:", email)
 
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-
-  if (error) {
-    // Security: Never log or expose the password in any error message or URL
-    // Use a generic error message to prevent user enumeration
-    console.log("🛑 Supabase Login Error:", error.message)
-    console.log("🛑 Error Details:", error)
-    return redirect('/login?message=Could not authenticate user')
-  }
-
-  // After successful authentication, get user role from database
   try {
-    const user = await db.user.findUnique({
-      where: { email },
-      select: { role: true },
+    // Use NextAuth signIn instead of Supabase Auth
+    const result = await signIn('credentials', {
+      email,
+      password,
+      rememberMe: rememberMe.toString(),
+      redirect: false,
     })
 
-    if (user) {
-      // Strict role-based routing
-      if (user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN) {
-        revalidatePath('/', 'layout')
-        redirect('/admin/owners')
+    if (result?.error) {
+      console.log("🛑 NextAuth Login Error:", result.error)
+      return redirect('/login?message=Could not authenticate user')
+    }
+
+    if (result?.ok) {
+      // Get user role from session to determine redirect
+      const { auth } = await import('@/lib/auth-config')
+      const session = await auth()
+      
+      if (session?.user?.role) {
+        // Strict role-based routing
+        if (session.user.role === UserRole.ADMIN || session.user.role === UserRole.SUPER_ADMIN) {
+          revalidatePath('/', 'layout')
+          redirect('/admin/owners')
+        } else {
+          // OWNER, CAPTAIN, CREW, and other roles go to dashboard
+          revalidatePath('/', 'layout')
+          redirect('/dashboard')
+        }
       } else {
-        // OWNER, CAPTAIN, CREW, and other roles go to dashboard
+        // Default to dashboard if role not found
         revalidatePath('/', 'layout')
         redirect('/dashboard')
       }
     } else {
-      // User not found in database, default to dashboard
-      revalidatePath('/', 'layout')
-      redirect('/dashboard')
+      return redirect('/login?message=Could not authenticate user')
     }
-  } catch (dbError) {
-    console.error("Error fetching user role:", dbError)
-    // On error, default to dashboard
-    revalidatePath('/', 'layout')
-    redirect('/dashboard')
+  } catch (error) {
+    console.error("Error during login:", error)
+    return redirect('/login?message=Could not authenticate user')
   }
 }
 

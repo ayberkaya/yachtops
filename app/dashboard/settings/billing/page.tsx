@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/utils/supabase/server";
+import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -96,28 +96,17 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
 }
 
 export default async function BillingPage() {
-  // Create authenticated Supabase client
-  const supabase = await createClient();
+  // Use NextAuth session instead of Supabase Auth
+  const session = await getSession();
 
-  // Authentication check - verify user is authenticated
-  let user = null;
-  try {
-    const { data, error } = await supabase.auth.getUser();
-    if (error) throw error;
-    user = data.user;
-  } catch (error) {
-    // If auth fails (session missing, etc.), redirect immediately
-    redirect('/login');
-  }
-
-  if (!user) {
-    redirect('/login');
+  if (!session?.user) {
+    redirect('/auth/signin');
   }
 
   // Debug log to confirm authentication
-  console.log("Auth User ID:", user?.id);
+  console.log("Auth User ID:", session.user.id);
 
-  const userId = user.id;
+  const userId = session.user.id;
 
   // Fetch subscription data using admin client to bypass RLS
   const subscriptionData = await getSubscriptionData(userId);
