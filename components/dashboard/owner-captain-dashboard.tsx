@@ -26,7 +26,13 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
     // STRICT TENANT ISOLATION: yachtId must be string (never null/undefined for regular users)
     const yachtId = user.yachtId;
     if (!yachtId && user.role !== "ADMIN" && user.role !== "SUPER_ADMIN") {
-      throw new Error("User must be assigned to a yacht to access dashboard");
+      console.error("❌ [DASHBOARD] User missing yachtId:", {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        yachtId: user.yachtId,
+      });
+      throw new Error("User must be assigned to a yacht to access dashboard. Please contact support.");
     }
     
     // Get user widget settings first to determine what data to fetch
@@ -111,7 +117,14 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         roleTasksPromise,
       ]);
     } catch (error) {
-      console.error("Error loading dashboard data:", error);
+      console.error("❌ [DASHBOARD] Error loading dashboard data:", error);
+      console.error("❌ [DASHBOARD] Error details:", {
+        error: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        userId: user.id,
+        yachtId: user.yachtId,
+        role: user.role,
+      });
       // Return error state instead of crashing
       return (
         <div className="space-y-6">
@@ -124,6 +137,11 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
               <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
               <CardDescription>
                 We encountered an error while loading your dashboard data. Please refresh the page to try again.
+                {error instanceof Error && (
+                  <span className="block mt-2 text-xs text-muted-foreground">
+                    Error: {error.message}
+                  </span>
+                )}
               </CardDescription>
             </CardHeader>
           </Card>
@@ -194,7 +212,14 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
     </div>
   );
   } catch (error) {
-    console.error("Error in OwnerCaptainDashboard:", error);
+    console.error("❌ [DASHBOARD] Error in OwnerCaptainDashboard:", error);
+    console.error("❌ [DASHBOARD] Error details:", {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      userId: user.id,
+      yachtId: user.yachtId,
+      role: user.role,
+    });
     return (
       <div className="space-y-6">
         <div>
@@ -206,6 +231,11 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
             <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
             <CardDescription>
               We encountered an error while loading your dashboard. Please refresh the page to try again.
+              {error instanceof Error && (
+                <span className="block mt-2 text-xs text-muted-foreground">
+                  Error: {error.message}
+                </span>
+              )}
             </CardDescription>
           </CardHeader>
         </Card>

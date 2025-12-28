@@ -30,15 +30,23 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
     // This bypasses both RLS and Supabase API layer entirely via direct DB connection
     console.log("✅ Using Prisma raw SQL to fetch subscription data for user:", userId);
 
-    // Fetch user subscription fields using raw SQL (bypasses RLS via direct DB connection)
+    // Fetch user subscription fields AND yacht plan_id
     const userData = await db.$queryRaw<Array<{
       subscription_status: string | null;
       trial_ends_at: Date | null;
       plan_id: string | null;
+      yacht_id: string | null;
+      yacht_plan_id: string | null;
     }>>`
-      SELECT subscription_status, trial_ends_at, plan_id
-      FROM users
-      WHERE id = ${userId}
+      SELECT 
+        u.subscription_status, 
+        u.trial_ends_at, 
+        u.plan_id,
+        u.yacht_id,
+        y.current_plan_id as yacht_plan_id
+      FROM users u
+      LEFT JOIN yachts y ON u.yacht_id = y.id
+      WHERE u.id = ${userId}
       LIMIT 1
     `;
 
@@ -48,26 +56,32 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
     }
 
     const userWithPlan = userData[0];
+    
+    // Use yacht's plan_id if user's plan_id is null
+    const effectivePlanId = userWithPlan.plan_id || userWithPlan.yacht_plan_id;
+    
     console.log("📊 User subscription data:", {
       subscription_status: userWithPlan.subscription_status,
       trial_ends_at: userWithPlan.trial_ends_at,
       plan_id: userWithPlan.plan_id,
+      yacht_plan_id: userWithPlan.yacht_plan_id,
+      effective_plan_id: effectivePlanId,
     });
     
     let planDetails: PlanDetails = null;
 
-    // Fetch plan details if plan_id exists
-    if (userWithPlan.plan_id) {
-      console.log("🔍 Fetching plan details for plan_id:", userWithPlan.plan_id);
+    // Fetch plan details if plan_id exists (from user or yacht)
+    if (effectivePlanId) {
+      console.log("🔍 Fetching plan details for plan_id:", effectivePlanId);
       const planData = await db.$queryRaw<Array<{
         id: string;
         name: string;
         price: number | null;
         currency: string | null;
       }>>`
-        SELECT id, name, price, currency
+        SELECT id, name, monthly_price as price, currency
         FROM plans
-        WHERE id = ${userWithPlan.plan_id}::uuid
+        WHERE id = ${effectivePlanId}::uuid
         LIMIT 1
       `;
 
@@ -77,17 +91,17 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
         planDetails = planData[0];
         console.log("✅ Plan details found:", planDetails);
       } else {
-        console.warn(`⚠️ Plan ID exists (${userWithPlan.plan_id}) but plan details are missing.`);
+        console.warn(`⚠️ Plan ID exists (${effectivePlanId}) but plan details are missing.`);
       }
     } else {
-      console.warn("⚠️ No plan_id found for user:", userId);
+      console.warn("⚠️ No plan_id found for user or yacht:", userId);
     }
 
     return {
       subscription_status: userWithPlan.subscription_status,
       trial_ends_at: userWithPlan.trial_ends_at,
       plan: planDetails,
-      plan_id: userWithPlan.plan_id,
+      plan_id: effectivePlanId,
     };
   } catch (error) {
     console.error("Error fetching subscription data:", error);
@@ -160,8 +174,13 @@ export default async function BillingPage() {
     }).format(price);
   };
 
-  // Get status badge
+  // Get status badge - only show if plan exists
   const getStatusBadge = () => {
+    // Don't show badge if no plan is assigned
+    if (!subscriptionData?.plan && !subscriptionData?.plan_id) {
+      return null;
+    }
+    
     const status = subscriptionData?.subscription_status || "UNKNOWN";
     
     if (status === "TRIAL") {
