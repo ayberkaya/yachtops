@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { differenceInDays } from "date-fns";
 import Link from "next/link";
+import { Mail, MessageCircle, HelpCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -330,6 +331,52 @@ export default async function BillingPage() {
               </div>
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Contact Support Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-primary/10">
+              <HelpCircle className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <CardTitle>Need Help?</CardTitle>
+              <CardDescription>
+                Our support team is here to assist you with any billing questions or issues.
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Have questions about your subscription, billing, or need assistance? We're here to help.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button asChild variant="outline" className="flex-1">
+                <a href="mailto:support@helmops.com?subject=Billing Inquiry" className="flex items-center justify-center gap-2">
+                  <Mail className="h-4 w-4" />
+                  Email Support
+                </a>
+              </Button>
+              
+              <Button asChild variant="outline" className="flex-1">
+                <a href="mailto:support@helmops.com?subject=General Support Request" className="flex items-center justify-center gap-2">
+                  <MessageCircle className="h-4 w-4" />
+                  Contact Support
+                </a>
+              </Button>
+            </div>
+
+            <div className="pt-4 border-t">
+              <p className="text-xs text-muted-foreground">
+                For urgent matters, please include your account email and a brief description of your issue in the subject line.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
