@@ -67,6 +67,7 @@ model User {
   leaves                   Leave[]                    @relation("LeaveAssignee")
   createdLeaves            Leave[]                    @relation("LeaveCreator")
   approvedLeaves           Leave[]                    @relation("LeaveApprover")
+  createdCalendarEvents    CalendarEvent[]            @relation("CalendarEventCreator")
   customRoleId             String?                    @map("custom_role_id")
   customRole               CustomRole?                @relation(fields: [customRoleId], references: [id], onDelete: SetNull)
   auditLogs                AuditLog[]
@@ -113,6 +114,7 @@ model Yacht {
   feedback                  Feedback[]
   creditCards               CreditCard[]
   invites                   YachtInvite[]
+  calendarEvents            CalendarEvent[]
   currentPlan               Plan?                      @relation(fields: [currentPlanId], references: [id], onDelete: SetNull)
 
   @@map("yachts")
@@ -142,6 +144,7 @@ model Trip {
   shoppingLists   ShoppingList[]
   tankLogs        TripTankLog[]
   movementLogs    TripMovementLog[]
+  calendarEvents  CalendarEvent[]
   createdBy       User?               @relation("TripCreator", fields: [createdByUserId], references: [id])
   yacht           Yacht               @relation(fields: [yachtId], references: [id], onDelete: Cascade)
 
@@ -944,6 +947,37 @@ enum LeaveStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+enum CalendarEventCategory {
+  VOYAGE
+  MARINA
+  OVERSEAS
+  FUEL_SUPPLY
+  OTHER
+}
+
+model CalendarEvent {
+  id              String                 @id @default(cuid())
+  yachtId         String                 @map("yacht_id")
+  tripId          String?                @map("trip_id")
+  title           String
+  description     String?
+  category        CalendarEventCategory @default(OTHER)
+  startDate       DateTime               @map("start_date")
+  endDate         DateTime               @map("end_date")
+  color           String?                // Hex color code for the category
+  createdByUserId String?                @map("created_by_user_id")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  updatedAt       DateTime               @updatedAt @map("updated_at")
+  createdBy       User?                  @relation("CalendarEventCreator", fields: [createdByUserId], references: [id], onDelete: SetNull)
+  yacht           Yacht                  @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  trip            Trip?                  @relation(fields: [tripId], references: [id], onDelete: SetNull)
+
+  @@index([yachtId, startDate, endDate])
+  @@index([yachtId, category])
+  @@index([tripId])
+  @@map("calendar_events")
 }
 
 model CustomRole {

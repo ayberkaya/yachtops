@@ -16,6 +16,7 @@ import {
   getMaintenanceLogs,
   getRoleTasks,
   getBriefingStats,
+  getCalendarEvents,
 } from "@/lib/dashboard/dashboard-data";
 import { DashboardHeader } from "./dashboard-header";
 
@@ -87,8 +88,12 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       ? getRoleTasks(yachtId, user)
       : Promise.resolve(undefined);
 
+    const calendarEventsPromise = enabledWidgets.has("calendar_events")
+      ? getCalendarEvents(yachtId, user)
+      : Promise.resolve(undefined);
+
     // Execute all promises in parallel (disabled widgets return undefined immediately)
-    let briefingStats, pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks;
+    let briefingStats, pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks, calendarEvents;
 
     try {
       [
@@ -103,6 +108,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         marinaPermissions,
         maintenanceLogs,
         roleAssignedTasks,
+        calendarEvents,
       ] = await Promise.all([
         briefingStatsPromise,
         pendingExpensesPromise,
@@ -115,6 +121,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         marinaPermissionsPromise,
         maintenanceLogsPromise,
         roleTasksPromise,
+        calendarEventsPromise,
       ]);
     } catch (error) {
       console.error("❌ [DASHBOARD] Error loading dashboard data:", error);
@@ -207,6 +214,11 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         upcomingMaintenance={upcomingMaintenance}
         expiringPermissions={expiringPermissions}
         lowStockItems={lowStockItems}
+        calendarEvents={calendarEvents?.map((event: any) => ({
+          ...event,
+          startDate: event.startDate.toISOString(),
+          endDate: event.endDate.toISOString(),
+        })) || []}
         showCustomizerButton={false}
       />
     </div>

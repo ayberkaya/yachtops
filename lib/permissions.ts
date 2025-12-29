@@ -40,6 +40,11 @@ export type Permission =
   | "trips.create"
   | "trips.edit"
   | "trips.delete"
+  // Calendar
+  | "calendar.view"
+  | "calendar.create"
+  | "calendar.edit"
+  | "calendar.delete"
   // Crew management
   | "users.view"
   | "users.create"
@@ -116,6 +121,12 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   "trips.create": "Yeni seyahat oluşturma",
   "trips.edit": "Seyahatleri düzenleme",
   "trips.delete": "Seyahatleri silme",
+  
+  // Calendar
+  "calendar.view": "Takvimi görüntüleme",
+  "calendar.create": "Yeni takvim etkinliği oluşturma",
+  "calendar.edit": "Takvim etkinliklerini düzenleme",
+  "calendar.delete": "Takvim etkinliklerini silme",
   
   // Crew Management
   "users.view": "Kullanıcıları görüntüleme",
@@ -206,6 +217,12 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
     "trips.edit",
     "trips.delete",
   ],
+  Calendar: [
+    "calendar.view",
+    "calendar.create",
+    "calendar.edit",
+    "calendar.delete",
+  ],
   "Crew Management": [
     "users.view",
     "users.create",
@@ -260,6 +277,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "trips.create",
     "trips.edit",
     "trips.delete",
+    "calendar.view",
+    "calendar.create",
+    "calendar.edit",
+    "calendar.delete",
     "users.view",
     "users.create",
     "users.edit",
@@ -319,6 +340,10 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "trips.create",
     "trips.edit",
     "trips.delete",
+    "calendar.view",
+    "calendar.create",
+    "calendar.edit",
+    "calendar.delete",
     "users.view",
     "users.create",
     "users.edit",
@@ -362,6 +387,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "expenses.create",
     "tasks.view",
     "trips.view",
+    "calendar.view",
     "messages.view",
     "messages.create",
     "shopping.view",

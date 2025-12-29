@@ -50,6 +50,7 @@ const WIDGET_LABELS: Record<WidgetType, string> = {
   low_stock_alert: "Low Stock Alert",
   monthly_report: "Monthly Report",
   quick_stats: "Quick Stats",
+  calendar_events: "Calendar Events",
 };
 
 export function WidgetCustomizer({ currentWidgets, onSave }: WidgetCustomizerProps) {

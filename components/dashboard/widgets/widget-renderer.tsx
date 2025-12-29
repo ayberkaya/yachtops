@@ -52,6 +52,10 @@ const ExpiringPermissionsWidget = lazy(() =>
 const LowStockAlertWidget = lazy(() => 
   import("./low-stock-alert-widget").then(m => ({ default: m.LowStockAlertWidget }))
 );
+
+const CalendarEventsWidget = lazy(() => 
+  import("./calendar-events-widget").then(m => ({ default: m.CalendarEventsWidget }))
+);
 import { WidgetCustomizer } from "./widget-customizer";
 import { MonthlyReportDownload } from "../monthly-report-download";
 
@@ -69,6 +73,7 @@ interface WidgetRendererProps {
   expiringPermissions?: any[];
   lowStockItems?: any[];
   myTasks?: any[];
+  calendarEvents?: any[];
   showCustomizerButton?: boolean;
 }
 
@@ -85,6 +90,7 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   expiringPermissions = [],
   lowStockItems = [],
   myTasks = [],
+  calendarEvents = [],
   showCustomizerButton = true,
 }: WidgetRendererProps) {
   const { data: session } = useSession();
@@ -311,6 +317,12 @@ export const WidgetRenderer = memo(function WidgetRenderer({
         );
       case "monthly_report":
         return <MonthlyReportDownload />;
+      case "calendar_events":
+        return (
+          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
+            <CalendarEventsWidget events={calendarEvents} />
+          </Suspense>
+        );
       case "quick_stats":
         return (
           <QuickStatsWidget
@@ -337,6 +349,7 @@ export const WidgetRenderer = memo(function WidgetRenderer({
       upcomingMaintenance,
       expiringPermissions,
       lowStockItems,
+      calendarEvents,
     ]
   );
 

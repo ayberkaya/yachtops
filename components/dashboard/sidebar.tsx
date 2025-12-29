@@ -60,28 +60,15 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const settingsDropdownRef = useRef<HTMLDivElement>(null);
   
   // Use navigation hook for shared navigation items
+  // MUST be called before any early returns to maintain hook order
   const { navItems } = useNavigation();
   
   // Use dashboard stats hook for shared stats
+  // MUST be called before any early returns to maintain hook order
   const stats = useDashboardStats();
 
-  // Early return after all hooks (to maintain hook order)
-  if (status === "loading" || !session?.user) {
-    return null;
-  }
-
-  const user = session.user;
-  const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
-  const initials = user.name
-    ? user.name
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .toUpperCase()
-        .slice(0, 2)
-    : user.email[0].toUpperCase();
-
   // Close settings dropdown when clicking outside (mobile)
+  // MUST be called before any early returns to maintain hook order
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -101,6 +88,22 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [settingsOpen]);
+
+  // Early return after all hooks (to maintain hook order)
+  if (status === "loading" || !session?.user) {
+    return null;
+  }
+
+  const user = session.user;
+  const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPER_ADMIN;
+  const initials = user.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : user.email[0].toUpperCase();
 
   return (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>

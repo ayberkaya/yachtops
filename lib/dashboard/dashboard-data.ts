@@ -144,6 +144,49 @@ export async function getCashBalances(yachtId: string | null) {
 /**
  * Fetch upcoming trips
  */
+export async function getCalendarEvents(yachtId: string | null, user: DashboardUser) {
+  if (!yachtId) return [];
+  if (!hasPermission(user, "calendar.view", user.permissions)) return [];
+
+  const now = new Date();
+  const thirtyDaysFromNow = new Date();
+  thirtyDaysFromNow.setDate(now.getDate() + 30);
+
+  return unstable_cache(
+    async () => db.calendarEvent.findMany({
+      where: {
+        yachtId: yachtId,
+        OR: [
+          {
+            startDate: { lte: thirtyDaysFromNow },
+            endDate: { gte: now },
+          },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        category: true,
+        startDate: true,
+        endDate: true,
+        color: true,
+        trip: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
+      },
+      orderBy: { startDate: "asc" },
+      take: 20,
+    }),
+    [getCacheKey("calendar-events", yachtId)],
+    { revalidate: 60, tags: [`calendar-${yachtId}`] }
+  )();
+}
+
 export async function getUpcomingTrips(yachtId: string | null) {
   if (!yachtId) return [];
   

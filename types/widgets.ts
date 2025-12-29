@@ -14,7 +14,8 @@ export type WidgetType =
   | "expiring_permissions"
   | "low_stock_alert"
   | "monthly_report"
-  | "quick_stats";
+  | "quick_stats"
+  | "calendar_events";
 
 export type WidgetSize = "small" | "medium" | "large" | "full";
 
