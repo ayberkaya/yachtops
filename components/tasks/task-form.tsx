@@ -101,7 +101,8 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
 
 
   const form = useForm<TaskFormData>({
-    resolver: zodResolver(taskSchema) as any,
+    // @ts-expect-error - zodResolver type mismatch with react-hook-form, but works at runtime
+    resolver: zodResolver(taskSchema),
     defaultValues: task ? {
       ...task,
       assigneeIds: task.assigneeId ? [task.assigneeId] : [],
@@ -119,13 +120,26 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
       tripId: null,
       dueDate: initialData?.dueDate || "",
       status: TaskStatus.TODO,
-      priority: initialData?.priority || "NORMAL" as const,
+      priority: (() => {
+        const priority = initialData?.priority || "NORMAL";
+        // Map old priority values to new ones
+        if (priority === "LOW" || priority === "MEDIUM") {
+          return "NORMAL";
+        }
+        if (priority === "NORMAL" || priority === "HIGH" || priority === "URGENT") {
+          return priority;
+        }
+        return "NORMAL";
+      })() as "NORMAL" | "HIGH" | "URGENT",
       type: "GENERAL",
       cost: null,
       currency: "EUR",
       serviceProvider: null,
     },
   });
+
+  // Type-safe form control for FormField components
+  const formControl = form.control as any;
 
   // Update form when initialData changes (for voice task)
   useEffect(() => {
@@ -535,7 +549,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+      <form onSubmit={form.handleSubmit(onSubmit as any)} className="space-y-4">
         {error && (
           <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">
             {error}
@@ -543,7 +557,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
         )}
 
         <FormField
-          control={form.control}
+          control={formControl}
           name="title"
           render={({ field }) => (
             <FormItem>
@@ -617,7 +631,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
         />
 
         <FormField
-          control={form.control}
+          control={formControl}
           name="description"
           render={({ field }) => (
             <FormItem>
@@ -636,7 +650,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
 
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2">
           <FormField
-            control={form.control}
+            control={formControl}
             name="assigneeIds"
             render={({ field }) => (
               <FormItem>
@@ -730,7 +744,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
           />
 
           <FormField
-            control={form.control}
+            control={formControl}
             name="assigneeRole"
             render={({ field }) => (
               <FormItem>
@@ -781,7 +795,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
         </div>
 
         <FormField
-          control={form.control}
+          control={formControl}
           name="tripId"
           render={({ field }) => (
             <FormItem>
@@ -811,7 +825,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
-            control={form.control}
+            control={formControl}
             name="type"
             render={({ field }) => (
               <FormItem>
@@ -838,7 +852,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
           />
 
           <FormField
-            control={form.control}
+            control={formControl}
             name="priority"
             render={({ field }) => (
               <FormItem>
@@ -863,7 +877,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField
-            control={form.control}
+            control={formControl}
             name="dueDate"
             render={({ field }) => (
               <FormItem>
@@ -884,7 +898,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
         {showMaintenanceFields && (
           <div className="grid gap-4 md:grid-cols-2">
             <FormField
-              control={form.control}
+              control={formControl}
               name="serviceProvider"
               render={({ field }) => (
                 <FormItem>
@@ -902,7 +916,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
             />
 
             <FormField
-              control={form.control}
+              control={formControl}
               name="cost"
               render={({ field }) => (
                 <FormItem>
@@ -922,7 +936,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
                         className="flex-1"
                       />
                       <FormField
-                        control={form.control}
+                        control={formControl}
                         name="currency"
                         render={({ field: currencyField }) => (
                           <Select

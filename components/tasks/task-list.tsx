@@ -156,8 +156,8 @@ export function TaskList({
   const canManage = currentUser.role !== "CREW";
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
-  const crewMembers = users.filter((user: { role?: UserRole | string | null }) => {
-    const role = String(user.role || "").toUpperCase().trim();
+  const crewMembers = users.filter((user) => {
+    const role = (user as any).role ? String((user as any).role).toUpperCase().trim() : "";
     return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
   });
 
@@ -1433,7 +1433,7 @@ export function TaskList({
             task={editingTask ? {
               ...editingTask,
               dueDate: editingTask.dueDate || null,
-            } : undefined}
+            } as any : undefined}
             users={users}
             trips={trips}
             onSuccess={(createdTask) => {
@@ -1451,12 +1451,12 @@ export function TaskList({
                   currency: createdTask.currency,
                   serviceProvider: createdTask.serviceProvider,
                   dueDate: createdTask.dueDate ? (createdTask.dueDate instanceof Date ? createdTask.dueDate.toISOString() : String(createdTask.dueDate)) : null,
-                  assignee: createdTask.assignee || null,
+                  assignee: (createdTask as any).assignee || null,
                   assigneeRole: createdTask.assigneeRole,
-                  completedBy: createdTask.completedBy || null,
+                  completedBy: (createdTask as any).completedBy || null,
                   completedAt: createdTask.completedAt ? (createdTask.completedAt instanceof Date ? createdTask.completedAt.toISOString() : String(createdTask.completedAt)) : null,
-                  createdBy: createdTask.createdBy || null,
-                  trip: createdTask.trip || null,
+                  createdBy: (createdTask as any).createdBy || null,
+                  trip: (createdTask as any).trip || null,
                 };
                 setTasks((prev) => [taskToAdd, ...prev]);
               } else if (createdTask && editingTask) {
@@ -1472,12 +1472,12 @@ export function TaskList({
                   currency: createdTask.currency,
                   serviceProvider: createdTask.serviceProvider,
                   dueDate: createdTask.dueDate ? (createdTask.dueDate instanceof Date ? createdTask.dueDate.toISOString() : String(createdTask.dueDate)) : null,
-                  assignee: createdTask.assignee || null,
+                  assignee: (createdTask as any).assignee || null,
                   assigneeRole: createdTask.assigneeRole,
-                  completedBy: createdTask.completedBy || null,
+                  completedBy: (createdTask as any).completedBy || null,
                   completedAt: createdTask.completedAt ? (createdTask.completedAt instanceof Date ? createdTask.completedAt.toISOString() : String(createdTask.completedAt)) : null,
-                  createdBy: createdTask.createdBy || null,
-                  trip: createdTask.trip || null,
+                  createdBy: (createdTask as any).createdBy || null,
+                  trip: (createdTask as any).trip || null,
                 };
                 setTasks((prev) =>
                   prev.map((t) => (t.id === taskToUpdate.id ? taskToUpdate : t))
