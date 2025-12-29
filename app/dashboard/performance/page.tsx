@@ -39,6 +39,12 @@ export default async function PerformancePage() {
           name: true,
           email: true,
           role: true,
+          customRole: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
         },
         orderBy: { name: "asc" },
       })

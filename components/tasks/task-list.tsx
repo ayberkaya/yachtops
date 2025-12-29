@@ -339,7 +339,8 @@ export function TaskList({
     const taskGroups = new Map<string, GroupedTask>();
     
     tasks.forEach((task) => {
-      // Create a group key based on task properties (excluding assignee)
+      // Create a group key based on task properties (excluding assignee and createdById)
+      // Multiple tasks with same content but different assignees should be grouped together
       const groupKey = JSON.stringify({
         title: task.title,
         description: task.description,
@@ -348,7 +349,7 @@ export function TaskList({
         type: task.type,
         priority: task.priority,
         status: task.status,
-        createdById: task.createdBy?.id || null,
+        // Exclude createdById from grouping - tasks with same content should group regardless of creator
         cost: task.cost,
         currency: task.currency,
         serviceProvider: task.serviceProvider,
@@ -556,11 +557,12 @@ export function TaskList({
             }
             
             const isClickable = isTodo && !canManage;
-            const isExpanded = expandedTasks.has(task.id);
+            const groupKey = groupedTask.allTaskIds[0];
+            const isExpanded = expandedTasks.has(groupKey);
             
             return (
               <div
-                key={task.id}
+                key={groupKey}
                 onClick={() => {
                   if (isClickable) {
                     setSelectedTask(task);
@@ -823,11 +825,12 @@ export function TaskList({
             }
             
             const isClickable = isTodo && !canManage;
-            const isExpanded = expandedTasks.has(task.id);
+            const groupKey = groupedTask.allTaskIds[0];
+            const isExpanded = expandedTasks.has(groupKey);
             
             return (
               <div
-                key={task.id}
+                key={groupKey}
                 onClick={() => {
                   if (isClickable) {
                     setSelectedTask(task);
@@ -840,9 +843,9 @@ export function TaskList({
                 setExpandedTasks(prev => {
                   const newSet = new Set(prev);
                   if (open) {
-                    newSet.add(task.id);
+                    newSet.add(groupKey);
                   } else {
-                    newSet.delete(task.id);
+                    newSet.delete(groupKey);
                   }
                   return newSet;
                 });

@@ -52,78 +52,142 @@ export function ReceiptsView({ receipts }: ReceiptsViewProps) {
               No approved receipts found yet.
             </p>
           ) : (
-            <div className="space-y-0">
-              <div className="border-b border-border">
-                <div className="grid grid-cols-12 gap-4 py-3 px-4 text-sm font-medium text-muted-foreground">
-                  <div className="col-span-3">Category</div>
-                  <div className="col-span-4">Description</div>
-                  <div className="col-span-2">Date</div>
-                  <div className="col-span-2">Amount</div>
-                  <div className="col-span-1 text-right">Actions</div>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block space-y-0">
+                <div className="border-b border-border">
+                  <div className="grid grid-cols-12 gap-4 py-3 px-4 text-sm font-medium text-muted-foreground">
+                    <div className="col-span-3">Category</div>
+                    <div className="col-span-4">Description</div>
+                    <div className="col-span-2">Date</div>
+                    <div className="col-span-2">Amount</div>
+                    <div className="col-span-1 text-right">Actions</div>
+                  </div>
+                </div>
+                <div className="divide-y divide-border">
+                  {receipts.map((receipt) => (
+                    <div
+                      key={receipt.id}
+                      className="grid grid-cols-12 gap-4 py-3 px-4 hover:bg-accent/50 transition-colors"
+                    >
+                      <div className="col-span-3">
+                        <p className="text-sm font-medium">
+                          {receipt.expense.category?.name ?? "Uncategorized"}
+                        </p>
+                      </div>
+                      <div className="col-span-4">
+                        <p className="text-sm text-foreground line-clamp-2">
+                          {receipt.expense.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Uploaded {format(
+                            typeof receipt.uploadedAt === 'string' 
+                              ? new Date(receipt.uploadedAt) 
+                              : receipt.uploadedAt,
+                            "MMM d, yyyy"
+                          )}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-sm text-muted-foreground">
+                          {format(
+                            typeof receipt.expense.date === 'string' 
+                              ? new Date(receipt.expense.date) 
+                              : receipt.expense.date,
+                            "MMM d, yyyy"
+                          )}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className="text-sm font-medium">
+                          {receipt.expense.amount.toLocaleString("en-US", {
+                            style: "currency",
+                            currency: receipt.expense.currency,
+                          })}
+                        </p>
+                      </div>
+                      <div className="col-span-1 flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => setPreviewReceipt(receipt)}
+                          className="text-primary hover:underline text-sm flex items-center gap-1"
+                          title="View receipt"
+                        >
+                          View
+                        </button>
+                        <Link
+                          href={`/dashboard/expenses/${receipt.expense.id}`}
+                          className="text-muted-foreground hover:text-primary text-sm flex items-center"
+                          title="View expense"
+                        >
+                          View
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-              <div className="divide-y divide-border">
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-3">
                 {receipts.map((receipt) => (
                   <div
                     key={receipt.id}
-                    className="grid grid-cols-12 gap-4 py-3 px-4 hover:bg-accent/50 transition-colors"
+                    className="border rounded-lg p-4 space-y-3 hover:bg-accent/50 transition-colors"
                   >
-                    <div className="col-span-3">
-                      <p className="text-sm font-medium">
-                        {receipt.expense.category?.name ?? "Uncategorized"}
-                      </p>
-                    </div>
-                    <div className="col-span-4">
-                      <p className="text-sm text-foreground line-clamp-2">
-                        {receipt.expense.description}
-                      </p>
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Uploaded {format(
-                          typeof receipt.uploadedAt === 'string' 
-                            ? new Date(receipt.uploadedAt) 
-                            : receipt.uploadedAt,
-                          "MMM d, yyyy"
-                        )}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-sm text-muted-foreground">
-                        {format(
-                          typeof receipt.expense.date === 'string' 
-                            ? new Date(receipt.expense.date) 
-                            : receipt.expense.date,
-                          "MMM d, yyyy"
-                        )}
-                      </p>
-                    </div>
-                    <div className="col-span-2">
-                      <p className="text-sm font-medium">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-foreground line-clamp-2">
+                          {receipt.expense.description}
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {receipt.expense.category?.name ?? "Uncategorized"}
+                        </p>
+                      </div>
+                      <p className="text-sm font-semibold text-foreground whitespace-nowrap">
                         {receipt.expense.amount.toLocaleString("en-US", {
                           style: "currency",
                           currency: receipt.expense.currency,
                         })}
                       </p>
                     </div>
-                    <div className="col-span-1 flex items-center justify-end gap-2">
+                    
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span>
+                        Date: {format(
+                          typeof receipt.expense.date === 'string' 
+                            ? new Date(receipt.expense.date) 
+                            : receipt.expense.date,
+                          "MMM d, yyyy"
+                        )}
+                      </span>
+                      <span>
+                        Uploaded {format(
+                          typeof receipt.uploadedAt === 'string' 
+                            ? new Date(receipt.uploadedAt) 
+                            : receipt.uploadedAt,
+                          "MMM d, yyyy"
+                        )}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2 border-t">
                       <button
                         onClick={() => setPreviewReceipt(receipt)}
-                        className="text-primary hover:underline text-sm flex items-center gap-1"
-                        title="View receipt"
+                        className="text-primary hover:underline text-sm font-medium flex items-center gap-1"
                       >
-                        View
+                        View Receipt
                       </button>
                       <Link
                         href={`/dashboard/expenses/${receipt.expense.id}`}
-                        className="text-muted-foreground hover:text-primary text-sm flex items-center"
-                        title="View expense"
+                        className="text-muted-foreground hover:text-primary text-sm font-medium"
                       >
-                        View
+                        View Expense
                       </Link>
                     </div>
                   </div>
                 ))}
               </div>
-            </div>
+            </>
           )}
         </CardContent>
       </Card>

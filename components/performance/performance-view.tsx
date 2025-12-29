@@ -28,6 +28,10 @@ interface User {
   name: string | null;
   email: string;
   role: string;
+  customRole: {
+    id: string;
+    name: string;
+  } | null;
 }
 
 interface CompletedTask {
@@ -127,11 +131,14 @@ export function PerformanceView({ allUsers, currentUser, canManage }: Performanc
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {allUsers.map((user) => (
-                      <SelectItem key={user.id} value={user.id}>
-                        {user.name || user.email} ({user.role.toLowerCase()})
-                      </SelectItem>
-                    ))}
+                    {allUsers.map((user) => {
+                      const displayRole = user.customRole ? user.customRole.name : user.role.toLowerCase();
+                      return (
+                        <SelectItem key={user.id} value={user.id}>
+                          {user.name || user.email} ({displayRole})
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
               </div>
