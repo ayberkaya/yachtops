@@ -156,7 +156,7 @@ export function TaskList({
   const canManage = currentUser.role !== "CREW";
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
-  const crewMembers = users.filter((user: any) => {
+  const crewMembers = users.filter((user: { role?: UserRole | string | null }) => {
     const role = String(user.role || "").toUpperCase().trim();
     return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
   });
@@ -1426,22 +1426,61 @@ export function TaskList({
 
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
+          <DialogHeader className="pb-4 sm:pb-2">
             <DialogTitle>{editingTask ? "Edit Task" : "New Task"}</DialogTitle>
           </DialogHeader>
           <TaskForm
-            task={editingTask}
+            task={editingTask ? {
+              ...editingTask,
+              dueDate: editingTask.dueDate || null,
+            } : undefined}
             users={users}
             trips={trips}
             onSuccess={(createdTask) => {
               setIsDialogOpen(false);
               if (createdTask && !editingTask) {
                 // New task created - add to state
-                setTasks((prev) => [createdTask, ...prev]);
+                const taskToAdd: Task = {
+                  id: createdTask.id,
+                  title: createdTask.title,
+                  description: createdTask.description,
+                  status: createdTask.status,
+                  priority: createdTask.priority,
+                  type: createdTask.type || "GENERAL",
+                  cost: createdTask.cost,
+                  currency: createdTask.currency,
+                  serviceProvider: createdTask.serviceProvider,
+                  dueDate: createdTask.dueDate ? (createdTask.dueDate instanceof Date ? createdTask.dueDate.toISOString() : String(createdTask.dueDate)) : null,
+                  assignee: createdTask.assignee || null,
+                  assigneeRole: createdTask.assigneeRole,
+                  completedBy: createdTask.completedBy || null,
+                  completedAt: createdTask.completedAt ? (createdTask.completedAt instanceof Date ? createdTask.completedAt.toISOString() : String(createdTask.completedAt)) : null,
+                  createdBy: createdTask.createdBy || null,
+                  trip: createdTask.trip || null,
+                };
+                setTasks((prev) => [taskToAdd, ...prev]);
               } else if (createdTask && editingTask) {
                 // Task updated - update in state
+                const taskToUpdate: Task = {
+                  id: createdTask.id,
+                  title: createdTask.title,
+                  description: createdTask.description,
+                  status: createdTask.status,
+                  priority: createdTask.priority,
+                  type: createdTask.type || "GENERAL",
+                  cost: createdTask.cost,
+                  currency: createdTask.currency,
+                  serviceProvider: createdTask.serviceProvider,
+                  dueDate: createdTask.dueDate ? (createdTask.dueDate instanceof Date ? createdTask.dueDate.toISOString() : String(createdTask.dueDate)) : null,
+                  assignee: createdTask.assignee || null,
+                  assigneeRole: createdTask.assigneeRole,
+                  completedBy: createdTask.completedBy || null,
+                  completedAt: createdTask.completedAt ? (createdTask.completedAt instanceof Date ? createdTask.completedAt.toISOString() : String(createdTask.completedAt)) : null,
+                  createdBy: createdTask.createdBy || null,
+                  trip: createdTask.trip || null,
+                };
                 setTasks((prev) =>
-                  prev.map((t) => (t.id === createdTask.id ? createdTask : t))
+                  prev.map((t) => (t.id === taskToUpdate.id ? taskToUpdate : t))
                 );
               } else {
                 // Fallback to refresh

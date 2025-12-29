@@ -86,7 +86,7 @@ export function QuickActions() {
         // Ensure it's an array before mapping
         const tripsArray = Array.isArray(tripsData) ? tripsData : [];
         // Map to only id and name
-        const mappedTrips = tripsArray.map((trip: any) => ({
+        const mappedTrips = tripsArray.map((trip: { id: string; name: string }) => ({
           id: trip.id,
           name: trip.name,
         }));
@@ -154,7 +154,7 @@ export function QuickActions() {
       {/* Task Dialog */}
       <Dialog open={isTaskDialogOpen} onOpenChange={setIsTaskDialogOpen}>
         <DialogContent className="max-w-2xl">
-          <DialogHeader>
+          <DialogHeader className="pb-4 sm:pb-2">
             <DialogTitle>New Task</DialogTitle>
           </DialogHeader>
           {isLoadingTaskData ? (

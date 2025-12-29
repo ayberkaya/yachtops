@@ -21,7 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   DialogFooter,
 } from "@/components/ui/dialog";
-import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
+import { TaskStatus, TaskPriority, UserRole, Task, TaskType as PrismaTaskType } from "@prisma/client";
 
 // Define TaskType enum values manually for client-side use
 const TaskType = {
@@ -49,7 +49,7 @@ const taskSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().optional().nullable(),
   assigneeId: z.string().optional().nullable(),
-  assigneeIds: z.array(z.string()).optional().default([]),
+  assigneeIds: z.array(z.string()).default([]),
   assigneeRole: z.union([z.nativeEnum(UserRole), z.string()]).optional().nullable(),
   dueDate: z.string().optional().nullable(),
   status: z.nativeEnum(TaskStatus).default(TaskStatus.TODO),
@@ -63,7 +63,14 @@ const taskSchema = z.object({
 type TaskFormData = z.infer<typeof taskSchema>;
 
 interface TaskFormProps {
-  task?: any;
+  task?: Partial<Omit<Task, 'dueDate' | 'createdAt' | 'updatedAt' | 'completedAt'>> & { 
+    assigneeId?: string | null; 
+    assigneeIds?: string[]; 
+    dueDate?: string | Date | null;
+    createdAt?: string | Date;
+    updatedAt?: string | Date;
+    completedAt?: string | Date | null;
+  };
   initialData?: {
     title?: string;
     description?: string;
@@ -73,7 +80,7 @@ interface TaskFormProps {
   };
   users: { id: string; name: string | null; email: string; role?: UserRole; customRoleId?: string | null; customRole?: { id: string; name: string } | null }[];
   trips: { id: string; name: string }[];
-  onSuccess: (createdTask?: any) => void;
+  onSuccess: (createdTask?: Task) => void;
   onDelete?: () => void;
 }
 
@@ -102,6 +109,7 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
       cost: task.cost || null,
       currency: task.currency || null,
       serviceProvider: task.serviceProvider || null,
+      dueDate: task.dueDate ? (typeof task.dueDate === 'string' ? task.dueDate : task.dueDate.toISOString().split('T')[0]) : null,
     } : {
       title: initialData?.title || "",
       description: initialData?.description || "",
@@ -353,11 +361,11 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
       }
 
       // If multiple assignees selected, create a task for each user
-      const assigneeIdsArray = assigneeIdsToUse.length > 0 ? assigneeIdsToUse : (data.assigneeId ? [data.assigneeId] : []);
+      const assigneeIdsArray: (string | null)[] = assigneeIdsToUse.length > 0 ? assigneeIdsToUse : (data.assigneeId ? [data.assigneeId] : []);
       
       // If no assignees and no role, create one unassigned task
       if (assigneeIdsArray.length === 0 && !assigneeRoleValue) {
-        assigneeIdsArray.push(null as any);
+        assigneeIdsArray.push(null);
       }
 
       // Clean up the base data
@@ -379,8 +387,8 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
       console.log("Assignee IDs to create tasks for:", assigneeIdsArray);
 
       // Create tasks for each assignee
-      const createdTasks = [];
-      let lastResult: any = null;
+      const createdTasks: Task[] = [];
+      let lastResult: Task | null = null;
       let hasError = false;
 
       for (const assigneeId of assigneeIdsArray) {

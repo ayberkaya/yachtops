@@ -67,3 +67,5 @@ Script şunu gösterecek:
 
 
 
+
+

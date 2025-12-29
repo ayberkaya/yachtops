@@ -235,7 +235,7 @@ export function VoiceInput({
       {!isRecording && !isProcessing && (
         <Badge 
           variant="outline" 
-          className="absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] px-2 py-0.5 border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 shadow-sm backdrop-blur-sm"
+          className="absolute -top-6 sm:-top-8 left-1/2 -translate-x-1/2 text-[10px] px-2 py-0.5 border-primary/30 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 shadow-sm backdrop-blur-sm z-10"
         >
           <Brain className="w-3 h-3 mr-1 text-primary" />
           <span className="font-semibold text-primary">AI Powered</span>
