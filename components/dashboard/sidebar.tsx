@@ -57,6 +57,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const settingsDropdownRef = useRef<HTMLDivElement>(null);
   
   // Use navigation hook for shared navigation items
   const { navItems } = useNavigation();
@@ -79,6 +80,27 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
         .toUpperCase()
         .slice(0, 2)
     : user.email[0].toUpperCase();
+
+  // Close settings dropdown when clicking outside (mobile)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsDropdownRef.current &&
+        !settingsDropdownRef.current.contains(event.target as Node) &&
+        settingsOpen
+      ) {
+        setSettingsOpen(false);
+      }
+    };
+
+    if (settingsOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [settingsOpen]);
 
   return (
     <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -179,36 +201,37 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
           </div>
           {/* Settings Section - Outside scroll container */}
           <div className="flex-shrink-0 border-t border-slate-200 bg-white p-3 sm:p-4">
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSettingsOpen((prev) => !prev);
-              }}
-              className="w-full flex items-center justify-between space-x-2 sm:space-x-3 mb-2 p-2.5 sm:p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors touch-manipulation"
-            >
-              <div className="flex items-center space-x-3">
-                <Avatar className="h-10 w-10 border-2 border-primary/50">
-                  <AvatarFallback className="bg-primary text-white font-semibold">
-                    {initials}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1 min-w-0 text-left">
-                  <p className="text-sm font-semibold text-slate-900 truncate" style={{ color: '#0f172a' }}>
-                    {user.name || "User"}
-                  </p>
-                  <p className="text-xs text-slate-700 truncate capitalize font-medium" style={{ color: '#334155' }}>
-                    {user.role.toLowerCase()}
-                  </p>
+            <div ref={settingsDropdownRef}>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSettingsOpen((prev) => !prev);
+                }}
+                className="w-full flex items-center justify-between space-x-2 sm:space-x-3 mb-2 p-2.5 sm:p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors touch-manipulation"
+              >
+                <div className="flex items-center space-x-3">
+                  <Avatar className="h-10 w-10 border-2 border-primary/50">
+                    <AvatarFallback className="bg-primary text-white font-semibold">
+                      {initials}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0 text-left">
+                    <p className="text-sm font-semibold text-slate-900 truncate" style={{ color: '#0f172a' }}>
+                      {user.name || "User"}
+                    </p>
+                    <p className="text-xs text-slate-700 truncate capitalize font-medium" style={{ color: '#334155' }}>
+                      {user.role.toLowerCase()}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              <ChevronRight
-                size={16}
-                className={`transition-transform duration-200 ${settingsOpen ? "rotate-90" : "rotate-0"} text-slate-700`}
-              />
-            </button>
+                <ChevronRight
+                  size={16}
+                  className={`transition-transform duration-200 ${settingsOpen ? "rotate-90" : "rotate-0"} text-slate-700`}
+                />
+              </button>
 
-            {settingsOpen && (
-              <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'min(200px, 30vh)' }}>
+              {settingsOpen && (
+                <div className="space-y-2 overflow-y-auto" style={{ maxHeight: 'min(200px, 30vh)' }}>
                 {!isAdmin && (
                   <Link
                     href="/dashboard/my-documents"
@@ -359,9 +382,10 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            )}
+                  </AlertDialog>
+                </div>
+              )}
+            </div>
           </div>
         </div>
         </SheetContent>
@@ -392,6 +416,7 @@ export function Sidebar() {
   const sidebarRef = useRef<HTMLElement>(null);
   const navContentRef = useRef<HTMLElement>(null);
   const scrollPositionRef = useRef<number>(0);
+  const settingsDropdownRef = useRef<HTMLDivElement>(null);
   const [isMobile, setIsMobile] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsOpenDesktop, setSettingsOpenDesktop] = useState(false);
@@ -450,6 +475,27 @@ export function Sidebar() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isCollapsed, isHovered]);
+
+  // Close settings dropdown when clicking outside (desktop)
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        settingsDropdownRef.current &&
+        !settingsDropdownRef.current.contains(event.target as Node) &&
+        settingsOpenDesktop
+      ) {
+        setSettingsOpenDesktop(false);
+      }
+    };
+
+    if (settingsOpenDesktop) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [settingsOpenDesktop]);
 
   // Early return after all hooks (to maintain hook order)
   if (status === "loading" || !session?.user) {
@@ -631,7 +677,7 @@ export function Sidebar() {
         {/* User Profile Section */}
         <div className={`flex-shrink-0 p-4 border-t border-border bg-secondary ${isExpanded ? "" : "px-2"}`}>
           {isExpanded ? (
-            <>
+            <div ref={settingsDropdownRef}>
               <button
                 onClick={() => setSettingsOpenDesktop((prev) => !prev)}
                 className="flex items-center justify-between space-x-3 mb-2 p-3 rounded-lg bg-accent hover:bg-accent/80 transition-colors w-full"
@@ -777,7 +823,7 @@ export function Sidebar() {
                   </AlertDialog>
                 </div>
               )}
-            </>
+            </div>
           ) : (
             <div className="flex flex-col items-center space-y-3">
               <Link

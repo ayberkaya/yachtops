@@ -8,7 +8,6 @@ import { TripStatus, TripMovementEvent } from "@prisma/client";
 import {
   getActiveTrips,
   getPastTrips,
-  getFuelLogData,
 } from "@/lib/trips/trip-queries";
 
 interface TripsPageProps {
@@ -17,7 +16,7 @@ interface TripsPageProps {
 
 export default async function TripsPage({ searchParams }: TripsPageProps) {
   const params = await searchParams;
-  const view = (params.view as "active" | "past" | "fuel") || "active";
+  const view = (params.view as "active" | "past") || "active";
   const session = await getSession();
 
   if (!session?.user) {
@@ -37,9 +36,6 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
 
   // Conditionally fetch data based on current view
   let trips: any[] = [];
-  let tripsForFuelLog: any[] | undefined = undefined;
-  let movementLogs: any[] | undefined = undefined;
-  let tankLogs: any[] | undefined = undefined;
 
   try {
     switch (view) {
@@ -51,34 +47,6 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
       case "past":
         // Only fetch past trips (limited to 20)
         trips = await getPastTrips(session, 20);
-        break;
-
-      case "fuel":
-        // Fetch fuel log data (trips, movementLogs, tankLogs)
-        const fuelLogData = await getFuelLogData(session);
-        tripsForFuelLog = fuelLogData.trips.map((trip: any) => ({
-          id: trip.id,
-          name: trip.name,
-          code: trip.code,
-          status: trip.status as TripStatus,
-          startDate: trip.startDate.toISOString(),
-          endDate: trip.endDate ? trip.endDate.toISOString() : null,
-          departurePort: trip.departurePort,
-          arrivalPort: trip.arrivalPort,
-        }));
-        movementLogs = fuelLogData.movementLogs.map((log: any) => ({
-          ...log,
-          eventType: log.eventType as TripMovementEvent,
-          eta: log.eta ? log.eta.toISOString() : null,
-          etd: log.etd ? log.etd.toISOString() : null,
-          recordedAt: log.recordedAt.toISOString(),
-        }));
-        tankLogs = fuelLogData.tankLogs.map((log: any) => ({
-          ...log,
-          recordedAt: log.recordedAt.toISOString(),
-        }));
-        // For fuel view, trips array should be empty (not used)
-        trips = [];
         break;
 
       default:
@@ -114,9 +82,6 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
       <LogbookTabs
         currentView={view}
         trips={tripsForDisplay}
-        tripsForFuelLog={tripsForFuelLog}
-        movementLogs={movementLogs}
-        tankLogs={tankLogs}
         canManage={canManageUsers(session.user)}
         canEdit={canEdit}
         currentUser={{
