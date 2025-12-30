@@ -2,12 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
-import { db } from "@/lib/db";
+import { db, dbUnscoped } from "@/lib/db";
 import { z } from "zod";
 import { TaskStatus, TaskPriority, UserRole, TaskType } from "@prisma/client";
 import { sendNotificationToUser, sendNotificationToRole } from "@/lib/notifications";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
-import { withTenantScope } from "@/lib/tenant-guard";
 import { unstable_cache } from "next/cache";
 
 const taskSchema = z.object({
@@ -104,21 +103,13 @@ export async function GET(request: NextRequest) {
           ];
         }
 
-        // Import withTenantScope inside closure to avoid closure issues
-        const { withTenantScope } = await import("@/lib/tenant-guard");
-        
-        // Rebuild minimal session for withTenantScope (only what's needed)
-        const mockSession = {
-          user: {
-            yachtId: tenantIdParam || undefined,
-            role: userRoleParam as any,
-          },
-        } as any;
+        // Use dbUnscoped to avoid headers() call inside unstable_cache
+        // Manually add yachtId for tenant isolation
+        const finalWhereParam = tenantIdParam
+          ? { ...baseWhereParam, yachtId: tenantIdParam }
+          : baseWhereParam;
 
-        const finalWhereParam = withTenantScope(mockSession, baseWhereParam);
-
-        const { db } = await import("@/lib/db");
-        return db.task.findMany({
+        return dbUnscoped.task.findMany({
           where: finalWhereParam,
           include: {
             assignee: {
@@ -168,18 +159,13 @@ export async function GET(request: NextRequest) {
           ];
         }
 
-        const mockScopedSession = {
-          ...scopedSession!,
-          user: {
-            ...scopedSession!.user,
-            yachtId: tenantIdParam || undefined,
-          },
-        } as typeof scopedSession;
+        // Use dbUnscoped to avoid headers() call inside unstable_cache
+        // Manually add yachtId for tenant isolation
+        const finalWhereParam = tenantIdParam
+          ? { ...baseWhereParam, yachtId: tenantIdParam }
+          : baseWhereParam;
 
-        const finalWhereParam = withTenantScope(mockScopedSession, baseWhereParam);
-
-        const { db } = await import("@/lib/db");
-        return db.task.count({ 
+        return dbUnscoped.task.count({ 
           where: finalWhereParam 
         });
       },

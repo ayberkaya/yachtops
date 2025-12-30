@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { completeSignOut } from "@/lib/signout-helper";
+import { signOutAction } from "@/actions/signout";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,6 +29,53 @@ import { NotificationsView } from "@/components/notifications/notifications-view
 export function Navbar() {
   const { data: session } = useSession();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  // Test function to verify button clicks work
+  const handleSignOut = async () => {
+    console.log("🚪 [SIGNOUT] handleSignOut function called - THIS SHOULD APPEAR IN CONSOLE");
+    
+    try {
+      console.log("🚪 [SIGNOUT] Step 1: Calling server action...");
+      const result = await signOutAction();
+      console.log("🚪 [SIGNOUT] Server action result:", result);
+      
+      console.log("🚪 [SIGNOUT] Step 2: Clearing client-side storage...");
+      await completeSignOut();
+      console.log("🚪 [SIGNOUT] Client-side storage cleared");
+      
+      console.log("🚪 [SIGNOUT] Step 3: Calling NextAuth signOut...");
+      try {
+        await signOut({ 
+          redirect: false,
+          callbackUrl: "/auth/signin"
+        });
+        console.log("🚪 [SIGNOUT] NextAuth signOut completed");
+      } catch (signOutError) {
+        console.error("🚪 [SIGNOUT] NextAuth signOut error:", signOutError);
+      }
+      
+      console.log("🚪 [SIGNOUT] Step 4: Final cleanup...");
+      await completeSignOut();
+      
+      console.log("🚪 [SIGNOUT] Step 5: Redirecting to signin...");
+      if (typeof window !== 'undefined') {
+        window.localStorage?.clear();
+        window.sessionStorage?.clear();
+        console.log("🚪 [SIGNOUT] Redirecting now...");
+        window.location.href = `/auth/signin?t=${Date.now()}`;
+      }
+    } catch (error) {
+      console.error("🚪 [SIGNOUT] Sign out error:", error);
+      console.error("🚪 [SIGNOUT] Error stack:", error instanceof Error ? error.stack : "No stack");
+      if (typeof window !== 'undefined') {
+        console.log("🚪 [SIGNOUT] Force cleanup and redirect on error...");
+        await completeSignOut();
+        window.localStorage?.clear();
+        window.sessionStorage?.clear();
+        window.location.href = `/auth/signin?t=${Date.now()}`;
+      }
+    }
+  };
 
   if (!session?.user) return null;
 
@@ -172,39 +220,17 @@ export function Navbar() {
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={async () => {
-                  try {
-                    // Complete sign out - clear all storage and cookies
-                    await completeSignOut();
-                    
-                    // Sign out without redirect first to clear session
-                    await signOut({ 
-                      redirect: false,
-                      callbackUrl: "/auth/signin"
-                    });
-                    
-                    // Clear all caches and force hard redirect
-                    if (typeof window !== 'undefined') {
-                      // Small delay to ensure cookies are cleared
-                      setTimeout(() => {
-                        window.location.href = "/auth/signin";
-                      }, 100);
-                    }
-                  } catch (error) {
-                    console.error("Sign out error:", error);
-                    // Force redirect even on error
-                    if (typeof window !== 'undefined') {
-                      await completeSignOut();
-                      window.location.href = "/auth/signin";
-                    }
-                  }
+                onSelect={(e) => {
+                  e.preventDefault();
+                  handleSignOut();
                 }}
-                className="text-destructive"
+                className="text-destructive cursor-pointer"
               >
                 Sign Out
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+          
         </div>
       </div>
     </nav>

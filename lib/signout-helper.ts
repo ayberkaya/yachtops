@@ -12,15 +12,38 @@ export async function completeSignOut(): Promise<void> {
   localStorage.clear();
   sessionStorage.clear();
 
-  // Clear all NextAuth cookies manually
+  // Clear all NextAuth cookies manually - more comprehensive list
   const cookiesToDelete = [
     "next-auth.session-token",
     "next-auth.csrf-token",
     "__Secure-next-auth.session-token",
     "__Host-next-auth.csrf-token",
+    "__Secure-next-auth.callback-url",
+    "__Host-next-auth.callback-url",
+    "next-auth.callback-url",
   ];
 
-  // Delete cookies for current domain
+  // Get all cookies and delete them
+  const allCookies = document.cookie.split(';');
+  allCookies.forEach((cookie) => {
+    const cookieName = cookie.split('=')[0].trim();
+    if (cookieName.includes('next-auth') || cookieName.includes('auth')) {
+      // Delete for current path
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+      // Delete for root path with domain
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=${window.location.hostname};`;
+      // Delete without domain (for localhost)
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+      // Delete with secure flag
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure;`;
+      // Delete with SameSite
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;`;
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict;`;
+      document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None; Secure;`;
+    }
+  });
+
+  // Also delete specific cookies
   cookiesToDelete.forEach((cookieName) => {
     // Delete for current path
     document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
@@ -28,6 +51,12 @@ export async function completeSignOut(): Promise<void> {
     document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; domain=${window.location.hostname};`;
     // Delete without domain (for localhost)
     document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;`;
+    // Delete with secure flag
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; secure;`;
+    // Delete with SameSite
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax;`;
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict;`;
+    document.cookie = `${cookieName}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=None; Secure;`;
   });
 
   // Clear IndexedDB if used by NextAuth

@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { signOut, useSession } from "next-auth/react";
 import { completeSignOut } from "@/lib/signout-helper";
+import { signOutAction } from "@/actions/signout";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -53,7 +54,7 @@ import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { UserRole } from "@prisma/client";
 
 // Mobile Sheet Component (separated for better organization)
-function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void }) {
+function MobileSheet({ mobileMenuOpen, setMobileMenuOpen, handleSignOut, mobileSignOutDialogOpen, setMobileSignOutDialogOpen }: { mobileMenuOpen: boolean; setMobileMenuOpen: (open: boolean) => void; handleSignOut: () => Promise<void>; mobileSignOutDialogOpen: boolean; setMobileSignOutDialogOpen: (open: boolean) => void }) {
   const { data: session, status } = useSession();
   const pathname = usePathname();
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -329,7 +330,7 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                   <Settings size={16} className="transition-colors duration-200 text-slate-600 group-hover:text-primary" />
                   <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Settings</span>
                 </Link>
-                <AlertDialog>
+                <AlertDialog open={mobileSignOutDialogOpen} onOpenChange={setMobileSignOutDialogOpen}>
                   <AlertDialogTrigger asChild>
                     <button
                       onClick={(e) => {
@@ -341,51 +342,54 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
                       <span className="transition-colors duration-200 font-medium text-slate-900" style={{ color: '#0f172a' }}>Sign Out</span>
                     </button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Sign Out</AlertDialogTitle>
                       <AlertDialogDescription>
                         Are you sure you want to sign out? You will need to sign in again to access your account.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                    <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-4">
                       <AlertDialogCancel onClick={(e) => e.stopPropagation()}>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={async (e) => {
+                      <button
+                        type="button"
+                        onPointerDown={async (e) => {
+                          e.preventDefault();
                           e.stopPropagation();
                           setMobileMenuOpen(false);
+                          setMobileSignOutDialogOpen(false);
+                          handleSignOut().catch((error) => {
+                            console.error("SignOut error:", error);
+                          });
+                        }}
+                        onMouseDown={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setMobileMenuOpen(false);
+                          setMobileSignOutDialogOpen(false);
+                          handleSignOut().catch((error) => {
+                            console.error("SignOut error:", error);
+                          });
+                        }}
+                        onClick={async (e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setMobileMenuOpen(false);
+                          setMobileSignOutDialogOpen(false);
                           try {
-                            // Complete sign out - clear all storage and cookies
-                            await completeSignOut();
-                            
-                            // Sign out without redirect first to clear session
-                            await signOut({ 
-                              redirect: false 
-                            });
-                            
-                            // Clear all caches and force hard redirect
-                            if (typeof window !== 'undefined') {
-                              // Small delay to ensure cookies are cleared
-                              setTimeout(() => {
-                                window.location.href = "/auth/signin";
-                              }, 100);
-                            }
+                            await handleSignOut();
                           } catch (error) {
-                            console.error("Sign out error:", error);
-                            // Force redirect even on error
-                            if (typeof window !== 'undefined') {
-                              await completeSignOut();
-                              window.location.href = "/auth/signin";
-                            }
+                            console.error("SignOut error:", error);
                           }
                         }}
-                        className="bg-red-600 hover:bg-red-700 text-white"
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
+                        style={{ pointerEvents: 'auto', zIndex: 1000 }}
                       >
                         Sign Out
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
+                      </button>
+                    </div>
                   </AlertDialogContent>
-                  </AlertDialog>
+                </AlertDialog>
                 </div>
               )}
             </div>
@@ -398,6 +402,49 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen }: { mobileMenuOpen: bo
 
 export function Sidebar() {
   const { data: session, status } = useSession();
+  const [signOutDialogOpen, setSignOutDialogOpen] = useState(false);
+  const [mobileSignOutDialogOpen, setMobileSignOutDialogOpen] = useState(false);
+  const [collapsedSignOutDialogOpen, setCollapsedSignOutDialogOpen] = useState(false);
+  
+  // SignOut handler
+  const handleSignOut = async () => {
+    try {
+      // Call server action to clear server-side cookies
+      await signOutAction();
+      
+      // Clear client-side storage and cookies
+      await completeSignOut();
+      
+      // Also call client-side signOut for NextAuth
+      try {
+        await signOut({ 
+          redirect: false,
+          callbackUrl: "/auth/signin"
+        });
+      } catch (signOutError) {
+        console.error("SignOut error:", signOutError);
+      }
+      
+      // Final cleanup
+      await completeSignOut();
+      
+      // Force hard redirect to signin page
+      if (typeof window !== 'undefined') {
+        window.localStorage?.clear();
+        window.sessionStorage?.clear();
+        window.location.href = `/auth/signin?t=${Date.now()}`;
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Force redirect even on error
+      if (typeof window !== 'undefined') {
+        await completeSignOut();
+        window.localStorage?.clear();
+        window.sessionStorage?.clear();
+        window.location.href = `/auth/signin?t=${Date.now()}`;
+      }
+    }
+  };
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -772,7 +819,7 @@ export function Sidebar() {
                     <Settings size={16} className="transition-colors duration-200 text-muted-foreground group-hover:text-primary" />
                     <span className="transition-colors duration-200">Settings</span>
                   </Link>
-                  <AlertDialog>
+                  <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
                     <AlertDialogTrigger asChild>
                       <button
                         className="mt-2 sidebar-hover relative flex items-center space-x-2 text-foreground hover:bg-accent hover:text-accent-foreground w-full text-sm p-3.5 rounded-xl transition-all duration-200 group"
@@ -781,48 +828,49 @@ export function Sidebar() {
                         <span className="transition-colors duration-200">Sign Out</span>
                       </button>
                     </AlertDialogTrigger>
-                    <AlertDialogContent>
+                    <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Sign Out</AlertDialogTitle>
                         <AlertDialogDescription>
                           Are you sure you want to sign out? You will need to sign in again to access your account.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
-                      <AlertDialogFooter>
+                      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-4">
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={async () => {
+                        <button
+                          type="button"
+                          onPointerDown={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSignOutDialogOpen(false);
+                            handleSignOut().catch((error) => {
+                              console.error("SignOut error:", error);
+                            });
+                          }}
+                          onMouseDown={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSignOutDialogOpen(false);
+                            handleSignOut().catch((error) => {
+                              console.error("SignOut error:", error);
+                            });
+                          }}
+                          onClick={async (e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setSignOutDialogOpen(false);
                             try {
-                              // Complete sign out - clear all storage and cookies
-                              await completeSignOut();
-                              
-                              // Sign out without redirect first to clear session
-                              await signOut({ 
-                                redirect: false,
-                                callbackUrl: "/auth/signin"
-                              });
-                              
-                              // Clear all caches and force hard redirect
-                              if (typeof window !== 'undefined') {
-                                // Small delay to ensure cookies are cleared
-                                setTimeout(() => {
-                                  window.location.href = "/auth/signin";
-                                }, 100);
-                              }
+                              await handleSignOut();
                             } catch (error) {
-                              console.error("Sign out error:", error);
-                              // Force redirect even on error
-                              if (typeof window !== 'undefined') {
-                                await completeSignOut();
-                                window.location.href = "/auth/signin";
-                              }
+                              console.error("SignOut error:", error);
                             }
                           }}
-                          className="bg-red-600 hover:bg-red-700 text-white"
+                          className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
+                          style={{ pointerEvents: 'auto', zIndex: 1000 }}
                         >
                           Sign Out
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
+                        </button>
+                      </div>
                     </AlertDialogContent>
                   </AlertDialog>
                 </div>
@@ -842,7 +890,7 @@ export function Sidebar() {
                   </AvatarFallback>
                 </Avatar>
               </Link>
-              <AlertDialog>
+              <AlertDialog open={collapsedSignOutDialogOpen} onOpenChange={setCollapsedSignOutDialogOpen}>
                 <AlertDialogTrigger asChild>
                   <button
                     className="p-2 rounded-lg hover:bg-accent transition-colors"
@@ -851,51 +899,54 @@ export function Sidebar() {
                     <LogOut size={16} className="text-muted-foreground hover:text-destructive" />
                   </button>
                 </AlertDialogTrigger>
-                <AlertDialogContent>
+                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                   <AlertDialogHeader>
                     <AlertDialogTitle>Sign Out</AlertDialogTitle>
                     <AlertDialogDescription>
                       Are you sure you want to sign out? You will need to sign in again to access your account.
                     </AlertDialogDescription>
                   </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={async () => {
-                          try {
-                            // Complete sign out - clear all storage and cookies
-                            await completeSignOut();
-                            
-                            // Sign out without redirect first to clear session
-                            await signOut({ 
-                              redirect: false 
-                            });
-                            
-                            // Clear all caches and force hard redirect
-                            if (typeof window !== 'undefined') {
-                              // Small delay to ensure cookies are cleared
-                              setTimeout(() => {
-                                window.location.href = "/auth/signin";
-                              }, 100);
-                            }
-                          } catch (error) {
-                            console.error("Sign out error:", error);
-                            // Force redirect even on error
-                            if (typeof window !== 'undefined') {
-                              await completeSignOut();
-                              window.location.href = "/auth/signin";
-                            }
-                          }
-                        }}
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                      >
-                        Sign Out
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
+                  <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end mt-4">
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <button
+                      type="button"
+                      onPointerDown={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCollapsedSignOutDialogOpen(false);
+                        handleSignOut().catch((error) => {
+                          console.error("SignOut error:", error);
+                        });
+                      }}
+                      onMouseDown={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCollapsedSignOutDialogOpen(false);
+                        handleSignOut().catch((error) => {
+                          console.error("SignOut error:", error);
+                        });
+                      }}
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setCollapsedSignOutDialogOpen(false);
+                        try {
+                          await handleSignOut();
+                        } catch (error) {
+                          console.error("SignOut error:", error);
+                        }
+                      }}
+                      className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium cursor-pointer"
+                      style={{ pointerEvents: 'auto', zIndex: 1000 }}
+                    >
+                      Sign Out
+                    </button>
+                  </div>
                 </AlertDialogContent>
               </AlertDialog>
             </div>
           )}
+          
         </div>
       </aside>
 
@@ -906,6 +957,47 @@ export function Sidebar() {
 // Mobile Menu Button Component (exported for use in layout)
 export function MobileMenuButton() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileSignOutDialogOpen, setMobileSignOutDialogOpen] = useState(false);
+  
+  // SignOut handler for mobile menu
+  const handleSignOut = async () => {
+    try {
+      // Call server action to clear server-side cookies
+      await signOutAction();
+      
+      // Clear client-side storage and cookies
+      await completeSignOut();
+      
+      // Also call client-side signOut for NextAuth
+      try {
+        await signOut({ 
+          redirect: false,
+          callbackUrl: "/auth/signin"
+        });
+      } catch (signOutError) {
+        console.error("SignOut error:", signOutError);
+      }
+      
+      // Final cleanup
+      await completeSignOut();
+      
+      // Force hard redirect to signin page
+      if (typeof window !== 'undefined') {
+        window.localStorage?.clear();
+        window.sessionStorage?.clear();
+        window.location.href = `/auth/signin?t=${Date.now()}`;
+      }
+    } catch (error) {
+      console.error("Sign out error:", error);
+      // Force redirect even on error
+      if (typeof window !== 'undefined') {
+        await completeSignOut();
+        window.localStorage?.clear();
+        window.sessionStorage?.clear();
+        window.location.href = `/auth/signin?t=${Date.now()}`;
+      }
+    }
+  };
 
   return (
     <>
@@ -916,7 +1008,13 @@ export function MobileMenuButton() {
       >
         <Menu className="h-6 w-6" />
       </button>
-      <MobileSheet mobileMenuOpen={mobileMenuOpen} setMobileMenuOpen={setMobileMenuOpen} />
+      <MobileSheet 
+        mobileMenuOpen={mobileMenuOpen} 
+        setMobileMenuOpen={setMobileMenuOpen} 
+        handleSignOut={handleSignOut} 
+        mobileSignOutDialogOpen={mobileSignOutDialogOpen} 
+        setMobileSignOutDialogOpen={setMobileSignOutDialogOpen} 
+      />
     </>
   );
 }

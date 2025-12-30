@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { db } from "@/lib/db";
+import { dbUnscoped } from "@/lib/db";
 import { getTenantId } from "@/lib/tenant";
 import { hasPermission } from "@/lib/permissions";
 import { ExpenseStatus } from "@prisma/client";
@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
     // Pending expenses count (only if user has approve permission)
     if (hasPermission(session.user, "expenses.approve", session.user.permissions)) {
       const getPendingCount = unstable_cache(
-        async () => {
-          return db.expense.count({
+        async (tenantIdParam: string) => {
+          return dbUnscoped.expense.count({
             where: {
-              yachtId: tenantId,
+              yachtId: tenantIdParam,
               status: ExpenseStatus.SUBMITTED,
               deletedAt: null,
             },
@@ -45,16 +45,16 @@ export async function GET(request: NextRequest) {
         [`${cacheKey}-pending`],
         { revalidate: 30, tags: [`expenses-${tenantId}`] }
       );
-      counts.pending = await getPendingCount();
+      counts.pending = await getPendingCount(tenantId);
     }
 
     // Reimbursable expenses count (only if user has view permission)
     if (hasPermission(session.user, "expenses.view", session.user.permissions)) {
       const getReimbursableCount = unstable_cache(
-        async () => {
-          return db.expense.count({
+        async (tenantIdParam: string) => {
+          return dbUnscoped.expense.count({
             where: {
-              yachtId: tenantId,
+              yachtId: tenantIdParam,
               isReimbursable: true,
               isReimbursed: false,
               deletedAt: null,
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
         [`${cacheKey}-reimbursable`],
         { revalidate: 30, tags: [`expenses-${tenantId}`] }
       );
-      counts.reimbursable = await getReimbursableCount();
+      counts.reimbursable = await getReimbursableCount(tenantId);
     }
 
     return NextResponse.json(counts, {

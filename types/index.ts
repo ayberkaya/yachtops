@@ -1,4 +1,5 @@
 import { UserRole, TripStatus, TaskStatus, ExpenseStatus, PaymentMethod, PaidBy } from "@prisma/client";
 
-export type { UserRole, TripStatus, TaskStatus, ExpenseStatus, PaymentMethod, PaidBy };
+// Export as value to allow runtime usage (enum values)
+export { UserRole, TripStatus, TaskStatus, ExpenseStatus, PaymentMethod, PaidBy };
 
