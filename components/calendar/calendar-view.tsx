@@ -74,11 +74,11 @@ interface CalendarViewProps {
 }
 
 const categoryLabels: Record<CalendarEventCategory, string> = {
-  VOYAGE: "Seyir",
+  VOYAGE: "Voyage",
   MARINA: "Marina",
-  OVERSEAS: "Yurtdışı",
-  FUEL_SUPPLY: "Yakıt İkmali",
-  OTHER: "Diğer",
+  OVERSEAS: "Overseas",
+  FUEL_SUPPLY: "Fuel Supply",
+  OTHER: "Other",
 };
 
 const categoryColors: Record<CalendarEventCategory, string> = {

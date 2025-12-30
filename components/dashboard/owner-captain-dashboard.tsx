@@ -4,6 +4,7 @@ import { QuickActions } from "./quick-actions";
 import { WidgetCustomizerButton } from "./widgets/widget-customizer-button";
 import { WidgetRenderer } from "./widgets/widget-renderer";
 import { getUserWidgetSettings, isWidgetEnabled } from "@/lib/dashboard/widget-settings";
+import { getUserFriendlyError } from "@/lib/api-error-handler";
 import {
   getPendingExpenses,
   getRecentExpenses,
@@ -143,12 +144,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
             <CardHeader>
               <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
               <CardDescription>
-                We encountered an error while loading your dashboard data. Please refresh the page to try again.
-                {error instanceof Error && (
-                  <span className="block mt-2 text-xs text-muted-foreground">
-                    Error: {error.message}
-                  </span>
-                )}
+                Dashboard verileri yüklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.
               </CardDescription>
             </CardHeader>
           </Card>
@@ -214,11 +210,20 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
         upcomingMaintenance={upcomingMaintenance}
         expiringPermissions={expiringPermissions}
         lowStockItems={lowStockItems}
-        calendarEvents={calendarEvents?.map((event: any) => ({
+        calendarEvents={(calendarEvents || []).map((event: {
+          id: string;
+          title: string;
+          description: string | null;
+          category: string;
+          startDate: Date | string;
+          endDate: Date | string;
+          color: string | null;
+          trip: { id: string; name: string; code: string | null } | null;
+        }) => ({
           ...event,
-          startDate: event.startDate.toISOString(),
-          endDate: event.endDate.toISOString(),
-        })) || []}
+          startDate: event.startDate instanceof Date ? event.startDate.toISOString() : (typeof event.startDate === 'string' ? event.startDate : new Date(event.startDate).toISOString()),
+          endDate: event.endDate instanceof Date ? event.endDate.toISOString() : (typeof event.endDate === 'string' ? event.endDate : new Date(event.endDate).toISOString()),
+        }))}
         showCustomizerButton={false}
       />
     </div>
@@ -242,12 +247,7 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
           <CardHeader>
             <CardTitle className="text-destructive">Error Loading Dashboard</CardTitle>
             <CardDescription>
-              We encountered an error while loading your dashboard. Please refresh the page to try again.
-              {error instanceof Error && (
-                <span className="block mt-2 text-xs text-muted-foreground">
-                  Error: {error.message}
-                </span>
-              )}
+              Dashboard yüklenirken bir hata oluştu. Lütfen sayfayı yenileyip tekrar deneyin.
             </CardDescription>
           </CardHeader>
         </Card>

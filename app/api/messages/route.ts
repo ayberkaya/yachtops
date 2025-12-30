@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { z } from "zod";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
+import { createErrorResponse } from "@/lib/api-error-handler";
 
 const messageSchema = z.object({
   channelId: z.string().min(1),
@@ -384,27 +385,8 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(message, { status: 201 });
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Invalid input", details: error.issues },
-        { status: 400 }
-      );
-    }
-
     console.error("Error creating message:", error);
-    console.error("Error details:", error instanceof Error ? error.message : String(error));
-    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
-    
-    // Return more detailed error message
-    const errorMessage = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { 
-        error: "Internal server error", 
-        details: errorMessage,
-        stack: process.env.NODE_ENV === "development" && error instanceof Error ? error.stack : undefined
-      },
-      { status: 500 }
-    );
+    return createErrorResponse(error, "Mesaj gönderilirken bir hata oluştu", 500);
   }
 }
 

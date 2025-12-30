@@ -25,9 +25,12 @@ export function createErrorResponse(
   if (error instanceof z.ZodError) {
     return NextResponse.json(
       {
-        error: "Invalid input",
-        message: "The provided data is invalid",
-        details: error.issues,
+        error: "Girdiğiniz bilgiler geçersiz. Lütfen kontrol edip tekrar deneyin.",
+        // Only include technical details in development mode
+        ...(process.env.NODE_ENV === "development" && {
+          message: "The provided data is invalid",
+          details: error.issues,
+        }),
         timestamp: new Date().toISOString(),
       },
       {
@@ -39,15 +42,17 @@ export function createErrorResponse(
 
   // Handle known Error instances
   if (error instanceof Error) {
-    const isDevelopment = process.env.NODE_ENV === "development";
+    // Always use user-friendly error messages
+    const userFriendlyMessage = getUserFriendlyError(error);
     
     return NextResponse.json(
       {
-        error: status >= 500 ? "Internal server error" : defaultMessage,
-        message: isDevelopment ? error.message : undefined,
-        ...(isDevelopment && error.stack
-          ? { details: { stack: error.stack } }
-          : {}),
+        error: userFriendlyMessage,
+        // Only include technical details in development mode
+        ...(process.env.NODE_ENV === "development" && {
+          message: error.message,
+          ...(error.stack && { details: { stack: error.stack } }),
+        }),
         timestamp: new Date().toISOString(),
       },
       {
@@ -60,8 +65,7 @@ export function createErrorResponse(
   // Handle unknown error types
   return NextResponse.json(
     {
-      error: "Internal server error",
-      message: defaultMessage,
+      error: "Bir hata oluştu. Lütfen tekrar deneyin. Sorun devam ederse destek ekibimizle iletişime geçin.",
       timestamp: new Date().toISOString(),
     },
     {
@@ -101,8 +105,7 @@ export async function safeJsonParse<T = unknown>(
       success: false,
       error: NextResponse.json(
         {
-          error: "Invalid request body",
-          message: "The request body must be valid JSON",
+          error: "Gönderilen veri geçersiz. Lütfen tekrar deneyin.",
           timestamp: new Date().toISOString(),
         },
         { status: 400 }
@@ -113,37 +116,77 @@ export async function safeJsonParse<T = unknown>(
 
 /**
  * Get user-friendly error message for client-side display
+ * Always returns user-friendly messages, never technical details
  */
 export function getUserFriendlyError(error: unknown): string {
   if (error instanceof z.ZodError) {
-    return "Please check your input and try again.";
+    return "Lütfen girdiğiniz bilgileri kontrol edip tekrar deneyin.";
   }
 
   if (error instanceof Error) {
-    // Don't expose technical error messages in production
-    if (process.env.NODE_ENV === "production") {
-      // Map common error messages to user-friendly ones
-      if (error.message.includes("network") || error.message.includes("fetch")) {
-        return "Unable to connect. Please check your internet connection and try again.";
-      }
-      if (error.message.includes("timeout")) {
-        return "The request took too long. Please try again.";
-      }
-      if (error.message.includes("unauthorized") || error.message.includes("401")) {
-        return "Your session has expired. Please sign in again.";
-      }
-      if (error.message.includes("forbidden") || error.message.includes("403")) {
-        return "You don't have permission to perform this action.";
-      }
-      if (error.message.includes("not found") || error.message.includes("404")) {
-        return "The requested item could not be found.";
-      }
-      return "Something went wrong. Please try again, or contact support if the issue persists.";
+    const errorMsg = error.message.toLowerCase();
+    
+    // Database errors
+    if (errorMsg.includes("prisma") || errorMsg.includes("database") || errorMsg.includes("db")) {
+      return "Veritabanı hatası oluştu. Lütfen tekrar deneyin.";
     }
-    return error.message;
+    
+    // Network errors
+    if (errorMsg.includes("network") || errorMsg.includes("fetch") || errorMsg.includes("econnrefused")) {
+      return "Bağlantı hatası. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+    }
+    
+    // Timeout errors
+    if (errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
+      return "İstek zaman aşımına uğradı. Lütfen tekrar deneyin.";
+    }
+    
+    // Authentication errors
+    if (errorMsg.includes("unauthorized") || errorMsg.includes("401") || errorMsg.includes("authentication")) {
+      return "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.";
+    }
+    
+    // Permission errors
+    if (errorMsg.includes("forbidden") || errorMsg.includes("403") || errorMsg.includes("permission")) {
+      return "Bu işlemi gerçekleştirmek için yetkiniz bulunmuyor.";
+    }
+    
+    // Not found errors
+    if (errorMsg.includes("not found") || errorMsg.includes("404")) {
+      return "Aradığınız öğe bulunamadı.";
+    }
+    
+    // Validation errors
+    if (errorMsg.includes("validation") || errorMsg.includes("invalid")) {
+      return "Girdiğiniz bilgiler geçersiz. Lütfen kontrol edip tekrar deneyin.";
+    }
+    
+    // Unique constraint errors
+    if (errorMsg.includes("unique") || errorMsg.includes("duplicate") || errorMsg.includes("already exists")) {
+      return "Bu bilgi zaten kullanılıyor. Lütfen farklı bir değer deneyin.";
+    }
+    
+    // Foreign key errors
+    if (errorMsg.includes("foreign key") || errorMsg.includes("constraint")) {
+      return "Bu işlem başka bir kayıtla ilişkili olduğu için gerçekleştirilemiyor.";
+    }
+    
+    // JSON parsing errors
+    if (errorMsg.includes("json") || errorMsg.includes("parse")) {
+      return "Gönderilen veri geçersiz. Lütfen tekrar deneyin.";
+    }
+    
+    // File upload errors
+    if (errorMsg.includes("file") || errorMsg.includes("upload") || errorMsg.includes("size")) {
+      return "Dosya yükleme hatası. Dosya boyutunu ve formatını kontrol edip tekrar deneyin.";
+    }
+    
+    // Default - never show technical error messages
+    return "Bir hata oluştu. Lütfen tekrar deneyin. Sorun devam ederse destek ekibimizle iletişime geçin.";
   }
 
-  return "An unexpected error occurred. Please try again, or contact support if the issue persists.";
+  // Unknown error types
+  return "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin. Sorun devam ederse destek ekibimizle iletişime geçin.";
 }
 
 /**

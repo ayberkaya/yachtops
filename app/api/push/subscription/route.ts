@@ -128,10 +128,8 @@ export async function POST(request: NextRequest) {
       }
       
       console.error("Error saving push subscription:", error);
-      return NextResponse.json(
-        { error: "Failed to save subscription", details: error.message },
-        { status: 500 }
-      );
+      const { createErrorResponse } = await import("@/lib/api-error-handler");
+      return createErrorResponse(error, "Bildirim ayarları kaydedilirken bir hata oluştu", 500);
     }
 
     return NextResponse.json({ success: true });

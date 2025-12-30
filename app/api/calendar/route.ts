@@ -78,16 +78,8 @@ export async function GET(request: NextRequest) {
     );
   } catch (error) {
     console.error("Error fetching calendar events:", error);
-    return NextResponse.json(
-      {
-        error: "Internal server error",
-        message: error instanceof Error ? error.message : "Failed to fetch calendar events",
-      },
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    const { createErrorResponse } = await import("@/lib/api-error-handler");
+    return createErrorResponse(error, "Takvim etkinlikleri yüklenirken bir hata oluştu", 500);
   }
 }
 

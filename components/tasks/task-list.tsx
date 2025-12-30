@@ -157,7 +157,7 @@ export function TaskList({
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
   const crewMembers = users.filter((user) => {
-    const role = (user as any).role ? String((user as any).role).toUpperCase().trim() : "";
+    const role = "role" in user && user.role ? String(user.role).toUpperCase().trim() : "";
     return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
   });
 
@@ -245,11 +245,14 @@ export function TaskList({
         router.refresh();
       } else {
         const errorData = await response.json();
-        alert(errorData.error || "Unable to delete task. Please try again.");
+        const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+        const errorMessage = errorData.error ? getUserFriendlyError(new Error(errorData.error)) : "Görev silinirken bir hata oluştu. Lütfen tekrar deneyin.";
+        alert(errorMessage);
       }
     } catch (error) {
       console.error("Error deleting task:", error);
-      alert("An error occurred while deleting the task");
+      const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+      alert(getUserFriendlyError(error));
     }
   };
 
@@ -1436,13 +1439,33 @@ export function TaskList({
             task={editingTask ? {
               ...editingTask,
               dueDate: editingTask.dueDate || null,
-            } as any : undefined}
+              type: editingTask.type as "GENERAL" | "MAINTENANCE" | "REPAIR" | "INSPECTION",
+            } : undefined}
             users={users}
             trips={trips}
             onSuccess={(createdTask) => {
               setIsDialogOpen(false);
               if (createdTask && !editingTask) {
                 // New task created - add to state
+                const assignee = ("assignee" in createdTask && createdTask.assignee && typeof createdTask.assignee === "object" && createdTask.assignee !== null && "id" in createdTask.assignee) ? {
+                  id: String(createdTask.assignee.id),
+                  name: ("name" in createdTask.assignee && (typeof createdTask.assignee.name === "string" || createdTask.assignee.name === null)) ? createdTask.assignee.name : null,
+                  email: ("email" in createdTask.assignee ? String(createdTask.assignee.email) : ""),
+                } : null;
+                const completedBy = ("completedBy" in createdTask && createdTask.completedBy && typeof createdTask.completedBy === "object" && createdTask.completedBy !== null && "id" in createdTask.completedBy) ? {
+                  id: String(createdTask.completedBy.id),
+                  name: ("name" in createdTask.completedBy && (typeof createdTask.completedBy.name === "string" || createdTask.completedBy.name === null)) ? createdTask.completedBy.name : null,
+                  email: ("email" in createdTask.completedBy ? String(createdTask.completedBy.email) : ""),
+                } : null;
+                const createdBy = ("createdBy" in createdTask && createdTask.createdBy && typeof createdTask.createdBy === "object" && createdTask.createdBy !== null && "id" in createdTask.createdBy) ? {
+                  id: String(createdTask.createdBy.id),
+                  name: ("name" in createdTask.createdBy && (typeof createdTask.createdBy.name === "string" || createdTask.createdBy.name === null)) ? createdTask.createdBy.name : null,
+                  email: ("email" in createdTask.createdBy ? String(createdTask.createdBy.email) : ""),
+                } : null;
+                const trip = ("trip" in createdTask && createdTask.trip && typeof createdTask.trip === "object" && createdTask.trip !== null && "id" in createdTask.trip) ? {
+                  id: String(createdTask.trip.id),
+                  name: ("name" in createdTask.trip ? String(createdTask.trip.name) : ""),
+                } : null;
                 const taskToAdd: Task = {
                   id: createdTask.id,
                   title: createdTask.title,
@@ -1454,16 +1477,35 @@ export function TaskList({
                   currency: createdTask.currency,
                   serviceProvider: createdTask.serviceProvider,
                   dueDate: createdTask.dueDate ? (createdTask.dueDate instanceof Date ? createdTask.dueDate.toISOString() : String(createdTask.dueDate)) : null,
-                  assignee: (createdTask as any).assignee || null,
+                  assignee,
                   assigneeRole: createdTask.assigneeRole,
-                  completedBy: (createdTask as any).completedBy || null,
+                  completedBy,
                   completedAt: createdTask.completedAt ? (createdTask.completedAt instanceof Date ? createdTask.completedAt.toISOString() : String(createdTask.completedAt)) : null,
-                  createdBy: (createdTask as any).createdBy || null,
-                  trip: (createdTask as any).trip || null,
+                  createdBy,
+                  trip,
                 };
                 setTasks((prev) => [taskToAdd, ...prev]);
               } else if (createdTask && editingTask) {
                 // Task updated - update in state
+                const assignee = ("assignee" in createdTask && createdTask.assignee && typeof createdTask.assignee === "object" && createdTask.assignee !== null && "id" in createdTask.assignee) ? {
+                  id: String(createdTask.assignee.id),
+                  name: ("name" in createdTask.assignee && (typeof createdTask.assignee.name === "string" || createdTask.assignee.name === null)) ? createdTask.assignee.name : null,
+                  email: ("email" in createdTask.assignee ? String(createdTask.assignee.email) : ""),
+                } : null;
+                const completedBy = ("completedBy" in createdTask && createdTask.completedBy && typeof createdTask.completedBy === "object" && createdTask.completedBy !== null && "id" in createdTask.completedBy) ? {
+                  id: String(createdTask.completedBy.id),
+                  name: ("name" in createdTask.completedBy && (typeof createdTask.completedBy.name === "string" || createdTask.completedBy.name === null)) ? createdTask.completedBy.name : null,
+                  email: ("email" in createdTask.completedBy ? String(createdTask.completedBy.email) : ""),
+                } : null;
+                const createdBy = ("createdBy" in createdTask && createdTask.createdBy && typeof createdTask.createdBy === "object" && createdTask.createdBy !== null && "id" in createdTask.createdBy) ? {
+                  id: String(createdTask.createdBy.id),
+                  name: ("name" in createdTask.createdBy && (typeof createdTask.createdBy.name === "string" || createdTask.createdBy.name === null)) ? createdTask.createdBy.name : null,
+                  email: ("email" in createdTask.createdBy ? String(createdTask.createdBy.email) : ""),
+                } : null;
+                const trip = ("trip" in createdTask && createdTask.trip && typeof createdTask.trip === "object" && createdTask.trip !== null && "id" in createdTask.trip) ? {
+                  id: String(createdTask.trip.id),
+                  name: ("name" in createdTask.trip ? String(createdTask.trip.name) : ""),
+                } : null;
                 const taskToUpdate: Task = {
                   id: createdTask.id,
                   title: createdTask.title,
@@ -1475,12 +1517,12 @@ export function TaskList({
                   currency: createdTask.currency,
                   serviceProvider: createdTask.serviceProvider,
                   dueDate: createdTask.dueDate ? (createdTask.dueDate instanceof Date ? createdTask.dueDate.toISOString() : String(createdTask.dueDate)) : null,
-                  assignee: (createdTask as any).assignee || null,
+                  assignee,
                   assigneeRole: createdTask.assigneeRole,
-                  completedBy: (createdTask as any).completedBy || null,
+                  completedBy,
                   completedAt: createdTask.completedAt ? (createdTask.completedAt instanceof Date ? createdTask.completedAt.toISOString() : String(createdTask.completedAt)) : null,
-                  createdBy: (createdTask as any).createdBy || null,
-                  trip: (createdTask as any).trip || null,
+                  createdBy,
+                  trip,
                 };
                 setTasks((prev) =>
                   prev.map((t) => (t.id === taskToUpdate.id ? taskToUpdate : t))

@@ -72,9 +72,11 @@ export function OnboardingSuccessModal({
 
       if (!res.ok) {
         const error = await res.json();
+        const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+        const errorMessage = error.error ? getUserFriendlyError(new Error(error.error)) : "Kullanıcı oturumu değiştirilemedi. Lütfen tekrar deneyin.";
         toast({
-          title: "Impersonation Failed",
-          description: error.error || "Failed to switch user session",
+          title: "Oturum Değiştirilemedi",
+          description: errorMessage,
           variant: "error",
         });
         return;
@@ -86,7 +88,7 @@ export function OnboardingSuccessModal({
         redirect: true,
         callbackUrl: "/dashboard",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Impersonation error:", error);
       toast({
         title: "Error",

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { UserRole } from "@prisma/client";
+import { removeUserFromSupabaseAuth } from "@/lib/supabase-auth-sync";
 
 export async function PATCH(
   req: NextRequest,
@@ -93,16 +94,33 @@ export async function DELETE(
       });
     }
 
+    // Also remove from Supabase Auth
+    try {
+      await removeUserFromSupabaseAuth(id);
+    } catch (error) {
+      // Log error but don't fail the request if Supabase deletion fails
+      // The user is already deleted from the database
+      console.error("Failed to remove user from Supabase Auth:", error);
+    }
+
     return NextResponse.json({ success: true, message: "Owner and associated yacht deleted successfully" });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Error deleting owner:", error);
     
     // If yacht deletion fails, try to delete just the owner
-    if (owner.yachtId && error.code === "P2003") {
+    if (owner.yachtId && error && typeof error === "object" && "code" in error && error.code === "P2003") {
       try {
         await db.user.delete({
           where: { id },
         });
+        
+        // Also remove from Supabase Auth
+        try {
+          await removeUserFromSupabaseAuth(id);
+        } catch (authError) {
+          console.error("Failed to remove user from Supabase Auth:", authError);
+        }
+        
         return NextResponse.json({ success: true, message: "Owner deleted (yacht deletion failed)" });
       } catch (userDeleteError) {
         return NextResponse.json(

@@ -65,6 +65,21 @@ export async function sendInviteEmail(
   inviterRole: string,
   invitedRole: string
 ): Promise<void> {
+  // Check SMTP configuration early to provide a clear error message
+  const smtpHost = process.env.SMTP_HOST;
+  const smtpUser = process.env.SMTP_USER;
+  const smtpPass = process.env.SMTP_PASS;
+  
+  if (!smtpHost || !smtpUser || !smtpPass) {
+    const missing = [];
+    if (!smtpHost) missing.push("SMTP_HOST");
+    if (!smtpUser) missing.push("SMTP_USER");
+    if (!smtpPass) missing.push("SMTP_PASS");
+    throw new Error(
+      `SMTP configuration is missing. Please set the following environment variables: ${missing.join(", ")}`
+    );
+  }
+
   try {
     const transporter = getEmailTransporter();
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXTAUTH_URL || "http://localhost:3000";
@@ -225,9 +240,11 @@ Powered by HelmOps — Yacht Operations Management
     console.log(`✅ Invitation email sent successfully to ${to}`);
   } catch (error) {
     console.error("❌ Failed to send invitation email:", error);
-    throw new Error(
-      `Failed to send invitation email: ${error instanceof Error ? error.message : "Unknown error"}`
-    );
+    // Re-throw the original error without wrapping to avoid nested error messages
+    if (error instanceof Error) {
+      throw error;
+    }
+    throw new Error("Failed to send invitation email: Unknown error");
   }
 }
 

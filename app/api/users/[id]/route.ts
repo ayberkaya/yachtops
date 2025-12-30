@@ -7,6 +7,7 @@ import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
+import { removeUserFromSupabaseAuth } from "@/lib/supabase-auth-sync";
 
 const updateUserSchema = z.object({
   name: z.string().optional(),
@@ -94,7 +95,13 @@ export async function PATCH(
     const validated = updateUserSchema.parse(body);
     console.log("✅ Validated data:", JSON.stringify(validated, null, 2));
 
-    const updateData: any = {};
+    const updateData: {
+      name?: string;
+      phone?: string;
+      role?: UserRole;
+      permissions?: string | null;
+      customRoleId?: string | null;
+    } = {};
     if (validated.name !== undefined) updateData.name = validated.name;
     if (validated.phone !== undefined) updateData.phone = validated.phone;
     if (validated.role !== undefined) updateData.role = validated.role;
@@ -223,9 +230,19 @@ export async function DELETE(
       );
     }
 
+    // Delete from database first
     await db.user.delete({
       where: { id },
     });
+
+    // Also remove from Supabase Auth
+    try {
+      await removeUserFromSupabaseAuth(id);
+    } catch (error) {
+      // Log error but don't fail the request if Supabase deletion fails
+      // The user is already deleted from the database
+      console.error("Failed to remove user from Supabase Auth:", error);
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

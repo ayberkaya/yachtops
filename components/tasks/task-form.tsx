@@ -537,12 +537,15 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to delete task");
+        const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+        const errorMessage = errorData.error ? getUserFriendlyError(new Error(errorData.error)) : "Görev silinirken bir hata oluştu. Lütfen tekrar deneyin.";
+        throw new Error(errorMessage);
       }
 
       onDelete();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+      const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+      setError(getUserFriendlyError(err));
       setIsDeleting(false);
     }
   };

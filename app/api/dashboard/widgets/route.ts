@@ -22,6 +22,7 @@ const updateWidgetsSchema = z.object({
           "low_stock_alert",
           "monthly_report",
           "quick_stats",
+          "calendar_events",
         ];
         return typeof val === "string" && validWidgetTypes.includes(val as WidgetType);
       }),

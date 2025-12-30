@@ -82,8 +82,30 @@ export default async function UsersPage() {
           expiresAt: true,
         },
       });
-      // Convert Date objects to Date instances (they're already Date objects from Prisma)
-      pendingInvites = rawInvites;
+      
+      // Filter out invites where user already exists and mark them as accepted
+      // This fixes the issue where user was created but invitation wasn't marked as accepted
+      const validInvites = [];
+      for (const invite of rawInvites) {
+        const existingUser = await db.user.findFirst({
+          where: {
+            email: invite.email.toLowerCase().trim(),
+            yachtId: tenantId,
+          },
+        });
+        
+        if (existingUser) {
+          // User already exists - mark invitation as accepted to clean up
+          await db.yachtInvite.update({
+            where: { id: invite.id },
+            data: { status: InviteStatus.ACCEPTED },
+          });
+        } else {
+          validInvites.push(invite);
+        }
+      }
+      
+      pendingInvites = validInvites;
     } catch (error) {
       console.error("Error fetching pending invites:", error);
     }

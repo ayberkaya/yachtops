@@ -244,12 +244,13 @@ export async function inviteCrewMember(
         console.error("Failed to delete invite after email error:", deleteError);
       });
 
+      const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+      const errorMessage = getUserFriendlyError(emailError);
+
       return {
         success: false,
-        error: "Email sending failed",
-        message: emailError instanceof Error 
-          ? `Failed to send invitation email: ${emailError.message}` 
-          : "Failed to send invitation email. Please check your SMTP configuration.",
+        error: "E-posta gönderilemedi",
+        message: errorMessage,
       };
     }
 
@@ -262,10 +263,11 @@ export async function inviteCrewMember(
     };
   } catch (error) {
     console.error("Error inviting crew member:", error);
+    const { getUserFriendlyError } = await import("@/lib/api-error-handler");
     return {
       success: false,
-      error: "Internal server error",
-      message: error instanceof Error ? error.message : "Failed to send invitation",
+      error: "Bir hata oluştu",
+      message: getUserFriendlyError(error),
     };
   }
 }
