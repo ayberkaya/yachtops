@@ -32,9 +32,8 @@ const nextConfig: NextConfig = {
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
     minimumCacheTTL: 60,
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
+    // Keep SVGs out of the Next/Image pipeline to reduce XSS surface area.
+    dangerouslyAllowSVG: false,
   },
 
   // Write build output to a configurable path (default .next). Set NEXT_DIST_DIR=/tmp/helmops-next locally to avoid iCloud path issues.
@@ -69,19 +68,7 @@ const nextConfig: NextConfig = {
         },
       };
       
-      config.plugins.push(
-        new webpack.ProgressPlugin({
-          activeModules: true,
-          modules: true,
-          modulesCount: 1,
-          handler(percent: number, message: string, ...details: string[]) {
-            if (percent >= 0.6) {
-              const detail = details.filter(Boolean).join(" ");
-              console.log(`[build] ${Math.round(percent * 100)}% ${message} ${detail}`);
-            }
-          },
-        })
-      );
+      // Keep production builds quiet; CI already surfaces failures.
     }
     return config;
   },

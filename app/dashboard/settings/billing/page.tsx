@@ -29,7 +29,6 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
   try {
     // Use Prisma with raw SQL to fetch subscription fields directly from database
     // This bypasses both RLS and Supabase API layer entirely via direct DB connection
-    console.log("✅ Using Prisma raw SQL to fetch subscription data for user:", userId);
 
     // Fetch user subscription fields AND yacht plan_id
     const userData = await db.$queryRaw<Array<{
@@ -61,19 +60,10 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
     // Use yacht's plan_id if user's plan_id is null
     const effectivePlanId = userWithPlan.plan_id || userWithPlan.yacht_plan_id;
     
-    console.log("📊 User subscription data:", {
-      subscription_status: userWithPlan.subscription_status,
-      trial_ends_at: userWithPlan.trial_ends_at,
-      plan_id: userWithPlan.plan_id,
-      yacht_plan_id: userWithPlan.yacht_plan_id,
-      effective_plan_id: effectivePlanId,
-    });
-    
     let planDetails: PlanDetails = null;
 
     // Fetch plan details if plan_id exists (from user or yacht)
     if (effectivePlanId) {
-      console.log("🔍 Fetching plan details for plan_id:", effectivePlanId);
       const planData = await db.$queryRaw<Array<{
         id: string;
         name: string;
@@ -86,11 +76,8 @@ async function getSubscriptionData(userId: string): Promise<SubscriptionData> {
         LIMIT 1
       `;
 
-      console.log("📦 Plan data result:", planData);
-
       if (planData && planData.length > 0) {
         planDetails = planData[0];
-        console.log("✅ Plan details found:", planDetails);
       } else {
         console.warn(`⚠️ Plan ID exists (${effectivePlanId}) but plan details are missing.`);
       }
@@ -118,22 +105,10 @@ export default async function BillingPage() {
     redirect('/auth/signin');
   }
 
-  // Debug log to confirm authentication
-  console.log("Auth User ID:", session.user.id);
-
   const userId = session.user.id;
 
   // Fetch subscription data using admin client to bypass RLS
   const subscriptionData = await getSubscriptionData(userId);
-  
-  console.log("📋 Final subscription data for display:", {
-    hasData: !!subscriptionData,
-    subscription_status: subscriptionData?.subscription_status,
-    trial_ends_at: subscriptionData?.trial_ends_at,
-    plan_id: subscriptionData?.plan_id,
-    plan_name: subscriptionData?.plan?.name,
-    has_plan: !!subscriptionData?.plan,
-  });
 
   // Calculate days left if trial
   let daysLeft: number | null = null;
@@ -141,17 +116,7 @@ export default async function BillingPage() {
     const endDate = new Date(subscriptionData.trial_ends_at);
     const now = new Date();
     daysLeft = differenceInDays(endDate, now);
-    console.log("📅 Trial calculation:", {
-      trial_ends_at: subscriptionData.trial_ends_at,
-      endDate: endDate.toISOString(),
-      now: now.toISOString(),
-      daysLeft,
-    });
   } else {
-    console.log("⚠️ Trial data missing:", {
-      subscription_status: subscriptionData?.subscription_status,
-      trial_ends_at: subscriptionData?.trial_ends_at,
-    });
   }
 
   // Format renewal/trial end date

@@ -1,6 +1,6 @@
-import { db, dbUnscoped } from "@/lib/db";
+import { dbUnscoped } from "@/lib/db";
 import { unstable_cache } from "next/cache";
-import { ExpenseStatus, TaskStatus, TaskPriority } from "@prisma/client";
+import { ExpenseStatus, TaskPriority, TaskStatus, Prisma } from "@prisma/client";
 import { getCachedCashBalanceByCurrency, getCachedRecentExpenses } from "@/lib/server-cache";
 import { hasPermission } from "@/lib/permissions";
 import type { Session } from "next-auth";
@@ -368,51 +368,21 @@ export async function getBriefingStats(user: DashboardUser) {
 
   const tenantId = yachtId;
 
-  // Build base where clause for tasks
-  const baseStatusFilter = {
-    status: {
-      not: TaskStatus.DONE,
-    },
-  };
-
   // Permission logic: Only OWNER and CAPTAIN can see all tasks
   const canViewAllTasks = user.role === "OWNER" || user.role === "CAPTAIN";
-  
-  // Build the where clause for urgent tasks
-  const urgentWhere: any = {
-    ...baseStatusFilter,
-    priority: TaskPriority.URGENT,
+  const baseTaskWhere: Prisma.TaskWhereInput = {
+    status: { not: TaskStatus.DONE },
+    ...(tenantId ? { yachtId: tenantId } : {}),
+    ...(!canViewAllTasks
+      ? {
+          OR: [
+            { assigneeId: user.id },
+            { assigneeId: null },
+            { assigneeRole: user.role },
+          ],
+        }
+      : {}),
   };
-
-  // Build the where clause for pending (non-urgent) tasks
-  const pendingWhere: any = {
-    ...baseStatusFilter,
-    priority: {
-      not: TaskPriority.URGENT,
-    },
-  };
-
-  // Add permission filter if needed
-  if (!canViewAllTasks) {
-    urgentWhere.AND = [
-      {
-        OR: [
-          { assigneeId: user.id },
-          { assigneeId: null },
-          { assigneeRole: user.role },
-        ],
-      },
-    ];
-    pendingWhere.AND = [
-      {
-        OR: [
-          { assigneeId: user.id },
-          { assigneeId: null },
-          { assigneeRole: user.role },
-        ],
-      },
-    ];
-  }
 
   return unstable_cache(
     async () => {
@@ -426,80 +396,21 @@ export async function getBriefingStats(user: DashboardUser) {
         };
       }
 
-      // Build final where clauses with tenant scope (manual yachtId since we're using dbUnscoped)
-      const urgentWhereFinal = {
-        ...urgentWhere,
-        yachtId: tenantId,
-      };
-      const pendingWhereFinal = {
-        ...pendingWhere,
-        yachtId: tenantId,
-      };
-
-      // Debug logging removed for production
-
-      // Get all tasks to count unique task groups (execute sequentially to avoid connection pool exhaustion)
-      // (tasks with same title, description, etc. are grouped in UI)
-      const allUrgentTasks = await dbUnscoped.task.findMany({
-        where: urgentWhereFinal,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          dueDate: true,
-          tripId: true,
-          type: true,
-          priority: true,
-          status: true,
-          createdByUserId: true,
-          cost: true,
-          currency: true,
-          serviceProvider: true,
-        },
-      });
-      
-      const allPendingTasks = await dbUnscoped.task.findMany({
-        where: pendingWhereFinal,
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          dueDate: true,
-          tripId: true,
-          type: true,
-          priority: true,
-          status: true,
-          createdByUserId: true,
-          cost: true,
-          currency: true,
-          serviceProvider: true,
-        },
-      });
-
-      // Group tasks by their core properties (same as UI grouping logic)
-      const createGroupKey = (task: any) => JSON.stringify({
-        title: task.title,
-        description: task.description,
-        dueDate: task.dueDate,
-        tripId: task.tripId,
-        type: task.type,
-        priority: task.priority,
-        status: task.status,
-        createdById: task.createdByUserId,
-        cost: task.cost,
-        currency: task.currency,
-        serviceProvider: task.serviceProvider,
-      });
-
-      const urgentTaskGroups = new Set(allUrgentTasks.map(createGroupKey));
-      const pendingTaskGroups = new Set(allPendingTasks.map(createGroupKey));
-
-      // Execute queries sequentially to avoid connection pool exhaustion
-      // Urgent tasks count - use unique groups count (matches UI display)
-      const urgentTasksCount = urgentTaskGroups.size;
-
-      // Pending tasks count - use unique groups count (matches UI display)
-      const pendingTasksCount = pendingTaskGroups.size;
+      // Dashboard header should be O(1): use DB-side counts (not grouping) for speed.
+      const [urgentTasksCount, pendingTasksCount] = await Promise.all([
+        dbUnscoped.task.count({
+          where: {
+            ...baseTaskWhere,
+            priority: TaskPriority.URGENT,
+          },
+        }),
+        dbUnscoped.task.count({
+          where: {
+            ...baseTaskWhere,
+            priority: { not: TaskPriority.URGENT },
+          },
+        }),
+      ]);
 
       // Expiring documents count (marina permissions)
       const expiringDocsCount = hasPermission(user, "documents.marina.view", user.permissions) && tenantId
@@ -526,54 +437,41 @@ export async function getBriefingStats(user: DashboardUser) {
           })
         : 0;
 
-      // Low stock count - fetch all and filter client-side (Prisma doesn't support comparing two columns directly)
-      const lowStockCount = hasPermission(user, "inventory.alcohol.view", user.permissions) && tenantId
-        ? (await dbUnscoped.alcoholStock.findMany({
-            where: {
-              yachtId: tenantId,
-              lowStockThreshold: {
-                not: null,
-              },
-            },
-            select: {
-              quantity: true,
-              lowStockThreshold: true,
-            },
-          })).filter((stock: { quantity: number; lowStockThreshold: number | null }) => 
-            stock.lowStockThreshold !== null && 
-            stock.quantity <= stock.lowStockThreshold
-          ).length
-        : 0;
+      // Low stock count (DB-side) - compare quantity <= threshold via SQL
+      const lowStockCount =
+        hasPermission(user, "inventory.alcohol.view", user.permissions) && tenantId
+          ? await (async () => {
+              const result = await dbUnscoped.$queryRaw<Array<{ count: bigint }>>`
+                SELECT COUNT(*)::bigint AS count
+                FROM alcohol_stocks
+                WHERE yacht_id = ${tenantId}
+                  AND low_stock_threshold IS NOT NULL
+                  AND quantity <= low_stock_threshold
+              `;
+              return Number(result[0]?.count ?? 0n);
+            })()
+          : 0;
 
-      // Unread messages count - fetch channels and then unread counts
+      // Unread messages count (DB-side) - single query, no channelId prefetch
       const unreadMessagesCount = tenantId
-        ? (async () => {
-            const channels = await dbUnscoped.messageChannel.findMany({
-              where: {
-                yachtId: tenantId,
-              },
-              select: { id: true },
-            });
-            
-            if (channels.length === 0) return 0;
-            
-            const channelIds = channels.map((c: { id: string }) => c.id);
-            return await dbUnscoped.message.count({
-              where: {
-                channelId: { in: channelIds },
-                deletedAt: null,
-                userId: { not: user.id },
-                reads: {
-                  none: {
-                    userId: user.id,
-                  },
-                },
-              },
-            });
+        ? await (async () => {
+            const result = await dbUnscoped.$queryRaw<Array<{ count: bigint }>>`
+              SELECT COUNT(*)::bigint AS count
+              FROM messages m
+              JOIN message_channels c ON c.id = m.channel_id
+              WHERE c.yacht_id = ${tenantId}
+                AND m.deleted_at IS NULL
+                AND m.user_id <> ${user.id}
+                AND NOT EXISTS (
+                  SELECT 1
+                  FROM message_reads r
+                  WHERE r.message_id = m.id
+                    AND r.user_id = ${user.id}
+                )
+            `;
+            return Number(result[0]?.count ?? 0n);
           })()
         : 0;
-      
-      const finalUnreadMessagesCount = await unreadMessagesCount;
 
       // Debug logging removed for production
 
@@ -582,11 +480,11 @@ export async function getBriefingStats(user: DashboardUser) {
         pendingTasksCount,
         expiringDocsCount,
         lowStockCount,
-        unreadMessagesCount: finalUnreadMessagesCount,
+        unreadMessagesCount,
       };
     },
-    [`briefing-stats-v3-${tenantId}-${user.role}-${user.id}`],
-    { revalidate: 5, tags: [`briefing-${tenantId}`, `tasks-${tenantId}`] }
+    [`briefing-stats-v4-${tenantId}-${user.role}-${user.id}`],
+    { revalidate: 10, tags: [`briefing-${tenantId}`, `tasks-${tenantId}`] }
   )();
 }
 

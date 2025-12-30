@@ -9,7 +9,9 @@ declare module "next-auth" {
       name: string | null;
       role: UserRole;
       yachtId: string | null;
+      tenantId?: string | null; // alias for yachtId (backward compatibility)
       permissions?: string | null;
+      impersonatedBy?: string; // present when an admin is impersonating another user
     };
     supabaseAccessToken: string;
   }
@@ -20,7 +22,9 @@ declare module "next-auth" {
     name: string | null;
     role: UserRole;
     yachtId: string | null;
+    tenantId?: string | null; // alias for yachtId (backward compatibility)
     permissions?: string | null;
+    impersonatedBy?: string;
   }
 }
 
@@ -29,6 +33,7 @@ declare module "next-auth/jwt" {
     id: string;
     role: UserRole;
     yachtId: string | null;
+    tenantId?: string | null;
     permissions?: string | null;
     rememberMe?: boolean;
     supabaseAccessToken: string;

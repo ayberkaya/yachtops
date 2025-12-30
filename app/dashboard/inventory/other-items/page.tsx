@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { db } from "@/lib/db";
-import { OtherItemsView } from "@/components/inventory/other-items-view";
 import { hasPermission } from "@/lib/permissions";
+import { OtherItemsView } from "@/components/inventory/other-items-view";
+import { getInventorySection } from "@/lib/inventory-settings-store";
 
 export default async function OtherItemsPage() {
   const session = await getSession();
@@ -20,9 +20,7 @@ export default async function OtherItemsPage() {
     redirect("/dashboard");
   }
 
-  // For now, return empty array until database model is created
-  // TODO: Replace with actual database query when OtherItem model is available
-  const items: any[] = [];
+  const section = await getInventorySection(session.user.yachtId, "otherItems");
 
   return (
     <div className="space-y-6">
@@ -32,7 +30,7 @@ export default async function OtherItemsPage() {
           Manage safety equipment, water sports gear, deck equipment, and other vessel items
         </p>
       </div>
-      <OtherItemsView initialItems={items} />
+      <OtherItemsView initialItems={section.items} />
     </div>
   );
 }

@@ -5,6 +5,8 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { egressLogger } from "./egress-logger";
+import { getSession } from "./get-session";
+import { dbUnscoped } from "./db";
 
 /**
  * Estimate response size from JSON data
@@ -34,49 +36,90 @@ function countRecords(data: any): number {
   return 1; // Single object
 }
 
+function isEgressDebugEnabled(): boolean {
+  return (
+    process.env.EGRESS_DEBUG === "true" ||
+    (process.env.NODE_ENV === "development" && process.env.EGRESS_DEBUG !== "false")
+  );
+}
+
+function getEgressSampleRate(): number {
+  const raw = process.env.EGRESS_SAMPLE_RATE ?? "0.1";
+  const n = Number.parseFloat(raw);
+  if (!Number.isFinite(n)) return 0.1;
+  return Math.min(1, Math.max(0, n));
+}
+
 /**
  * Wrap an API route handler to automatically log egress
  */
-export function withEgressLogging<T = any>(
-  handler: (request: NextRequest, ...args: any[]) => Promise<NextResponse<T>>
+export function withEgressLogging<TArgs extends unknown[]>(
+  handler: (request: NextRequest, ...args: TArgs) => Promise<NextResponse>
 ) {
-  return async (request: NextRequest, ...args: any[]): Promise<NextResponse<T>> => {
+  return async (request: NextRequest, ...args: TArgs): Promise<NextResponse> => {
     const route = request.nextUrl.pathname;
     const method = request.method;
 
     try {
       const response = await handler(request, ...args);
 
-      // Log response if enabled
-      if (egressLogger) {
-        // Try to get content-length header
-        const contentLength = response.headers.get('content-length');
+      const persistEnabled = process.env.EGRESS_TRACKING === "true";
+      const debugEnabled = isEgressDebugEnabled();
+
+      // Avoid response cloning / JSON parsing unless debug/persist is enabled.
+      if (debugEnabled || persistEnabled) {
+        const contentLength = response.headers.get("content-length");
         const contentLengthNum = contentLength ? parseInt(contentLength, 10) : undefined;
 
-        // Clone response to read body without consuming it
-        const clonedResponse = response.clone();
-        try {
-          const data = await clonedResponse.json();
-          const estimatedBytes = estimateJsonSize(data);
-          const recordCount = countRecords(data);
+        let estimatedBytes: number | undefined = contentLengthNum;
+        let recordCount: number | undefined;
 
-          egressLogger.logResponse({
-            route,
-            method,
-            contentLength: contentLengthNum,
-            estimatedBytes,
-            recordCount,
-            cacheHit: response.headers.get('x-cache') === 'HIT',
-          });
-        } catch {
-          // If response is not JSON, estimate from content-length or skip
-          if (contentLengthNum) {
-            egressLogger.logResponse({
-              route,
-              method,
-              contentLength: contentLengthNum,
-              estimatedBytes: contentLengthNum,
-            });
+        // If we don't have content-length, try to estimate from JSON (best-effort).
+        if (!estimatedBytes) {
+          const clonedResponse = response.clone();
+          try {
+            const data = await clonedResponse.json();
+            estimatedBytes = estimateJsonSize(data);
+            recordCount = countRecords(data);
+          } catch {
+            // ignore
+          }
+        }
+
+        // Dev/debug: log in-memory stats
+        egressLogger.logResponse({
+          route,
+          method,
+          contentLength: contentLengthNum,
+          estimatedBytes,
+          recordCount,
+          cacheHit: response.headers.get("x-cache") === "HIT",
+        });
+
+        // Persist (sampled) into UsageEvent for observability across deployments.
+        if (persistEnabled && Math.random() < getEgressSampleRate()) {
+          try {
+            const session = await getSession();
+            const userId = session?.user?.id;
+            if (userId) {
+              await dbUnscoped.usageEvent.create({
+                data: {
+                  userId,
+                  yachtId: session?.user?.yachtId ?? null,
+                  eventType: "action",
+                  page: route,
+                  action: "egress",
+                  metadata: {
+                    method,
+                    status: response.status,
+                    bytes: estimatedBytes ?? null,
+                    recordCount: recordCount ?? null,
+                  },
+                },
+              });
+            }
+          } catch {
+            // no-op
           }
         }
       }
@@ -84,7 +127,7 @@ export function withEgressLogging<T = any>(
       return response;
     } catch (error) {
       // Log error responses too
-      if (egressLogger) {
+      if (isEgressDebugEnabled()) {
         egressLogger.logResponse({
           route,
           method,

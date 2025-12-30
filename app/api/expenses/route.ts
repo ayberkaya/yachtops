@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { withEgressLogging } from "@/lib/egress-middleware";
 import { ExpenseStatus, PaymentMethod, PaidBy, CashTransactionType, AuditAction } from "@prisma/client";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
@@ -31,7 +32,7 @@ const expenseSchema = z.object({
   status: z.nativeEnum(ExpenseStatus).default(ExpenseStatus.DRAFT),
 });
 
-export async function GET(request: NextRequest) {
+export const GET = withEgressLogging(async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     const tenantResult = resolveTenantOrResponse(session, request);
@@ -179,9 +180,9 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withEgressLogging(async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     const tenantResult = resolveTenantOrResponse(session, request);
@@ -274,5 +275,5 @@ export async function POST(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

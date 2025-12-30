@@ -1,87 +1,84 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/get-session";
 import { z } from "zod";
+import { randomUUID } from "node:crypto";
+import { getSession } from "@/lib/get-session";
+import { hasPermission } from "@/lib/permissions";
+import {
+  getInventorySection,
+  setInventorySection,
+  type InventoryHistoryEntry,
+  type InventoryItem,
+} from "@/lib/inventory-settings-store";
 
-// TODO: Replace with actual database model when OtherItem model is created
-// For now, this is a placeholder that returns empty arrays
-const otherItemSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  category: z.enum(["SAFETY_EQUIPMENT", "WATER_SPORTS", "DECK_EQUIPMENT", "OTHER"]).optional().nullable(),
+export const runtime = "nodejs";
+
+const createSchema = z.object({
+  name: z.string().min(1),
+  category: z.enum(["SAFETY_EQUIPMENT", "WATER_SPORTS", "DECK_EQUIPMENT", "OTHER"]).nullable().optional(),
   quantity: z.number().min(0).default(0),
-  unit: z.enum(["PIECE", "SET", "PAIR", "BOX", "OTHER"]).default("PIECE"),
-  location: z.string().optional().nullable(),
-  notes: z.string().optional().nullable(),
+  unit: z.string().min(1).default("piece"),
+  lowStockThreshold: z.number().min(0).nullable().optional(),
+  location: z.string().nullable().optional(),
+  notes: z.string().nullable().optional(),
 });
 
-export async function GET(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    // TODO: Replace with actual database query when OtherItem model is created
-    // const items = await db.otherItem.findMany({
-    //   where: { yachtId: session.user.yachtId },
-    //   orderBy: { name: "asc" },
-    // });
-    return NextResponse.json([]);
-  } catch (error) {
-    console.error("Error fetching other items:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+export async function GET() {
+  const session = await getSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user, "inventory.view", session.user.permissions)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const yachtId = session.user.yachtId;
+  if (!yachtId) return NextResponse.json({ error: "Yacht not found" }, { status: 400 });
+
+  const section = await getInventorySection(yachtId, "otherItems");
+  return NextResponse.json(section.items, { status: 200 });
 }
 
 export async function POST(request: NextRequest) {
-  try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    if (!session.user.yachtId) {
-      return NextResponse.json(
-        { error: "User must be associated with a yacht" },
-        { status: 400 }
-      );
-    }
-
-    const body = await request.json();
-    const validatedData = otherItemSchema.parse(body);
-
-    // TODO: Replace with actual database insert when OtherItem model is created
-    // const newItem = await db.otherItem.create({
-    //   data: {
-    //     yachtId: session.user.yachtId,
-    //     ...validatedData,
-    //   },
-    // });
-
-    // For now, return a mock response
-    const mockItem = {
-      id: `mock-${Date.now()}`,
-      yachtId: session.user.yachtId,
-      ...validatedData,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-
-    return NextResponse.json(mockItem, { status: 201 });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation error", details: error.issues },
-        { status: 400 }
-      );
-    }
-    console.error("Error creating other item:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  const session = await getSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user, "inventory.create", session.user.permissions)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const yachtId = session.user.yachtId;
+  if (!yachtId) return NextResponse.json({ error: "Yacht not found" }, { status: 400 });
+
+  const body = await request.json();
+  const validated = createSchema.parse(body);
+
+  const now = new Date().toISOString();
+  const item: InventoryItem = {
+    id: randomUUID(),
+    name: validated.name,
+    category: validated.category ?? null,
+    quantity: validated.quantity,
+    unit: validated.unit,
+    lowStockThreshold: validated.lowStockThreshold ?? null,
+    location: validated.location ?? null,
+    notes: validated.notes ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  const section = await getInventorySection(yachtId, "otherItems");
+  const historyEntry: InventoryHistoryEntry = {
+    at: now,
+    userId: session.user.id,
+    action: "create",
+    after: item,
+  };
+  const nextHistory = {
+    ...section.history,
+    [item.id]: [historyEntry, ...(section.history[item.id] ?? [])].slice(0, 50),
+  };
+
+  await setInventorySection(yachtId, "otherItems", {
+    items: [...section.items, item],
+    history: nextHistory,
+  });
+
+  return NextResponse.json(item, { status: 201 });
 }
+
 

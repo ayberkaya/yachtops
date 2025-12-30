@@ -22,6 +22,7 @@ export default async function UsageInsightsPage() {
   let recentEvents: any[] = [];
   let topPages: any[] = [];
   let topActions: any[] = [];
+  let topEgress: Array<{ route: string; method: string; samples: number; totalBytes: number }> = [];
   let recentFeedback: any[] = [];
 
   try {
@@ -43,6 +44,7 @@ export default async function UsageInsightsPage() {
       recentEventsResult,
       topPagesResult,
       topActionsResult,
+      topEgressResult,
       recentFeedbackResult,
     ] = await Promise.all([
       // Total events (last 30 days)
@@ -129,6 +131,31 @@ export default async function UsageInsightsPage() {
         },
         take: 10,
       }), []),
+      // Top egress (sampled API responses) (last 7 days)
+      safeQuery(
+        () =>
+          db.$queryRaw<
+            Array<{
+              route: string | null;
+              method: string | null;
+              samples: bigint;
+              total_bytes: bigint | null;
+            }>
+          >`
+            SELECT
+              page as route,
+              (metadata->>'method')::text as method,
+              COUNT(*)::bigint as samples,
+              SUM(NULLIF((metadata->>'bytes'), '')::bigint)::bigint as total_bytes
+            FROM usage_events
+            WHERE action = 'egress'
+              AND created_at >= ${sevenDaysAgo}
+            GROUP BY 1, 2
+            ORDER BY total_bytes DESC NULLS LAST
+            LIMIT 10
+          `,
+        []
+      ),
       // Recent feedback
       safeQuery(() => db.feedback.findMany({
         take: 10,
@@ -164,6 +191,16 @@ export default async function UsageInsightsPage() {
       action: item?.action || null,
       _count: item?._count ? { id: typeof item._count.id === "number" ? item._count.id : (typeof item._count === "number" ? item._count : 0) } : { id: 0 },
     })) : [];
+    topEgress = Array.isArray(topEgressResult)
+      ? topEgressResult
+          .filter((r: any) => r?.route && r?.method)
+          .map((r: any) => ({
+            route: String(r.route),
+            method: String(r.method),
+            samples: typeof r.samples === "bigint" ? Number(r.samples) : Number(r.samples ?? 0),
+            totalBytes: typeof r.total_bytes === "bigint" ? Number(r.total_bytes) : Number(r.total_bytes ?? 0),
+          }))
+      : [];
     recentFeedback = Array.isArray(recentFeedbackResult) ? recentFeedbackResult : [];
 
     totalEvents = typeof totalEventsResult === "number" ? totalEventsResult : 0;
@@ -278,6 +315,40 @@ export default async function UsageInsightsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Egress (Bandwidth) */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Bandwidth (API Egress) (7 days)</CardTitle>
+          <CardDescription>
+            Sampled API response sizes (enable with EGRESS_TRACKING=true). Helps find high-egress endpoints.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {topEgress.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No egress samples recorded. Set EGRESS_TRACKING=true (optional: EGRESS_SAMPLE_RATE=0.1).
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {topEgress.map((row) => (
+                <div key={`${row.method}-${row.route}`} className="flex items-center justify-between text-sm">
+                  <div className="flex-1 min-w-0">
+                    <span className="font-medium mr-2">{row.method}</span>
+                    <span className="text-muted-foreground truncate">{row.route}</span>
+                  </div>
+                  <div className="flex items-center gap-4 text-muted-foreground">
+                    <span className="tabular-nums">{row.samples} samples</span>
+                    <span className="tabular-nums">
+                      {(row.totalBytes / 1024 / 1024).toFixed(2)} MB
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Recent Feedback */}
       <Card>

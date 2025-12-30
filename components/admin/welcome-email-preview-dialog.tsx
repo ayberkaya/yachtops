@@ -146,10 +146,13 @@ export function WelcomeEmailPreviewDialog({
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
               </div>
             ) : emailHtml ? (
-              <div
-                className="overflow-auto"
-                style={{ maxHeight: "70vh" }}
-                dangerouslySetInnerHTML={{ __html: emailHtml }}
+              <iframe
+                title="Welcome email preview"
+                className="w-full bg-white"
+                style={{ height: "70vh", border: 0 }}
+                sandbox=""
+                referrerPolicy="no-referrer"
+                srcDoc={emailHtml}
               />
             ) : (
               <div className="p-12 text-center text-muted-foreground">

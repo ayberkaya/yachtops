@@ -4,7 +4,8 @@ import { canManageUsers } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { db, dbUnscoped } from "@/lib/db";
 import { z } from "zod";
-import { TaskStatus, TaskPriority, UserRole, TaskType } from "@prisma/client";
+import { withEgressLogging } from "@/lib/egress-middleware";
+import { Prisma, TaskStatus, TaskPriority, UserRole, TaskType } from "@prisma/client";
 import { sendNotificationToUser, sendNotificationToRole } from "@/lib/notifications";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { unstable_cache } from "next/cache";
@@ -24,14 +25,14 @@ const taskSchema = z.object({
   serviceProvider: z.string().optional().nullable(),
 });
 
-export async function GET(request: NextRequest) {
+export const GET = withEgressLogging(async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     const tenantResult = resolveTenantOrResponse(session, request);
     if (tenantResult instanceof NextResponse) {
       return tenantResult;
     }
-    const { scopedSession } = tenantResult;
+    const { tenantId, admin } = tenantResult;
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get("status");
@@ -42,10 +43,14 @@ export async function GET(request: NextRequest) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "25", 10), 100); // Max 100, default 25 (reduced from 200)
     const skip = (page - 1) * limit;
 
-    const baseWhere: any = {};
+    const baseWhere: Prisma.TaskWhereInput = {};
 
     if (status) {
-      baseWhere.status = status;
+      if (Object.values(TaskStatus).includes(status as TaskStatus)) {
+        baseWhere.status = status as TaskStatus;
+      } else {
+        return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+      }
     }
     if (assigneeId) {
       baseWhere.assigneeId = assigneeId;
@@ -66,19 +71,19 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    const tenantId = tenantResult.tenantId || 'admin';
     const userRole = session!.user.role;
     const userId = session!.user.id; // Extract for closure
 
     // Build cache key from query parameters (must include all parameters that affect the query)
-    const cacheKey = `tasks-${tenantId}-${userRole}-${userId}-${status || 'all'}-${assigneeId || 'all'}-${tripId || 'all'}-${page}-${limit}`;
+    const cacheTenantKey = tenantId ?? (admin ? "all" : "missing");
+    const cacheKey = `tasks-${cacheTenantKey}-${userRole}-${userId}-${status || 'all'}-${assigneeId || 'all'}-${tripId || 'all'}-${page}-${limit}`;
 
     // Cache tasks query for 30 seconds
     // Rebuild where clause inside closure to avoid closure issues
     const getTasks = unstable_cache(
       async (
         tenantIdParam: string | null,
-        userRoleParam: string,
+        userRoleParam: UserRole,
         userIdParam: string,
         statusParam: string | null,
         assigneeIdParam: string | null,
@@ -86,8 +91,8 @@ export async function GET(request: NextRequest) {
         skipParam: number,
         limitParam: number
       ) => {
-        const baseWhereParam: any = {};
-        if (statusParam) baseWhereParam.status = statusParam;
+        const baseWhereParam: Prisma.TaskWhereInput = {};
+        if (statusParam) baseWhereParam.status = statusParam as TaskStatus;
         if (assigneeIdParam) baseWhereParam.assigneeId = assigneeIdParam;
         if (tripIdParam) baseWhereParam.tripId = tripIdParam;
 
@@ -131,21 +136,21 @@ export async function GET(request: NextRequest) {
         });
       },
       [cacheKey],
-      { revalidate: 30, tags: [`tasks-${tenantId}`] }
+      { revalidate: 30, tags: [`tasks-${cacheTenantKey}`] }
     );
 
     // Cache count query separately
     const getTotalCount = unstable_cache(
       async (
         tenantIdParam: string | null,
-        userRoleParam: string,
+        userRoleParam: UserRole,
         userIdParam: string,
         statusParam: string | null,
         assigneeIdParam: string | null,
         tripIdParam: string | null
       ) => {
-        const baseWhereParam: any = {};
-        if (statusParam) baseWhereParam.status = statusParam;
+        const baseWhereParam: Prisma.TaskWhereInput = {};
+        if (statusParam) baseWhereParam.status = statusParam as TaskStatus;
         if (assigneeIdParam) baseWhereParam.assigneeId = assigneeIdParam;
         if (tripIdParam) baseWhereParam.tripId = tripIdParam;
 
@@ -170,7 +175,7 @@ export async function GET(request: NextRequest) {
         });
       },
       [`${cacheKey}-count`],
-      { revalidate: 30, tags: [`tasks-${tenantId}`] }
+      { revalidate: 30, tags: [`tasks-${cacheTenantKey}`] }
     );
 
     const [tasks, totalCount] = await Promise.all([
@@ -211,23 +216,20 @@ export async function GET(request: NextRequest) {
       }
     );
   }
-}
+});
 
 
-export async function POST(request: NextRequest) {
-  console.log("POST /api/tasks - Route handler called");
-  let body: any = null;
+export const POST = withEgressLogging(async function POST(request: NextRequest) {
+  let body: unknown = null;
   
   try {
-    console.log("POST /api/tasks - Getting session...");
     const session = await getSession();
-    console.log("POST /api/tasks - Session obtained:", session?.user ? "User logged in" : "No user");
     
     const tenantResult = resolveTenantOrResponse(session, request);
     if (tenantResult instanceof NextResponse) {
       return tenantResult;
     }
-    const { tenantId, scopedSession } = tenantResult;
+    const { tenantId } = tenantResult;
     
     // Check if user has permission to create tasks
     if (!hasPermission(session!.user, "tasks.create", session!.user.permissions) && !canManageUsers(session!.user)) {
@@ -235,7 +237,6 @@ export async function POST(request: NextRequest) {
     }
 
     if (!tenantId) {
-      console.log("POST /api/tasks - Bad request: No tenantId");
       return NextResponse.json(
         { error: "User must be assigned to a tenant" },
         { status: 400 }
@@ -244,10 +245,8 @@ export async function POST(request: NextRequest) {
     const ensuredTenantId = tenantId;
 
     // Parse request body with error handling
-    console.log("POST /api/tasks - Parsing request body...");
     try {
       body = await request.json();
-      console.log("POST /api/tasks - Received task creation request:", JSON.stringify(body, null, 2));
     } catch (parseError) {
       console.error("Error parsing request body:", parseError);
       return NextResponse.json(
@@ -258,33 +257,40 @@ export async function POST(request: NextRequest) {
     
     // Clean up the data: convert "none" strings to null for enum fields
     // Also ensure assigneeRole is a valid UserRole enum value or null
-    let assigneeRoleValue = body.assigneeRole;
-    if (assigneeRoleValue === "none" || !assigneeRoleValue) {
+    if (typeof body !== "object" || body === null || Array.isArray(body)) {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    }
+    const bodyObj = body as Record<string, unknown>;
+
+    const assigneeRoleRaw = bodyObj.assigneeRole;
+    let assigneeRoleValue: UserRole | null = null;
+    if (
+      assigneeRoleRaw === "none" ||
+      assigneeRoleRaw === null ||
+      typeof assigneeRoleRaw === "undefined" ||
+      assigneeRoleRaw === ""
+    ) {
       assigneeRoleValue = null;
-    } else if (typeof assigneeRoleValue === "string") {
-      // Ensure it's a valid enum value
-      if (!Object.values(UserRole).includes(assigneeRoleValue as UserRole)) {
-        console.error("Invalid assigneeRole value:", assigneeRoleValue);
-        return NextResponse.json(
-          { error: `Invalid assigneeRole: ${assigneeRoleValue}. Must be one of: ${Object.values(UserRole).join(", ")}` },
-          { status: 400 }
-        );
-      }
+    } else if (
+      typeof assigneeRoleRaw === "string" &&
+      Object.values(UserRole).includes(assigneeRoleRaw as UserRole)
+    ) {
+      assigneeRoleValue = assigneeRoleRaw as UserRole;
+    } else {
+      return NextResponse.json(
+        { error: `Invalid assigneeRole. Must be one of: ${Object.values(UserRole).join(", ")}` },
+        { status: 400 }
+      );
     }
     
     const cleanedBody = {
-      ...body,
-      tripId: body.tripId === "none" || !body.tripId ? null : body.tripId,
-      assigneeId: body.assigneeId === "none" || !body.assigneeId ? null : body.assigneeId,
+      ...bodyObj,
+      tripId: bodyObj.tripId === "none" || !bodyObj.tripId ? null : bodyObj.tripId,
+      assigneeId: bodyObj.assigneeId === "none" || !bodyObj.assigneeId ? null : bodyObj.assigneeId,
       assigneeRole: assigneeRoleValue,
     };
     
-    console.log("Cleaned task data:", JSON.stringify(cleanedBody, null, 2));
-    
     const validated = taskSchema.parse(cleanedBody);
-    console.log("Validated task data:", JSON.stringify(validated, null, 2));
-
-    console.log("POST /api/tasks - Creating task in database...");
     const task = await db.task.create({
       data: {
         yachtId: ensuredTenantId,
@@ -317,8 +323,6 @@ export async function POST(request: NextRequest) {
         },
       },
     });
-
-    console.log("POST /api/tasks - Task created successfully:", task.id);
     
     // Send push notifications if task is assigned
     // Don't await to avoid blocking the response, but handle errors
@@ -370,7 +374,6 @@ export async function POST(request: NextRequest) {
     }
 
     console.error("Error creating task:", error);
-    console.error("Request body:", body);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     const errorStack = error instanceof Error ? error.stack : undefined;
     
@@ -399,5 +402,5 @@ export async function POST(request: NextRequest) {
       );
     }
   }
-}
+});
 

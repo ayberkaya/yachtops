@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { db } from "@/lib/db";
-import { CleaningSuppliesView } from "@/components/inventory/cleaning-supplies-view";
 import { hasPermission } from "@/lib/permissions";
+import { CleaningSuppliesView } from "@/components/inventory/cleaning-supplies-view";
+import { getInventorySection } from "@/lib/inventory-settings-store";
 
 export default async function CleaningSuppliesPage() {
   const session = await getSession();
@@ -20,19 +20,17 @@ export default async function CleaningSuppliesPage() {
     redirect("/dashboard");
   }
 
-  // For now, return empty array until database models are created
-  // TODO: Replace with actual database query when models are available
-  const stocks: any[] = [];
+  const section = await getInventorySection(session.user.yachtId, "cleaningSupplies");
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">Cleaning Supplies</h1>
-        <p className="text-muted-foreground">
+      <div className="px-4 md:px-0">
+        <h1 className="text-2xl md:text-3xl font-bold break-words">Cleaning Supplies</h1>
+        <p className="text-sm md:text-base text-muted-foreground mt-2 break-words">
           Manage cleaning products, detergents, and maintenance supplies
         </p>
       </div>
-      <CleaningSuppliesView initialStocks={stocks} />
+      <CleaningSuppliesView initialStocks={section.items} />
     </div>
   );
 }

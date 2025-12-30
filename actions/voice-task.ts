@@ -1,6 +1,6 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { getAIService } from "@/lib/ai/service";
 import { TaskIntentResult } from "@/lib/ai/types";

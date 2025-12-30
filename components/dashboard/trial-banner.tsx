@@ -1,60 +1,65 @@
-import { getSession } from "@/lib/get-session";
-import { createAdminClient } from "@/utils/supabase/admin";
 import { differenceInDays } from "date-fns";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { unstable_cache } from "next/cache";
+import { dbUnscoped } from "@/lib/db";
 
-export async function TrialBanner() {
-  // Get current authenticated user
-  const session = await getSession();
-  
-  if (!session?.user?.id) {
-    return null;
-  }
+interface TrialBannerProps {
+  userId: string;
+}
 
-  // Fetch subscription data
-  const supabase = createAdminClient();
-  
-  if (!supabase) {
-    return null;
-  }
+type TrialInfo = {
+  subscriptionStatus: string | null;
+  trialEndsAt: Date | null;
+  planName: string | null;
+};
 
-  // Query user subscription details
-  const { data: userData, error: userError } = await supabase
-    .from("users")
-    .select("subscription_status, trial_ends_at, plan_id")
-    .eq("id", session.user.id)
-    .single();
+async function fetchTrialInfo(userId: string): Promise<TrialInfo | null> {
+  const rows = await dbUnscoped.$queryRaw<
+    Array<{
+      subscription_status: string | null;
+      trial_ends_at: Date | null;
+      plan_name: string | null;
+    }>
+  >`
+    SELECT
+      u.subscription_status,
+      u.trial_ends_at,
+      p.name as plan_name
+    FROM users u
+    LEFT JOIN yachts y ON y.id = u.yacht_id
+    LEFT JOIN plans p ON p.id = COALESCE(u.plan_id, y.current_plan_id)
+    WHERE u.id = ${userId}
+    LIMIT 1
+  `;
 
-  if (userError || !userData) {
-    return null;
-  }
+  const row = rows[0];
+  if (!row) return null;
 
-  // Don't show if not TRIAL status
-  if (userData.subscription_status !== "TRIAL") {
-    return null;
-  }
+  return {
+    subscriptionStatus: row.subscription_status,
+    trialEndsAt: row.trial_ends_at ? new Date(row.trial_ends_at) : null,
+    planName: row.plan_name,
+  };
+}
 
-  // Fetch plan name if plan_id exists
-  let planName: string | null = null;
-  if (userData.plan_id) {
-    const { data: planData, error: planError } = await supabase
-      .from("plans")
-      .select("name")
-      .eq("id", userData.plan_id)
-      .single();
+function getTrialInfo(userId: string): Promise<TrialInfo | null> {
+  // Ensure per-user cache keys to avoid cross-user cache bleed.
+  return unstable_cache(
+    async () => fetchTrialInfo(userId),
+    [`trial-banner-v2-${userId}`],
+    { revalidate: 60 }
+  )();
+}
 
-    if (!planError && planData) {
-      planName = planData.name;
-    }
-  }
+export async function TrialBanner({ userId }: TrialBannerProps) {
+  const info = await getTrialInfo(userId);
+  if (!info) return null;
 
-  // Calculate days left
-  if (!userData.trial_ends_at) {
-    return null;
-  }
+  if (info.subscriptionStatus !== "TRIAL") return null;
+  if (!info.trialEndsAt) return null;
 
-  const endDate = new Date(userData.trial_ends_at);
+  const endDate = info.trialEndsAt;
   const now = new Date();
   const daysLeft = differenceInDays(endDate, now);
 
@@ -67,10 +72,9 @@ export async function TrialBanner() {
     <div className="w-full bg-indigo-600 text-white px-4 py-3 mb-6 rounded-lg shadow-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
         <div className="flex items-center gap-2 flex-1">
-          <span className="text-lg">🌊</span>
           <span className="text-sm font-medium">
-            You are currently on the <strong>{planName || "Trial"}</strong> Trial.{" "}
-            <strong>{daysLeft}</strong> {daysLeft === 1 ? "Day" : "Days"} remaining.
+            Trial: <strong>{info.planName || "Starter"}</strong>.{" "}
+            <strong>{daysLeft}</strong> {daysLeft === 1 ? "day" : "days"} remaining.
           </span>
         </div>
         <Button
@@ -78,7 +82,7 @@ export async function TrialBanner() {
           size="sm"
           className="bg-white text-indigo-600 hover:bg-indigo-50 border-0 shadow-sm"
         >
-          <Link href="/dashboard/settings/billing">Upgrade Plan</Link>
+          <Link href="/dashboard/settings/billing">Upgrade</Link>
         </Button>
       </div>
     </div>

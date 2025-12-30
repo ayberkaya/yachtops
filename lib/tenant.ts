@@ -2,9 +2,8 @@ import { Session } from "next-auth";
 
 export function getTenantId(session: Session | null): string | null {
   if (!session?.user) return null;
-  // Prefer explicit tenantId, fall back to yachtId for backward compatibility
-  const tenantId = (session.user as any).tenantId ?? (session.user as any).yachtId ?? null;
-  return tenantId ?? null;
+  // Tenant isolation is based on yachtId (core entity).
+  return session.user.yachtId ?? null;
 }
 
 export function requireTenantId(session: Session | null): string {
@@ -16,6 +15,8 @@ export function requireTenantId(session: Session | null): string {
 }
 
 export function isPlatformAdmin(session: Session | null): boolean {
-  return session?.user?.role === "ADMIN";
+  // Platform-wide access must be SUPER_ADMIN only.
+  // OWNER/ADMIN are tenant-level roles and must never bypass tenant isolation.
+  return session?.user?.role === "SUPER_ADMIN";
 }
 

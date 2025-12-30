@@ -1,25 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
+import { hasPermission } from "@/lib/permissions";
+import { getInventorySection } from "@/lib/inventory-settings-store";
+
+export const runtime = "nodejs";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  try {
-    const session = await getSession();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const { id } = await params;
-
-    // TODO: Replace with actual database query when SparePartStockHistory model is created
-    return NextResponse.json([]);
-  } catch (error) {
-    console.error("Error fetching spare part history:", error);
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  const session = await getSession();
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!hasPermission(session.user, "inventory.view", session.user.permissions)) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const yachtId = session.user.yachtId;
+  if (!yachtId) return NextResponse.json({ error: "Yacht not found" }, { status: 400 });
+
+  const { id } = await params;
+  const section = await getInventorySection(yachtId, "spareParts");
+  return NextResponse.json(section.history[id] ?? [], { status: 200 });
 }
+
+

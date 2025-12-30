@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { z } from "zod";
+import { withEgressLogging } from "@/lib/egress-middleware";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
 import { createErrorResponse } from "@/lib/api-error-handler";
@@ -12,7 +13,7 @@ const messageSchema = z.object({
   imageUrl: z.string().optional().nullable(),
 });
 
-export async function GET(request: NextRequest) {
+export const GET = withEgressLogging(async function GET(request: NextRequest) {
   try {
     const session = await getSession();
     const tenantResult = resolveTenantOrResponse(session, request);
@@ -150,9 +151,9 @@ export async function GET(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 
-export async function POST(request: NextRequest) {
+export const POST = withEgressLogging(async function POST(request: NextRequest) {
   try {
     const session = await getSession();
     const tenantResult = resolveTenantOrResponse(session, request);
@@ -388,5 +389,5 @@ export async function POST(request: NextRequest) {
     console.error("Error creating message:", error);
     return createErrorResponse(error, "Mesaj gönderilirken bir hata oluştu", 500);
   }
-}
+});
 

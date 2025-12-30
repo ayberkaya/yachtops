@@ -5,6 +5,7 @@ import { PageTracker } from "@/components/dashboard/page-tracker";
 import { DashboardClientWrapper } from "@/components/dashboard/dashboard-client-wrapper";
 import { TrialBanner } from "@/components/dashboard/trial-banner";
 import { UserRole } from "@prisma/client";
+import { Suspense } from "react";
 
 // Force dynamic rendering for all dashboard routes to avoid static pre-render during build
 // Session is already cached by NextAuth, so we don't need to disable fetchCache
@@ -34,7 +35,12 @@ export default async function DashboardLayout({
       redirect("/auth/signin");
     }
 
-    const trialBanner = session.user.role === UserRole.OWNER ? <TrialBanner /> : null;
+    const trialBanner =
+      session.user.role === UserRole.OWNER ? (
+        <Suspense fallback={null}>
+          <TrialBanner userId={session.user.id} />
+        </Suspense>
+      ) : null;
 
     return (
       <NotificationsProvider>

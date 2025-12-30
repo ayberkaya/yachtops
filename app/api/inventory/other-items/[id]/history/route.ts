@@ -18,7 +18,7 @@ export async function GET(
   if (!yachtId) return NextResponse.json({ error: "Yacht not found" }, { status: 400 });
 
   const { id } = await params;
-  const section = await getInventorySection(yachtId, "cleaningSupplies");
+  const section = await getInventorySection(yachtId, "otherItems");
   return NextResponse.json(section.history[id] ?? [], { status: 200 });
 }
 

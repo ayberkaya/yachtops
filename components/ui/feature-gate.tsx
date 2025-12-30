@@ -1,12 +1,12 @@
 "use client";
 
-import { ReactNode, useEffect, useState } from "react";
+import type { MouseEvent, ReactNode } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { checkFeatureAction } from "@/actions/check-feature";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Lock, Sparkles } from "lucide-react";
 import Link from "next/link";
+import { Lock } from "lucide-react";
+import { checkFeatureAction } from "@/actions/check-feature";
+import { UpgradePrompt } from "@/components/ui/upgrade-prompt";
 
 interface FeatureGateProps {
   /**
@@ -77,7 +77,11 @@ export function FeatureGate({
 
   // Show loading state (optional - can be removed if you want instant render)
   if (loading) {
-    return null; // Or return a loading spinner
+    return (
+      <div className="min-h-[200px] flex items-center justify-center p-6">
+        <div className="text-sm text-muted-foreground">Checking access…</div>
+      </div>
+    );
   }
 
   // If user has access, render children
@@ -92,33 +96,24 @@ export function FeatureGate({
 
   // Default upgrade message
   const planName = requiredPlan || "Professional";
-  const message = lockedMessage || `This feature is available in the ${planName} plan.`;
+  const message =
+    lockedMessage ??
+    `This feature is available in the ${planName} plan. Upgrade to unlock it.`;
 
   return (
-    <div className="flex items-center justify-center min-h-[400px] p-6">
-      <Card className="max-w-md w-full border-2 border-dashed">
-        <CardHeader className="text-center">
-          <div className="mx-auto mb-4 w-16 h-16 rounded-full bg-gradient-to-br from-teal-100 to-teal-200 dark:from-teal-900/20 dark:to-teal-800/20 flex items-center justify-center">
-            <Lock className="w-8 h-8 text-teal-600 dark:text-teal-400" />
-          </div>
-          <CardTitle className="text-xl">Feature Locked</CardTitle>
-          <CardDescription className="mt-2">{message}</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-col gap-2">
-            <Button asChild className="w-full">
-              <Link href="/dashboard/settings/billing">
-                <Sparkles className="w-4 h-4 mr-2" />
-                Upgrade Plan
-              </Link>
-            </Button>
-            <Button variant="outline" asChild className="w-full">
-              <Link href="/dashboard">Go to Dashboard</Link>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+    <UpgradePrompt
+      title="Feature locked"
+      description={message}
+      featureName={feature}
+      primaryCtaHref="/dashboard/settings/billing"
+      primaryCtaLabel="Upgrade plan"
+      secondaryCtaHref="/dashboard"
+      secondaryCtaLabel="Back to dashboard"
+      bullets={[
+        "Unlock the module immediately after upgrading",
+        "Keep your existing data and users",
+      ]}
+    />
   );
 }
 
@@ -167,7 +162,7 @@ export function FeatureGateLink({
     checkAccess();
   }, [feature, session]);
 
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+  const handleClick = (e: MouseEvent<HTMLAnchorElement>) => {
     if (!hasAccess) {
       e.preventDefault();
       // Optionally open upgrade modal or redirect to billing

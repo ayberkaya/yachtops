@@ -189,6 +189,13 @@ npx prisma generate
 - Ensure PostgreSQL is running
 - Verify connection string format
 
+#### Connection pool tuning (Prisma)
+HelmOps defaults to **conservative pooling** to avoid exhausting Supabase/Postgres connections in serverless.
+
+- `PRISMA_CONNECTION_LIMIT`: overrides `connection_limit` in `DATABASE_URL` (default: `10` dev, `5` prod)
+- `PRISMA_POOL_TIMEOUT`: overrides `pool_timeout` in `DATABASE_URL` (default: `60` dev, `30` prod)
+- `PRISMA_CONNECT_ON_STARTUP=true`: opt-in eager connect (recommended **only** in development)
+
 ### NextAuth errors
 - Ensure `NEXTAUTH_SECRET` is set in `.env`
 - Check `NEXTAUTH_URL` matches your development URL

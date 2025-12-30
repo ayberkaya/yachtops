@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { canManageUsers } from "@/lib/auth";
 import { TaskStatus, TaskPriority, UserRole, TaskType } from "@prisma/client";
 import { z } from "zod";
+import { withEgressLogging } from "@/lib/egress-middleware";
 import { notifyTaskAssignment, notifyTaskCompletion } from "@/lib/notifications";
 import { hasPermission } from "@/lib/permissions";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
@@ -23,7 +24,7 @@ const updateTaskSchema = z.object({
   serviceProvider: z.string().optional().nullable(),
 });
 
-export async function GET(
+export const GET = withEgressLogging(async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -97,9 +98,9 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});
 
-export async function PATCH(
+export const PATCH = withEgressLogging(async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -374,9 +375,9 @@ export async function PATCH(
       { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
-}
+});
 
-export async function DELETE(
+export const DELETE = withEgressLogging(async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -422,5 +423,5 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});
 

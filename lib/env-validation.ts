@@ -5,14 +5,17 @@
 
 interface EnvConfig {
   DATABASE_URL: string;
+  DIRECT_URL?: string;
   NEXTAUTH_URL: string;
   NEXTAUTH_SECRET: string;
+  SUPABASE_JWT_SECRET: string;
 }
 
 const requiredEnvVars: (keyof EnvConfig)[] = [
   "DATABASE_URL",
   "NEXTAUTH_URL",
   "NEXTAUTH_SECRET",
+  "SUPABASE_JWT_SECRET",
 ];
 
 /**
@@ -35,10 +38,13 @@ export function validateEnv(): void {
   }
 
   // Validate DATABASE_URL format
-  if (process.env.DATABASE_URL && !process.env.DATABASE_URL.startsWith("postgresql://")) {
-    console.warn(
-      "Warning: DATABASE_URL does not appear to be a PostgreSQL connection string"
-    );
+  if (process.env.DATABASE_URL) {
+    const ok =
+      process.env.DATABASE_URL.startsWith("postgresql://") ||
+      process.env.DATABASE_URL.startsWith("postgres://");
+    if (!ok) {
+      throw new Error("DATABASE_URL must be a PostgreSQL connection string (postgres:// or postgresql://).");
+    }
   }
 
   // Validate NEXTAUTH_SECRET length (should be at least 32 characters)
@@ -46,9 +52,7 @@ export function validateEnv(): void {
     process.env.NEXTAUTH_SECRET &&
     process.env.NEXTAUTH_SECRET.length < 32
   ) {
-    console.warn(
-      "Warning: NEXTAUTH_SECRET should be at least 32 characters long for security"
-    );
+    throw new Error("NEXTAUTH_SECRET must be at least 32 characters long.");
   }
 }
 

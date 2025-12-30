@@ -27,30 +27,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
-    // Verify user exists before creating usage event (prevent foreign key constraint errors)
-    // This can happen if user was deleted but session still has old userId
-    const userExists = await db.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
-    });
-
-    if (!userExists) {
-      // User doesn't exist - skip tracking silently
-      // No logging needed - this is expected for deleted users with stale sessions
-      return NextResponse.json({ success: true }, { status: 200 });
+    // Create usage event (best-effort).
+    // We intentionally avoid extra reads (like verifying user existence) to keep this fast.
+    // If the session is stale (user deleted), the FK constraint may fail; we swallow it.
+    try {
+      await db.usageEvent.create({
+        data: {
+          userId,
+          yachtId: yachtId || null,
+          eventType: validated.eventType,
+          page: validated.page || null,
+          action: validated.action || null,
+          metadata: validated.metadata || undefined,
+        },
+      });
+    } catch {
+      // no-op
     }
-
-    // Create usage event (non-blocking)
-    await db.usageEvent.create({
-      data: {
-        userId,
-        yachtId: yachtId || null,
-        eventType: validated.eventType,
-        page: validated.page || null,
-        action: validated.action || null,
-        metadata: validated.metadata || undefined,
-      },
-    });
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (error) {

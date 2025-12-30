@@ -2,7 +2,7 @@
 
 import { getAIService } from "@/lib/ai/service";
 import { db } from "@/lib/db"; // Prisma instance
-import { auth } from "@/lib/auth"; // Auth helper (NextAuth/Supabase ne kullanıyorsan)
+import { auth } from "@/lib/auth-server"; // Auth helper (NextAuth/Supabase ne kullanıyorsan)
 
 export async function analyzeVoiceCommand(formData: FormData) {
   try {

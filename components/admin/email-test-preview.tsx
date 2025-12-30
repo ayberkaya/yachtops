@@ -224,10 +224,13 @@ export function EmailTestPreview() {
                   </span>
                 </div>
               </div>
-              <div
-                className="p-6 overflow-auto"
-                style={{ maxHeight: "70vh" }}
-                dangerouslySetInnerHTML={{ __html: emailHtml }}
+              <iframe
+                title="Email preview"
+                className="w-full bg-white"
+                style={{ height: "70vh", border: 0 }}
+                sandbox=""
+                referrerPolicy="no-referrer"
+                srcDoc={emailHtml}
               />
             </div>
           </CardContent>

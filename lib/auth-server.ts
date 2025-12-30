@@ -1,4 +1,9 @@
 import "server-only";
+
+// Single source of truth for NextAuth configuration.
+export { handlers, signIn, signOut, auth } from "./auth-config";
+
+import "server-only";
 import { db } from "./db";
 import { UserRole } from "@prisma/client";
 import bcrypt from "bcryptjs";

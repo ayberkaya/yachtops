@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { db } from "@/lib/db";
-import { FoodProvisionsView } from "@/components/inventory/food-provisions-view";
 import { hasPermission } from "@/lib/permissions";
+import { FoodProvisionsView } from "@/components/inventory/food-provisions-view";
+import { getInventorySection } from "@/lib/inventory-settings-store";
 
 export default async function FoodProvisionsPage() {
   const session = await getSession();
@@ -20,9 +20,7 @@ export default async function FoodProvisionsPage() {
     redirect("/dashboard");
   }
 
-  // For now, return empty array until database models are created
-  // TODO: Replace with actual database query when models are available
-  const stocks: any[] = [];
+  const section = await getInventorySection(session.user.yachtId, "foodProvisions");
 
   return (
     <div className="space-y-6">
@@ -32,7 +30,7 @@ export default async function FoodProvisionsPage() {
           Manage food items, groceries, and provisions inventory
         </p>
       </div>
-      <FoodProvisionsView initialStocks={stocks} />
+      <FoodProvisionsView initialStocks={section.items} />
     </div>
   );
 }

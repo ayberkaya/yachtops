@@ -11,6 +11,8 @@ export interface ApiErrorResponse {
   message?: string;
   details?: unknown;
   timestamp?: string;
+  canRetry?: boolean;
+  recoveryAction?: string;
 }
 
 /**
@@ -25,7 +27,9 @@ export function createErrorResponse(
   if (error instanceof z.ZodError) {
     return NextResponse.json(
       {
-        error: "Girdiğiniz bilgiler geçersiz. Lütfen kontrol edip tekrar deneyin.",
+        error: "Some fields are invalid. Please review and try again.",
+        canRetry: false,
+        recoveryAction: "Fix the highlighted fields and submit again.",
         // Only include technical details in development mode
         ...(process.env.NODE_ENV === "development" && {
           message: "The provided data is invalid",
@@ -42,12 +46,13 @@ export function createErrorResponse(
 
   // Handle known Error instances
   if (error instanceof Error) {
-    // Always use user-friendly error messages
-    const userFriendlyMessage = getUserFriendlyError(error);
+    const reassuring = getReassuringError(error);
     
     return NextResponse.json(
       {
-        error: userFriendlyMessage,
+        error: reassuring.message || defaultMessage,
+        canRetry: reassuring.canRetry,
+        recoveryAction: reassuring.recoveryAction,
         // Only include technical details in development mode
         ...(process.env.NODE_ENV === "development" && {
           message: error.message,
@@ -65,7 +70,9 @@ export function createErrorResponse(
   // Handle unknown error types
   return NextResponse.json(
     {
-      error: "Bir hata oluştu. Lütfen tekrar deneyin. Sorun devam ederse destek ekibimizle iletişime geçin.",
+      error: "Something went wrong. Please try again.",
+      canRetry: true,
+      recoveryAction: "Try again. If it keeps failing, contact support.",
       timestamp: new Date().toISOString(),
     },
     {
@@ -120,7 +127,7 @@ export async function safeJsonParse<T = unknown>(
  */
 export function getUserFriendlyError(error: unknown): string {
   if (error instanceof z.ZodError) {
-    return "Lütfen girdiğiniz bilgileri kontrol edip tekrar deneyin.";
+    return "Please check the fields and try again.";
   }
 
   if (error instanceof Error) {
@@ -128,65 +135,65 @@ export function getUserFriendlyError(error: unknown): string {
     
     // Database errors
     if (errorMsg.includes("prisma") || errorMsg.includes("database") || errorMsg.includes("db")) {
-      return "Veritabanı hatası oluştu. Lütfen tekrar deneyin.";
+      return "Database error. Please try again.";
     }
     
     // Network errors
     if (errorMsg.includes("network") || errorMsg.includes("fetch") || errorMsg.includes("econnrefused")) {
-      return "Bağlantı hatası. İnternet bağlantınızı kontrol edip tekrar deneyin.";
+      return "Network error. Check your connection and try again.";
     }
     
     // Timeout errors
     if (errorMsg.includes("timeout") || errorMsg.includes("timed out")) {
-      return "İstek zaman aşımına uğradı. Lütfen tekrar deneyin.";
+      return "Request timed out. Please try again.";
     }
     
     // Authentication errors
     if (errorMsg.includes("unauthorized") || errorMsg.includes("401") || errorMsg.includes("authentication")) {
-      return "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.";
+      return "Your session expired. Please sign in again.";
     }
     
     // Permission errors
     if (errorMsg.includes("forbidden") || errorMsg.includes("403") || errorMsg.includes("permission")) {
-      return "Bu işlemi gerçekleştirmek için yetkiniz bulunmuyor.";
+      return "You don’t have permission to do that.";
     }
     
     // Not found errors
     if (errorMsg.includes("not found") || errorMsg.includes("404")) {
-      return "Aradığınız öğe bulunamadı.";
+      return "The requested item wasn’t found.";
     }
     
     // Validation errors
     if (errorMsg.includes("validation") || errorMsg.includes("invalid")) {
-      return "Girdiğiniz bilgiler geçersiz. Lütfen kontrol edip tekrar deneyin.";
+      return "Some fields are invalid. Please review and try again.";
     }
     
     // Unique constraint errors
     if (errorMsg.includes("unique") || errorMsg.includes("duplicate") || errorMsg.includes("already exists")) {
-      return "Bu bilgi zaten kullanılıyor. Lütfen farklı bir değer deneyin.";
+      return "That value is already in use. Please try a different one.";
     }
     
     // Foreign key errors
     if (errorMsg.includes("foreign key") || errorMsg.includes("constraint")) {
-      return "Bu işlem başka bir kayıtla ilişkili olduğu için gerçekleştirilemiyor.";
+      return "This can’t be completed because it’s linked to another record.";
     }
     
     // JSON parsing errors
     if (errorMsg.includes("json") || errorMsg.includes("parse")) {
-      return "Gönderilen veri geçersiz. Lütfen tekrar deneyin.";
+      return "Invalid request payload. Please try again.";
     }
     
     // File upload errors
     if (errorMsg.includes("file") || errorMsg.includes("upload") || errorMsg.includes("size")) {
-      return "Dosya yükleme hatası. Dosya boyutunu ve formatını kontrol edip tekrar deneyin.";
+      return "File upload failed. Check the file size/format and try again.";
     }
     
     // Default - never show technical error messages
-    return "Bir hata oluştu. Lütfen tekrar deneyin. Sorun devam ederse destek ekibimizle iletişime geçin.";
+    return "Something went wrong. Please try again.";
   }
 
   // Unknown error types
-  return "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin. Sorun devam ederse destek ekibimizle iletişime geçin.";
+  return "Unexpected error. Please try again.";
 }
 
 /**
@@ -205,7 +212,7 @@ export function getReassuringError(error: unknown, action?: string): {
       return {
         message: baseMessage,
         canRetry: true,
-        recoveryAction: "Check your internet connection and try again.",
+        recoveryAction: "Check your connection and try again.",
       };
     }
     

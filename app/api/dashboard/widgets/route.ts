@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { DashboardWidgets, WidgetType } from "@/types/widgets";
 import { getUserWidgetSettings } from "@/lib/dashboard/widget-settings";
 import { z } from "zod";
+import { withEgressLogging } from "@/lib/egress-middleware";
 
 const updateWidgetsSchema = z.object({
   widgets: z.array(
@@ -33,7 +34,7 @@ const updateWidgetsSchema = z.object({
   ),
 });
 
-export async function GET() {
+export const GET = withEgressLogging(async function GET() {
   try {
     const session = await getSession();
     if (!session?.user) {
@@ -62,9 +63,9 @@ export async function GET() {
       { status: 500 }
     );
   }
-}
+});
 
-export async function PUT(request: NextRequest) {
+export const PUT = withEgressLogging(async function PUT(request: NextRequest) {
   try {
     const session = await getSession();
     if (!session?.user) {
@@ -103,5 +104,5 @@ export async function PUT(request: NextRequest) {
       { status: 500 }
     );
   }
-}
+});
 

@@ -88,10 +88,14 @@ export default function SignInPage() {
         // Determine redirect target: use callbackUrl if valid, otherwise default to /dashboard
         let target = "/dashboard";
         if (callbackUrl) {
-          const decodedCallbackUrl = decodeURIComponent(callbackUrl);
-          // Only allow safe redirects to dashboard or admin routes
-          if (decodedCallbackUrl.startsWith("/admin") || decodedCallbackUrl.startsWith("/dashboard")) {
-            target = decodedCallbackUrl;
+          try {
+            const decodedCallbackUrl = decodeURIComponent(callbackUrl);
+            // Only allow safe redirects to dashboard or admin routes
+            if (decodedCallbackUrl.startsWith("/admin") || decodedCallbackUrl.startsWith("/dashboard")) {
+              target = decodedCallbackUrl;
+            }
+          } catch {
+            // Ignore malformed callbackUrl
           }
         }
         

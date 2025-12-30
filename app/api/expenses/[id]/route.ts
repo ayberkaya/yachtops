@@ -5,6 +5,7 @@ import { canApproveExpenses } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { ExpenseStatus, PaidBy, PaymentMethod, CashTransactionType, AuditAction } from "@prisma/client";
 import { z } from "zod";
+import { withEgressLogging } from "@/lib/egress-middleware";
 import { createAuditLog } from "@/lib/audit-log";
 import { hasPermission } from "@/lib/permissions";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
@@ -30,7 +31,7 @@ const updateExpenseSchema = z.object({
   reimbursedAt: z.string().optional().nullable(),
 });
 
-export async function GET(
+export const GET = withEgressLogging(async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -90,9 +91,9 @@ export async function GET(
       { status: 500 }
     );
   }
-}
+});
 
-export async function PATCH(
+export const PATCH = withEgressLogging(async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -457,9 +458,9 @@ export async function PATCH(
     console.error("Returning error response:", errorResponse);
     return NextResponse.json(errorResponse, { status: 500 });
   }
-}
+});
 
-export async function DELETE(
+export const DELETE = withEgressLogging(async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -548,5 +549,5 @@ export async function DELETE(
       { status: 500 }
     );
   }
-}
+});
 

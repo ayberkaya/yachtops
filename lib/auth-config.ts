@@ -32,13 +32,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         impersonateToken: { label: "Impersonate Token", type: "text" },
       },
       async authorize(credentials) {
-        const debugMode = process.env.NEXTAUTH_DEBUG === "true" || process.env.DEBUG_AUTH === "1";
-        
         try {
-          if (debugMode) {
-            console.log("🔍 [AUTH] Authorize called with identifier:", credentials?.email);
-          }
-          
           // Check for impersonation token (special case for admin impersonation)
           if (credentials?.impersonateToken) {
             const { cookies } = await import("next/headers");
@@ -101,9 +95,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           const identifier = credentials.email as string;
-          if (debugMode) {
-            console.log("🔍 [AUTH] Looking up user by email or username:", identifier);
-          }
           
           // Enhanced error handling for database queries
           let user;
@@ -164,10 +155,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null; // NextAuth v5 will handle this
           }
 
-          if (debugMode) {
-            console.log("✅ [AUTH] User found:", resolvedUser.email, "Role:", resolvedUser.role);
-          }
-
           if (resolvedUser.active === false) {
             console.error(`❌ [AUTH] User inactive: ${resolvedUser.email}`);
             return null;
@@ -183,9 +170,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null; // NextAuth v5 will handle this
           }
 
-          if (debugMode) {
-            console.log("✅ [AUTH] Authorization successful for:", resolvedUser.email);
-          }
           const userObject = {
             id: resolvedUser.id,
             email: resolvedUser.email,
@@ -228,10 +212,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         const now = Math.floor(Date.now() / 1000);
         if (token.exp < now) {
           // Token expired, return null to invalidate session
-          if (process.env.NEXTAUTH_DEBUG === "true") {
-            console.log("❌ [AUTH] Token expired, invalidating session");
-          }
-          return null as any;
+          return null;
         }
       }
 
@@ -247,28 +228,22 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.name = user.name;
         token.role = user.role;
         token.yachtId = user.yachtId;
-        token.tenantId = (user as any).tenantId ?? user.yachtId;
+        token.tenantId = user.tenantId ?? user.yachtId ?? null;
         token.permissions = user.permissions;
         // Store impersonation info if present
-        if ((user as any).impersonatedBy) {
-          token.impersonatedBy = (user as any).impersonatedBy;
+        if (user.impersonatedBy) {
+          token.impersonatedBy = user.impersonatedBy;
         }
         // Get rememberMe from user object (passed via credentials in signIn)
-        const rememberMe = (user as any).rememberMe ?? false;
+        const rememberMe = user.rememberMe ?? false;
         token.rememberMe = rememberMe;
         // Set token expiration based on rememberMe
         // If rememberMe is false, token expires in 24 hours (session cookie - expires when browser closes)
         // If rememberMe is true, token expires in 30 days (persistent cookie)
         if (rememberMe) {
           token.exp = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 days
-          // Set cookie maxAge for persistent cookie
-          if (typeof (token as any).cookieMaxAge === 'undefined') {
-            (token as any).cookieMaxAge = 30 * 24 * 60 * 60; // 30 days in seconds
-          }
         } else {
           token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60); // 24 hours
-          // No cookie maxAge - session cookie (expires when browser closes)
-          (token as any).cookieMaxAge = undefined;
         }
       }
       // Handle session updates
@@ -287,14 +262,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       const jwtSecret = process.env.SUPABASE_JWT_SECRET;
       
       if (!jwtSecret) {
-        console.error("❌ [JWT Callback] SUPABASE_JWT_SECRET is missing! This is a configuration error.");
-        // If no secret and no existing token, we cannot proceed
-        if (!token.supabaseAccessToken) {
-          console.error("❌ [JWT Callback] No existing Supabase token and JWT_SECRET missing. Token will be undefined.");
-        } else {
-          console.warn("⚠️ [JWT Callback] Using existing token, but cannot regenerate without JWT_SECRET.");
-        }
-        return token;
+        throw new Error("SUPABASE_JWT_SECRET must be set (required for Supabase RLS access tokens).");
       }
 
       // Step A: Check if token exists and is valid
@@ -362,10 +330,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           token.supabaseAccessToken = jwt.sign(payload, jwtSecret);
         } catch (error) {
           console.error("❌ [JWT Callback] Failed to sign Supabase token:", error);
-          // If signing fails and no existing token, log error but don't throw
-          if (!token.supabaseAccessToken) {
-            console.error("❌ [JWT Callback] Token signing failed and no existing token available.");
-          }
+          throw new Error("Failed to generate Supabase access token. Check SUPABASE_JWT_SECRET.");
         }
       }
 
@@ -373,18 +338,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       try {
-        // If token is null or expired, return null session
-        if (!token || !token.id) {
-          return null as any;
-        }
-
-        // Check if token is expired
-        if (token.exp && typeof token.exp === 'number') {
-          const now = Math.floor(Date.now() / 1000);
-          if (token.exp < now) {
-            return null as any;
-          }
-        }
+        // Session callback must always return a Session object.
+        // Token invalidation is handled in the JWT callback (returning null).
+        if (!token || !token.id) return session;
 
         if (session.user && token.id) {
           // Use token data directly - no DB query needed for performance
@@ -393,58 +349,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           session.user.email = (token.email as string) || session.user.email;
           session.user.name = (token.name as string) || session.user.name;
           session.user.role = token.role as UserRole;
-          session.user.yachtId = token.yachtId as string | null;
-          (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+          const yachtId = typeof token.yachtId === "string" ? token.yachtId : null;
+          const tenantId = typeof token.tenantId === "string" ? token.tenantId : null;
+          session.user.yachtId = yachtId;
+          session.user.tenantId = tenantId ?? yachtId ?? null;
           session.user.permissions = token.permissions as string | null | undefined;
           
           // Pass Supabase Access Token to session (for client-side use)
-          if (token.supabaseAccessToken) {
-            session.supabaseAccessToken = token.supabaseAccessToken as string;
-          } else {
-            console.error("❌ [Session Callback] token.supabaseAccessToken is missing! This should not happen if JWT_SECRET is configured.");
+          if (!token.supabaseAccessToken) {
+            throw new Error("Supabase access token missing from session JWT. Check auth configuration.");
           }
-          
-          // Only fetch from DB if critical data is missing (shouldn't happen normally)
-          const hasAllData = token.id && token.role && (token.email || session.user.email);
-          if (!hasAllData && db && typeof db.user?.findUnique === 'function') {
-            try {
-              // Use a timeout and catch any errors to prevent session callback from failing
-              const freshUser = await Promise.race([
-                db.user.findUnique({
-                  where: { id: token.id as string },
-                  select: {
-                    id: true,
-                    email: true,
-                    name: true,
-                    role: true,
-                    yachtId: true,
-                    permissions: true,
-                  },
-                }),
-                new Promise<null>((resolve) => 
-                  setTimeout(() => resolve(null), 2000)
-                ),
-              ]).catch((error) => {
-                // Catch any database errors and return null to prevent session callback failure
-                console.error("❌ [AUTH] Error fetching user data in session callback:", error);
-                return null;
-              });
-              
-              if (freshUser) {
-                session.user.id = freshUser.id;
-                session.user.name = freshUser.name;
-                session.user.email = freshUser.email;
-                session.user.role = freshUser.role;
-                session.user.yachtId = freshUser.yachtId;
-                (session.user as any).tenantId = freshUser.yachtId;
-                session.user.permissions = freshUser.permissions;
-              }
-            } catch (error) {
-              // Double catch to ensure we never throw from session callback
-              console.error("❌ [AUTH] Error fetching user data:", error);
-              // Don't throw - use token data as fallback
-            }
-          }
+          session.supabaseAccessToken = token.supabaseAccessToken as string;
         }
         return session;
       } catch (error) {
@@ -453,8 +368,10 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (session.user && token.id) {
           session.user.id = token.id as string;
           session.user.role = (token.role as UserRole) || UserRole.CREW;
-          session.user.yachtId = (token.yachtId as string | null) || null;
-          (session.user as any).tenantId = (token as any).tenantId ?? token.yachtId ?? null;
+          const yachtId = typeof token.yachtId === "string" ? token.yachtId : null;
+          const tenantId = typeof token.tenantId === "string" ? token.tenantId : null;
+          session.user.yachtId = yachtId;
+          session.user.tenantId = tenantId ?? yachtId ?? null;
           session.user.permissions = (token.permissions as string | null | undefined) || null;
         }
         return session;
@@ -493,10 +410,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           "Generate one with: openssl rand -base64 32"
         );
       }
-      console.warn(
-        "⚠️ [SECURITY] NEXTAUTH_SECRET not set. Using fallback secret for development only. " +
-        "This MUST be set in production!"
-      );
+      // Development-only fallback. Never rely on this in production.
       return "fallback-secret-for-development-only";
     }
     return secret;
