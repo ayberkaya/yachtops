@@ -5,6 +5,7 @@ import { getSession } from "@/lib/get-session";
 import { hasPermission } from "@/lib/permissions";
 import { withTenantScope } from "@/lib/tenant-guard";
 import { getTenantId } from "@/lib/tenant";
+import { TripStatus } from "@prisma/client";
 
 export default async function PostVoyageReportPage() {
   const session = await getSession();
@@ -25,7 +26,7 @@ export default async function PostVoyageReportPage() {
 
   const trips = await db.trip.findMany({
     where: withTenantScope(session, {
-      status: "COMPLETED",
+      status: TripStatus.COMPLETED,
     }),
     include: {
       createdBy: {
@@ -101,13 +102,13 @@ export default async function PostVoyageReportPage() {
 
   return (
     <PostVoyageReport
-      trips={trips.map((trip: { startDate: Date; endDate: Date | null; createdAt: Date; updatedAt: Date; expenses: { id: string; amount: string | number; currency: string; status: string; date: Date; description: string | null; category: { name: string } }[]; tasks: { id: string; title: string; status: string; completedAt: Date | null; completedBy: { name: string | null; email: string } | null }[]; movementLogs: { id: string; eventType: string; port: string | null; eta: Date | null; etd: Date | null; weather: string | null; seaState: string | null; recordedAt: Date }[]; tankLogs: { id: string; fuelLevel: number | null; freshWater: number | null; greyWater: number | null; blackWater: number | null; recordedAt: Date }[]; checklists: { id: string; type: string; title: string; completed: boolean; completedAt: Date | null }[] }) => ({
+      trips={trips.map((trip) => ({
         ...trip,
         startDate: trip.startDate.toISOString(),
         endDate: trip.endDate ? trip.endDate.toISOString() : null,
         createdAt: trip.createdAt.toISOString(),
         updatedAt: trip.updatedAt.toISOString(),
-        expenses: trip.expenses.map((exp: { id: string; amount: string | number; currency: string; status: string; date: Date; description: string | null; category: { name: string } }) => ({
+        expenses: trip.expenses.map((exp) => ({
           id: exp.id,
           amount: exp.amount.toString(),
           currency: exp.currency,
@@ -116,24 +117,24 @@ export default async function PostVoyageReportPage() {
           description: exp.description,
           category: exp.category,
         })),
-        tasks: trip.tasks.map((task: { id: string; title: string; status: string; completedAt: Date | null; completedBy: { name: string | null; email: string } | null }) => ({
+        tasks: trip.tasks.map((task) => ({
           id: task.id,
           title: task.title,
           status: task.status.toString(),
           completedAt: task.completedAt ? task.completedAt.toISOString() : null,
           completedBy: task.completedBy,
         })),
-        movementLogs: trip.movementLogs.map((log: { id: string; eventType: string; port: string | null; eta: Date | null; etd: Date | null; weather: string | null; seaState: string | null; recordedAt: Date }) => ({
+        movementLogs: trip.movementLogs.map((log) => ({
           ...log,
           eta: log.eta ? log.eta.toISOString() : null,
           etd: log.etd ? log.etd.toISOString() : null,
           recordedAt: log.recordedAt.toISOString(),
         })),
-        tankLogs: trip.tankLogs.map((log: { id: string; fuelLevel: number | null; freshWater: number | null; greyWater: number | null; blackWater: number | null; recordedAt: Date }) => ({
+        tankLogs: trip.tankLogs.map((log) => ({
           ...log,
           recordedAt: log.recordedAt.toISOString(),
         })),
-        checklists: trip.checklists.map((checklist: { id: string; type: string; title: string; completed: boolean; completedAt: Date | null }) => ({
+        checklists: trip.checklists.map((checklist) => ({
           ...checklist,
           completedAt: checklist.completedAt ? checklist.completedAt.toISOString() : null,
         })),

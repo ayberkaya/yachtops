@@ -299,6 +299,7 @@ async function testTaskIsolation(yachtAId: string, yachtBId: string, userId: str
   // Create a task in Yacht A context (extension should automatically set yachtId)
   const taskA = await dbA.task.create({
     data: {
+      yachtId: yachtAId,
       title: "Test Task from Yacht A",
       description: "This task should only be visible to Yacht A",
       status: "TODO",
@@ -348,6 +349,7 @@ async function testExpenseIsolation(yachtAId: string, yachtBId: string, userId: 
   // Create an expense in Yacht A context (extension should automatically set yachtId)
   const expenseA = await dbA.expense.create({
     data: {
+      yachtId: yachtAId,
       date: new Date(),
       description: "Test Expense from Yacht A",
       amount: 100.50,

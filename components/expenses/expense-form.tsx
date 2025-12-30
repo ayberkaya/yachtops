@@ -56,7 +56,7 @@ type ExpenseFormData = z.infer<typeof expenseSchema>;
 
 interface ExpenseFormProps {
   categories: ExpenseCategory[];
-  trips: Trip[];
+  trips: Pick<Trip, "id" | "name" | "code" | "startDate" | "endDate" | "status">[];
   initialData?: any;
 }
 

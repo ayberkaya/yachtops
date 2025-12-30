@@ -49,7 +49,6 @@ export async function GET(request: NextRequest) {
         notes: true,
         expiryDate: true,
         createdAt: true,
-        updatedAt: true,
         yachtId: true,
         createdByUserId: true,
         // REMOVED: fileUrl to prevent base64 egress - use /api/vessel-documents/[id]/file for file data
@@ -77,8 +76,6 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(totalCount / limit),
       },
     });
-
-    return NextResponse.json(docs);
   } catch (error) {
     console.error("Error fetching vessel documents:", error);
     return NextResponse.json(

@@ -60,10 +60,11 @@ export default async function CrewDocumentsPage() {
       </div>
 
       <CrewDocumentsView 
-        initialDocs={docs.map((doc: { expiryDate: Date | null; createdAt: Date }) => ({
+        initialDocs={docs.map((doc) => ({
           ...doc,
           expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
           createdAt: doc.createdAt.toISOString(),
+          fileUrl: doc.fileUrl || "", // Ensure fileUrl is always a string
         }))} 
         crewMembers={crewMembers} 
       />

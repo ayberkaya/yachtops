@@ -237,7 +237,7 @@ Powered by HelmOps — Yacht Operations Management
       date: new Date(),
     });
 
-    console.log(`✅ Invitation email sent successfully to ${to}`);
+    // Email sent successfully
   } catch (error) {
     console.error("❌ Failed to send invitation email:", error);
     // Re-throw the original error without wrapping to avoid nested error messages
@@ -427,7 +427,7 @@ Powered by HelmOps — Yacht Operations Management
       date: new Date(),
     });
 
-    console.log(`✅ Welcome email sent successfully to ${to}`);
+    // Welcome email sent successfully
   } catch (error) {
     console.error("❌ Failed to send welcome email:", error);
     throw new Error(

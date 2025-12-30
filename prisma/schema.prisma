@@ -6,9 +6,11 @@ datasource db {
   provider  = "postgresql"
   url       = env("DATABASE_URL")
   directUrl = env("DIRECT_URL")
+  schemas   = ["public", "auth"]
 }
 
 model User {
+  @@schema("public")
   id                       String                     @id @default(cuid())
   email                    String                     @unique
   username                 String                     @unique
@@ -80,6 +82,7 @@ model User {
 }
 
 model Yacht {
+  @@schema("public")
   id                        String                     @id @default(cuid())
   name                      String
   flag                      String?
@@ -125,6 +128,7 @@ model Yacht {
 }
 
 model Trip {
+  @@schema("public")
   id              String              @id @default(cuid())
   yachtId         String              @map("yacht_id")
   name            String
@@ -158,6 +162,7 @@ model Trip {
 }
 
 model TripItineraryDay {
+  @@schema("public")
   id           String    @id @default(cuid())
   tripId       String    @map("trip_id")
   dayIndex     Int       @map("day_index")
@@ -173,6 +178,7 @@ model TripItineraryDay {
 }
 
 model TripChecklistItem {
+  @@schema("public")
   id            String            @id @default(cuid())
   tripId        String            @map("trip_id")
   type          TripChecklistType @map("type")
@@ -192,6 +198,7 @@ model TripChecklistItem {
 }
 
 model TripTankLog {
+  @@schema("public")
   id           String   @id @default(cuid())
   tripId       String   @map("trip_id")
   fuelLevel    Float?   @map("fuel_level")
@@ -209,6 +216,7 @@ model TripTankLog {
 }
 
 model TripMovementLog {
+  @@schema("public")
   id           String            @id @default(cuid())
   tripId       String            @map("trip_id")
   eventType    TripMovementEvent @map("event_type")
@@ -228,6 +236,7 @@ model TripMovementLog {
 }
 
 model Task {
+  @@schema("public")
   id              String           @id @default(cuid())
   yachtId         String           @map("yacht_id")
   tripId          String?          @map("trip_id")
@@ -264,6 +273,7 @@ model Task {
 }
 
 model TaskComment {
+  @@schema("public")
   id        String   @id @default(cuid())
   taskId    String   @map("task_id")
   userId    String   @map("user_id")
@@ -277,6 +287,7 @@ model TaskComment {
 }
 
 model TaskAttachment {
+  @@schema("public")
   id        String   @id @default(cuid())
   taskId    String   @map("task_id")
   userId    String   @map("user_id")
@@ -292,6 +303,7 @@ model TaskAttachment {
 }
 
 model Notification {
+  @@schema("public")
   id        String           @id @default(cuid())
   userId    String           @map("user_id")
   type      NotificationType
@@ -311,6 +323,7 @@ model Notification {
 }
 
 model ExpenseCategory {
+  @@schema("public")
   id        String    @id @default(cuid())
   yachtId   String    @map("yacht_id")
   name      String
@@ -324,6 +337,7 @@ model ExpenseCategory {
 }
 
 model CreditCard {
+  @@schema("public")
   id                  String    @id @default(cuid())
   yachtId             String    @map("yacht_id")
   ownerName           String    @map("owner_name")
@@ -341,6 +355,7 @@ model CreditCard {
 }
 
 model Expense {
+  @@schema("public")
   id                 String            @id @default(cuid())
   yachtId            String            @map("yacht_id")
   tripId             String?           @map("trip_id")
@@ -392,6 +407,7 @@ model Expense {
 }
 
 model ExpenseReceipt {
+  @@schema("public")
   id              String    @id @default(cuid())
   expenseId       String    @map("expense_id")
   fileUrl         String?   @map("file_url") // Nullable for new uploads (legacy base64 fallback)
@@ -413,6 +429,7 @@ model ExpenseReceipt {
 }
 
 model CashTransaction {
+  @@schema("public")
   id              String              @id @default(cuid())
   yachtId         String              @map("yacht_id")
   type            CashTransactionType
@@ -434,6 +451,7 @@ model CashTransaction {
 }
 
 model MarinaPermissionDocument {
+  @@schema("public")
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   title           String
@@ -454,6 +472,7 @@ model MarinaPermissionDocument {
 }
 
 model VesselDocument {
+  @@schema("public")
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   title           String
@@ -478,6 +497,7 @@ model VesselDocument {
 }
 
 model UserNote {
+  @@schema("public")
   id        String                  @id @default(cuid())
   userId    String                  @map("user_id")
   title     String
@@ -492,6 +512,7 @@ model UserNote {
 }
 
 model UserNoteChecklistItem {
+  @@schema("public")
   id        String   @id @default(cuid())
   noteId    String   @map("note_id")
   content   String
@@ -505,6 +526,7 @@ model UserNoteChecklistItem {
 }
 
 model CrewDocument {
+  @@schema("public")
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   userId          String?   @map("user_id")
@@ -531,6 +553,7 @@ model CrewDocument {
 }
 
 model MessageChannel {
+  @@schema("public")
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   name            String
@@ -549,6 +572,7 @@ model MessageChannel {
 }
 
 model Message {
+  @@schema("public")
   id              String              @id @default(cuid())
   channelId       String              @map("channel_id")
   userId          String              @map("user_id")
@@ -579,6 +603,7 @@ model Message {
 }
 
 model MessageRead {
+  @@schema("public")
   id        String   @id @default(cuid())
   messageId String   @map("message_id")
   userId    String   @map("user_id")
@@ -591,6 +616,7 @@ model MessageRead {
 }
 
 model MessageAttachment {
+  @@schema("public")
   id            String   @id @default(cuid())
   messageId     String   @map("message_id")
   userId        String   @map("user_id")
@@ -609,6 +635,7 @@ model MessageAttachment {
 }
 
 model Product {
+  @@schema("public")
   id          String         @id @default(cuid())
   yachtId     String         @map("yacht_id")
   name        String
@@ -623,6 +650,7 @@ model Product {
 }
 
 model ShoppingStore {
+  @@schema("public")
   id            String         @id @default(cuid())
   yachtId       String         @map("yacht_id")
   name          String
@@ -640,6 +668,7 @@ model ShoppingStore {
 }
 
 model ShoppingList {
+  @@schema("public")
   id              String             @id @default(cuid())
   yachtId         String             @map("yacht_id")
   storeId         String?            @map("store_id")
@@ -660,6 +689,7 @@ model ShoppingList {
 }
 
 model ShoppingItem {
+  @@schema("public")
   id          String       @id @default(cuid())
   listId      String       @map("list_id")
   productId   String?      @map("product_id")
@@ -679,6 +709,7 @@ model ShoppingItem {
 }
 
 model AlcoholStock {
+  @@schema("public")
   id                String                @id @default(cuid())
   yachtId           String                @map("yacht_id")
   name              String
@@ -701,6 +732,7 @@ model AlcoholStock {
 }
 
 model AlcoholStockHistory {
+  @@schema("public")
   id             String       @id @default(cuid())
   stockId        String       @map("stock_id")
   userId         String?      @map("user_id")
@@ -717,6 +749,7 @@ model AlcoholStockHistory {
 }
 
 model MaintenanceLog {
+  @@schema("public")
   id              String                @id @default(cuid())
   yachtId         String                @map("yacht_id")
   type            MaintenanceType
@@ -744,6 +777,7 @@ model MaintenanceLog {
 }
 
 model MaintenanceDocument {
+  @@schema("public")
   id            String         @id @default(cuid())
   maintenanceId String         @map("maintenance_id")
   fileUrl       String         @map("file_url")
@@ -755,6 +789,7 @@ model MaintenanceDocument {
 }
 
 enum UserRole {
+  @@schema("public")
   SUPER_ADMIN
   ADMIN
   OWNER
@@ -767,6 +802,7 @@ enum UserRole {
 }
 
 enum TripStatus {
+  @@schema("public")
   PLANNED
   ONGOING
   COMPLETED
@@ -774,6 +810,7 @@ enum TripStatus {
 }
 
 enum TripType {
+  @@schema("public")
   CHARTER
   PRIVATE
   DELIVERY
@@ -782,17 +819,20 @@ enum TripType {
 }
 
 enum TaskStatus {
+  @@schema("public")
   TODO
   DONE
 }
 
 enum TaskPriority {
+  @@schema("public")
   NORMAL
   HIGH
   URGENT
 }
 
 enum TaskType {
+  @@schema("public")
   GENERAL
   MAINTENANCE
   REPAIR
@@ -800,6 +840,7 @@ enum TaskType {
 }
 
 enum ExpenseStatus {
+  @@schema("public")
   DRAFT
   SUBMITTED
   APPROVED
@@ -807,6 +848,7 @@ enum ExpenseStatus {
 }
 
 enum PaymentMethod {
+  @@schema("public")
   CASH
   CARD
   BANK_TRANSFER
@@ -815,6 +857,7 @@ enum PaymentMethod {
 }
 
 enum PaidBy {
+  @@schema("public")
   VESSEL
   OWNER
   CHARTERER
@@ -822,6 +865,7 @@ enum PaidBy {
 }
 
 enum StoreType {
+  @@schema("public")
   MARKET
   BUTCHER
   GROCERY
@@ -833,12 +877,14 @@ enum StoreType {
 }
 
 enum ShoppingListStatus {
+  @@schema("public")
   DRAFT
   ACTIVE
   COMPLETED
 }
 
 enum ItemUnit {
+  @@schema("public")
   PIECE
   KG
   LITER
@@ -850,6 +896,7 @@ enum ItemUnit {
 }
 
 enum MaintenanceType {
+  @@schema("public")
   PREVENTIVE
   REPAIR
   INSPECTION
@@ -858,6 +905,7 @@ enum MaintenanceType {
 }
 
 enum NotificationType {
+  @@schema("public")
   TASK_ASSIGNED
   TASK_COMPLETED
   TASK_DUE_SOON
@@ -868,27 +916,32 @@ enum NotificationType {
 }
 
 enum CashTransactionType {
+  @@schema("public")
   DEPOSIT
   WITHDRAWAL
 }
 
 enum AlcoholCategory {
+  @@schema("public")
   WINE
   SPIRITS
   BEER
 }
 
 enum TripChecklistType {
+  @@schema("public")
   PRE_DEPARTURE
   POST_ARRIVAL
 }
 
 enum TripMovementEvent {
+  @@schema("public")
   DEPARTURE
   ARRIVAL
 }
 
 model Shift {
+  @@schema("public")
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   userId          String    @map("user_id")
@@ -910,6 +963,7 @@ model Shift {
 }
 
 enum ShiftType {
+  @@schema("public")
   MORNING
   AFTERNOON
   NIGHT
@@ -918,6 +972,7 @@ enum ShiftType {
 }
 
 model Leave {
+  @@schema("public")
   id               String      @id @default(cuid())
   yachtId          String      @map("yacht_id")
   userId           String      @map("user_id")
@@ -941,6 +996,7 @@ model Leave {
 }
 
 enum LeaveType {
+  @@schema("public")
   ANNUAL_LEAVE
   SICK_LEAVE
   PERSONAL_LEAVE
@@ -948,12 +1004,14 @@ enum LeaveType {
 }
 
 enum LeaveStatus {
+  @@schema("public")
   PENDING
   APPROVED
   REJECTED
 }
 
 enum CalendarEventCategory {
+  @@schema("public")
   VOYAGE
   MARINA
   OVERSEAS
@@ -962,6 +1020,7 @@ enum CalendarEventCategory {
 }
 
 model CalendarEvent {
+  @@schema("public")
   id              String                 @id @default(cuid())
   yachtId         String                 @map("yacht_id")
   tripId          String?                @map("trip_id")
@@ -985,6 +1044,7 @@ model CalendarEvent {
 }
 
 model CustomRole {
+  @@schema("public")
   id          String   @id @default(cuid())
   yachtId     String   @map("yacht_id")
   name        String
@@ -1002,6 +1062,7 @@ model CustomRole {
 }
 
 model AuditLog {
+  @@schema("public")
   id          String      @id @default(cuid())
   yachtId     String      @map("yacht_id")
   userId      String      @map("user_id")
@@ -1023,6 +1084,7 @@ model AuditLog {
 }
 
 enum AuditAction {
+  @@schema("public")
   CREATE
   UPDATE
   DELETE
@@ -1032,12 +1094,14 @@ enum AuditAction {
 }
 
 enum InviteStatus {
+  @@schema("public")
   PENDING
   ACCEPTED
   EXPIRED
 }
 
 model YachtInvite {
+  @@schema("public")
   id        String       @id @default(cuid())
   email     String
   name      String?
@@ -1059,6 +1123,7 @@ model YachtInvite {
 }
 
 model UsageEvent {
+  @@schema("public")
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
   yachtId   String?  @map("yacht_id")
@@ -1079,6 +1144,7 @@ model UsageEvent {
 }
 
 model Feedback {
+  @@schema("public")
   id        String   @id @default(cuid())
   userId    String   @map("user_id")
   yachtId   String?  @map("yacht_id")
@@ -1101,6 +1167,7 @@ model Feedback {
 }
 
 model Plan {
+  @@schema("public")
   id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name         String   @unique
   features     String[] // Array of feature keys (e.g., ["module:logbook", "module:finance"])
@@ -1117,6 +1184,7 @@ model Plan {
 }
 
 enum WorkRequestStatus {
+  @@schema("public")
   PENDING           // Beklemede
   QUOTES_RECEIVED   // Teklif Alındı
   PRESENTED         // Sunum Yapıldı
@@ -1126,6 +1194,7 @@ enum WorkRequestStatus {
 }
 
 enum WorkRequestCategory {
+  @@schema("public")
   MAINTENANCE       // Bakım
   REPAIR            // Onarım
   UPGRADE           // Yükseltme
@@ -1135,6 +1204,7 @@ enum WorkRequestCategory {
 }
 
 enum WorkRequestPriority {
+  @@schema("public")
   LOW               // Düşük
   NORMAL            // Normal
   HIGH              // Yüksek
@@ -1142,6 +1212,7 @@ enum WorkRequestPriority {
 }
 
 model WorkRequest {
+  @@schema("public")
   id                      String                @id @default(cuid())
   yachtId                 String                @map("yacht_id")
   title                   String
@@ -1170,6 +1241,7 @@ model WorkRequest {
 }
 
 model Vendor {
+  @@schema("public")
   id              String    @id @default(cuid())
   yachtId         String    @map("yacht_id")
   name            String
@@ -1189,6 +1261,7 @@ model Vendor {
 }
 
 model Quote {
+  @@schema("public")
   id                String           @id @default(cuid())
   workRequestId     String           @map("work_request_id")
   vendorId          String           @map("vendor_id")
@@ -1215,6 +1288,7 @@ model Quote {
 }
 
 model QuoteDocument {
+  @@schema("public")
   id              String    @id @default(cuid())
   quoteId         String    @map("quote_id")
   fileUrl         String?   @map("file_url") // Nullable for new uploads (legacy base64 fallback)

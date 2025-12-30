@@ -4,7 +4,7 @@ Production-ready helm operations management system for private and charter yacht
 
 ## 🔗 Hızlı Link Paylaşımı
 
-Karşı tarafa link göndermek için: **[SIMPLE-DEPLOY.md](./SIMPLE-DEPLOY.md)** dosyasına bakın.
+Karşı tarafa link göndermek için: **[SIMPLE-DEPLOY.md](./docs/guides/SIMPLE-DEPLOY.md)** dosyasına bakın.
 
 **3 Adımda Link Hazır:**
 1. GitHub'a push edin
@@ -162,7 +162,7 @@ HelmOps bir PWA olarak çalışır ve cihazlara yüklenebilir.
 
 ### PWA Kurulumu
 
-Detaylı kurulum için [PWA-SETUP.md](./PWA-SETUP.md) dosyasına bakın.
+Detaylı kurulum için [PWA-SETUP.md](./docs/guides/PWA-SETUP.md) dosyasına bakın.
 
 **Hızlı Başlangıç:**
 1. Icon dosyalarını oluşturun (`public/icon-192.png`, `public/icon-512.png`)
@@ -175,7 +175,7 @@ Detaylı kurulum için [PWA-SETUP.md](./PWA-SETUP.md) dosyasına bakın.
 - The application is mobile-responsive and works as a PWA
 - Expense module is the core feature and is fully functional
 - Receipt upload functionality requires additional file storage setup (e.g., AWS S3, Cloudinary)
-- PWA için icon dosyaları gereklidir (detaylar için PWA-SETUP.md)
+- PWA için icon dosyaları gereklidir (detaylar için [PWA-SETUP.md](./docs/guides/PWA-SETUP.md))
 
 ## 🐛 Troubleshooting
 

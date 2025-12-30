@@ -54,7 +54,7 @@ export default async function ShoppingPage() {
         </p>
       </div>
       <ShoppingListView 
-        initialLists={lists.map((list: { createdAt: Date; updatedAt: Date }) => ({
+        initialLists={lists.map((list) => ({
           ...list,
           createdAt: list.createdAt.toISOString(),
           updatedAt: list.updatedAt.toISOString(),

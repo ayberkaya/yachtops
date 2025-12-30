@@ -206,19 +206,7 @@ export default async function UsersPage() {
         </CardHeader>
         <CardContent>
           <UserList 
-            initialUsers={users.map((user: {
-              id: string;
-              email: string;
-              name: string | null;
-              role: string;
-              permissions: string | null;
-              customRoleId: string | null;
-              customRole: {
-                id: string;
-                name: string;
-              } | null;
-              createdAt: Date;
-            }) => ({
+            initialUsers={users.map((user) => ({
               ...user,
               createdAt: user.createdAt.toISOString(),
             }))} 

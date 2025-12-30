@@ -46,7 +46,7 @@ export default async function RolesPage() {
         </p>
       </div>
       <RoleList 
-        initialRoles={roles.map((role: { createdAt: Date; updatedAt: Date }) => ({
+        initialRoles={roles.map((role) => ({
           ...role,
           createdAt: role.createdAt,
           updatedAt: role.updatedAt,

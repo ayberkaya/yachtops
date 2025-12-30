@@ -3,13 +3,9 @@ import type { NextRequest } from "next/server";
 
 export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
-  const isDev = process.env.NODE_ENV === "development";
 
   // Guardrail: Prevent redirect loops - never redirect /auth/signin to itself
   if (pathname === "/auth/signin") {
-    if (isDev) {
-      console.log(`[MIDDLEWARE] Skipping /auth/signin - let AuthLayout handle auth`);
-    }
     return NextResponse.next();
   }
 
@@ -23,18 +19,9 @@ export async function middleware(request: NextRequest) {
   // Protected routes: require session cookie
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
     if (!sessionToken) {
-      if (isDev) {
-        // Debug: log all cookies to see what's available
-        const allCookies = request.cookies.getAll();
-        console.log(`[MIDDLEWARE] No session token for ${pathname}`);
-        console.log(`[MIDDLEWARE] Available cookies:`, allCookies.map(c => c.name).join(", ") || "none");
-      }
       const signInUrl = new URL("/auth/signin", request.url);
       signInUrl.searchParams.set("callbackUrl", pathname);
       return NextResponse.redirect(signInUrl);
-    }
-    if (isDev) {
-      console.log(`[MIDDLEWARE] Session token found (${sessionToken.name}) for ${pathname}, allowing access`);
     }
   }
 

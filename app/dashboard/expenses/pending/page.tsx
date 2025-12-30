@@ -55,11 +55,15 @@ export default async function PendingExpensesPage() {
         <h1 className="text-3xl font-bold">Approval Queue</h1>
       </div>
       <PendingExpensesList 
-        expenses={pendingExpenses.map((exp: { date: Date; createdAt: Date; updatedAt: Date }) => ({
+        expenses={pendingExpenses.map((exp) => ({
           ...exp,
           date: exp.date.toISOString().split('T')[0],
           createdAt: exp.createdAt.toISOString(),
           updatedAt: exp.updatedAt.toISOString(),
+          receipts: exp.receipts.filter((r) => r.fileUrl !== null).map((r) => ({
+            id: r.id,
+            fileUrl: r.fileUrl!,
+          })),
         }))} 
       />
     </div>

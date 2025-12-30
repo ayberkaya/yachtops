@@ -6,12 +6,9 @@
  * Run: npx tsx scripts/diagnose-push-notifications.ts
  */
 
-import { config } from "dotenv";
-import { resolve } from "path";
-
-// Load environment variables
-config({ path: resolve(process.cwd(), ".env.local") });
-config({ path: resolve(process.cwd(), ".env") });
+// Note: This is a legacy script. 
+// For Next.js projects, environment variables are loaded automatically.
+// If running standalone with tsx, ensure .env files are in the project root.
 
 console.log("🔍 Push Notification Diagnostic Tool\n");
 console.log("=" .repeat(50));

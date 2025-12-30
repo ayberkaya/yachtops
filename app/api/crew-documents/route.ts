@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
         notes: true,
         expiryDate: true,
         createdAt: true,
-        updatedAt: true,
         yachtId: true,
         userId: true,
         createdByUserId: true,
@@ -85,8 +84,6 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(totalCount / limit),
       },
     });
-
-    return NextResponse.json(docs);
   } catch (error) {
     console.error("Error fetching crew documents:", error);
     return NextResponse.json(

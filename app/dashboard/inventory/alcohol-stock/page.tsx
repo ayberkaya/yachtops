@@ -36,7 +36,7 @@ export default async function AlcoholStockPage() {
         </p>
       </div>
       <AlcoholStockView 
-        initialStocks={stocks.map((stock: { createdAt: Date; updatedAt: Date }) => ({
+        initialStocks={stocks.map((stock) => ({
           ...stock,
           createdAt: stock.createdAt.toISOString(),
           updatedAt: stock.updatedAt.toISOString(),

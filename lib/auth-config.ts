@@ -63,7 +63,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             
             // Get target user by impersonateToken (which is the userId)
             const targetUser = await db.user.findUnique({
-              where: { id: credentials.impersonateToken },
+              where: { id: credentials.impersonateToken as string },
               select: {
                 id: true,
                 email: true,

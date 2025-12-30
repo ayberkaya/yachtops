@@ -198,7 +198,7 @@ export async function ensureTripChecklistSeeded(tripId: string) {
   });
 
   const itemsByType = existingItems.reduce(
-    (acc: Record<TripChecklistType, typeof existingItems>, item: { type: TripChecklistType }) => {
+    (acc: Record<TripChecklistType, typeof existingItems>, item) => {
       acc[item.type] = acc[item.type] || [];
       acc[item.type].push(item);
       return acc;

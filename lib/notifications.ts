@@ -142,9 +142,6 @@ export async function sendNotificationToUser(
       } catch (error: any) {
         // Handle 410 (Gone) errors - subscription is invalid
         if (error?.statusCode === 410 || error?.message?.includes("410")) {
-          console.log(
-            `Subscription ${subscription.id} is invalid (410 Gone), deleting...`
-          );
           // Delete invalid subscription from database
           const deletePromise = supabase
             .from("push_subscriptions")
@@ -153,15 +150,13 @@ export async function sendNotificationToUser(
           
           deletePromises.push(
             Promise.resolve(deletePromise)
-              .then(() => {
-                console.log(`Deleted invalid subscription ${subscription.id}`);
-              })
+              .then(() => {})
               .catch((deleteError: unknown) => {
                 console.error(
                   `Error deleting invalid subscription ${subscription.id}:`,
                   deleteError
                 );
-              })
+              }) as Promise<void>
           );
         } else {
           // Other errors - log but don't delete subscription
@@ -214,13 +209,8 @@ export async function sendNotificationToRole(
     });
 
     if (users.length === 0) {
-      console.log(`No active users found with role ${role}`);
       return 0;
     }
-
-    console.log(
-      `Sending notification to ${users.length} users with role ${role}`
-    );
 
     // Send notification to each user
     const results = await Promise.allSettled(
@@ -236,10 +226,6 @@ export async function sendNotificationToRole(
         return count;
       }
     }, 0);
-
-    console.log(
-      `Sent ${successCount} notifications to users with role ${role}`
-    );
 
     return successCount;
   } catch (error) {
@@ -274,7 +260,6 @@ export async function sendNotificationToYachtUsers(
     });
 
     if (users.length === 0) {
-      console.log(`No active users found for yacht ${yachtId}`);
       return 0;
     }
 
@@ -284,15 +269,8 @@ export async function sendNotificationToYachtUsers(
       : users.map((user: { id: string }) => user.id);
 
     if (recipientIds.length === 0) {
-      console.log(
-        `No recipients found for yacht ${yachtId} (excluding sender ${excludeUserId})`
-      );
       return 0;
     }
-
-    console.log(
-      `Sending notification to ${recipientIds.length} users in yacht ${yachtId}`
-    );
 
     // Send notification to each recipient
     const results = await Promise.allSettled(
@@ -358,15 +336,8 @@ export async function sendNotificationToChannel(
       .filter((id: string) => id !== excludeUserId);
 
     if (recipientIds.length === 0) {
-      console.log(
-        `No recipients found for channel ${channelId} (excluding sender ${excludeUserId})`
-      );
       return 0;
     }
-
-    console.log(
-      `Sending notification to ${recipientIds.length} users in channel ${channelId}`
-    );
 
     // Send notification to each recipient
     const results = await Promise.allSettled(
@@ -382,10 +353,6 @@ export async function sendNotificationToChannel(
         return count;
       }
     }, 0);
-
-    console.log(
-      `Sent ${successCount} notifications to users in channel ${channelId}`
-    );
 
     return successCount;
   } catch (error) {

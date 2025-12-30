@@ -24,7 +24,11 @@ export default async function NewExpensePage() {
     redirect("/dashboard");
   }
 
-  const yachtId = tenantId; // tenantId is guaranteed to be string here
+  if (!tenantId) {
+    redirect("/dashboard");
+  }
+
+  const yachtId = tenantId;
 
   const defaultCategories = [
     "Fuel",

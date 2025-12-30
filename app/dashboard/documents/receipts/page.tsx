@@ -75,14 +75,16 @@ export default async function ReceiptsPage() {
         </p>
       </div>
 
-      <ReceiptsView receipts={receipts.map((receipt: { id: string; uploadedAt: Date; expense: { id: string; date: Date; description: string | null; amount: string | number; currency: string; category: { id: string; name: string } } }) => ({
+      <ReceiptsView receipts={receipts.map((receipt) => ({
         id: receipt.id,
         uploadedAt: receipt.uploadedAt,
         expense: {
           id: receipt.expense.id,
           date: receipt.expense.date,
-          description: receipt.expense.description,
-          amount: receipt.expense.amount,
+          description: receipt.expense.description ?? "No description",
+          amount: typeof receipt.expense.amount === "string" 
+            ? parseFloat(receipt.expense.amount) 
+            : receipt.expense.amount,
           currency: receipt.expense.currency,
           category: receipt.expense.category,
         },

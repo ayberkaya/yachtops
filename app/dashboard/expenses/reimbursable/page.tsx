@@ -66,7 +66,7 @@ export default async function ReimbursableExpensesPage() {
         </p>
       </div>
       <ReimbursableExpensesList 
-        expenses={sortedExpenses.map((exp: { date: Date; reimbursedAt: Date | null; createdAt: Date; updatedAt: Date }) => ({
+        expenses={sortedExpenses.map((exp) => ({
           ...exp,
           date: exp.date.toISOString().split('T')[0],
           reimbursedAt: exp.reimbursedAt?.toISOString() || null,

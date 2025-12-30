@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
 import { ExpenseStatus, ShoppingListStatus, TaskStatus, TripStatus } from "@prisma/client";
-import { jsPDF } from "jspdf";
 import { endOfDay, format, isValid, parseISO, startOfDay } from "date-fns";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
@@ -167,6 +166,8 @@ export async function GET(request: NextRequest) {
 
     const totalPrimaryCurrency = expensesByCurrency[primaryCurrency] || 0;
 
+    // Dynamic import for jsPDF to reduce initial bundle size
+    const { jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     let yPos = 20;
     const pageWidth = doc.internal.pageSize.getWidth();

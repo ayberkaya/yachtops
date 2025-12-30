@@ -68,7 +68,7 @@ interface User {
 interface ExpenseListProps {
   initialExpenses: Expense[];
   categories: ExpenseCategory[];
-  trips: Trip[];
+  trips: Pick<Trip, "id" | "name" | "code" | "startDate" | "endDate" | "status">[];
   users: User[];
   currentUserId: string;
 }

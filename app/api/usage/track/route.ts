@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
 
     if (!userExists) {
       // User doesn't exist - skip tracking silently
-      console.debug(`Usage tracking skipped: user ${userId} not found in database`);
+      // No logging needed - this is expected for deleted users with stale sessions
       return NextResponse.json({ success: true }, { status: 200 });
     }
 
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
         eventType: validated.eventType,
         page: validated.page || null,
         action: validated.action || null,
-        metadata: validated.metadata || null,
+        metadata: validated.metadata || undefined,
       },
     });
 

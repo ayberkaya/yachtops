@@ -101,7 +101,7 @@ export default async function ShiftsPage() {
       </div>
 
       <ShiftManagement
-        initialShifts={shifts.map((shift: { date: Date; startTime: Date; endTime: Date; createdAt: Date; updatedAt: Date }) => ({
+        initialShifts={shifts.map((shift) => ({
           ...shift,
           date: shift.date.toISOString().split("T")[0],
           startTime: shift.startTime.toISOString(),
@@ -109,7 +109,7 @@ export default async function ShiftsPage() {
           createdAt: shift.createdAt.toISOString(),
           updatedAt: shift.updatedAt.toISOString(),
         }))}
-        initialLeaves={leaves.map((leave: { startDate: Date; endDate: Date; createdAt: Date; updatedAt: Date }) => ({
+        initialLeaves={leaves.map((leave) => ({
           ...leave,
           startDate: leave.startDate.toISOString().split("T")[0],
           endDate: leave.endDate.toISOString().split("T")[0],

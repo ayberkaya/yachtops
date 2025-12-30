@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
         message: validated.message,
         page: validated.page || null,
         action: validated.action || null,
-        metadata: validated.metadata || null,
+        metadata: validated.metadata || undefined,
         status: "new",
       },
     });

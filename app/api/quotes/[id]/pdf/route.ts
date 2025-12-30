@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { jsPDF } from "jspdf";
 import { format } from "date-fns";
 import { hasPermission } from "@/lib/permissions";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
@@ -60,6 +59,9 @@ export async function GET(
       return NextResponse.json({ error: "Work request not found" }, { status: 404 });
     }
 
+    // Dynamic import for jsPDF to reduce initial bundle size
+    const { jsPDF } = await import("jspdf");
+    
     // Create PDF
     const doc = new jsPDF({
       orientation: "portrait",
