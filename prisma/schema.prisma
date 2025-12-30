@@ -73,6 +73,8 @@ model User {
   auditLogs                AuditLog[]
   usageEvents              UsageEvent[]
   feedback                 Feedback[]
+  workRequests             WorkRequest[]  @relation("WorkRequestCreator")
+  quotes                   Quote[]        @relation("QuoteCreator")
 
   @@map("users")
 }
@@ -116,6 +118,8 @@ model Yacht {
   invites                   YachtInvite[]
   calendarEvents            CalendarEvent[]
   currentPlan               Plan?                      @relation(fields: [currentPlanId], references: [id], onDelete: SetNull)
+  workRequests              WorkRequest[]
+  vendors                   Vendor[]
 
   @@map("yachts")
 }
@@ -1110,4 +1114,118 @@ model Plan {
   yachts       Yacht[]
 
   @@map("plans")
+}
+
+enum WorkRequestStatus {
+  PENDING           // Beklemede
+  QUOTES_RECEIVED   // Teklif Alındı
+  PRESENTED         // Sunum Yapıldı
+  APPROVED          // Onaylandı
+  REJECTED          // Reddedildi
+  CANCELLED         // İptal edildi
+}
+
+enum WorkRequestCategory {
+  MAINTENANCE       // Bakım
+  REPAIR            // Onarım
+  UPGRADE           // Yükseltme
+  INSPECTION        // Kontrol
+  EMERGENCY         // Acil
+  OTHER             // Diğer
+}
+
+enum WorkRequestPriority {
+  LOW               // Düşük
+  NORMAL            // Normal
+  HIGH              // Yüksek
+  URGENT            // Acil
+}
+
+model WorkRequest {
+  id                      String                @id @default(cuid())
+  yachtId                 String                @map("yacht_id")
+  title                   String
+  description             String?
+  category                WorkRequestCategory?   @default(MAINTENANCE)
+  priority                WorkRequestPriority    @default(NORMAL)
+  component               String?               // Hangi parça/bileşen (akü, kromlar, motor, vs.)
+  location                String?               // Lokasyon (marina, liman, vs.)
+  requestedCompletionDate DateTime?             @map("requested_completion_date") // İstenen tamamlanma tarihi
+  estimatedBudgetMin      Float?                @map("estimated_budget_min") // Tahmini minimum bütçe
+  estimatedBudgetMax      Float?                @map("estimated_budget_max") // Tahmini maksimum bütçe
+  currency                String                @default("EUR")
+  status                  WorkRequestStatus     @default(PENDING)
+  createdByUserId         String?               @map("created_by_user_id")
+  createdAt               DateTime              @default(now()) @map("created_at")
+  updatedAt               DateTime              @updatedAt @map("updated_at")
+  createdBy               User?                 @relation("WorkRequestCreator", fields: [createdByUserId], references: [id])
+  yacht                   Yacht                 @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  quotes                  Quote[]
+
+  @@index([yachtId, status])
+  @@index([yachtId, createdAt])
+  @@index([yachtId, category])
+  @@index([yachtId, priority])
+  @@map("work_requests")
+}
+
+model Vendor {
+  id              String    @id @default(cuid())
+  yachtId         String    @map("yacht_id")
+  name            String
+  contactPerson   String?   @map("contact_person")
+  email           String?
+  phone           String?
+  address         String?
+  notes           String?
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  yacht           Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+  quotes          Quote[]
+
+  @@unique([yachtId, name])
+  @@index([yachtId])
+  @@map("vendors")
+}
+
+model Quote {
+  id                String           @id @default(cuid())
+  workRequestId     String           @map("work_request_id")
+  vendorId          String           @map("vendor_id")
+  title             String
+  description       String?
+  productService    String?          @map("product_service")
+  amount            Float
+  currency          String           @default("EUR")
+  vatIncluded       Boolean          @default(false) @map("vat_included") // KDV dahil mi?
+  deliveryTime      String?          @map("delivery_time") // "3 gün sonra", "6 gün sonra" gibi
+  warranty          String?          // "1 yıl", "6 ay" gibi
+  notes             String?
+  createdByUserId   String?          @map("created_by_user_id")
+  createdAt         DateTime         @default(now()) @map("created_at")
+  updatedAt         DateTime         @updatedAt @map("updated_at")
+  workRequest       WorkRequest      @relation(fields: [workRequestId], references: [id], onDelete: Cascade)
+  vendor            Vendor           @relation(fields: [vendorId], references: [id])
+  createdBy         User?            @relation("QuoteCreator", fields: [createdByUserId], references: [id])
+  documents         QuoteDocument[]
+
+  @@index([workRequestId])
+  @@index([vendorId])
+  @@map("quotes")
+}
+
+model QuoteDocument {
+  id              String    @id @default(cuid())
+  quoteId         String    @map("quote_id")
+  fileUrl         String?   @map("file_url") // Nullable for new uploads (legacy base64 fallback)
+  storageBucket   String?   @map("storage_bucket") // Supabase Storage bucket name
+  storagePath     String?   @map("storage_path") // File path in bucket
+  mimeType        String?   @map("mime_type") // MIME type
+  fileSize        Int?      @map("file_size") // File size in bytes
+  title           String?
+  uploadedAt      DateTime  @default(now()) @map("uploaded_at")
+  quote           Quote     @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@index([storageBucket, storagePath])
+  @@map("quote_documents")
 }

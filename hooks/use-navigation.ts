@@ -15,6 +15,7 @@ import {
   Tag,
   TrendingUp,
   Presentation,
+  FileSearch,
   LucideIcon,
 } from "lucide-react";
 
@@ -71,6 +72,12 @@ export function useNavigation() {
       label: "Documents",
       icon: FileText,
       permission: "documents.view",
+    },
+    {
+      href: "/dashboard/quotes",
+      label: "Quotes",
+      icon: FileSearch,
+      permission: "quotes.view",
     },
   ];
 

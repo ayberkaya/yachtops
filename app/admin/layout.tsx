@@ -1,9 +1,25 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
-import { Sidebar, MobileMenuButton } from "@/components/dashboard/sidebar";
+import dynamicImport from "next/dynamic";
 import { NotificationsProvider } from "@/components/notifications/notifications-provider";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import { ErrorBoundary } from "@/components/error-boundary";
+
+// Dynamically import Sidebar with SSR disabled to avoid SessionProvider issues
+const Sidebar = dynamicImport(() => import("@/components/dashboard/sidebar").then(mod => ({ default: mod.Sidebar })), {
+  ssr: false,
+  loading: () => (
+    <aside className="hidden md:flex md:flex-col md:w-64 md:border-r md:border-slate-200 bg-white">
+      <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+        {/* Loading placeholder */}
+      </div>
+    </aside>
+  ),
+});
+
+const MobileMenuButton = dynamicImport(() => import("@/components/dashboard/sidebar").then(mod => ({ default: mod.MobileMenuButton })), {
+  ssr: false,
+});
 
 // Force dynamic rendering to avoid performance measurement timing issues with redirects
 // Session is already cached by NextAuth, so we don't need to disable fetchCache

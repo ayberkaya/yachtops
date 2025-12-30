@@ -1,9 +1,25 @@
 "use client";
 
-import { Sidebar, MobileMenuButton } from "@/components/dashboard/sidebar";
+import dynamic from "next/dynamic";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import { ModuleTabsWrapper } from "@/components/dashboard/module-tabs-wrapper";
 import { ReactNode } from "react";
+
+// Dynamically import Sidebar with SSR disabled to avoid SessionProvider issues
+const Sidebar = dynamic(() => import("@/components/dashboard/sidebar").then(mod => ({ default: mod.Sidebar })), {
+  ssr: false,
+  loading: () => (
+    <aside className="hidden md:flex md:flex-col md:w-64 md:border-r md:border-slate-200 bg-white">
+      <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+        {/* Loading placeholder */}
+      </div>
+    </aside>
+  ),
+});
+
+const MobileMenuButton = dynamic(() => import("@/components/dashboard/sidebar").then(mod => ({ default: mod.MobileMenuButton })), {
+  ssr: false,
+});
 
 interface DashboardClientWrapperProps {
   children: ReactNode;

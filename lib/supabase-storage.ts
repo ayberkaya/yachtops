@@ -14,6 +14,7 @@ export const STORAGE_BUCKETS = {
   VESSEL_DOCUMENTS: 'vessel-documents',
   CREW_DOCUMENTS: 'crew-documents',
   MAINTENANCE_DOCUMENTS: 'maintenance-documents',
+  QUOTE_DOCUMENTS: 'quote-documents',
 } as const;
 
 // Signed URL TTL: 1 hour (3600 seconds)

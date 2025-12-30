@@ -2,8 +2,8 @@
 
 @layer base {
   :root {
-    /* BACKGROUND: Cool Off-White (Zinc-50/Slate-50 blend) - NOT pure white */
-    --background: 210 40% 98%;
+    /* BACKGROUND: Cool Blue-Gray (More blue, slightly darker for better card contrast) */
+    --background: 215 45% 95%;
     /* FOREGROUND: Deep Charcoal (Not pure black) */
     --foreground: 222.2 47.4% 11.2%;
 

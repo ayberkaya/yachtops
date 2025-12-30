@@ -404,13 +404,14 @@ export function Sidebar() {
   
   // Redirect to signin if session is invalid or unauthenticated
   useEffect(() => {
+    // Only run on client side
+    if (typeof window === 'undefined') return;
+    
     if (status === "unauthenticated" || (!session?.user && status !== "loading")) {
       // Clear storage and redirect
-      if (typeof window !== 'undefined') {
-        localStorage.clear();
-        sessionStorage.clear();
-        router.push("/auth/signin");
-      }
+      localStorage.clear();
+      sessionStorage.clear();
+      router.push("/auth/signin");
     }
   }, [status, session, router]);
   const [isCollapsed, setIsCollapsed] = useState(false);

@@ -6,6 +6,8 @@ import { CalendarEventCategory } from "@prisma/client";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
 import { hasPermission } from "@/lib/permissions";
+import { sendNotificationToYachtUsers } from "@/lib/notifications";
+import { format } from "date-fns";
 
 const calendarEventSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -177,6 +179,23 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    });
+
+    // Send notification to all personnel in the yacht
+    // Don't block the response if notification fails
+    sendNotificationToYachtUsers(
+      ensuredTenantId,
+      {
+        title: "Yeni Takvim Programı",
+        body: `${event.title} - ${format(new Date(event.startDate), "d MMM yyyy HH:mm")}`,
+        url: "/dashboard/trips/calendar",
+        tag: `calendar-event-${event.id}`,
+        requireInteraction: false,
+      },
+      session!.user.id // Exclude the creator from notification
+    ).catch((error) => {
+      console.error("Error sending calendar event notification:", error);
+      // Don't fail the request if notification fails
     });
 
     return NextResponse.json(event, { status: 201 });

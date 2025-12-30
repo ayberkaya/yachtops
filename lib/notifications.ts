@@ -5,6 +5,7 @@ import { createClient } from "@/utils/supabase/server";
 import { db } from "@/lib/db";
 import { UserRole, NotificationType } from "@prisma/client";
 import { createHash } from "crypto";
+import { format } from "date-fns";
 
 /**
  * Notification payload structure
@@ -243,6 +244,81 @@ export async function sendNotificationToRole(
     return successCount;
   } catch (error) {
     console.error(`Error in sendNotificationToRole for role ${role}:`, error);
+    return 0;
+  }
+}
+
+/**
+ * Send push notification to all active users in a yacht (tenant)
+ * 
+ * @param yachtId - Yacht ID (tenant ID)
+ * @param payload - Notification payload with title, body, url, etc.
+ * @param excludeUserId - Optional user ID to exclude from notifications (usually the sender)
+ * @returns Promise that resolves to the total number of successful notifications sent
+ */
+export async function sendNotificationToYachtUsers(
+  yachtId: string,
+  payload: NotificationPayload,
+  excludeUserId?: string
+): Promise<number> {
+  try {
+    // Query all active users in the yacht
+    const whereClause: any = {
+      yachtId,
+      active: true, // Only notify active users
+    };
+
+    const users = await db.user.findMany({
+      where: whereClause,
+      select: { id: true },
+    });
+
+    if (users.length === 0) {
+      console.log(`No active users found for yacht ${yachtId}`);
+      return 0;
+    }
+
+    // Filter out excluded user if provided
+    const recipientIds = excludeUserId
+      ? users.map((user: { id: string }) => user.id).filter((id: string) => id !== excludeUserId)
+      : users.map((user: { id: string }) => user.id);
+
+    if (recipientIds.length === 0) {
+      console.log(
+        `No recipients found for yacht ${yachtId} (excluding sender ${excludeUserId})`
+      );
+      return 0;
+    }
+
+    console.log(
+      `Sending notification to ${recipientIds.length} users in yacht ${yachtId}`
+    );
+
+    // Send notification to each recipient
+    const results = await Promise.allSettled(
+      recipientIds.map((userId: string) => sendNotificationToUser(userId, payload))
+    );
+
+    // Count successful notifications
+    const successCount = results.reduce((count, result) => {
+      if (result.status === "fulfilled") {
+        return count + result.value;
+      } else {
+        console.error("Error sending notification to user:", result.reason);
+        return count;
+      }
+    }, 0);
+
+    console.log(
+      `Sent ${successCount} notifications to users in yacht ${yachtId}`
+    );
+
+    return successCount;
+  } catch (error) {
+    console.error(
+      `Error in sendNotificationToYachtUsers for yacht ${yachtId}:`,
+      error
+    );
     return 0;
   }
 }
@@ -578,6 +654,80 @@ export async function checkDueDates() {
     }
   } catch (error) {
     console.error("Error checking due dates:", error);
+  }
+}
+
+/**
+ * Send reminders for calendar events that are starting within the specified hours
+ * @param hoursBefore - Number of hours before the event to send the reminder
+ * @returns Number of reminders sent
+ */
+export async function sendCalendarEventReminders(hoursBefore: number = 24): Promise<number> {
+  try {
+    const now = new Date();
+    const reminderTime = new Date(now.getTime() + hoursBefore * 60 * 60 * 1000);
+
+    // Find calendar events that start within the reminder window
+    const upcomingEvents = await db.calendarEvent.findMany({
+      where: {
+        startDate: {
+          gte: now,
+          lte: reminderTime,
+        },
+      },
+      include: {
+        yacht: {
+          include: {
+            users: {
+              where: {
+                role: {
+                  in: [UserRole.OWNER, UserRole.CAPTAIN, UserRole.CREW],
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    let reminderCount = 0;
+
+    for (const event of upcomingEvents) {
+      // Check if we've already sent a reminder for this event today
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Send notification to all users in the yacht
+      for (const user of event.yacht.users) {
+        await createNotification(
+          user.id,
+          NotificationType.MESSAGE_RECEIVED, // Use existing type as CALENDAR_REMINDER may not exist
+          `Calendar event "${event.title}" is starting ${hoursBefore === 1 ? "in 1 hour" : `in ${hoursBefore} hours`}`,
+          undefined
+        );
+
+        // Also send push notification if user has subscription
+        try {
+          await sendNotificationToUser(user.id, {
+            title: "Takvim Hatırlatıcısı",
+            body: `"${event.title}" ${hoursBefore === 1 ? "1 saat" : `${hoursBefore} saat`} içinde başlıyor`,
+            url: "/dashboard/trips/calendar",
+            tag: `calendar-reminder-${event.id}`,
+            requireInteraction: false,
+          });
+        } catch (error) {
+          console.error(`Error sending push notification to user ${user.id}:`, error);
+          // Continue with other users even if one fails
+        }
+      }
+
+      reminderCount++;
+    }
+
+    return reminderCount;
+  } catch (error) {
+    console.error("Error sending calendar event reminders:", error);
+    return 0;
   }
 }
 

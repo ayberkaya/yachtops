@@ -71,7 +71,16 @@ export type Permission =
   | "maintenance.view"
   | "maintenance.create"
   | "maintenance.edit"
-  | "maintenance.delete";
+  | "maintenance.delete"
+  | "quotes.view"
+  | "quotes.create"
+  | "quotes.edit"
+  | "quotes.delete"
+  | "quotes.approve"
+  | "vendors.view"
+  | "vendors.create"
+  | "vendors.edit"
+  | "vendors.delete";
 
 /**
  * Permission descriptions - what each permission allows
@@ -161,6 +170,19 @@ export const PERMISSION_DESCRIPTIONS: Record<Permission, string> = {
   "maintenance.create": "Yeni bakım kaydı oluşturma",
   "maintenance.edit": "Bakım kayıtlarını düzenleme",
   "maintenance.delete": "Bakım kayıtlarını silme",
+  
+  // Quotes
+  "quotes.view": "Teklifleri görüntüleme",
+  "quotes.create": "Yeni teklif oluşturma",
+  "quotes.edit": "Teklifleri düzenleme",
+  "quotes.delete": "Teklifleri silme",
+  "quotes.approve": "Teklifleri onaylama",
+  
+  // Vendors
+  "vendors.view": "Firmaları görüntüleme",
+  "vendors.create": "Yeni firma oluşturma",
+  "vendors.edit": "Firmaları düzenleme",
+  "vendors.delete": "Firmaları silme",
   
   // Settings
   "settings.view": "Ayarları görüntüleme",
@@ -255,6 +277,19 @@ export const PERMISSION_GROUPS: Record<string, Permission[]> = {
     "settings.view",
     "settings.edit",
   ],
+  Quotes: [
+    "quotes.view",
+    "quotes.create",
+    "quotes.edit",
+    "quotes.delete",
+    "quotes.approve",
+  ],
+  Vendors: [
+    "vendors.view",
+    "vendors.create",
+    "vendors.edit",
+    "vendors.delete",
+  ],
 };
 
 export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
@@ -318,6 +353,15 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "maintenance.create",
     "maintenance.edit",
     "maintenance.delete",
+    "quotes.view",
+    "quotes.create",
+    "quotes.edit",
+    "quotes.delete",
+    "quotes.approve",
+    "vendors.view",
+    "vendors.create",
+    "vendors.edit",
+    "vendors.delete",
     "settings.view",
     "settings.edit",
   ],
@@ -380,6 +424,14 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "maintenance.create",
     "maintenance.edit",
     "maintenance.delete",
+    "quotes.view",
+    "quotes.create",
+    "quotes.edit",
+    "quotes.delete",
+    "vendors.view",
+    "vendors.create",
+    "vendors.edit",
+    "vendors.delete",
     "settings.view",
   ],
   CREW: [
@@ -392,6 +444,7 @@ export const DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     "messages.create",
     "shopping.view",
     "shopping.create",
+    "quotes.view",
     "settings.view",
   ],
 };
