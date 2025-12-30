@@ -1,5 +1,5 @@
 import type { Session } from "next-auth";
-import { db } from "@/lib/db";
+import { dbUnscoped } from "@/lib/db";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { TaskStatus } from "@prisma/client";
 // Removed unused date-fns imports - filtering now done server-side
@@ -25,9 +25,10 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     
     // Cache my tasks query (user-specific, revalidates every 30 seconds)
     const myTasksPromise = unstable_cache(
-      async () => db.task.findMany({
+      async () => dbUnscoped.task.findMany({
         where: {
           assigneeId: user.id,
+          yachtId: yachtId || undefined, // Ensure tenant isolation
           status: {
             not: TaskStatus.DONE,
           },
@@ -51,7 +52,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     // Cache role assigned tasks query (skip if yachtId is null for SUPER_ADMIN)
     const roleAssignedTasksPromise = yachtId
       ? unstable_cache(
-          async () => db.task.findMany({
+          async () => dbUnscoped.task.findMany({
             where: {
               yachtId: yachtId,
               assigneeRole: user.role,
@@ -80,9 +81,10 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     const myExpensesPromise = unstable_cache(
       async () => {
         const { ExpenseStatus } = await import("@prisma/client");
-        return db.expense.findMany({
+        return dbUnscoped.expense.findMany({
           where: {
             createdByUserId: user.id,
+            yachtId: yachtId || undefined, // Ensure tenant isolation
             deletedAt: null,
             // Hide submitted expenses from general listings until they are approved/rejected
             status: { not: ExpenseStatus.SUBMITTED },
@@ -111,9 +113,10 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     const creditCardExpensesPromise = unstable_cache(
       async () => {
         const { PaymentMethod, ExpenseStatus } = await import("@prisma/client");
-        return db.expense.findMany({
+        return dbUnscoped.expense.findMany({
           where: {
             createdByUserId: user.id,
+            yachtId: yachtId || undefined, // Ensure tenant isolation
             paymentMethod: PaymentMethod.CARD,
             creditCardId: { not: null },
             deletedAt: null,
@@ -153,7 +156,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     // Cache credit cards query (skip if yachtId is null)
     const creditCardsPromise = yachtId
       ? unstable_cache(
-          async () => db.creditCard.findMany({
+          async () => dbUnscoped.creditCard.findMany({
             where: {
               yachtId: yachtId,
               deletedAt: null,
@@ -174,7 +177,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     // Cache alcohol stocks query (if permission granted and yachtId exists)
     const alcoholStocksPromise = hasPermission(user, "inventory.alcohol.view", user.permissions) && yachtId
       ? unstable_cache(
-          async () => db.alcoholStock.findMany({
+          async () => dbUnscoped.alcoholStock.findMany({
             where: {
               yachtId: yachtId,
             },
@@ -193,7 +196,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     // Cache marina permissions query (if permission granted and yachtId exists)
     const marinaPermissionsPromise = hasPermission(user, "documents.marina.view", user.permissions) && yachtId
       ? unstable_cache(
-          async () => db.marinaPermissionDocument.findMany({
+          async () => dbUnscoped.marinaPermissionDocument.findMany({
             where: {
               yachtId: yachtId,
               expiryDate: {
@@ -229,7 +232,7 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
     // Cache maintenance logs query (if permission granted and yachtId exists)
     const maintenanceLogsPromise = hasPermission(user, "maintenance.view", user.permissions) && yachtId
       ? unstable_cache(
-          async () => db.maintenanceLog.findMany({
+          async () => dbUnscoped.maintenanceLog.findMany({
             where: {
               yachtId: yachtId,
               nextDueDate: {

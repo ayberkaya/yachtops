@@ -1,8 +1,7 @@
 import "server-only";
-import { db } from "@/lib/db";
+import { dbUnscoped } from "@/lib/db";
 import { unstable_cache } from "next/cache";
 import { TaskStatus, TaskType } from "@prisma/client";
-import { withTenantScope } from "@/lib/tenant-guard";
 import type { Session } from "next-auth";
 
 /**
@@ -126,9 +125,12 @@ export async function getTasks(session: Session | null, params: GetTasksParams =
 
   return unstable_cache(
     async () => {
-      const where = withTenantScope(session, baseWhere);
+      // Manually add yachtId for tenant isolation (using dbUnscoped to avoid session access in cache)
+      const where = tenantId 
+        ? { ...baseWhere, yachtId: tenantId }
+        : baseWhere;
       
-      return db.task.findMany({
+      return dbUnscoped.task.findMany({
         where,
         include: {
           assignee: {

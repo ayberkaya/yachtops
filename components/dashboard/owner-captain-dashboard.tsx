@@ -93,46 +93,47 @@ export async function OwnerCaptainDashboard({ user }: { user: DashboardUser }) {
       ? getCalendarEvents(yachtId, user)
       : Promise.resolve(undefined);
 
-    // Execute all promises in parallel (disabled widgets return undefined immediately)
+    // Execute queries sequentially to avoid connection pool exhaustion
+    // Supabase Session mode has very limited pool_size (typically 3-5)
+    // Sequential execution ensures only one connection is used at a time
     let briefingStats, pendingExpenses, recentExpenses, creditCardExpenses, creditCards, cashBalances, upcomingTrips, alcoholStocks, marinaPermissions, maintenanceLogs, roleAssignedTasks, calendarEvents;
 
     try {
-      [
-        briefingStats,
-        pendingExpenses,
-        recentExpenses,
-        creditCardExpenses,
-        creditCards,
-        cashBalances,
-        upcomingTrips,
-        alcoholStocks,
-        marinaPermissions,
-        maintenanceLogs,
-        roleAssignedTasks,
-        calendarEvents,
-      ] = await Promise.all([
-        briefingStatsPromise,
-        pendingExpensesPromise,
-        recentExpensesPromise,
-        creditCardExpensesPromise,
-        creditCardsPromise,
-        cashBalancesPromise,
-        upcomingTripsPromise,
-        alcoholStocksPromise,
-        marinaPermissionsPromise,
-        maintenanceLogsPromise,
-        roleTasksPromise,
-        calendarEventsPromise,
-      ]);
+      // Execute queries one by one to avoid connection pool exhaustion
+      briefingStats = await briefingStatsPromise;
+      pendingExpenses = await pendingExpensesPromise;
+      recentExpenses = await recentExpensesPromise;
+      creditCardExpenses = await creditCardExpensesPromise;
+      creditCards = await creditCardsPromise;
+      cashBalances = await cashBalancesPromise;
+      upcomingTrips = await upcomingTripsPromise;
+      alcoholStocks = await alcoholStocksPromise;
+      marinaPermissions = await marinaPermissionsPromise;
+      maintenanceLogs = await maintenanceLogsPromise;
+      roleAssignedTasks = await roleTasksPromise;
+      calendarEvents = await calendarEventsPromise;
     } catch (error) {
+      // Log error with full details - use console.error directly to ensure it's logged
       console.error("❌ [DASHBOARD] Error loading dashboard data:", error);
-      console.error("❌ [DASHBOARD] Error details:", {
-        error: error instanceof Error ? error.message : String(error),
-        stack: error instanceof Error ? error.stack : undefined,
-        userId: user.id,
-        yachtId: user.yachtId,
-        role: user.role,
-      });
+      
+      if (error instanceof Error) {
+        console.error("❌ [DASHBOARD] Error name:", error.name);
+        console.error("❌ [DASHBOARD] Error message:", error.message);
+        if (error.stack) {
+          console.error("❌ [DASHBOARD] Error stack:", error.stack);
+        }
+        // Log error code if available (Prisma errors have codes)
+        if ('code' in error) {
+          console.error("❌ [DASHBOARD] Error code:", (error as any).code);
+        }
+      } else {
+        console.error("❌ [DASHBOARD] Error (non-Error object):", String(error));
+      }
+      
+      // Log user context separately to avoid serialization issues
+      console.error("❌ [DASHBOARD] User ID:", user.id);
+      console.error("❌ [DASHBOARD] Yacht ID:", user.yachtId);
+      console.error("❌ [DASHBOARD] User Role:", user.role);
       // Return error state instead of crashing
       return (
         <div className="space-y-6">

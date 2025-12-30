@@ -1,8 +1,7 @@
 import "server-only";
-import { db } from "@/lib/db";
+import { dbUnscoped } from "@/lib/db";
 import { unstable_cache } from "next/cache";
 import { TripStatus } from "@prisma/client";
-import { withTenantScope } from "@/lib/tenant-guard";
 import type { Session } from "next-auth";
 
 /**
@@ -15,18 +14,23 @@ const getCacheKey = (key: string, tenantId: string | null) =>
  * Fetch active trips (PLANNED or ONGOING status)
  */
 export async function getActiveTrips(session: Session | null) {
-  const where = withTenantScope(session, {
+  const tenantId = session?.user?.yachtId || null;
+  
+  // Build where clause with manual yachtId (using dbUnscoped to avoid session access in cache)
+  const baseWhere: any = {
     status: {
       in: [TripStatus.PLANNED, TripStatus.ONGOING],
     },
-  });
-
-  const tenantId = session?.user?.yachtId || null;
+  };
+  
+  if (tenantId) {
+    baseWhere.yachtId = tenantId;
+  }
 
   return unstable_cache(
     async () => {
-      const trips = await db.trip.findMany({
-        where,
+      const trips = await dbUnscoped.trip.findMany({
+        where: baseWhere,
         include: {
           createdBy: {
             select: { id: true, name: true, email: true },
@@ -77,18 +81,23 @@ export async function getActiveTrips(session: Session | null) {
  * Fetch past trips (COMPLETED or CANCELLED status) with limit
  */
 export async function getPastTrips(session: Session | null, limit = 20) {
-  const where = withTenantScope(session, {
+  const tenantId = session?.user?.yachtId || null;
+  
+  // Build where clause with manual yachtId (using dbUnscoped to avoid session access in cache)
+  const baseWhere: any = {
     status: {
       in: [TripStatus.COMPLETED, TripStatus.CANCELLED],
     },
-  });
-
-  const tenantId = session?.user?.yachtId || null;
+  };
+  
+  if (tenantId) {
+    baseWhere.yachtId = tenantId;
+  }
 
   return unstable_cache(
     async () => {
-      const trips = await db.trip.findMany({
-        where,
+      const trips = await dbUnscoped.trip.findMany({
+        where: baseWhere,
         include: {
           createdBy: {
             select: { id: true, name: true, email: true },
@@ -141,13 +150,18 @@ export async function getPastTrips(session: Session | null, limit = 20) {
  * Returns trips, movementLogs, and tankLogs
  */
 export async function getFuelLogData(session: Session | null) {
-  const tripWhere = withTenantScope(session, {});
   const tenantId = session?.user?.yachtId || null;
+  
+  // Build where clause with manual yachtId (using dbUnscoped to avoid session access in cache)
+  const tripWhere: any = {};
+  if (tenantId) {
+    tripWhere.yachtId = tenantId;
+  }
 
   return unstable_cache(
     async () => {
       const [trips, movementLogs, tankLogs] = await Promise.all([
-        db.trip.findMany({
+        dbUnscoped.trip.findMany({
           where: tripWhere,
           select: {
             id: true,
@@ -161,7 +175,7 @@ export async function getFuelLogData(session: Session | null) {
           },
           orderBy: { startDate: "desc" },
         }),
-        db.tripMovementLog.findMany({
+        dbUnscoped.tripMovementLog.findMany({
           where: {
             trip: tripWhere,
           },
@@ -179,7 +193,7 @@ export async function getFuelLogData(session: Session | null) {
           },
           orderBy: { recordedAt: "desc" },
         }),
-        db.tripTankLog.findMany({
+        dbUnscoped.tripTankLog.findMany({
           where: {
             trip: tripWhere,
           },

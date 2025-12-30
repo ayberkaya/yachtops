@@ -1,5 +1,6 @@
 import "server-only";
 import { unstable_cache, revalidateTag } from "next/cache";
+import { dbUnscoped } from "./db";
 
 /**
  * Server-side caching utilities for read-heavy, infrequently changing data.
@@ -44,8 +45,7 @@ export async function getCachedExpenseCategories(yachtId: string | null) {
   const tag = CACHE_TAGS.expenseCategories(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
-      return db.expenseCategory.findMany({
+      return dbUnscoped.expenseCategory.findMany({
         where: { yachtId },
         orderBy: { name: "asc" },
       });
@@ -68,14 +68,14 @@ export async function getCachedTrips(yachtId: string | null, limit = 50) {
   const tag = CACHE_TAGS.trips(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
-      return db.trip.findMany({
+      return dbUnscoped.trip.findMany({
         where: { yachtId },
         orderBy: { startDate: "desc" },
         take: limit,
         select: {
           id: true,
           name: true,
+          code: true,
           startDate: true,
           endDate: true,
           status: true,
@@ -100,8 +100,7 @@ export async function getCachedUsers(yachtId: string | null) {
   const tag = CACHE_TAGS.users(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
-      return db.user.findMany({
+      return dbUnscoped.user.findMany({
         where: {
           yachtId,
           active: true,
@@ -140,8 +139,7 @@ export async function getCachedProducts(yachtId: string | null) {
   const tag = CACHE_TAGS.products(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
-      return db.product.findMany({
+      return dbUnscoped.product.findMany({
         where: { yachtId },
         orderBy: { name: "asc" },
       });
@@ -164,8 +162,7 @@ export async function getCachedYacht(yachtId: string | null) {
   const tag = CACHE_TAGS.yacht(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
-      return db.yacht.findUnique({
+      return dbUnscoped.yacht.findUnique({
         where: { id: yachtId },
         select: {
           id: true,
@@ -294,11 +291,10 @@ export async function getCachedCashBalanceByCurrency(yachtId: string | null): Pr
   const tag = CACHE_TAGS.cash(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
       const { CashTransactionType } = await import("@prisma/client");
       
       // Fetch all non-deleted cash transactions for this yacht
-      const transactions = await db.cashTransaction.findMany({
+      const transactions = await dbUnscoped.cashTransaction.findMany({
         where: {
           yachtId,
           deletedAt: null,
@@ -345,9 +341,8 @@ export async function getCachedRecentExpenses(yachtId: string | null, limit = 5)
   const tag = CACHE_TAGS.expenses(yachtId);
   return unstable_cache(
     async () => {
-      const { db } = await import("./db");
       const { ExpenseStatus } = await import("@prisma/client");
-      return db.expense.findMany({
+      return dbUnscoped.expense.findMany({
         where: {
           yachtId,
           deletedAt: null,
