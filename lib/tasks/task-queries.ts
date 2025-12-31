@@ -154,7 +154,7 @@ export async function getTasks(session: Session | null, params: GetTasksParams =
         tenantId,
         userRole,
         userId,
-        status,
+        status || null,
         params.tab || null,
         params.assigneeId || null,
         params.dateFrom || null,
