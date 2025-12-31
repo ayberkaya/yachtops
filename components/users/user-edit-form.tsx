@@ -132,22 +132,25 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
     setError(null);
 
     try {
+      // Get the latest form values to ensure we have the most up-to-date permissions
+      const latestData = form.getValues();
+      
       const updateData: any = {
-        name: data.name,
-        phone: data.phone,
-        role: data.role,
+        name: latestData.name,
+        phone: latestData.phone,
+        role: latestData.role,
       };
 
       // Add custom role if selected
-      if (data.customRoleId) {
-        updateData.customRoleId = data.customRoleId;
+      if (latestData.customRoleId) {
+        updateData.customRoleId = latestData.customRoleId;
       } else {
         updateData.customRoleId = null;
       }
 
       // Only send permissions if using custom permissions
       if (useCustomPermissions) {
-        updateData.permissions = data.permissions || [];
+        updateData.permissions = latestData.permissions || [];
       } else {
         // Clear custom permissions, use role defaults - send null to clear
         updateData.permissions = null;
@@ -155,6 +158,7 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
       console.log("📤 Sending update data:", JSON.stringify(updateData, null, 2));
       console.log("🔧 Use custom permissions:", useCustomPermissions);
+      console.log("🔧 Latest permissions from form:", latestData.permissions);
 
       const response = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
@@ -180,14 +184,17 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
   const permissions = form.watch("permissions") || [];
 
   const togglePermission = (permission: Permission) => {
-    const current = permissions;
+    const current = form.getValues("permissions") || [];
     let newPermissions: string[];
     if (current.includes(permission)) {
       newPermissions = current.filter((p) => p !== permission);
     } else {
       newPermissions = [...current, permission];
     }
-    form.setValue("permissions", newPermissions);
+    form.setValue("permissions", newPermissions, { 
+      shouldDirty: true, 
+      shouldValidate: true 
+    });
     // Automatically enable custom permissions when user modifies permissions
     if (!useCustomPermissions) {
       setUseCustomPermissions(true);

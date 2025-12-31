@@ -453,15 +453,6 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
               )}
             </div>
             <div className="flex items-center gap-2">
-              <Select value={viewMode} onValueChange={(v) => setViewMode(v as "month" | "day")}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="month">Monthly</SelectItem>
-                  <SelectItem value="day">Daily</SelectItem>
-                </SelectContent>
-              </Select>
               {canEdit && (
                 <Button onClick={() => handleCreateEvent()}>
                   <Plus className="h-4 w-4 mr-2" />
