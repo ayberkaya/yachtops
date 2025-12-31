@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import { hasPermission } from "@/lib/permissions";
 import {
@@ -28,6 +28,34 @@ export interface NavItem {
 
 export function useNavigation() {
   const { data: session } = useSession();
+  const [customRolePermissions, setCustomRolePermissions] = useState<string | null>(null);
+
+  // Fetch custom role permissions if user has a custom role
+  useEffect(() => {
+    if (!session?.user) {
+      setCustomRolePermissions(null);
+      return;
+    }
+
+    const fetchCustomRolePermissions = async () => {
+      try {
+        const response = await fetch("/api/users/me");
+        if (response.ok) {
+          const userData = await response.json();
+          if (userData.customRole?.permissions) {
+            setCustomRolePermissions(userData.customRole.permissions);
+          } else {
+            setCustomRolePermissions(null);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching custom role permissions:", error);
+        setCustomRolePermissions(null);
+      }
+    };
+
+    fetchCustomRolePermissions();
+  }, [session?.user?.id]);
 
   // Define core navItems structure (static, no user dependency)
   const coreNavItems: NavItem[] = [
@@ -145,9 +173,9 @@ export function useNavigation() {
     return baseNavItems.filter(
       (item) =>
         !item.permission ||
-        hasPermission(session.user, item.permission as any, session.user.permissions)
+        hasPermission(session.user, item.permission as any, session.user.permissions, customRolePermissions)
     );
-  }, [session?.user, baseNavItems]);
+  }, [session?.user, baseNavItems, customRolePermissions]);
 
   return { navItems };
 }

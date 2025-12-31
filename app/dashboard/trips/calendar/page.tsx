@@ -33,7 +33,7 @@ export default async function CalendarPage() {
 
   // STRICT TENANT ISOLATION: Ensure tenantId exists
   const tenantId = getTenantId(session);
-  if (!tenantId && !session.user.role.includes("ADMIN")) {
+  if (!tenantId && session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN") {
     redirect("/dashboard");
   }
 
