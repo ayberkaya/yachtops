@@ -181,7 +181,7 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
   const togglePermission = (permission: Permission) => {
     const current = permissions;
-    let newPermissions: Permission[];
+    let newPermissions: string[];
     if (current.includes(permission)) {
       newPermissions = current.filter((p) => p !== permission);
     } else {
