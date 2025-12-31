@@ -207,9 +207,10 @@ export const CalendarEventsWidget = memo(function CalendarEventsWidget({
                 const start = parseISO(event.startDate);
                 const end = parseISO(event.endDate);
                 return (
-                  <div
+                  <Link
                     key={event.id}
-                    className="flex items-start gap-2 rounded-md border p-2 hover:bg-muted/50 transition-colors"
+                    href={`/dashboard/trips/calendar/${event.id}`}
+                    className="flex items-start gap-2 rounded-md border p-2 hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <div
                       className="w-3 h-3 rounded-full mt-1.5 flex-shrink-0"
@@ -230,7 +231,7 @@ export const CalendarEventsWidget = memo(function CalendarEventsWidget({
                         </Badge>
                       )}
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
               {selectedDayEvents.length > 3 && (
@@ -253,9 +254,10 @@ export const CalendarEventsWidget = memo(function CalendarEventsWidget({
               {upcomingEvents.map((event) => {
                 const start = parseISO(event.startDate);
                 return (
-                  <div
+                  <Link
                     key={event.id}
-                    className="flex items-start gap-2 rounded-md border p-2 hover:bg-muted/50 transition-colors"
+                    href={`/dashboard/trips/calendar/${event.id}`}
+                    className="flex items-start gap-2 rounded-md border p-2 hover:bg-muted/50 transition-colors cursor-pointer"
                   >
                     <div
                       className="w-3 h-3 rounded-full mt-1.5 flex-shrink-0"
@@ -279,7 +281,7 @@ export const CalendarEventsWidget = memo(function CalendarEventsWidget({
                         )}
                       </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
