@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyEmailToken, markEmailAsVerified } from "@/lib/email-verification";
+import { verifyEmailToken } from "@/lib/email-verification";
 import { hashPassword } from "@/lib/auth-server";
 import { db } from "@/lib/db";
 import { getSupabaseAdmin } from "@/lib/supabase-auth-sync";
@@ -36,16 +36,43 @@ export async function POST(request: NextRequest) {
     // Hash the password
     const passwordHash = await hashPassword(password);
 
-    // Update user password and mark email as verified
-    await db.user.update({
+    if (!passwordHash) {
+      console.error("❌ [SET-PASSWORD] Failed to hash password");
+      return NextResponse.json(
+        { error: "Failed to hash password" },
+        { status: 500 }
+      );
+    }
+
+    // Update user password and mark email as verified in a single transaction
+    const updatedUser = await db.user.update({
       where: { id: userId },
       data: {
         passwordHash,
+        emailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        passwordHash: true,
+        emailVerified: true,
+        active: true,
       },
     });
 
-    // Mark email as verified
-    await markEmailAsVerified(userId);
+    // Verify password was saved correctly
+    if (!updatedUser.passwordHash) {
+      console.error("❌ [SET-PASSWORD] Password hash not saved correctly");
+      return NextResponse.json(
+        { error: "Failed to save password" },
+        { status: 500 }
+      );
+    }
+
+    console.log(`✅ [SET-PASSWORD] Password set successfully for user: ${updatedUser.email} (ID: ${updatedUser.id})`);
+    console.log(`✅ [SET-PASSWORD] Email verified: ${updatedUser.emailVerified}, Active: ${updatedUser.active}`);
 
     // Update Supabase Auth password if available
     const supabaseAdmin = getSupabaseAdmin();

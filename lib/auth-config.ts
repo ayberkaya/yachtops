@@ -160,6 +160,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return null;
           }
 
+          if (!resolvedUser.passwordHash) {
+            console.error(`❌ [AUTH] User has no password hash: ${resolvedUser.email}`);
+            return null;
+          }
+
           const isValid = await verifyPassword(
             credentials.password as string,
             resolvedUser.passwordHash
