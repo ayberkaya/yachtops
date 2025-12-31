@@ -799,23 +799,23 @@ export function TaskList({
                     </div>
                   )}
                 </CardContent>
+                {canComplete && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute bottom-2 left-2 md:bottom-3 md:left-3 h-8 w-8 md:h-9 md:w-9 rounded-full dark:bg-emerald-950/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 shadow-sm hover:shadow transition-all duration-200 z-10"
+                    style={{ backgroundColor: 'rgba(240, 255, 240, 1)' }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setTaskToComplete(task);
+                      setIsCompleteConfirmOpen(true);
+                    }}
+                  >
+                    <Check className="h-[18px] w-[18px] md:h-[21px] md:w-[21px]" />
+                  </Button>
+                )}
                 <div className="p-1 flex justify-between items-center gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
-                    {canComplete && (
-                      <Button
-                        variant="default"
-                        size="sm"
-                        className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3 bg-green-600 hover:bg-green-700 text-white"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTaskToComplete(task);
-                          setIsCompleteConfirmOpen(true);
-                        }}
-                      >
-                        <Check className="h-3 w-3 md:h-4 md:w-4 mr-1" />
-                        Görevi Tamamla
-                      </Button>
-                    )}
                     {canUncomplete && (
                       <Button
                         variant="outline"
@@ -1644,7 +1644,7 @@ export function TaskList({
                   setTaskToComplete(null);
                 }
               }}
-              className="bg-green-600 hover:bg-green-700"
+              className="bg-green-600 hover:bg-green-700 text-white"
             >
               Tamamla
             </AlertDialogAction>
