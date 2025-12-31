@@ -46,6 +46,11 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { TaskStatus, TaskPriority, UserRole } from "@prisma/client";
 import { format } from "date-fns";
 import { Plus, Pencil, Check, LayoutGrid, CheckCircle2, User, Ship, Calendar, Clock, Trash2, ChevronDown } from "lucide-react";
@@ -497,72 +502,78 @@ export function TaskList({
               </>
             )}
           </Button>
-          <div className="relative">
-            <Collapsible open={filtersOpen} onOpenChange={setFiltersOpen}>
-              <CollapsibleTrigger>
-                <Button variant="outline" size="sm">
-                  Filters
-                </Button>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="absolute right-0 mt-2 w-[calc(100vw-3rem)] md:w-[min(600px,calc(100vw-4rem))] max-w-[calc(100vw-3rem)] rounded-xl border bg-white dark:bg-background p-3 shadow-lg flex flex-wrap items-start gap-3 z-50 overflow-auto">
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Status</span>
-                <Select value={currentStatus || "all"} onValueChange={handleStatusFilterChange}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem key="all" value="all">All Statuses</SelectItem>
-                    <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>To-Do</SelectItem>
-                    <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Assignee</span>
-                <Select value={currentAssigneeId || "all"} onValueChange={handleAssigneeChange}>
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by assignee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem key="all" value="all">All assignees</SelectItem>
-                    <SelectItem key="unassigned" value="unassigned">Unassigned</SelectItem>
-                    {crewMembers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name || u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">Start date</span>
-                <Input
-                  type="date"
-                  value={currentDateFrom || ""}
-                  onChange={(e) => handleDateFromChange(e.target.value)}
-                  className="h-11 w-[170px]"
-                />
-              </div>
-              <div className="flex flex-col gap-1">
-                <span className="text-xs text-muted-foreground">End date</span>
-                <Input
-                  type="date"
-                  value={currentDateTo || ""}
-                  onChange={(e) => handleDateToChange(e.target.value)}
-                  className="h-11 w-[170px]"
-                />
-              </div>
-              <Button
-                size="sm"
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white h-11"
-                onClick={handleApplyFilters}
-              >
-                Apply
+          <Popover open={filtersOpen} onOpenChange={setFiltersOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm">
+                Filters
               </Button>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
+            </PopoverTrigger>
+            <PopoverContent 
+              align="end" 
+              sideOffset={8}
+              className="w-[calc(100vw-2rem)] sm:w-[calc(100vw-3rem)] md:w-[min(600px,calc(100vw-4rem))] max-w-[calc(100vw-2rem)] sm:max-w-[calc(100vw-3rem)] p-4 bg-white dark:bg-background border border-border/50"
+            >
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Status</span>
+                  <Select value={currentStatus || "all"} onValueChange={handleStatusFilterChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem key="all" value="all">All Statuses</SelectItem>
+                      <SelectItem key={TaskStatus.TODO} value={TaskStatus.TODO}>To-Do</SelectItem>
+                      <SelectItem key={TaskStatus.DONE} value={TaskStatus.DONE}>Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Assignee</span>
+                  <Select value={currentAssigneeId || "all"} onValueChange={handleAssigneeChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Filter by assignee" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem key="all" value="all">All assignees</SelectItem>
+                      <SelectItem key="unassigned" value="unassigned">Unassigned</SelectItem>
+                      {crewMembers.map((u) => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.name || u.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">Start date</span>
+                  <Input
+                    type="date"
+                    value={currentDateFrom || ""}
+                    onChange={(e) => handleDateFromChange(e.target.value)}
+                    className="h-10 w-full"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">End date</span>
+                  <Input
+                    type="date"
+                    value={currentDateTo || ""}
+                    onChange={(e) => handleDateToChange(e.target.value)}
+                    className="h-10 w-full"
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end mt-4 pt-4 border-t">
+                <Button
+                  size="sm"
+                  className="bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
+                  onClick={handleApplyFilters}
+                >
+                  Apply
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
         </div>
       </div>
 
