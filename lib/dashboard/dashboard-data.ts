@@ -396,21 +396,49 @@ export async function getBriefingStats(user: DashboardUser) {
         };
       }
 
-      // Dashboard header should be O(1): use DB-side counts (not grouping) for speed.
-      const [urgentTasksCount, pendingTasksCount] = await Promise.all([
-        dbUnscoped.task.count({
+      // Count unique tasks by title + description + tripId combination
+      // This ensures that if the same task is assigned to multiple people, it's counted only once
+      const [urgentTasks, pendingTasks] = await Promise.all([
+        dbUnscoped.task.findMany({
           where: {
             ...baseTaskWhere,
             priority: TaskPriority.URGENT,
           },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            tripId: true,
+          },
         }),
-        dbUnscoped.task.count({
+        dbUnscoped.task.findMany({
           where: {
             ...baseTaskWhere,
             priority: { not: TaskPriority.URGENT },
           },
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            tripId: true,
+          },
         }),
       ]);
+
+      // Get unique tasks by title + description + tripId combination
+      const getUniqueTaskKey = (task: { title: string; description: string | null; tripId: string | null }) => {
+        return `${task.title}|${task.description || ''}|${task.tripId || ''}`;
+      };
+
+      const uniqueUrgentTasks = Array.from(
+        new Map(urgentTasks.map((task) => [getUniqueTaskKey(task), task])).values()
+      );
+      const uniquePendingTasks = Array.from(
+        new Map(pendingTasks.map((task) => [getUniqueTaskKey(task), task])).values()
+      );
+
+      const urgentTasksCount = uniqueUrgentTasks.length;
+      const pendingTasksCount = uniquePendingTasks.length;
 
       // Expiring documents count (marina permissions)
       const expiringDocsCount = hasPermission(user, "documents.marina.view", user.permissions) && tenantId

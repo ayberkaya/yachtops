@@ -36,7 +36,17 @@ export function useDashboardStats(): DashboardStats {
             return;
           }
 
-          const pendingCount = tasks.filter((task: any) => {
+          // Get unique tasks by title + description + tripId combination
+          // This ensures that if the same task is assigned to multiple people, it's counted only once
+          const getUniqueTaskKey = (task: any) => {
+            return `${task.title}|${task.description || ''}|${task.tripId || ''}`;
+          };
+
+          const uniqueTasks = Array.from(
+            new Map(tasks.map((task: any) => [getUniqueTaskKey(task), task])).values()
+          );
+
+          const pendingCount = uniqueTasks.filter((task: any) => {
             const isAssignedToUser = task.assigneeId === session.user.id;
             const isAssignedToRole = task.assigneeRole === session.user.role;
             const isUnassigned = !task.assigneeId && !task.assigneeRole;
