@@ -39,7 +39,8 @@ export async function GET(request: NextRequest) {
       u.plan_id,
       u.trial_ends_at
     FROM users u
-    WHERE u.role = 'OWNER'
+    WHERE u.yacht_id IS NOT NULL
+      AND u.active = true
     ORDER BY u.created_at DESC
   `;
 
@@ -97,7 +98,7 @@ export async function GET(request: NextRequest) {
     name: o.name,
     email: o.email,
     username: o.username,
-    role: o.role,
+    role: o.role as UserRole,
     yachtId: o.yacht_id,
     yachtName: o.yacht_id ? yachtMap.get(o.yacht_id) || null : null,
     active: o.active,

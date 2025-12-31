@@ -15,14 +15,30 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { active } = body ?? {};
-  if (typeof active !== "boolean") {
-    return NextResponse.json({ error: "active boolean required" }, { status: 400 });
+  const { active, role } = body ?? {};
+
+  // Build update data
+  const updateData: { active?: boolean; role?: UserRole } = {};
+  
+  if (typeof active === "boolean") {
+    updateData.active = active;
+  }
+  
+  if (role && Object.values(UserRole).includes(role as UserRole)) {
+    updateData.role = role as UserRole;
+  }
+
+  // If no valid fields to update, return error
+  if (Object.keys(updateData).length === 0) {
+    return NextResponse.json(
+      { error: "At least one field (active or role) must be provided" },
+      { status: 400 }
+    );
   }
 
   const user = await db.user.update({
     where: { id },
-    data: { active },
+    data: updateData,
     select: {
       id: true,
       name: true,
@@ -56,8 +72,8 @@ export async function DELETE(
     );
   }
 
-  // Verify the user is an OWNER
-  const owner = await db.user.findUnique({
+  // Verify the user exists and has a yacht
+  const user = await db.user.findUnique({
     where: { id },
     select: {
       id: true,
@@ -67,32 +83,26 @@ export async function DELETE(
     },
   });
 
-  if (!owner) {
-    return NextResponse.json({ error: "Owner not found" }, { status: 404 });
+  if (!user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (owner.role !== UserRole.OWNER) {
+  // Only allow deletion of users who have a yacht (account creators)
+  if (!user.yachtId) {
     return NextResponse.json(
-      { error: "User is not an owner" },
+      { error: "Cannot delete user without a yacht" },
       { status: 400 }
     );
   }
 
   try {
-    // If owner has a yacht, delete the yacht first (this will cascade delete all related data)
+    // Delete the yacht first (this will cascade delete all related data)
     // Note: Cascade delete will handle:
     // - All users in the yacht (via yachtId foreign key with Cascade)
     // - All trips, tasks, expenses, etc. (via yachtId foreign keys with Cascade)
-    if (owner.yachtId) {
-      await db.yacht.delete({
-        where: { id: owner.yachtId },
-      });
-    } else {
-      // If no yacht, just delete the owner
-      await db.user.delete({
-        where: { id },
-      });
-    }
+    await db.yacht.delete({
+      where: { id: user.yachtId },
+    });
 
     // Also remove from Supabase Auth
     try {
@@ -103,12 +113,12 @@ export async function DELETE(
       console.error("Failed to remove user from Supabase Auth:", error);
     }
 
-    return NextResponse.json({ success: true, message: "Owner and associated yacht deleted successfully" });
+    return NextResponse.json({ success: true, message: "User and associated yacht deleted successfully" });
   } catch (error: unknown) {
     console.error("Error deleting owner:", error);
     
-    // If yacht deletion fails, try to delete just the owner
-    if (owner.yachtId && error && typeof error === "object" && "code" in error && error.code === "P2003") {
+    // If yacht deletion fails, try to delete just the user
+    if (user.yachtId && error && typeof error === "object" && "code" in error && error.code === "P2003") {
       try {
         await db.user.delete({
           where: { id },
@@ -121,7 +131,7 @@ export async function DELETE(
           console.error("Failed to remove user from Supabase Auth:", authError);
         }
         
-        return NextResponse.json({ success: true, message: "Owner deleted (yacht deletion failed)" });
+        return NextResponse.json({ success: true, message: "User deleted (yacht deletion failed)" });
       } catch (userDeleteError) {
         return NextResponse.json(
           { error: "Failed to delete owner and yacht" },

@@ -21,7 +21,24 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Key, Rocket, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { UserRole } from "@prisma/client";
+import { Key, Rocket, Trash2, Pencil } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -36,6 +53,7 @@ type Owner = {
   planName: string | null;
   trialEndsAt: string | null;
   active: boolean;
+  role?: UserRole;
   createdAt: string;
 };
 
@@ -45,6 +63,10 @@ export function SalesHub() {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [ownerToDelete, setOwnerToDelete] = useState<Owner | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [ownerToEdit, setOwnerToEdit] = useState<Owner | null>(null);
+  const [selectedRole, setSelectedRole] = useState<UserRole | "">("");
+  const [updating, setUpdating] = useState(false);
 
   const loadOwners = async () => {
     setLoading(true);
@@ -92,6 +114,43 @@ export function SalesHub() {
       alert(e.message || "Failed to delete owner. Please try again.");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  const handleEditClick = (owner: Owner) => {
+    setOwnerToEdit(owner);
+    setSelectedRole(owner.role || UserRole.OWNER);
+    setEditDialogOpen(true);
+  };
+
+  const handleEditConfirm = async () => {
+    if (!ownerToEdit || !selectedRole) return;
+
+    setUpdating(true);
+    try {
+      const res = await fetch(`/api/admin/owners/${ownerToEdit.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: selectedRole }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to update owner role");
+      }
+
+      // Update owner in list
+      setOwners((list) =>
+        list.map((o) => (o.id === ownerToEdit.id ? { ...o, role: selectedRole } : o))
+      );
+      setEditDialogOpen(false);
+      setOwnerToEdit(null);
+      setSelectedRole("");
+    } catch (e: any) {
+      console.error("Update error:", e);
+      alert(e.message || "Failed to update owner role. Please try again.");
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -221,7 +280,7 @@ export function SalesHub() {
             <TableHeader>
               <TableRow>
                 <TableHead>Yacht Name</TableHead>
-                <TableHead>Owner Info</TableHead>
+                <TableHead>Account Creator</TableHead>
                 <TableHead>Plan</TableHead>
                 <TableHead>Subscription Status</TableHead>
                 <TableHead>Next Billing</TableHead>
@@ -240,6 +299,9 @@ export function SalesHub() {
                       <div className="text-sm text-muted-foreground">
                         {owner.email}
                       </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Created by: System
+                      </div>
                     </div>
                   </TableCell>
                   <TableCell>
@@ -253,6 +315,14 @@ export function SalesHub() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleEditClick(owner)}
+                        title="Edit Role"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -283,7 +353,7 @@ export function SalesHub() {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Owner</AlertDialogTitle>
+            <AlertDialogTitle>Delete Account</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete <strong>{ownerToDelete?.name || ownerToDelete?.email}</strong>?
             </AlertDialogDescription>
@@ -292,7 +362,7 @@ export function SalesHub() {
             <div>
               <p className="mb-2">This will permanently delete:</p>
               <ul className="list-disc list-inside space-y-1 ml-2">
-                <li>The owner account</li>
+                <li>The user account</li>
                 <li>The associated vessel (yacht)</li>
                 <li>All users in this vessel</li>
                 <li>All data associated with this vessel (trips, tasks, expenses, etc.)</li>
@@ -307,11 +377,68 @@ export function SalesHub() {
               disabled={deleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleting ? "Deleting..." : "Delete Owner"}
+              {deleting ? "Deleting..." : "Delete Account"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Owner Role</DialogTitle>
+            <DialogDescription>
+              Update the role for <strong>{ownerToEdit?.name || ownerToEdit?.email}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="role">Role</Label>
+              <Select
+                value={selectedRole}
+                onValueChange={(value) => setSelectedRole(value as UserRole)}
+              >
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={UserRole.OWNER}>Owner</SelectItem>
+                  <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
+                  <SelectItem value={UserRole.CHEF}>Chef</SelectItem>
+                  <SelectItem value={UserRole.STEWARDESS}>Stewardess</SelectItem>
+                  <SelectItem value={UserRole.DECKHAND}>Deckhand</SelectItem>
+                  <SelectItem value={UserRole.ENGINEER}>Engineer</SelectItem>
+                  <SelectItem value={UserRole.CREW}>Crew</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              <p className="font-medium mb-1">Note:</p>
+              <p>Changing the role will update the user's permissions and access level. The user will need to log out and log back in for changes to take effect.</p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditDialogOpen(false);
+                setOwnerToEdit(null);
+                setSelectedRole("");
+              }}
+              disabled={updating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleEditConfirm}
+              disabled={updating || !selectedRole}
+            >
+              {updating ? "Updating..." : "Update Role"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
