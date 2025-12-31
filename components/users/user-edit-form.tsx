@@ -59,6 +59,7 @@ interface UserEditFormProps {
 }
 
 export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
+  const { data: session, update: updateSession } = useSession();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [useCustomPermissions, setUseCustomPermissions] = useState(
