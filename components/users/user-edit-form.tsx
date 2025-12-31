@@ -181,13 +181,16 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
 
   const togglePermission = (permission: Permission) => {
     const current = permissions;
+    let newPermissions: Permission[];
     if (current.includes(permission)) {
-      form.setValue(
-        "permissions",
-        current.filter((p) => p !== permission)
-      );
+      newPermissions = current.filter((p) => p !== permission);
     } else {
-      form.setValue("permissions", [...current, permission]);
+      newPermissions = [...current, permission];
+    }
+    form.setValue("permissions", newPermissions);
+    // Automatically enable custom permissions when user modifies permissions
+    if (!useCustomPermissions) {
+      setUseCustomPermissions(true);
     }
   };
 
