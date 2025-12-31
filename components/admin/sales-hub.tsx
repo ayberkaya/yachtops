@@ -11,7 +11,17 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Key, Rocket } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Key, Rocket, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +42,9 @@ type Owner = {
 export function SalesHub() {
   const [owners, setOwners] = useState<Owner[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [ownerToDelete, setOwnerToDelete] = useState<Owner | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadOwners = async () => {
     setLoading(true);
@@ -50,6 +63,37 @@ export function SalesHub() {
   useEffect(() => {
     loadOwners();
   }, []);
+
+  const handleDeleteClick = (owner: Owner) => {
+    setOwnerToDelete(owner);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!ownerToDelete) return;
+
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/admin/owners/${ownerToDelete.id}`, {
+        method: "DELETE",
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || "Failed to delete owner");
+      }
+
+      // Remove owner from list
+      setOwners((list) => list.filter((o) => o.id !== ownerToDelete.id));
+      setDeleteDialogOpen(false);
+      setOwnerToDelete(null);
+    } catch (e: any) {
+      console.error("Delete error:", e);
+      alert(e.message || "Failed to delete owner. Please try again.");
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleImpersonate = async (ownerId: string) => {
     try {
@@ -208,14 +252,25 @@ export function SalesHub() {
                     {getNextBillingDate(owner.trialEndsAt, owner.subscriptionStatus)}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleImpersonate(owner.id)}
-                      title="Login as User"
-                    >
-                      <Key className="h-4 w-4" />
-                    </Button>
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleImpersonate(owner.id)}
+                        title="Login as User"
+                      >
+                        <Key className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleDeleteClick(owner)}
+                        title="Delete Owner"
+                        className="text-destructive hover:text-destructive"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -223,6 +278,40 @@ export function SalesHub() {
           </Table>
         )}
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Owner</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to delete <strong>{ownerToDelete?.name || ownerToDelete?.email}</strong>?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="text-sm text-muted-foreground space-y-3">
+            <div>
+              <p className="mb-2">This will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-1 ml-2">
+                <li>The owner account</li>
+                <li>The associated vessel (yacht)</li>
+                <li>All users in this vessel</li>
+                <li>All data associated with this vessel (trips, tasks, expenses, etc.)</li>
+              </ul>
+            </div>
+            <p className="text-destructive font-medium">This action cannot be undone.</p>
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteConfirm}
+              disabled={deleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleting ? "Deleting..." : "Delete Owner"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

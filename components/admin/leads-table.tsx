@@ -39,6 +39,14 @@ import {
 import { updateLeadStatus, updateLeadNotes, deleteLead } from "@/actions/leads";
 import { useToast } from "@/components/ui/toast";
 import Link from "next/link";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { WhiteGloveOnboarding } from "./white-glove-onboarding";
 
 interface Lead {
   id: string;
@@ -65,6 +73,8 @@ export function LeadsTable({ leads }: LeadsTableProps) {
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const [notes, setNotes] = useState("");
   const [isSavingNotes, setIsSavingNotes] = useState(false);
+  const [isOnboardingDialogOpen, setIsOnboardingDialogOpen] = useState(false);
+  const [leadForOnboarding, setLeadForOnboarding] = useState<Lead | null>(null);
 
   // Helper function to truncate message
   const truncateMessage = (message: string | null, maxLength: number = 50) => {
@@ -194,6 +204,29 @@ export function LeadsTable({ leads }: LeadsTableProps) {
     return `/admin/create?${params.toString()}`;
   };
 
+  const handleCreateAccount = (lead: Lead) => {
+    setLeadForOnboarding(lead);
+    setIsOnboardingDialogOpen(true);
+  };
+
+  const handleOnboardingSuccess = () => {
+    setIsOnboardingDialogOpen(false);
+    setLeadForOnboarding(null);
+    // Mark lead as contacted
+    if (leadForOnboarding) {
+      handleMarkAsContacted(leadForOnboarding.id);
+    }
+    toast({
+      title: "Account Created",
+      description: "Customer account has been created successfully",
+      variant: "success",
+    });
+    // Refresh the page after a short delay
+    setTimeout(() => {
+      window.location.reload();
+    }, 2000);
+  };
+
   return (
     <>
       <div className="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden">
@@ -306,10 +339,16 @@ export function LeadsTable({ leads }: LeadsTableProps) {
                           Mark as Junk/Archive
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          onClick={() => handleCreateAccount(lead)}
+                        >
+                          <UserPlus className="mr-2 h-4 w-4" />
+                          Create Account
+                        </DropdownMenuItem>
                         <DropdownMenuItem asChild>
                           <Link href={getConvertToCustomerUrl(lead)}>
-                            <UserPlus className="mr-2 h-4 w-4" />
-                            Convert to Customer
+                            <FileText className="mr-2 h-4 w-4" />
+                            Open in New Page
                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
@@ -480,18 +519,29 @@ export function LeadsTable({ leads }: LeadsTableProps) {
 
               <SheetFooter className="mt-auto pt-6 border-t border-slate-100 gap-3">
                 <Button
+                  onClick={() => {
+                    setIsSheetOpen(false);
+                    handleCreateAccount(selectedLead);
+                  }}
+                  className="bg-slate-900 hover:bg-slate-800 text-white"
+                >
+                  <UserPlus className="mr-2 h-4 w-4" />
+                  Create Account
+                </Button>
+                <Button
                   asChild
                   variant="outline"
                   className="border-slate-900 text-slate-900 hover:bg-stone-50"
                 >
                   <Link href={getConvertToCustomerUrl(selectedLead)}>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Convert to Customer
+                    <FileText className="mr-2 h-4 w-4" />
+                    Open in New Page
                   </Link>
                 </Button>
                 <Button
                   onClick={() => window.location.href = `mailto:${selectedLead.email}`}
-                  className="bg-slate-900 hover:bg-slate-800 text-white"
+                  variant="outline"
+                  className="border-slate-300 text-slate-700 hover:bg-stone-50"
                 >
                   <Mail className="mr-2 h-4 w-4" />
                   Draft Email
@@ -501,6 +551,38 @@ export function LeadsTable({ leads }: LeadsTableProps) {
           )}
         </SheetContent>
       </Sheet>
+
+      {/* Onboarding Dialog */}
+      <Dialog open={isOnboardingDialogOpen} onOpenChange={setIsOnboardingDialogOpen}>
+        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Account from Lead</DialogTitle>
+            <DialogDescription>
+              {leadForOnboarding && (
+                <>
+                  Creating account for <strong>{leadForOnboarding.full_name}</strong> ({leadForOnboarding.email})
+                  {leadForOnboarding.vessel_name && (
+                    <> - Vessel: <strong>{leadForOnboarding.vessel_name}</strong></>
+                  )}
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          {leadForOnboarding && (
+            <WhiteGloveOnboarding
+              initialValues={{
+                ownerName: leadForOnboarding.full_name,
+                ownerEmail: leadForOnboarding.email,
+                yachtName: leadForOnboarding.vessel_name || undefined,
+                yachtLength: leadForOnboarding.vessel_size || undefined,
+                role: leadForOnboarding.role || undefined,
+                yachtType: "Motor Yacht", // Default, can be changed
+              }}
+              onSuccess={handleOnboardingSuccess}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

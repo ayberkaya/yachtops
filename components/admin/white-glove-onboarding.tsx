@@ -38,6 +38,7 @@ const onboardingSchema = z.object({
   ownerName: z.string().min(1, "Owner name is required"),
   ownerEmail: z.string().email("Valid email is required"),
   ownerPhone: z.string().optional(),
+  role: z.enum(["Owner", "Captain", "Yacht Manager", "Chief Stew", "Purser"]).default("Owner"),
   languagePreference: z.enum(["tr", "en"]).default("en"),
   
   // Vessel Details
@@ -64,7 +65,22 @@ const onboardingSchema = z.object({
 
 type OnboardingFormData = z.infer<typeof onboardingSchema>;
 
-export function WhiteGloveOnboarding() {
+interface WhiteGloveOnboardingProps {
+  initialValues?: {
+    ownerName?: string;
+    ownerEmail?: string;
+    ownerPhone?: string;
+    yachtName?: string;
+    yachtType?: string;
+    yachtLength?: string;
+    yachtFlag?: string;
+    role?: string;
+    vesselSize?: string;
+  };
+  onSuccess?: () => void;
+}
+
+export function WhiteGloveOnboarding({ initialValues, onSuccess }: WhiteGloveOnboardingProps = {}) {
   const router = useRouter();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [loadingPlans, setLoadingPlans] = useState(true);
@@ -87,8 +103,15 @@ export function WhiteGloveOnboarding() {
   } = useForm({
     resolver: zodResolver(onboardingSchema),
     defaultValues: {
+      ownerName: initialValues?.ownerName || "",
+      ownerEmail: initialValues?.ownerEmail || "",
+      ownerPhone: initialValues?.ownerPhone || "",
+      yachtName: initialValues?.yachtName || "",
+      yachtType: (initialValues?.yachtType as any) || "Motor Yacht",
+      yachtLength: initialValues?.yachtLength || "",
+      yachtFlag: initialValues?.yachtFlag || "",
+      role: (initialValues?.role as any) || "Owner",
       languagePreference: "en",
-      yachtType: "Motor Yacht",
       baseCurrency: "EUR",
       measurementSystem: "metric",
       billingCycle: "monthly",
@@ -102,6 +125,22 @@ export function WhiteGloveOnboarding() {
   useEffect(() => {
     loadPlans();
   }, []);
+
+  // Pre-fill form when initialValues change
+  useEffect(() => {
+    if (initialValues) {
+      if (initialValues.ownerName) setValue("ownerName", initialValues.ownerName);
+      if (initialValues.ownerEmail) setValue("ownerEmail", initialValues.ownerEmail);
+      if (initialValues.ownerPhone) setValue("ownerPhone", initialValues.ownerPhone);
+      if (initialValues.yachtName) setValue("yachtName", initialValues.yachtName);
+      if (initialValues.yachtType) setValue("yachtType", initialValues.yachtType as any);
+      if (initialValues.yachtLength) setValue("yachtLength", initialValues.yachtLength);
+      if (initialValues.yachtFlag) setValue("yachtFlag", initialValues.yachtFlag);
+      if (initialValues.role) setValue("role", initialValues.role as any);
+      // Map vessel_size to yachtLength if available
+      if (initialValues.vesselSize) setValue("yachtLength", initialValues.vesselSize);
+    }
+  }, [initialValues, setValue]);
 
   const loadPlans = async () => {
     setLoadingPlans(true);
@@ -139,6 +178,7 @@ export function WhiteGloveOnboarding() {
       formData.append("ownerName", data.ownerName.trim());
       formData.append("ownerEmail", data.ownerEmail.trim());
       formData.append("ownerPhone", data.ownerPhone || "");
+      formData.append("role", data.role || "Owner");
       formData.append("languagePreference", data.languagePreference || "en");
       formData.append("yachtName", data.yachtName.trim());
       formData.append("yachtType", data.yachtType || "Motor Yacht");
@@ -175,6 +215,10 @@ export function WhiteGloveOnboarding() {
             ownerEmail: data.ownerEmail,
             yachtName: data.yachtName,
           });
+          // Call onSuccess callback if provided
+          if (onSuccess) {
+            onSuccess();
+          }
         }
       } else {
         throw new Error(result.message || "Failed to onboard customer");
@@ -242,6 +286,28 @@ export function WhiteGloveOnboarding() {
                       className="mt-1"
                     />
                   </div>
+                  <div>
+                    <Label htmlFor="role">Role *</Label>
+                    <Select
+                      value={formValues.role}
+                      onValueChange={(value: "Owner" | "Captain" | "Yacht Manager" | "Chief Stew" | "Purser") =>
+                        setValue("role", value)
+                      }
+                    >
+                      <SelectTrigger className="mt-1">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Owner">Owner</SelectItem>
+                        <SelectItem value="Captain">Captain</SelectItem>
+                        <SelectItem value="Yacht Manager">Yacht Manager</SelectItem>
+                        <SelectItem value="Chief Stew">Chief Stew</SelectItem>
+                        <SelectItem value="Purser">Purser</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                   <div>
                     <Label htmlFor="languagePreference">Language Preference</Label>
                     <Select
@@ -350,45 +416,24 @@ export function WhiteGloveOnboarding() {
                       </Label>
                     </div>
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="baseCurrency">Base Currency</Label>
-                      <Select
-                        value={formValues.baseCurrency}
-                        onValueChange={(value: "EUR" | "USD" | "GBP" | "TRY") =>
-                          setValue("baseCurrency", value)
-                        }
-                      >
-                        <SelectTrigger className="mt-1">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="EUR">EUR (Euro)</SelectItem>
-                          <SelectItem value="USD">USD (US Dollar)</SelectItem>
-                          <SelectItem value="GBP">GBP (British Pound)</SelectItem>
-                          <SelectItem value="TRY">TRY (Turkish Lira)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <Label htmlFor="measurementSystem">Measurement System</Label>
-                      <RadioGroup
-                        value={formValues.measurementSystem}
-                        onValueChange={(value: "metric" | "imperial") =>
-                          setValue("measurementSystem", value)
-                        }
-                        className="mt-2 flex gap-6"
-                      >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="metric" id="metric" />
-                          <Label htmlFor="metric" className="cursor-pointer">Metric</Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="imperial" id="imperial" />
-                          <Label htmlFor="imperial" className="cursor-pointer">Imperial</Label>
-                        </div>
-                      </RadioGroup>
-                    </div>
+                  <div>
+                    <Label htmlFor="measurementSystem">Measurement System</Label>
+                    <RadioGroup
+                      value={formValues.measurementSystem}
+                      onValueChange={(value: "metric" | "imperial") =>
+                        setValue("measurementSystem", value)
+                      }
+                      className="mt-2 flex gap-6"
+                    >
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="metric" id="metric" />
+                        <Label htmlFor="metric" className="cursor-pointer">Metric</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <RadioGroupItem value="imperial" id="imperial" />
+                        <Label htmlFor="imperial" className="cursor-pointer">Imperial</Label>
+                      </div>
+                    </RadioGroup>
                   </div>
                 </div>
               </div>
