@@ -3,7 +3,7 @@
 import { db } from "@/lib/db";
 import { getSession } from "@/lib/get-session";
 import { hasAnyRole } from "@/lib/auth";
-import { UserRole, InviteStatus } from "@prisma/client";
+import { UserRole, InviteStatus, Prisma } from "@prisma/client";
 import { z } from "zod";
 import { randomBytes } from "crypto";
 import { revalidatePath } from "next/cache";
@@ -267,6 +267,238 @@ export async function inviteCrewMember(
     return {
       success: false,
       error: "Bir hata oluştu",
+      message: getUserFriendlyError(error),
+    };
+  }
+}
+
+export async function cancelInvitation(inviteId: string): Promise<InviteActionState> {
+  try {
+    // Get session and validate authentication
+    const session = await getSession();
+    if (!session?.user) {
+      return {
+        success: false,
+        error: "Unauthorized",
+        message: "You must be logged in to cancel invitations",
+      };
+    }
+
+    // Authorization: Only OWNER or CAPTAIN can cancel invitations
+    if (!hasAnyRole(session.user, [UserRole.OWNER, UserRole.CAPTAIN])) {
+      return {
+        success: false,
+        error: "Forbidden",
+        message: "Only owners and captains can cancel invitations",
+      };
+    }
+
+    // Validate yachtId
+    const yachtId = session.user.yachtId;
+    if (!yachtId) {
+      return {
+        success: false,
+        error: "No yacht assigned",
+        message: "You must be assigned to a yacht to cancel invitations",
+      };
+    }
+
+    if (!inviteId) {
+      return {
+        success: false,
+        error: "Invalid invite",
+        message: "Invitation ID is required",
+      };
+    }
+
+    // Find the invitation - extension will automatically add yachtId filter
+    // If invitation doesn't belong to this tenant, extension will throw an error
+    let invite;
+    try {
+      invite = await db.yachtInvite.findFirst({
+        where: {
+          id: inviteId,
+          // Extension automatically adds yachtId filter from session
+        },
+      });
+    } catch (error) {
+      // Handle tenant isolation errors from Prisma extension
+      if (error instanceof Error && error.message.includes("[tenant-isolation]")) {
+        return {
+          success: false,
+          error: "Forbidden",
+          message: "You don't have permission to cancel this invitation",
+        };
+      }
+      throw error; // Re-throw if it's a different error
+    }
+
+    if (!invite) {
+      return {
+        success: false,
+        error: "Invitation not found",
+        message: "Invitation not found or you don't have permission to access it",
+      };
+    }
+
+    // If invitation is already processed (not PENDING), return success (cleanup case)
+    if (invite.status !== InviteStatus.PENDING) {
+      // Still revalidate to update the UI
+      revalidatePath("/dashboard/crew");
+      return {
+        success: true,
+        message: "Invitation was already processed",
+      };
+    }
+
+    // Check if there's already an EXPIRED invitation for this email/yachtId
+    // This handles the unique constraint: @@unique([yachtId, email, status])
+    const existingExpired = await db.yachtInvite.findFirst({
+      where: {
+        yachtId: yachtId,
+        email: invite.email,
+        status: InviteStatus.EXPIRED,
+      },
+    });
+
+    // If an EXPIRED invitation already exists, delete the current PENDING one
+    // instead of updating it (to avoid unique constraint violation)
+    if (existingExpired) {
+      try {
+        await db.yachtInvite.delete({
+          where: { id: inviteId },
+        });
+      } catch (error) {
+        // Handle tenant isolation errors from Prisma extension
+        if (error instanceof Error && error.message.includes("[tenant-isolation]")) {
+          return {
+            success: false,
+            error: "Forbidden",
+            message: "You don't have permission to cancel this invitation",
+          };
+        }
+        throw error;
+      }
+    } else {
+      // No existing EXPIRED invitation, safe to update status
+      try {
+        await db.yachtInvite.update({
+          where: { id: inviteId },
+          data: {
+            status: InviteStatus.EXPIRED,
+          },
+        });
+      } catch (error) {
+        // Handle Prisma unique constraint violation (P2002)
+        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+          // Fallback: delete the invitation if update fails due to constraint
+          try {
+            await db.yachtInvite.delete({
+              where: { id: inviteId },
+            });
+          } catch (deleteError) {
+            // Handle tenant isolation errors from Prisma extension
+            if (deleteError instanceof Error && deleteError.message.includes("[tenant-isolation]")) {
+              return {
+                success: false,
+                error: "Forbidden",
+                message: "You don't have permission to cancel this invitation",
+              };
+            }
+            throw deleteError;
+          }
+        } else if (error instanceof Error && error.message.includes("Unique constraint")) {
+          // Fallback for string-based unique constraint errors
+          try {
+            await db.yachtInvite.delete({
+              where: { id: inviteId },
+            });
+          } catch (deleteError) {
+            // Handle tenant isolation errors from Prisma extension
+            if (deleteError instanceof Error && deleteError.message.includes("[tenant-isolation]")) {
+              return {
+                success: false,
+                error: "Forbidden",
+                message: "You don't have permission to cancel this invitation",
+              };
+            }
+            throw deleteError;
+          }
+        } else if (error instanceof Error && error.message.includes("[tenant-isolation]")) {
+          return {
+            success: false,
+            error: "Forbidden",
+            message: "You don't have permission to cancel this invitation",
+          };
+        } else {
+          throw error; // Re-throw if it's a different error
+        }
+      }
+    }
+
+    // Revalidate the crew page to update the list
+    revalidatePath("/dashboard/crew");
+
+    return {
+      success: true,
+      message: "Invitation cancelled successfully",
+    };
+  } catch (error) {
+    console.error("Error cancelling invitation:", error);
+    
+    // Log full error details for debugging
+    if (error instanceof Error) {
+      console.error("Error name:", error.name);
+      console.error("Error message:", error.message);
+      console.error("Error stack:", error.stack);
+    }
+    
+    const { getUserFriendlyError } = await import("@/lib/api-error-handler");
+    
+    // Check for specific Prisma/tenant isolation errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      // Handle Prisma error codes
+      if (error.code === "P2025") {
+        // Record not found
+        return {
+          success: false,
+          error: "Invitation not found",
+          message: "Invitation not found or already processed",
+        };
+      }
+      if (error.code === "P2002") {
+        // Unique constraint violation - should be handled above, but just in case
+        return {
+          success: false,
+          error: "Duplicate invitation",
+          message: "An invitation with this status already exists",
+        };
+      }
+    }
+    
+    if (error instanceof Error) {
+      if (error.message.includes("[tenant-isolation]")) {
+        return {
+          success: false,
+          error: "Forbidden",
+          message: "You don't have permission to cancel this invitation",
+        };
+      }
+      
+      // Check for Prisma not found errors
+      if (error.message.includes("Record to update not found") || 
+          error.message.includes("RecordNotFound")) {
+        return {
+          success: false,
+          error: "Invitation not found",
+          message: "Invitation not found or already processed",
+        };
+      }
+    }
+    
+    return {
+      success: false,
+      error: "Failed to cancel invitation",
       message: getUserFriendlyError(error),
     };
   }

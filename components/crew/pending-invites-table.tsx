@@ -16,6 +16,7 @@ import { format } from "date-fns";
 import { UserRole } from "@prisma/client";
 import { X } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { cancelInvitation } from "@/actions/invite";
 
 interface PendingInvite {
   id: string;
@@ -42,17 +43,14 @@ export function PendingInvitesTable({ invites, roleLabels }: PendingInvitesTable
 
     try {
       setCancellingId(inviteId);
-      const response = await fetch(`/api/invites/${inviteId}`, {
-        method: "DELETE",
-      });
+      const result = await cancelInvitation(inviteId);
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to cancel invitation");
+      if (!result.success) {
+        throw new Error(result.message || result.error || "Failed to cancel invitation");
       }
 
       toast({
-        description: "Invitation cancelled successfully",
+        description: result.message || "Invitation cancelled successfully",
         variant: "success",
         duration: 5000,
       });
