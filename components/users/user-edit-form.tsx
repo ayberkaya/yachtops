@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDescription } from "@/components/ui/form";
@@ -174,6 +175,16 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
         return;
       }
 
+      // If user updated their own role, refresh session
+      if (session?.user?.id === user.id && latestData.role !== user.role) {
+        try {
+          await updateSession({ role: latestData.role });
+        } catch (sessionError) {
+          console.error("Failed to update session:", sessionError);
+          // Don't fail the entire operation if session update fails
+        }
+      }
+
       onSuccess();
     } catch (err) {
       setError("An error occurred. Please try again.");
@@ -262,6 +273,7 @@ export function UserEditForm({ user, onSuccess }: UserEditFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value={UserRole.OWNER}>Owner</SelectItem>
                   <SelectItem value={UserRole.CREW}>Crew</SelectItem>
                   <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
                   {customRoles.map((role) => (

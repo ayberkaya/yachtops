@@ -17,6 +17,7 @@ const onboardSchema = z.object({
   ownerName: z.string().min(1, "Owner name is required"),
   ownerEmail: z.string().email("Valid email is required"),
   ownerPhone: z.string().optional(),
+  role: z.enum(["Owner", "Captain", "Yacht Manager", "Chief Stew", "Purser"]).default("Owner"),
   languagePreference: z.enum(["tr", "en"]).default("en"),
   yachtName: z.string().min(1, "Yacht name is required"),
   yachtType: z.string().default("Motor Yacht"),
@@ -59,6 +60,26 @@ function generateTempPassword(): string {
   return password;
 }
 
+/**
+ * Map form role to UserRole enum
+ */
+function mapRoleToUserRole(role: string): UserRole {
+  switch (role) {
+    case "Owner":
+      return UserRole.OWNER;
+    case "Captain":
+      return UserRole.CAPTAIN;
+    case "Yacht Manager":
+      return UserRole.CAPTAIN; // Map to CAPTAIN as closest match
+    case "Chief Stew":
+      return UserRole.STEWARDESS; // Map to STEWARDESS as closest match
+    case "Purser":
+      return UserRole.CREW; // Map to CREW as closest match
+    default:
+      return UserRole.OWNER;
+  }
+}
+
 export async function onboardNewCustomer(
   formData: FormData
 ): Promise<OnboardCustomerState> {
@@ -75,10 +96,13 @@ export async function onboardNewCustomer(
 
   try {
     // Parse and validate form data
+    const roleFromForm = formData.get("role") as string;
+    console.log(`📝 [ONBOARD] Role from form: "${roleFromForm}"`);
     const rawData = {
       ownerName: formData.get("ownerName") as string,
       ownerEmail: formData.get("ownerEmail") as string,
       ownerPhone: formData.get("ownerPhone") as string,
+      role: roleFromForm || "Owner",
       languagePreference: formData.get("languagePreference") as string || "en",
       yachtName: formData.get("yachtName") as string,
       yachtType: formData.get("yachtType") as string || "Motor Yacht",
@@ -275,6 +299,8 @@ export async function onboardNewCustomer(
       });
 
       // Step 3: Create User record (with temporary password hash, will be updated after email verification)
+      const userRole = mapRoleToUserRole(validated.role);
+      console.log(`📝 [ONBOARD] Validated role: "${validated.role}", Mapped to UserRole: ${userRole}`);
       await tx.user.create({
         data: {
           id: userId,
@@ -283,7 +309,7 @@ export async function onboardNewCustomer(
           passwordHash: passwordHash, // Temporary password, will be changed after verification
           name: validated.ownerName,
           phone: validated.ownerPhone || null,
-          role: UserRole.OWNER,
+          role: userRole,
           active: true,
           yachtId: yacht.id,
           emailVerified: false,

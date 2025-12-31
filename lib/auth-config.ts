@@ -186,6 +186,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             permissions: resolvedUser.permissions,
             rememberMe: credentials.rememberMe === "true" || credentials.rememberMe === true,
           };
+          console.log(`✅ [AUTH] User authenticated: ${resolvedUser.email}, Role: ${resolvedUser.role}`);
           return userObject;
         } catch (error) {
           // Always log errors, not just in debug mode
@@ -235,6 +236,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.yachtId = user.yachtId;
         token.tenantId = user.tenantId ?? user.yachtId ?? null;
         token.permissions = user.permissions;
+        console.log(`✅ [AUTH] JWT token created for user: ${user.email}, Role: ${user.role}`);
         // Store impersonation info if present
         if (user.impersonatedBy) {
           token.impersonatedBy = user.impersonatedBy;
@@ -259,6 +261,38 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             token.exp = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60);
           } else {
             token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+          }
+        }
+        
+        // Always fetch fresh user data from database when session is updated
+        // This ensures role changes and other updates are reflected immediately
+        if (token.id) {
+          try {
+            const updatedUser = await db.user.findUnique({
+              where: { id: token.id as string },
+              select: {
+                id: true,
+                email: true,
+                name: true,
+                role: true,
+                yachtId: true,
+                permissions: true,
+                active: true,
+              },
+            });
+            
+            if (updatedUser && updatedUser.active) {
+              token.role = updatedUser.role;
+              token.email = updatedUser.email;
+              token.name = updatedUser.name;
+              token.yachtId = updatedUser.yachtId;
+              token.tenantId = updatedUser.yachtId;
+              token.permissions = updatedUser.permissions;
+              console.log(`✅ [AUTH] Updated token with fresh user data - Role: ${updatedUser.role}`);
+            }
+          } catch (error) {
+            console.error("❌ [AUTH] Error fetching updated user data:", error);
+            // Don't fail the update if DB query fails
           }
         }
       }
