@@ -57,8 +57,8 @@ export async function getTasks(session: Session | null, params: GetTasksParams =
   const userRole = session.user.role;
   const userId = session.user.id;
 
-  // Default status to TODO if not provided (for fast initial load)
-  const status = params.status || TaskStatus.TODO;
+  // Don't filter by status by default - show both active and completed tasks
+  const status = params.status;
   
   // Map tab to type filter
   const types = mapTabToType(params.tab ?? null);
@@ -66,7 +66,7 @@ export async function getTasks(session: Session | null, params: GetTasksParams =
   // Build base where clause
   const baseWhere: any = {};
 
-  // Status filter
+  // Status filter - only apply if explicitly provided
   if (status) {
     baseWhere.status = status;
   }

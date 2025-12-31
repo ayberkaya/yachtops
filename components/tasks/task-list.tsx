@@ -32,6 +32,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
@@ -106,6 +116,8 @@ export function TaskList({
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isCompletionDialogOpen, setIsCompletionDialogOpen] = useState(false);
   const [expandedTasks, setExpandedTasks] = useState<Set<string>>(new Set());
+  const [taskToComplete, setTaskToComplete] = useState<Task | null>(null);
+  const [isCompleteConfirmOpen, setIsCompleteConfirmOpen] = useState(false);
   
   // Update tasks when initialTasks changes (from server refresh)
   useEffect(() => {
@@ -213,8 +225,58 @@ export function TaskList({
 
       if (response.ok) {
         const updatedTask = await response.json();
+        
+        // Format the updated task to match Task interface
+        const formatDate = (date: Date | string | null): string | null => {
+          if (!date) return null;
+          if (typeof date === 'string') return date;
+          if (date instanceof Date) return date.toISOString();
+          return null;
+        };
+
+        const formatDateOnly = (date: Date | string | null): string | null => {
+          if (!date) return null;
+          if (typeof date === 'string') return date.split('T')[0];
+          if (date instanceof Date) return date.toISOString().split('T')[0];
+          return null;
+        };
+
+        const formattedTask: Task = {
+          id: updatedTask.id,
+          title: updatedTask.title,
+          description: updatedTask.description,
+          status: updatedTask.status,
+          priority: updatedTask.priority,
+          type: updatedTask.type || "GENERAL",
+          cost: updatedTask.cost,
+          currency: updatedTask.currency,
+          serviceProvider: updatedTask.serviceProvider,
+          dueDate: formatDateOnly(updatedTask.dueDate),
+          assignee: updatedTask.assignee ? {
+            id: updatedTask.assignee.id,
+            name: updatedTask.assignee.name,
+            email: updatedTask.assignee.email,
+          } : null,
+          assigneeRole: updatedTask.assigneeRole,
+          completedBy: updatedTask.completedBy ? {
+            id: updatedTask.completedBy.id,
+            name: updatedTask.completedBy.name,
+            email: updatedTask.completedBy.email,
+          } : null,
+          completedAt: formatDate(updatedTask.completedAt),
+          createdBy: updatedTask.createdBy ? {
+            id: updatedTask.createdBy.id,
+            name: updatedTask.createdBy.name,
+            email: updatedTask.createdBy.email,
+          } : null,
+          trip: updatedTask.trip ? {
+            id: updatedTask.trip.id,
+            name: updatedTask.trip.name,
+          } : null,
+        };
+
         setTasks((prev) =>
-          prev.map((t) => (t.id === taskId ? updatedTask : t))
+          prev.map((t) => (t.id === taskId ? formattedTask : t))
         );
         
         // Track task completion
@@ -223,7 +285,8 @@ export function TaskList({
           trackAction("task.complete", { taskId });
         }
         
-        router.refresh();
+        // Don't refresh router to keep the task visible in Completed Tasks section
+        // router.refresh();
       }
     } catch (error) {
       console.error("Error updating task status:", error);
@@ -529,10 +592,13 @@ export function TaskList({
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {activeTasks.map((groupedTask) => {
                   const task = groupedTask.task;
-                  const canComplete = !canManage && 
-                    (groupedTask.assignees.some(a => a.id === currentUser.id) || 
-                     groupedTask.roles.includes(currentUser.role)) &&
-                    task.status !== TaskStatus.DONE;
+                  // Managers can complete any active task, CREW can only complete assigned tasks
+                  const canComplete = task.status !== TaskStatus.DONE && (
+                    canManage || 
+                    groupedTask.assignees.some(a => a.id === currentUser.id) || 
+                    groupedTask.roles.includes(currentUser.role) ||
+                    (!task.assignee && !task.assigneeRole) // Unassigned tasks
+                  );
             const canUncomplete = !canManage && task.status === TaskStatus.DONE && task.completedBy?.id === currentUser.id;
 
             const isTodo = task.status === TaskStatus.TODO;
@@ -735,6 +801,21 @@ export function TaskList({
                 </CardContent>
                 <div className="p-1 flex justify-between items-center gap-2">
                   <div className="flex items-center gap-1.5 md:gap-2 flex-1 min-w-0">
+                    {canComplete && (
+                      <Button
+                        variant="default"
+                        size="sm"
+                        className="text-xs md:text-sm h-7 md:h-9 px-2 md:px-3 bg-green-600 hover:bg-green-700 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setTaskToComplete(task);
+                          setIsCompleteConfirmOpen(true);
+                        }}
+                      >
+                        <Check className="h-3 w-3 md:h-4 md:w-4 mr-1" />
+                        Görevi Tamamla
+                      </Button>
+                    )}
                     {canUncomplete && (
                       <Button
                         variant="outline"
@@ -793,7 +874,7 @@ export function TaskList({
           {/* Completed Tasks Section */}
           {completedTasks.length > 0 && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Completed</h2>
+              <h2 className="text-xl font-semibold mb-4">Completed Tasks</h2>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {completedTasks.map((groupedTask) => {
                   const task = groupedTask.task;
@@ -1247,7 +1328,7 @@ export function TaskList({
           {/* Completed Tasks Table */}
           {completedTasks.length > 0 && (
             <div>
-              <h2 className="text-xl font-semibold mb-4">Completed</h2>
+              <h2 className="text-xl font-semibold mb-4">Completed Tasks</h2>
               <Card>
                 <CardContent className="p-0">
                   <Table>
@@ -1544,6 +1625,32 @@ export function TaskList({
           onComplete={handleCompleteTask}
         />
       )}
+
+      <AlertDialog open={isCompleteConfirmOpen} onOpenChange={setIsCompleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Görevi Tamamla</AlertDialogTitle>
+            <AlertDialogDescription>
+              "{taskToComplete?.title}" görevini tamamlamak istediğinizden emin misiniz?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>İptal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (taskToComplete) {
+                  await handleStatusChange(taskToComplete.id, TaskStatus.DONE);
+                  setIsCompleteConfirmOpen(false);
+                  setTaskToComplete(null);
+                }
+              }}
+              className="bg-green-600 hover:bg-green-700"
+            >
+              Tamamla
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
         </TabsContent>
       </Tabs>

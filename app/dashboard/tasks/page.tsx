@@ -38,7 +38,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
   // Read search params
   const params = await searchParams;
   const tab = params.tab || "all";
-  const status = (params.status as TaskStatus) || TaskStatus.TODO; // Default to TODO for fast initial load
+  const status = params.status as TaskStatus | undefined; // Don't filter by status by default to show both active and completed
   const assigneeId = params.assigneeId || null;
   const dateFrom = params.dateFrom || null;
   const dateTo = params.dateTo || null;
@@ -96,7 +96,7 @@ export default async function TasksPage({ searchParams }: TasksPageProps) {
         trips={trips}
         currentUser={session.user}
         currentTab={tab}
-        currentStatus={status}
+        currentStatus={status || "all"}
         currentAssigneeId={assigneeId}
         currentDateFrom={dateFrom}
         currentDateTo={dateTo}
