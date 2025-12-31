@@ -33,6 +33,7 @@ export default function QuotesPage() {
   const [workRequests, setWorkRequests] = useState<WorkRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("work-requests");
+  const [customRolePermissions, setCustomRolePermissions] = useState<string | null>(null);
 
   useEffect(() => {
     if (status === "loading") return;
@@ -42,7 +43,28 @@ export default function QuotesPage() {
       return;
     }
 
-    if (!hasPermission(session.user, "quotes.view", session.user.permissions)) {
+    // Fetch user's custom role permissions if they have a custom role
+    const fetchCustomRolePermissions = async () => {
+      try {
+        const response = await fetch("/api/users/me");
+        if (response.ok) {
+          const userData = await response.json();
+          if (userData.customRole?.permissions) {
+            setCustomRolePermissions(userData.customRole.permissions);
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching custom role permissions:", error);
+      }
+    };
+
+    fetchCustomRolePermissions();
+  }, [session, status]);
+
+  useEffect(() => {
+    if (status === "loading" || !session?.user) return;
+
+    if (!hasPermission(session.user, "quotes.view", session.user.permissions, customRolePermissions)) {
       router.push("/dashboard");
       return;
     }
@@ -75,7 +97,7 @@ export default function QuotesPage() {
     };
 
     fetchWorkRequests();
-  }, [session, status]);
+  }, [session, status, customRolePermissions]);
 
   if (status === "loading" || isLoading) {
     return (

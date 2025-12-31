@@ -497,9 +497,10 @@ export function getUserPermissions(
 export function hasPermission(
   user: SessionUser | null,
   permission: Permission,
-  userPermissionsJson?: string | null
+  userPermissionsJson?: string | null,
+  customRolePermissions?: string | null
 ): boolean {
-  const permissions = getUserPermissions(user, userPermissionsJson);
+  const permissions = getUserPermissions(user, userPermissionsJson, customRolePermissions);
   return permissions.includes(permission);
 }
 

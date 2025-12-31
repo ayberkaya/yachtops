@@ -13,8 +13,21 @@ export default async function CalendarPage() {
     redirect("/auth/signin");
   }
 
-  // Check permission
-  if (!hasPermission(session.user, "calendar.view", session.user.permissions)) {
+  // Fetch user with custom role to check permissions correctly
+  const user = await db.user.findUnique({
+    where: { id: session.user.id },
+    select: {
+      customRole: {
+        select: {
+          permissions: true,
+        },
+      },
+    },
+  });
+
+  // Check permission with custom role permissions
+  const customRolePermissions = user?.customRole?.permissions || null;
+  if (!hasPermission(session.user, "calendar.view", session.user.permissions, customRolePermissions)) {
     redirect("/dashboard");
   }
 
@@ -74,8 +87,8 @@ export default async function CalendarPage() {
   }
 
   const canEdit =
-    hasPermission(session.user, "calendar.edit", session.user.permissions) ||
-    hasPermission(session.user, "calendar.create", session.user.permissions);
+    hasPermission(session.user, "calendar.edit", session.user.permissions, customRolePermissions) ||
+    hasPermission(session.user, "calendar.create", session.user.permissions, customRolePermissions);
 
   return (
     <div className="space-y-6">
