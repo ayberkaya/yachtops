@@ -6,7 +6,7 @@ interface QuickStatsWidgetProps {
   stats: Array<{
     label: string;
     value: string | number;
-    description?: string;
+    description?: string | string[];
     href?: string;
   }>;
 }
@@ -23,7 +23,15 @@ export const QuickStatsWidget = memo(function QuickStatsWidget({ stats }: QuickS
             <CardContent>
               <div className="text-2xl font-bold">{stat.value}</div>
               {stat.description && (
-                <p className="text-xs text-muted-foreground">{stat.description}</p>
+                <div className="text-xs text-muted-foreground">
+                  {Array.isArray(stat.description) ? (
+                    stat.description.map((desc, idx) => (
+                      <div key={idx}>{desc}</div>
+                    ))
+                  ) : (
+                    <p>{stat.description}</p>
+                  )}
+                </div>
               )}
             </CardContent>
           </Card>

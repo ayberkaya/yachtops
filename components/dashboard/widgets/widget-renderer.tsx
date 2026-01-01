@@ -329,14 +329,12 @@ export const WidgetRenderer = memo(function WidgetRenderer({
           </Suspense>
         );
       case "quick_stats":
-        // Format currency breakdown
-        const currencyDescription = pendingExpensesByCurrency.length > 0
-          ? pendingExpensesByCurrency
-              .map(({ currency, total }) => 
-                `${total.toLocaleString("en-US", { style: "currency", currency })}`
-              )
-              .join(" • ")
-          : "All reviewed";
+        // Format currency breakdown as array for vertical display
+        const currencyDescriptions = pendingExpensesByCurrency.length > 0
+          ? pendingExpensesByCurrency.map(({ currency, total }) => 
+              `${total.toLocaleString("en-US", { style: "currency", currency })}`
+            )
+          : ["All reviewed"];
         
         return (
           <QuickStatsWidget
@@ -344,7 +342,7 @@ export const WidgetRenderer = memo(function WidgetRenderer({
               { 
                 label: "Awaiting Approval", 
                 value: pendingExpensesCount, 
-                description: currencyDescription,
+                description: currencyDescriptions,
                 href: "/dashboard/expenses/pending"
               },
               { label: "Upcoming Trips", value: upcomingTrips.length, description: "Scheduled trips" },
