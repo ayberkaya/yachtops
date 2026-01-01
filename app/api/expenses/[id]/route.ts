@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/get-session";
-import { canApproveExpenses } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { ExpenseStatus, PaidBy, PaymentMethod, CashTransactionType, AuditAction } from "@prisma/client";
 import { z } from "zod";
 import { withEgressLogging } from "@/lib/egress-middleware";
 import { createAuditLog } from "@/lib/audit-log";
-import { hasPermission } from "@/lib/permissions";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
 
@@ -160,8 +159,25 @@ export const PATCH = withEgressLogging(async function PATCH(
     const canEdit = 
       existingExpense.createdByUserId === session!.user.id ||
       hasPermission(session!.user, "expenses.edit", session!.user.permissions);
+    // Check approval permission - SUPER_ADMIN, OWNER, and CAPTAIN can always approve
+    // Also check explicit permission via hasPermission
+    const canApprove = 
+      session!.user.role === "SUPER_ADMIN" ||
+      session!.user.role === "OWNER" ||
+      session!.user.role === "CAPTAIN" ||
+      hasPermission(session!.user, "expenses.approve", session!.user.permissions);
 
-    if (!canEdit && !canApproveExpenses(session!.user)) {
+    // Determine if this is a status-only change (approve/reject)
+    // Check which fields are actually being updated (not undefined)
+    const fieldsBeingUpdated = Object.keys(validated).filter(
+      key => validated[key as keyof typeof validated] !== undefined
+    );
+    const isStatusOnlyChange = validated.status !== undefined && 
+      fieldsBeingUpdated.length === 1 && 
+      fieldsBeingUpdated[0] === 'status';
+
+    // If not a status-only change, require edit or approve permission
+    if (!isStatusOnlyChange && !canEdit && !canApprove) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
@@ -175,8 +191,15 @@ export const PATCH = withEgressLogging(async function PATCH(
 
     // Handle status updates for approval/rejection
     if (validated.status) {
-        if (!canApproveExpenses(session!.user)) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      if (!canApprove) {
+        console.error("Approval denied:", {
+          userId: session!.user.id,
+          role: session!.user.role,
+          permissions: session!.user.permissions,
+        });
+        return NextResponse.json({ 
+          error: "Forbidden: You do not have permission to approve expenses" 
+        }, { status: 403 });
       }
 
       if (
