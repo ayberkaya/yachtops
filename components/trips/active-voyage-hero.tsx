@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { MapPin, ArrowRight, Users, Ship, Plus } from "lucide-react";
+import { MapPin, ArrowRight, Users, Ship, Plus, Navigation2, Flag } from "lucide-react";
 import { TripStatus, TripType, TripMovementEvent } from "@prisma/client";
 import { format } from "date-fns";
 
@@ -135,11 +135,8 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
   };
 
   return (
-    <Card className="border-2 border-blue-300 dark:border-blue-700 shadow-lg mb-6 relative overflow-hidden">
-      {/* Animated background layer */}
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 dark:from-blue-950/40 dark:via-cyan-950/40 dark:to-blue-950/40 animate-pulse pointer-events-none" />
-      {/* Content layer */}
-      <CardContent className="p-6 md:p-8 relative z-10">
+    <Card className="border-2 border-blue-300 dark:border-blue-700 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 dark:from-blue-950/40 dark:via-cyan-950/40 dark:to-blue-950/40 shadow-lg mb-6">
+      <CardContent className="p-6 md:p-8">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
           {/* Left side: Trip info */}
           <div className="flex-1 space-y-4">
@@ -179,14 +176,14 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
                   </div>
                   <ArrowRight className="h-5 w-5 text-gray-600 dark:text-gray-300 transition-colors duration-1000" />
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors duration-1000" />
+                    <Navigation2 className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors duration-1000" />
                     <span className="font-bold text-green-700 dark:text-green-300">
                       {currentLocation || "Current Location"}
                     </span>
                   </div>
                   <ArrowRight className="h-5 w-5 text-gray-600 dark:text-gray-300 transition-colors duration-1000" />
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-blue-700 dark:text-blue-300 transition-colors duration-1000" />
+                    <Flag className="h-5 w-5 text-blue-700 dark:text-blue-300 transition-colors duration-1000" />
                     <span>{trip.arrivalPort || "Arrival TBD"}</span>
                   </div>
                 </div>

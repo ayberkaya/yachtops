@@ -183,3 +183,64 @@ export async function PATCH(
   }
 }
 
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; checklistId: string }> }
+) {
+  try {
+    const session = await getSession();
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const canEdit =
+      hasPermission(session.user, "trips.edit", session.user.permissions) ||
+      hasPermission(session.user, "trips.create", session.user.permissions);
+
+    if (!canEdit) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const tenantResult = resolveTenantOrResponse(session, request);
+    if (tenantResult instanceof NextResponse) {
+      return tenantResult;
+    }
+    const { scopedSession } = tenantResult;
+
+    const { id: tripId, checklistId } = await params;
+
+    // First verify trip belongs to tenant
+    const trip = await db.trip.findFirst({
+      where: withTenantScope(scopedSession, { id: tripId }),
+      select: { id: true },
+    });
+
+    if (!trip) {
+      return NextResponse.json({ error: "Trip not found" }, { status: 404 });
+    }
+
+    const checklist = await db.tripChecklistItem.findFirst({
+      where: {
+        id: checklistId,
+        tripId,
+      },
+    });
+
+    if (!checklist) {
+      return NextResponse.json({ error: "Checklist item not found" }, { status: 404 });
+    }
+
+    await db.tripChecklistItem.delete({
+      where: { id: checklistId },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting checklist item:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}
+

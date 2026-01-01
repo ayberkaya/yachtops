@@ -15,13 +15,18 @@ import {
   Save,
   Clock3,
   CheckCircle2,
+  Pencil,
+  X,
+  Plus,
 } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -254,6 +259,15 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
   const [remarksSavingId, setRemarksSavingId] = useState<string | null>(null);
   const [isChecklistDialogOpen, setIsChecklistDialogOpen] = useState(false);
   const [activeChecklistType, setActiveChecklistType] = useState<ChecklistType | null>(null);
+  const [editingItemId, setEditingItemId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState<string>("");
+  const [editRemarks, setEditRemarks] = useState<string>("");
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newItemTitle, setNewItemTitle] = useState<string>("");
+  const [newItemRemarks, setNewItemRemarks] = useState<string>("");
+  const [isAddingItem, setIsAddingItem] = useState(false);
+  const [deletingItemId, setDeletingItemId] = useState<string | null>(null);
 
   const selectedTrip = useMemo(
     () => trips.find((trip) => trip.id === selectedTripId) || null,
@@ -567,6 +581,132 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     }
   };
 
+  const handleEditItem = (item: ChecklistItem) => {
+    setEditingItemId(item.id);
+    setEditTitle(item.title);
+    setEditRemarks(item.remarks || "");
+    setIsEditDialogOpen(true);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!selectedTripId || !editingItemId || !canManageChecklist) return;
+    if (!editTitle.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    setSavingId(editingItemId);
+    try {
+      const response = await fetch(`/api/trips/${selectedTripId}/checklists/${editingItemId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editTitle.trim(),
+          remarks: editRemarks.trim() || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Failed to update item");
+      }
+
+      const updated = await response.json();
+      applyChecklistUpdate(updated);
+      setIsEditDialogOpen(false);
+      setEditingItemId(null);
+      setEditTitle("");
+      setEditRemarks("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update item");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const handleAddNewItem = async () => {
+    if (!selectedTripId || !activeChecklistType || !canManageChecklist) return;
+    if (!newItemTitle.trim()) {
+      setError("Title is required");
+      return;
+    }
+
+    setIsAddingItem(true);
+    try {
+      const { items } = getChecklistData(activeChecklistType);
+      const maxOrderIndex = items.length > 0 
+        ? Math.max(...items.map(item => {
+            // Extract orderIndex from item if it exists, otherwise use 0
+            return (item as any).orderIndex ?? 0;
+          }))
+        : -1;
+
+      const response = await fetch(`/api/trips/${selectedTripId}/checklists`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: activeChecklistType,
+          title: newItemTitle.trim(),
+          remarks: newItemRemarks.trim() || null,
+          orderIndex: maxOrderIndex + 1,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Failed to create item");
+      }
+
+      const newItem = await response.json();
+      applyChecklistUpdate(newItem);
+      setIsAddDialogOpen(false);
+      setNewItemTitle("");
+      setNewItemRemarks("");
+      await fetchChecklists(selectedTripId, { silent: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to create item");
+    } finally {
+      setIsAddingItem(false);
+    }
+  };
+
+  const handleDeleteItem = async (item: ChecklistItem) => {
+    if (!selectedTripId || !canManageChecklist) return;
+    
+    // Confirm deletion
+    if (!confirm("Are you sure you want to delete this checklist item?")) {
+      return;
+    }
+
+    setDeletingItemId(item.id);
+    try {
+      const response = await fetch(`/api/trips/${selectedTripId}/checklists/${item.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || "Failed to delete item");
+      }
+
+      // Remove from state
+      setChecklistsDeduplicated((prev) => {
+        const targetKey =
+          item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
+        return {
+          ...prev,
+          [targetKey]: prev[targetKey].filter((i) => i.id !== item.id),
+        };
+      });
+
+      // Refresh checklists to ensure consistency
+      await fetchChecklists(selectedTripId, { silent: true });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to delete item");
+    } finally {
+      setDeletingItemId(null);
+    }
+  };
 
   const renderChecklist = (title: string, type: ChecklistType, items: ChecklistItem[]) => {
     const { items: displayItems } = getChecklistData(type);
@@ -638,10 +778,6 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     items: ChecklistItem[],
     isFallbackList: boolean
   ) => {
-    if (items.length === 0) {
-      return <p className="text-sm text-muted-foreground">No items defined for this checklist.</p>;
-    }
-
     // Aggressive deduplication: first by ID, then by title+type combination
     // This handles cases where database has duplicate records with different IDs
     const seenById = new Set<string>();
@@ -665,6 +801,9 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
       return true;
     });
 
+    // Show all items
+    const displayItems = uniqueItems;
+
     return (
       <div className="space-y-3 pt-2">
         {isFallbackList && (
@@ -672,48 +811,97 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
             Sample checklist shown until real checklist items are created.
           </p>
         )}
-        {uniqueItems.map((item) => {
-          const who = item.completedBy?.name || item.completedBy?.email;
-          const completedAtLabel =
-            item.completed && item.completedAt
-              ? formatDistanceToNow(new Date(item.completedAt), { addSuffix: true })
-              : null;
-          const currentDraft = remarksDrafts[item.id] ?? item.remarks ?? "";
-          const hasRemarkChanges = currentDraft !== (item.remarks ?? "");
-          const isRemarkSaving = remarksSavingId === item.id;
-          const isCheckboxSaving = savingId === item.id;
-          const disableInteractions = !canManageChecklist;
+        {displayItems.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No items defined for this checklist.</p>
+        ) : (
+          displayItems.map((item) => {
+            const who = item.completedBy?.name || item.completedBy?.email;
+            const completedAtLabel =
+              item.completed && item.completedAt
+                ? formatDistanceToNow(new Date(item.completedAt), { addSuffix: true })
+                : null;
+            const currentDraft = remarksDrafts[item.id] ?? item.remarks ?? "";
+            const hasRemarkChanges = currentDraft !== (item.remarks ?? "");
+            const isRemarkSaving = remarksSavingId === item.id;
+            const isCheckboxSaving = savingId === item.id;
+            const disableInteractions = !canManageChecklist;
+            const isFallbackItem = item.id.startsWith("pre-fallback") || item.id.startsWith("post-fallback");
 
-          return (
-            <div
-              key={item.id}
-              className="flex items-center gap-3 rounded-md border p-3 transition hover:bg-muted/40"
-            >
-              <Checkbox
-                checked={item.completed}
-                disabled={disableInteractions || isCheckboxSaving}
-                onCheckedChange={(checked) => handleToggle(item, !!checked)}
-              />
-              <div className="flex-1 space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium">{item.title}</span>
-                  {item.completed && (
-                    <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
-                      <UserCheck className="h-[25px] w-[25px] text-emerald-600" />
-                      <span>{who || "Completed by"}</span>
-                    </span>
-                  )}
+            return (
+              <div
+                key={item.id}
+                className="flex items-start gap-3 rounded-md border p-3 transition hover:bg-muted/40"
+              >
+                <Checkbox
+                  checked={item.completed}
+                  disabled={disableInteractions || isCheckboxSaving}
+                  onCheckedChange={(checked) => handleToggle(item, !!checked)}
+                  className="mt-1"
+                />
+                <div className="flex-1 space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-medium">{item.title}</span>
+                    {item.completed && (
+                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-600">
+                        <UserCheck className="h-[25px] w-[25px] text-emerald-600" />
+                        <span>{who || "Completed by"}</span>
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    {item.completed ? completedAtLabel || "just now" : "Pending"}
+                  </p>
+                  <p className="text-xs text-muted-foreground pt-2">
+                    {item.remarks?.length ? item.remarks : "No notes recorded"}
+                  </p>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {item.completed ? completedAtLabel || "just now" : "Pending"}
-                </p>
-                <p className="text-xs text-muted-foreground pt-2">
-                  {item.remarks?.length ? item.remarks : "No notes recorded"}
-                </p>
+                {canManageChecklist && (
+                  <div className="flex items-center gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleEditItem(item)}
+                      className="h-8 w-8 p-0"
+                      disabled={deletingItemId === item.id || isFallbackItem}
+                      title="Edit item"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleDeleteItem(item)}
+                      className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50 dark:text-red-400 dark:hover:text-red-300 dark:hover:bg-red-950/20"
+                      disabled={deletingItemId === item.id || isFallbackItem}
+                      title="Delete item"
+                    >
+                      {deletingItemId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <X className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
+                )}
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
+        {canManageChecklist && (
+          <Card
+            className="border-dashed border-2 cursor-pointer hover:bg-muted/40 transition-colors"
+            onClick={() => {
+              setNewItemTitle("");
+              setNewItemRemarks("");
+              setIsAddDialogOpen(true);
+            }}
+          >
+            <CardContent className="flex items-center justify-center gap-2 py-6">
+              <Plus className="h-5 w-5 text-muted-foreground" />
+              <span className="text-sm font-medium text-muted-foreground">Add New Item</span>
+            </CardContent>
+          </Card>
+        )}
       </div>
     );
   };
@@ -853,7 +1041,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                   onClick={() => setIsChecklistDialogOpen(false)}
                   disabled={savingId !== null}
                 >
-                  Save
+                  Close
                 </Button>
               </DialogFooter>
             </>
@@ -862,6 +1050,105 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
               Unable to load checklist details.
             </p>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Item Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Checklist Item</DialogTitle>
+            <DialogDescription>
+              Update the title and remarks for this checklist item
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Title</Label>
+              <Input
+                id="edit-title"
+                value={editTitle}
+                onChange={(e) => setEditTitle(e.target.value)}
+                placeholder="Enter item title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-remarks">Remarks</Label>
+              <Textarea
+                id="edit-remarks"
+                value={editRemarks}
+                onChange={(e) => setEditRemarks(e.target.value)}
+                placeholder="Enter remarks or notes (optional)"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsEditDialogOpen(false);
+                setEditingItemId(null);
+                setEditTitle("");
+                setEditRemarks("");
+              }}
+              disabled={savingId !== null}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={savingId !== null || !editTitle.trim()}>
+              {savingId !== null ? "Saving..." : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add New Item Dialog */}
+      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add New Checklist Item</DialogTitle>
+            <DialogDescription>
+              Create a new item for the {activeChecklistType ? CHECKLIST_TITLES[activeChecklistType] : "checklist"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-title">Title</Label>
+              <Input
+                id="new-title"
+                value={newItemTitle}
+                onChange={(e) => setNewItemTitle(e.target.value)}
+                placeholder="Enter item title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-remarks">Remarks</Label>
+              <Textarea
+                id="new-remarks"
+                value={newItemRemarks}
+                onChange={(e) => setNewItemRemarks(e.target.value)}
+                placeholder="Enter remarks or notes (optional)"
+                rows={3}
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setIsAddDialogOpen(false);
+                setNewItemTitle("");
+                setNewItemRemarks("");
+              }}
+              disabled={isAddingItem}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleAddNewItem} disabled={isAddingItem || !newItemTitle.trim()}>
+              {isAddingItem ? "Adding..." : "Add Item"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
