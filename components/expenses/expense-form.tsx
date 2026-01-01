@@ -994,28 +994,6 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value || ExpenseStatus.SUBMITTED}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value={ExpenseStatus.DRAFT}>Draft</SelectItem>
-                          <SelectItem value={ExpenseStatus.SUBMITTED}>Submitted</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormDescription>Submit for approval or save as draft</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </div>
 
               <FormField
