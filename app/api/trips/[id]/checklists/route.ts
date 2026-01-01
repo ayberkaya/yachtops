@@ -64,7 +64,7 @@ export async function GET(
 
     // If completedBy is null but completed is true, use session user info as fallback
     // This handles cases where the user doesn't exist in the database
-    const itemsWithFallback = items.map((item: { completed: boolean; completedBy: { id: string; name: string | null; email: string } | null; type: TripChecklistType }) => {
+    const itemsWithFallback = items.map((item) => {
       if (item.completed && !item.completedBy) {
         return {
           ...item,
@@ -83,7 +83,7 @@ export async function GET(
     const seenById = new Set<string>();
     const seenByTitleType = new Set<string>();
     
-    const uniqueItems = itemsWithFallback.filter((item: { id: string; type: TripChecklistType; title: string }) => {
+    const uniqueItems = itemsWithFallback.filter((item) => {
       // Skip if duplicate ID
       if (seenById.has(item.id)) {
         return false;

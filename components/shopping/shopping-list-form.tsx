@@ -203,11 +203,13 @@ export function ShoppingListForm({ list, onSuccess, onDelete }: ShoppingListForm
                 </FormControl>
                 <SelectContent>
                   <SelectItem value="none">No trip</SelectItem>
-                  {trips.map((trip) => (
-                    <SelectItem key={trip.id} value={trip.id}>
-                      {trip.name} {trip.code ? `(${trip.code})` : ""}
-                    </SelectItem>
-                  ))}
+                  {trips
+                    .filter((trip) => trip.status !== "COMPLETED" && trip.status !== "CANCELLED")
+                    .map((trip) => (
+                      <SelectItem key={trip.id} value={trip.id}>
+                        {trip.name} {trip.code ? `(${trip.code})` : ""}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormDescription>

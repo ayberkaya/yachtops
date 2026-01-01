@@ -26,7 +26,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import { ExpenseCategory, Trip, PaymentMethod, PaidBy, ExpenseStatus } from "@prisma/client";
+import { ExpenseCategory, Trip, PaymentMethod, PaidBy, ExpenseStatus, TripStatus } from "@prisma/client";
 import { Textarea } from "@/components/ui/textarea";
 
 // UI-only schema for the expense form. We intentionally drop VAT/base amount fields
@@ -90,13 +90,18 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     }
   }, [isCategorySelectOpen, categories.length]);
 
-  // Filter trips based on search
+  // Filter trips based on search - exclude COMPLETED and CANCELLED trips
   const filteredTrips = useMemo(() => {
-    if (!tripSearch.trim() || trips.length < 5) {
-      return trips;
+    // First filter out completed and cancelled trips
+    const activeTrips = trips.filter(
+      (trip) => trip.status !== TripStatus.COMPLETED && trip.status !== TripStatus.CANCELLED
+    );
+    
+    if (!tripSearch.trim() || activeTrips.length < 5) {
+      return activeTrips;
     }
     const searchLower = tripSearch.toLowerCase().trim();
-    return trips.filter(
+    return activeTrips.filter(
       (trip) =>
         trip.name.toLowerCase().includes(searchLower) ||
         (trip.code && trip.code.toLowerCase().includes(searchLower))

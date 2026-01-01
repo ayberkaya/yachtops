@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { format, formatDistance } from "date-fns";
 import type { TripStatus, TripType, TripMovementEvent, TripChecklistType } from "@prisma/client";
+import { jsPDF } from "jspdf";
 import {
   ClipboardCheck,
   MapPin,
@@ -124,13 +125,12 @@ interface PostVoyageReportProps {
 }
 
 export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageReportProps) {
-  const [selectedTripId, setSelectedTripId] = useState<string | null>(trips[0]?.id || null);
+  const [selectedTripId, setSelectedTripId] = useState<string | null>(null);
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     expenses: true,
     tasks: true,
     movements: true,
     tanks: true,
-    checklists: true,
   });
 
   const selectedTrip = useMemo(
@@ -193,43 +193,235 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
 
   const exportReport = () => {
     if (!selectedTrip) return;
-    
-    const report = {
-      trip: {
-        name: selectedTrip.name,
-        code: selectedTrip.code,
-        type: selectedTrip.type,
-        startDate: selectedTrip.startDate,
-        endDate: selectedTrip.endDate,
-        departurePort: selectedTrip.departurePort,
-        arrivalPort: selectedTrip.arrivalPort,
-        duration: tripDuration,
-      },
-      summary: {
-        expenses: expenseSummary,
-        tasksCompleted: completedTasks.length,
-        totalTasks: selectedTrip.tasks.length,
-        movements: selectedTrip.movementLogs.length,
-        fuelConsumption,
-      },
-      details: {
-        expenses: selectedTrip.expenses,
-        tasks: selectedTrip.tasks,
-        movements: selectedTrip.movementLogs,
-        tankLogs: selectedTrip.tankLogs,
-        checklists: selectedTrip.checklists,
-      },
+
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    let yPos = margin;
+    const lineHeight = 7;
+    const sectionSpacing = 10;
+
+    // Helper function to add new page if needed
+    const checkPageBreak = (requiredSpace: number) => {
+      if (yPos + requiredSpace > pageHeight - margin) {
+        doc.addPage();
+        yPos = margin;
+      }
     };
 
-    const blob = new Blob([JSON.stringify(report, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `voyage-report-${selectedTrip.name}-${format(new Date(), "yyyy-MM-dd")}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+    // Helper function to add text with word wrap
+    const addText = (text: string, x: number, y: number, maxWidth?: number) => {
+      if (maxWidth) {
+        const lines = doc.splitTextToSize(text, maxWidth);
+        doc.text(lines, x, y);
+        return lines.length * lineHeight;
+      } else {
+        doc.text(text, x, y);
+        return lineHeight;
+      }
+    };
+
+    // Title
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    yPos += addText("Post-Voyage Report", margin, yPos);
+    yPos += sectionSpacing;
+
+    // Voyage Overview Section
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    yPos += addText("Voyage Overview", margin, yPos);
+    yPos += 5;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    const overviewData = [
+      ["Voyage Name:", selectedTrip.name],
+      ["Code:", selectedTrip.code || "N/A"],
+      ["Type:", selectedTrip.type],
+      ["Duration:", tripDuration || "N/A"],
+      ["Departure Port:", selectedTrip.departurePort || "N/A"],
+      ["Arrival Port:", selectedTrip.arrivalPort || "N/A"],
+      ["Start Date:", format(new Date(selectedTrip.startDate), "PPP")],
+      ["End Date:", selectedTrip.endDate ? format(new Date(selectedTrip.endDate), "PPP") : "N/A"],
+      ["Guests:", selectedTrip.guestCount ? `${selectedTrip.guestCount}` : "N/A"],
+    ];
+
+    if (selectedTrip.mainGuest) {
+      overviewData.push(["Main Guest:", selectedTrip.mainGuest]);
+    }
+
+    if (fuelConsumption !== null) {
+      overviewData.push(["Fuel Consumed:", `${fuelConsumption.toFixed(1)} L`]);
+    }
+
+    overviewData.forEach(([label, value]) => {
+      checkPageBreak(lineHeight * 2);
+      doc.setFont("helvetica", "bold");
+      addText(label, margin, yPos);
+      doc.setFont("helvetica", "normal");
+      addText(value, margin + 60, yPos);
+      yPos += lineHeight;
+    });
+
+    yPos += sectionSpacing;
+
+    // Expenses Summary
+    checkPageBreak(lineHeight * 10);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    yPos += addText("Expenses Summary", margin, yPos);
+    yPos += 5;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    if (Object.keys(expenseSummary.byCurrency).length > 0) {
+      doc.setFont("helvetica", "bold");
+      yPos += addText("Total Expenses:", margin, yPos);
+      doc.setFont("helvetica", "normal");
+      Object.entries(expenseSummary.byCurrency).forEach(([currency, amount]) => {
+        checkPageBreak(lineHeight);
+        yPos += addText(`${currency} ${amount.toFixed(2)}`, margin + 10, yPos);
+      });
+      yPos += 3;
+    }
+
+    if (Object.keys(expenseSummary.byCategory).length > 0) {
+      doc.setFont("helvetica", "bold");
+      yPos += addText("By Category:", margin, yPos);
+      doc.setFont("helvetica", "normal");
+      Object.entries(expenseSummary.byCategory).forEach(([category, amount]) => {
+        checkPageBreak(lineHeight);
+        yPos += addText(`${category}: ${amount.toFixed(2)}`, margin + 10, yPos);
+      });
+      yPos += 3;
+    }
+
+    yPos += addText(`Total Expenses: ${selectedTrip.expenses.length}`, margin, yPos);
+    yPos += sectionSpacing;
+
+    // Tasks Summary
+    checkPageBreak(lineHeight * 5);
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    yPos += addText("Tasks Summary", margin, yPos);
+    yPos += 5;
+
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    yPos += addText(`${completedTasks.length} of ${selectedTrip.tasks.length} task(s) completed`, margin, yPos);
+    yPos += sectionSpacing;
+
+    // Movement Logs
+    if (selectedTrip.movementLogs.length > 0) {
+      checkPageBreak(lineHeight * 8);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      yPos += addText("Movement Logs", margin, yPos);
+      yPos += 5;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      
+      selectedTrip.movementLogs.forEach((log, index) => {
+        checkPageBreak(lineHeight * 5);
+        doc.setFont("helvetica", "bold");
+        yPos += addText(`${index + 1}. ${log.eventType}`, margin, yPos);
+        doc.setFont("helvetica", "normal");
+        yPos += addText(`Port: ${log.port || "N/A"}`, margin + 10, yPos);
+        yPos += addText(`Date: ${format(new Date(log.recordedAt), "PPP 'at' HH:mm")}`, margin + 10, yPos);
+        if (log.weather) {
+          yPos += addText(`Weather: ${log.weather}`, margin + 10, yPos);
+        }
+        if (log.seaState) {
+          yPos += addText(`Sea State: ${log.seaState}`, margin + 10, yPos);
+        }
+        yPos += 3;
+      });
+      yPos += sectionSpacing;
+    }
+
+    // Tank Logs
+    if (selectedTrip.tankLogs.length > 0) {
+      checkPageBreak(lineHeight * 8);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      yPos += addText("Fuel & Water Logs", margin, yPos);
+      yPos += 5;
+
+      doc.setFontSize(9);
+      doc.setFont("helvetica", "normal");
+      
+      // Table header
+      checkPageBreak(lineHeight * 3);
+      doc.setFont("helvetica", "bold");
+      const tableHeaders = ["Date", "Fuel (L)", "Fresh Water", "Grey Water", "Black Water"];
+      const colWidths = [60, 30, 30, 30, 30];
+      let xPos = margin;
+      tableHeaders.forEach((header, i) => {
+        doc.text(header, xPos, yPos);
+        xPos += colWidths[i];
+      });
+      yPos += lineHeight;
+      doc.setFont("helvetica", "normal");
+
+      // Table rows
+      selectedTrip.tankLogs.forEach((log) => {
+        checkPageBreak(lineHeight * 2);
+        xPos = margin;
+        const rowData = [
+          format(new Date(log.recordedAt), "MMM dd, yyyy"),
+          log.fuelLevel?.toFixed(1) || "—",
+          log.freshWater?.toFixed(1) || "—",
+          log.greyWater?.toFixed(1) || "—",
+          log.blackWater?.toFixed(1) || "—",
+        ];
+        rowData.forEach((data, i) => {
+          doc.text(data, xPos, yPos);
+          xPos += colWidths[i];
+        });
+        yPos += lineHeight;
+      });
+      yPos += sectionSpacing;
+    }
+
+    // Notes
+    if (selectedTrip.notes) {
+      checkPageBreak(lineHeight * 5);
+      doc.setFontSize(16);
+      doc.setFont("helvetica", "bold");
+      yPos += addText("Notes", margin, yPos);
+      yPos += 5;
+
+      doc.setFontSize(10);
+      doc.setFont("helvetica", "normal");
+      const notesLines = doc.splitTextToSize(selectedTrip.notes, pageWidth - margin * 2);
+      notesLines.forEach((line: string) => {
+        checkPageBreak(lineHeight);
+        yPos += addText(line, margin, yPos);
+      });
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i);
+      doc.setFontSize(8);
+      doc.setFont("helvetica", "normal");
+      doc.text(
+        `Page ${i} of ${totalPages} - Generated on ${format(new Date(), "PPP")}`,
+        pageWidth / 2,
+        pageHeight - 10,
+        { align: "center" }
+      );
+    }
+
+    // Save PDF
+    const fileName = `voyage-report-${selectedTrip.name.replace(/\s+/g, "-")}-${format(new Date(), "yyyy-MM-dd")}.pdf`;
+    doc.save(fileName);
   };
 
   if (trips.length === 0) {
@@ -646,71 +838,6 @@ export function PostVoyageReport({ trips, canEdit, currentUser }: PostVoyageRepo
             </Card>
           )}
 
-          {/* Checklists */}
-          {selectedTrip.checklists.length > 0 && (
-            <Card>
-              <Collapsible
-                open={expandedSections.checklists}
-                onOpenChange={() => toggleSection("checklists")}
-              >
-                <CollapsibleTrigger>
-                  <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <ClipboardCheck className="h-5 w-5" />
-                        <CardTitle>Checklists</CardTitle>
-                      </div>
-                      {expandedSections.checklists ? (
-                        <ChevronUp className="h-4 w-4" />
-                      ) : (
-                        <ChevronDown className="h-4 w-4" />
-                      )}
-                    </div>
-                    <CardDescription>
-                      {selectedTrip.checklists.filter((c) => c.completed).length} of{" "}
-                      {selectedTrip.checklists.length} item(s) completed
-                    </CardDescription>
-                  </CardHeader>
-                </CollapsibleTrigger>
-                <CollapsibleContent>
-                  <CardContent>
-                    <div className="space-y-2">
-                      {selectedTrip.checklists.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between p-3 border rounded-lg"
-                        >
-                          <div className="flex items-center gap-3">
-                            <Badge
-                              variant={item.completed ? "default" : "outline"}
-                              className="min-w-[80px]"
-                            >
-                              {item.type}
-                            </Badge>
-                            <span className={item.completed ? "" : "text-muted-foreground"}>
-                              {item.title}
-                            </span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            {item.completed && item.completedBy && (
-                              <span className="text-sm text-muted-foreground">
-                                by {item.completedBy.name}
-                              </span>
-                            )}
-                            {item.completedAt && (
-                              <span className="text-sm text-muted-foreground">
-                                {format(new Date(item.completedAt), "PP")}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </CardContent>
-                </CollapsibleContent>
-              </Collapsible>
-            </Card>
-          )}
         </div>
       )}
     </div>

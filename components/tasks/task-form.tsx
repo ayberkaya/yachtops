@@ -79,7 +79,7 @@ interface TaskFormProps {
     dueDate?: string | null;
   };
   users: { id: string; name: string | null; email: string; role?: UserRole; customRoleId?: string | null; customRole?: { id: string; name: string } | null }[];
-  trips: { id: string; name: string }[];
+  trips: { id: string; name: string; status?: string }[];
   onSuccess: (createdTask?: Task) => void;
   onDelete?: () => void;
 }
@@ -814,11 +814,13 @@ export function TaskForm({ task, initialData, users, trips, onSuccess, onDelete 
                 </FormControl>
                 <SelectContent>
                   <SelectItem key="none" value="none">No trip</SelectItem>
-                  {trips.map((trip) => (
-                    <SelectItem key={trip.id} value={trip.id}>
-                      {trip.name}
-                    </SelectItem>
-                  ))}
+                  {trips
+                    .filter((trip) => trip.status !== "COMPLETED" && trip.status !== "CANCELLED")
+                    .map((trip) => (
+                      <SelectItem key={trip.id} value={trip.id}>
+                        {trip.name}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
               <FormMessage />

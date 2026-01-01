@@ -122,24 +122,63 @@ export async function PATCH(
 
       if (validated.status === TripStatus.COMPLETED) {
         await ensureTripChecklistTableReady();
-        const total = await db.tripChecklistItem.count({ where: { tripId: id } });
-        if (total === 0) {
+        
+        // Get all checklist items to check for duplicates
+        const allItems = await db.tripChecklistItem.findMany({
+          where: { tripId: id },
+          select: { id: true, type: true, title: true, completed: true },
+        });
+
+        console.log(`[Trip ${id}] Total checklist items in DB:`, allItems.length);
+        console.log(`[Trip ${id}] Items breakdown:`, {
+          total: allItems.length,
+          completed: allItems.filter(i => i.completed).length,
+          pending: allItems.filter(i => !i.completed).length,
+        });
+
+        if (allItems.length === 0) {
           return NextResponse.json(
             { error: "Cannot complete a trip before its checklist template exists." },
             { status: 400 }
           );
         }
 
-        const pending = await db.tripChecklistItem.count({
-          where: { tripId: id, completed: false },
+        // Deduplicate by title+type combination (keep first occurrence, prefer completed ones)
+        const itemsByKey = new Map<string, typeof allItems[0]>();
+        for (const item of allItems) {
+          const titleTypeKey = `${item.type}:${item.title}`;
+          const existing = itemsByKey.get(titleTypeKey);
+          
+          // Keep the item if:
+          // 1. No existing item for this key, OR
+          // 2. Existing item is not completed but current is completed (prefer completed)
+          if (!existing || (!existing.completed && item.completed)) {
+            itemsByKey.set(titleTypeKey, item);
+          }
+        }
+
+        const uniqueItems = Array.from(itemsByKey.values());
+        console.log(`[Trip ${id}] After deduplication:`, {
+          total: uniqueItems.length,
+          completed: uniqueItems.filter(i => i.completed).length,
+          pending: uniqueItems.filter(i => !i.completed).length,
         });
 
-        if (pending > 0) {
+        // Check if any unique item is not completed
+        const pendingItems = uniqueItems.filter((item) => !item.completed);
+
+        if (pendingItems.length > 0) {
+          console.log(`[Trip ${id}] Pending checklist items:`, pendingItems.map(i => ({ type: i.type, title: i.title, id: i.id })));
           return NextResponse.json(
-            { error: "Finish every checklist item before marking the trip as completed." },
+            { 
+              error: "Finish every checklist item before marking the trip as completed.",
+              pendingItems: pendingItems.map(i => ({ type: i.type, title: i.title }))
+            },
             { status: 400 }
           );
         }
+
+        console.log(`[Trip ${id}] All checklist items completed, allowing trip completion`);
       }
 
       updateData.status = validated.status;

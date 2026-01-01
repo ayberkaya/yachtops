@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,7 +33,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { TripStatus, TripType } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Pencil, Trash2, Calendar, MapPin, Users, FileText, Filter, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Calendar, MapPin, Users, FileText, Filter, X, Navigation2, ClipboardCheck, DollarSign, CheckSquare } from "lucide-react";
 import { TripForm } from "./trip-form";
 import { TripItinerary } from "./trip-itinerary";
 
@@ -69,8 +69,10 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
   const [trips, setTrips] = useState(initialTrips);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isItineraryDialogOpen, setIsItineraryDialogOpen] = useState(false);
+  const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
   const [selectedTripForItinerary, setSelectedTripForItinerary] = useState<Trip | null>(null);
+  const [selectedTripForDetail, setSelectedTripForDetail] = useState<Trip | null>(null);
   const [viewMode, setViewMode] = useState<"table" | "cards">("cards");
   
   // Filters
@@ -228,7 +230,7 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
             variant="outline"
             size="sm"
             onClick={() => setViewMode(viewMode === "table" ? "cards" : "table")}
-            className={viewMode === "table" ? "" : "bg-primary text-primary-foreground border-primary shadow-sm"}
+            className={viewMode === "table" ? "" : "bg-white text-primary-foreground border-primary shadow-sm"}
           >
             {viewMode === "table" ? "Card View" : "Table View"}
           </Button>
@@ -330,7 +332,14 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
             </div>
           ) : (
             filteredTrips.map((trip) => (
-              <Card key={trip.id} className="hover:shadow-lg transition-shadow">
+              <Card 
+                key={trip.id} 
+                className="hover:shadow-lg transition-shadow cursor-pointer"
+                onClick={() => {
+                  setSelectedTripForDetail(trip);
+                  setIsDetailDialogOpen(true);
+                }}
+              >
                 <CardHeader>
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
@@ -398,7 +407,8 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setSelectedTripForItinerary(trip);
                             setIsItineraryDialogOpen(true);
                           }}
@@ -408,7 +418,8 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => {
+                          onClick={(e) => {
+                            e.stopPropagation();
                             setEditingTrip(trip);
                             setIsDialogOpen(true);
                           }}
@@ -418,7 +429,10 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleDelete(trip.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(trip.id);
+                          }}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -550,6 +564,208 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
           </CardContent>
         </Card>
       )}
+
+      {/* Trip Detail Dialog */}
+      <Dialog open={isDetailDialogOpen} onOpenChange={setIsDetailDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{selectedTripForDetail?.name}</DialogTitle>
+            <DialogDescription>
+              {selectedTripForDetail?.code && `Code: ${selectedTripForDetail.code}`}
+            </DialogDescription>
+          </DialogHeader>
+          {selectedTripForDetail && (
+            <TripDetailContent trip={selectedTripForDetail} />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
+
+// Trip Detail Content Component
+function TripDetailContent({ trip }: { trip: Trip }) {
+  const [movementLogs, setMovementLogs] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const getStatusBadge = (status: TripStatus) => {
+    const statusStyles: Record<TripStatus, string> = {
+      [TripStatus.PLANNED]: "bg-yellow-100 text-yellow-800 border-yellow-200",
+      [TripStatus.ONGOING]: "bg-blue-100 text-blue-800 border-blue-200",
+      [TripStatus.COMPLETED]: "bg-green-100 text-green-800 border-green-200",
+      [TripStatus.CANCELLED]: "bg-red-100 text-red-800 border-red-200",
+    };
+
+    return (
+      <Badge className={statusStyles[status]}>
+        {status.replace("_", " ")}
+      </Badge>
+    );
+  };
+
+  useEffect(() => {
+    const fetchDetails = async () => {
+      setIsLoading(true);
+      try {
+        const movementLogsRes = await fetch(`/api/trips/${trip.id}/movement-logs`);
+
+        if (movementLogsRes.ok) {
+          const logs = await movementLogsRes.json();
+          setMovementLogs(logs);
+        }
+      } catch (error) {
+        console.error("Error fetching trip details:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (trip.id) {
+      fetchDetails();
+    }
+  }, [trip.id]);
+
+  return (
+    <div className="space-y-6">
+      {/* Basic Info */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Trip Information</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="text-sm font-medium">Dates</div>
+                <div className="text-sm text-muted-foreground">
+                  {format(new Date(trip.startDate), "PPP")}
+                  {trip.endDate && ` - ${format(new Date(trip.endDate), "PPP")}`}
+                </div>
+              </div>
+            </div>
+            {(trip.departurePort || trip.arrivalPort) && (
+              <div className="flex items-center gap-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">Route</div>
+                  <div className="text-sm text-muted-foreground">
+                    {trip.departurePort || "TBD"} → {trip.arrivalPort || "TBD"}
+                  </div>
+                </div>
+              </div>
+            )}
+            {trip.mainGuest && (
+              <div className="flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                <div>
+                  <div className="text-sm font-medium">Guests</div>
+                  <div className="text-sm text-muted-foreground">
+                    {trip.mainGuest}
+                    {trip.guestCount && ` (${trip.guestCount} guests)`}
+                  </div>
+                </div>
+              </div>
+            )}
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="text-sm font-medium">Status</div>
+                {getStatusBadge(trip.status)}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Notes */}
+      {trip.notes && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Notes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm whitespace-pre-wrap">{trip.notes}</p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Movement Logs */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Navigation2 className="h-5 w-5" />
+            Movement Logs
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading...</p>
+          ) : movementLogs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No movement logs recorded</p>
+          ) : (
+            <div className="space-y-3">
+              {movementLogs.map((log) => (
+                <div key={log.id} className="border rounded-lg p-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="font-medium">{log.port || "Location not specified"}</div>
+                      <div className="text-sm text-muted-foreground mt-1">
+                        {format(new Date(log.recordedAt), "PPP 'at' HH:mm")}
+                      </div>
+                      {log.notes && (
+                        <div className="text-sm mt-2">{log.notes}</div>
+                      )}
+                    </div>
+                    <Badge variant="outline">{log.eventType}</Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Expenses & Tasks Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <DollarSign className="h-5 w-5" />
+            Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="text-sm font-medium">Expenses</div>
+                <div className="text-sm text-muted-foreground">
+                  {trip._count?.expenses || 0} expenses
+                  {trip.expenseSummary && Object.keys(trip.expenseSummary).length > 0 && (
+                    <span className="ml-2">
+                      ({Object.entries(trip.expenseSummary)
+                        .map(([currency, amount]) =>
+                          `${amount.toLocaleString("en-US", { style: "currency", currency })}`
+                        )
+                        .join(", ")})
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <CheckSquare className="h-4 w-4 text-muted-foreground" />
+              <div>
+                <div className="text-sm font-medium">Tasks</div>
+                <div className="text-sm text-muted-foreground">
+                  {trip._count?.tasks || 0} tasks
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -445,37 +445,119 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     if (!selectedTripId || !canManageChecklist) return;
     const isFallback = item.id.startsWith("pre-fallback") || item.id.startsWith("post-fallback");
     if (isFallback) {
-      setChecklistsDeduplicated((prev) => {
-        const typeKey =
-          item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
-        const template =
-          item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? FALLBACK_PRE : FALLBACK_POST;
+      // For fallback items, we need to create them in the database first if completing
+      if (completed) {
+        setSavingId(item.id);
+        try {
+          // First, check if this item already exists in the database
+          const existingItems = await fetch(`/api/trips/${selectedTripId}/checklists`, {
+            method: "GET",
+            cache: "no-store",
+          }).then((res) => res.json());
 
-        const currentList =
-          prev[typeKey].length > 0 ? prev[typeKey] : template.map((fallback) => ({ ...fallback }));
+          const allItems = [
+            ...(existingItems.preDeparture || []),
+            ...(existingItems.postArrival || []),
+          ];
+          const existingItem = allItems.find(
+            (i: ChecklistItem) => i.title === item.title && i.type === item.type
+          );
 
-        const updatedList = currentList.map((entry) =>
-          entry.id === item.id
-            ? {
-                ...entry,
-                completed,
-                completedAt: completed ? new Date().toISOString() : null,
-                completedBy: completed
-                  ? {
-                      id: currentUser.id,
-                      name: currentUser.name,
-                      email: currentUser.email,
-                    }
-                  : null,
+          if (existingItem) {
+            // Item exists, just update it
+            const response = await fetch(
+              `/api/trips/${selectedTripId}/checklists/${existingItem.id}`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed: true }),
               }
-            : entry
-        );
+            );
 
-        return {
-          ...prev,
-          [typeKey]: updatedList,
-        };
-      });
+            if (!response.ok) {
+              throw new Error("Failed to update checklist item");
+            }
+
+            const updated = await response.json();
+            applyChecklistUpdate(updated);
+          } else {
+            // Item doesn't exist, create it
+            const { items } = getChecklistData(item.type);
+            const maxOrderIndex = items.length > 0 
+              ? Math.max(...items.map(i => (i as any).orderIndex ?? 0))
+              : -1;
+
+            const response = await fetch(`/api/trips/${selectedTripId}/checklists`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: item.type,
+                title: item.title,
+                remarks: item.remarks || null,
+                orderIndex: maxOrderIndex + 1,
+              }),
+            });
+
+            if (!response.ok) {
+              throw new Error("Failed to create checklist item");
+            }
+
+            const newItem = await response.json();
+            
+            // Now mark it as completed
+            const completeResponse = await fetch(
+              `/api/trips/${selectedTripId}/checklists/${newItem.id}`,
+              {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed: true }),
+              }
+            );
+
+            if (!completeResponse.ok) {
+              throw new Error("Failed to mark item as completed");
+            }
+
+            const completedItem = await completeResponse.json();
+            applyChecklistUpdate(completedItem);
+          }
+
+          // Refresh checklists to ensure consistency
+          await fetchChecklists(selectedTripId, { silent: true });
+        } catch (err) {
+          console.error("Error handling fallback item:", err);
+          setError(err instanceof Error ? err.message : "Unable to update checklist item");
+        } finally {
+          setSavingId(null);
+        }
+      } else {
+        // If unchecking a fallback item, just update local state
+        setChecklistsDeduplicated((prev) => {
+          const typeKey =
+            item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
+          const template =
+            item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? FALLBACK_PRE : FALLBACK_POST;
+
+          const currentList =
+            prev[typeKey].length > 0 ? prev[typeKey] : template.map((fallback) => ({ ...fallback }));
+
+          const updatedList = currentList.map((entry) =>
+            entry.id === item.id
+              ? {
+                  ...entry,
+                  completed: false,
+                  completedAt: null,
+                  completedBy: null,
+                }
+              : entry
+          );
+
+          return {
+            ...prev,
+            [typeKey]: updatedList,
+          };
+        });
+      }
       return;
     }
 
