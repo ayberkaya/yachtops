@@ -22,6 +22,7 @@ interface CrewMember {
   passportDate: Date | string | null;
   healthReportDate: Date | string | null;
   walletDate: Date | string | null;
+  walletQualifications: Array<{ qualification: string; date: string | null }> | null;
   certificates: Array<{
     expiryDate: Date | string | null;
     isIndefinite: boolean;
@@ -172,13 +173,37 @@ export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceT
                   </div>
                 </TableCell>
                 <TableCell>
-                  <div className="flex items-center gap-2">
-                    <StatusIndicator status={walletStatus.status} />
-                    <span className="text-xs text-muted-foreground">
-                      {walletStatus.daysLeft !== null
-                        ? `${walletStatus.daysLeft}d`
-                        : "-"}
-                    </span>
+                  <div className="space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <StatusIndicator status={walletStatus.status} />
+                      <span className="text-xs text-muted-foreground">
+                        {walletStatus.daysLeft !== null
+                          ? `${walletStatus.daysLeft}d`
+                          : "-"}
+                      </span>
+                    </div>
+                    {member.walletQualifications && member.walletQualifications.length > 0 && (
+                      <div className="space-y-1 pl-4">
+                        {member.walletQualifications.map((qual, index) => {
+                          const qualStatus = qual.date ? getDocumentStatus(qual.date) : null;
+                          return (
+                            <div key={index} className="flex items-center gap-1.5">
+                              <StatusIndicator status={qualStatus?.status || "good"} />
+                              <span className="text-xs text-muted-foreground truncate max-w-[100px]">
+                                {qual.qualification}
+                              </span>
+                              {qualStatus?.daysLeft !== null && qualStatus?.daysLeft !== undefined && (
+                                <span className="text-xs text-muted-foreground">
+                                  {qualStatus.daysLeft < 0 
+                                    ? `${Math.abs(qualStatus.daysLeft)}d`
+                                    : `${qualStatus.daysLeft}d`}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
                   </div>
                 </TableCell>
                 <TableCell>
