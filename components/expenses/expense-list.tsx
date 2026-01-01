@@ -27,7 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ExpenseCategory, Trip, ExpenseStatus, PaymentMethod } from "@prisma/client";
 import { format } from "date-fns";
-import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye, CheckCircle2 } from "lucide-react";
+import { Plus, Search, SlidersHorizontal, Calendar, Save, X, Bookmark, Download, ArrowUpDown, ArrowUp, ArrowDown, Eye, CheckCircle2, Pencil, Trash2 } from "lucide-react";
 import { CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Dialog,
@@ -752,7 +752,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                     <TableHead>Tarih</TableHead>
                     <TableHead>Kategori</TableHead>
                     <TableHead>Amount</TableHead>
-                    <TableHead className="w-[50px] text-right"></TableHead>
+                    <TableHead className="w-[150px] text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -769,11 +769,48 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                         })}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button asChild variant="ghost" size="sm">
-                          <Link href={`/dashboard/expenses/${expense.id}`}>
-                            <Eye className="h-4 w-4" />
-                          </Link>
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                            <Link href={`/dashboard/expenses/${expense.id}`}>
+                              <Eye className="h-4 w-4" />
+                            </Link>
+                          </Button>
+                          {session?.user && hasPermission(session.user, "expenses.edit", session.user.permissions) && (
+                            <Button asChild variant="ghost" size="icon" className="h-8 w-8">
+                              <Link href={`/dashboard/expenses/${expense.id}/edit`}>
+                                <Pencil className="h-4 w-4" />
+                              </Link>
+                            </Button>
+                          )}
+                          {session?.user && hasPermission(session.user, "expenses.delete", session.user.permissions) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive"
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (!confirm("Are you sure you want to delete this expense? This action cannot be undone.")) {
+                                  return;
+                                }
+                                try {
+                                  const response = await fetch(`/api/expenses/${expense.id}`, {
+                                    method: "DELETE",
+                                  });
+                                  if (response.ok) {
+                                    window.location.reload();
+                                  } else {
+                                    const result = await response.json();
+                                    alert(result.error || "Failed to delete expense");
+                                  }
+                                } catch (error) {
+                                  alert("An error occurred. Please try again.");
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -63,13 +63,17 @@ export default async function ExpenseDetailPage({
   }
 
   const canApprove = hasPermission(session.user, "expenses.approve", session.user.permissions);
-  const canEdit = hasPermission(session.user, "expenses.edit", session.user.permissions) && 
-                  expense.createdByUserId === session.user.id && 
-                  expense.status === "DRAFT";
+  const canEdit = hasPermission(session.user, "expenses.edit", session.user.permissions);
+  const canDelete = hasPermission(session.user, "expenses.delete", session.user.permissions);
 
   return (
     <div className="space-y-6">
-      <ExpenseDetail expense={expense} canApprove={canApprove} canEdit={canEdit} />
+      <ExpenseDetail 
+        expense={expense} 
+        canApprove={canApprove} 
+        canEdit={canEdit}
+        canDelete={canDelete}
+      />
     </div>
   );
 }

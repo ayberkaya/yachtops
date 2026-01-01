@@ -525,46 +525,95 @@ export const DELETE = withEgressLogging(async function DELETE(
       );
     }
 
-    // Prevent deletion of approved expenses with cash transactions (financial integrity)
-    if (existingExpense.status === ExpenseStatus.APPROVED) {
-      const hasCashTransaction = await db.cashTransaction.findFirst({
-        where: {
-          expenseId: existingExpense.id,
-          deletedAt: null,
-        },
-      });
-
-      if (hasCashTransaction) {
-        return NextResponse.json(
-          {
-            error: "Cannot delete approved expense with cash transaction. Please contact an administrator.",
+    // Check for cash transaction and handle refund if needed
+    const cashTransaction = existingExpense.status === ExpenseStatus.APPROVED
+      ? await db.cashTransaction.findFirst({
+          where: {
+            expenseId: existingExpense.id,
+            deletedAt: null,
           },
-          { status: 400 }
-        );
+        })
+      : null;
+
+    let refundTransactionId: string | null = null;
+
+    // If expense has a cash transaction, create a refund (DEPOSIT) to restore balance
+    if (cashTransaction && existingExpense.status === ExpenseStatus.APPROVED) {
+      try {
+        // Create refund transaction (DEPOSIT) to restore the cash balance
+        const refundTransaction = await db.cashTransaction.create({
+          data: {
+            yachtId: tenantId!,
+            type: CashTransactionType.DEPOSIT,
+            amount: existingExpense.amount,
+            currency: existingExpense.currency,
+            description: `Refund: Expense removed - ${existingExpense.description}`,
+            createdByUserId: session!.user.id,
+          },
+        });
+        refundTransactionId = refundTransaction.id;
+
+        // Soft delete the original withdrawal transaction
+        await db.cashTransaction.update({
+          where: { id: cashTransaction.id },
+          data: {
+            deletedAt: new Date(),
+            deletedByUserId: session!.user.id,
+          },
+        });
+      } catch (error) {
+        // If refund creation fails, rollback by deleting the refund transaction if it was created
+        if (refundTransactionId) {
+          await db.cashTransaction.delete({ where: { id: refundTransactionId } }).catch(() => {});
+        }
+        throw error;
       }
     }
 
-    // Soft delete
-    await db.expense.update({
-      where: { id },
-      data: {
-        deletedAt: new Date(),
-        deletedByUserId: session!.user.id,
-      },
-    });
+    // Soft delete the expense
+    try {
+      await db.expense.update({
+        where: { id },
+        data: {
+          deletedAt: new Date(),
+          deletedByUserId: session!.user.id,
+        },
+      });
+    } catch (error) {
+      // If expense deletion fails, rollback refund if it was created
+      if (refundTransactionId) {
+        await db.cashTransaction.delete({ where: { id: refundTransactionId } }).catch(() => {});
+        if (cashTransaction) {
+          await db.cashTransaction.update({
+            where: { id: cashTransaction.id },
+            data: { deletedAt: null, deletedByUserId: null },
+          }).catch(() => {});
+        }
+      }
+      throw error;
+    }
 
     // Create audit log
+    const auditDescription = cashTransaction
+      ? `Expense deleted with cash refund: ${existingExpense.description} (${existingExpense.amount} ${existingExpense.currency}) - Cash balance restored`
+      : `Expense deleted: ${existingExpense.description} (${existingExpense.amount} ${existingExpense.currency})`;
+
     await createAuditLog({
       yachtId: tenantId!,
       userId: session!.user.id,
       action: AuditAction.DELETE,
       entityType: "Expense",
       entityId: id,
-      description: `Expense deleted: ${existingExpense.description} (${existingExpense.amount} ${existingExpense.currency})`,
+      description: auditDescription,
       request,
     });
 
-    return NextResponse.json({ success: true, message: "Expense deleted successfully" });
+    return NextResponse.json({ 
+      success: true, 
+      message: cashTransaction 
+        ? "Expense deleted successfully. Cash balance has been restored."
+        : "Expense deleted successfully"
+    });
   } catch (error) {
     console.error("Error deleting expense:", error);
     return NextResponse.json(
