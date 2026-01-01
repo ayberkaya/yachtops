@@ -6,10 +6,19 @@ import { useEffect } from 'react'
 export default function Template({ children }: { children: React.ReactNode }) {
   // Prevent auto-scroll on page load
   useEffect(() => {
-    // Ensure page starts at top
-    if (typeof window !== 'undefined') {
-      window.scrollTo(0, 0);
-    }
+    if (typeof window === 'undefined') return;
+    
+    // Reset scroll with auto behavior (not smooth) to prevent issues
+    const resetScroll = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    };
+    
+    resetScroll();
+    
+    // Reset after a delay to catch layout shifts
+    const timeoutId = setTimeout(resetScroll, 100);
+    
+    return () => clearTimeout(timeoutId);
   }, []);
 
   return (

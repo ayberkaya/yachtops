@@ -80,10 +80,15 @@ export const CalendarEventsWidget = memo(function CalendarEventsWidget({
   // Scroll selected day to center when it changes
   useEffect(() => {
     if (selectedDayRef.current && scrollContainerRef.current) {
-      selectedDayRef.current.scrollIntoView({
-        behavior: "smooth",
-        block: "nearest",
-        inline: "center",
+      // Use requestAnimationFrame to prevent scroll issues during initial render
+      requestAnimationFrame(() => {
+        if (selectedDayRef.current && scrollContainerRef.current) {
+          selectedDayRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "nearest",
+            inline: "center",
+          });
+        }
       });
     }
   }, [selectedDate]);

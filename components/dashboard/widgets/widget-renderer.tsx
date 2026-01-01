@@ -314,33 +314,14 @@ export const WidgetRenderer = memo(function WidgetRenderer({
           </Suspense>
         );
       case "quick_stats":
-        // Format currency breakdown as array for vertical display
-        const currencyDescriptions = pendingExpensesByCurrency.length > 0
-          ? pendingExpensesByCurrency.map(({ currency, total }) => 
-              `${total.toLocaleString("en-US", { style: "currency", currency })}`
-            )
-          : ["All reviewed"];
-        
-        return (
-          <QuickStatsWidget
-            stats={[
-              { 
-                label: "Awaiting Approval", 
-                value: pendingExpensesCount, 
-                description: currencyDescriptions,
-                href: "/dashboard/expenses/pending"
-              },
-            ]}
-          />
-        );
+        // Widget removed - return null
+        return null;
       default:
         return null;
     };
     },
     [
       pendingExpenses,
-      pendingExpensesCount,
-      pendingExpensesByCurrency,
       totalPendingAmount,
       recentExpenses,
       creditCardExpenses,
@@ -420,8 +401,6 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   // Custom comparison function for better performance
   return (
     prevProps.pendingExpenses === nextProps.pendingExpenses &&
-    prevProps.pendingExpensesCount === nextProps.pendingExpensesCount &&
-    JSON.stringify(prevProps.pendingExpensesByCurrency) === JSON.stringify(nextProps.pendingExpensesByCurrency) &&
     prevProps.recentExpenses === nextProps.recentExpenses &&
     prevProps.creditCardExpenses === nextProps.creditCardExpenses &&
     prevProps.creditCards === nextProps.creditCards &&

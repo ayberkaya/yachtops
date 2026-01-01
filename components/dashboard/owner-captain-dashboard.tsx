@@ -34,17 +34,13 @@ async function OwnerCaptainWidgets({
   const enabledWidgets = new Set(enabledWidgetIds);
 
   // Conditionally create promises only for enabled widgets
-  const pendingExpensesPromise = enabledWidgets.has("pending_expenses") || enabledWidgets.has("quick_stats")
+  const pendingExpensesPromise = enabledWidgets.has("pending_expenses")
     ? getPendingExpenses(yachtId)
     : Promise.resolve(undefined);
   
-  const pendingExpensesCountPromise = enabledWidgets.has("quick_stats")
-    ? getPendingExpensesCount(yachtId)
-    : Promise.resolve(0);
+  const pendingExpensesCountPromise = Promise.resolve(0);
   
-  const pendingExpensesByCurrencyPromise = enabledWidgets.has("quick_stats")
-    ? getPendingExpensesByCurrency(yachtId)
-    : Promise.resolve([]);
+  const pendingExpensesByCurrencyPromise = Promise.resolve([]);
 
   const recentExpensesPromise = enabledWidgets.has("recent_expenses")
     ? getRecentExpenses(yachtId)
