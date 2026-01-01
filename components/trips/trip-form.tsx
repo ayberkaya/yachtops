@@ -50,10 +50,9 @@ export function TripForm({ trip, onSuccess, onDelete }: TripFormProps) {
 
   const form = useForm<TripFormData>({
     resolver: zodResolver(tripSchema) as any,
-    defaultValues: trip
+        defaultValues: trip
       ? {
           name: trip.name,
-          code: trip.code || "",
           type: trip.type || TripType.CHARTER,
           startDate: trip.startDate ? new Date(trip.startDate).toISOString().split("T")[0] : "",
           endDate: trip.endDate ? new Date(trip.endDate).toISOString().split("T")[0] : "",
@@ -66,7 +65,6 @@ export function TripForm({ trip, onSuccess, onDelete }: TripFormProps) {
         }
       : {
           name: "",
-          code: "",
           type: TripType.CHARTER,
           startDate: "",
           endDate: "",
@@ -156,46 +154,30 @@ export function TripForm({ trip, onSuccess, onDelete }: TripFormProps) {
           )}
         />
 
-        <div className="grid gap-4 md:grid-cols-2">
-          <FormField
-            control={form.control}
-            name="code"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Code</FormLabel>
+        <FormField
+          control={form.control}
+          name="type"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Type</FormLabel>
+              <Select onValueChange={field.onChange} defaultValue={field.value}>
                 <FormControl>
-                  <Input placeholder="Trip code" {...field} value={field.value || ""} />
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
                 </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="type"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Type</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    <SelectItem value={TripType.CHARTER}>Charter</SelectItem>
-                    <SelectItem value={TripType.PRIVATE}>Private</SelectItem>
-                    <SelectItem value={TripType.DELIVERY}>Delivery</SelectItem>
-                    <SelectItem value={TripType.MAINTENANCE}>Maintenance</SelectItem>
-                    <SelectItem value={TripType.OTHER}>Other</SelectItem>
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+                <SelectContent>
+                  <SelectItem value={TripType.CHARTER}>Charter</SelectItem>
+                  <SelectItem value={TripType.PRIVATE}>Private</SelectItem>
+                  <SelectItem value={TripType.DELIVERY}>Delivery</SelectItem>
+                  <SelectItem value={TripType.MAINTENANCE}>Maintenance</SelectItem>
+                  <SelectItem value={TripType.OTHER}>Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <div className="grid gap-4 md:grid-cols-2">
           <FormField

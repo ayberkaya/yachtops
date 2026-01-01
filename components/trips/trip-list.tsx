@@ -61,9 +61,10 @@ interface Trip {
 interface TripListProps {
   initialTrips: Trip[];
   canManage: boolean;
+  canEdit?: boolean;
 }
 
-export function TripList({ initialTrips, canManage }: TripListProps) {
+export function TripList({ initialTrips, canManage, canEdit = false }: TripListProps) {
   const router = useRouter();
   const [trips, setTrips] = useState(initialTrips);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -425,7 +426,7 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
                     )}
                   </div>
 
-                  {canManage && trip.status !== TripStatus.COMPLETED && trip.status !== TripStatus.CANCELLED && (
+                  {(canManage || canEdit) && (
                     <div className="pt-2 border-t">
                       <Select
                         value={trip.status}
@@ -489,7 +490,27 @@ export function TripList({ initialTrips, canManage }: TripListProps) {
                         {trip.mainGuest || "-"}
                         {trip.guestCount && ` (${trip.guestCount})`}
                       </TableCell>
-                      <TableCell>{getStatusBadge(trip.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(trip.status)}
+                          {(canManage || canEdit) && (
+                            <Select
+                              value={trip.status}
+                              onValueChange={(value) => handleStatusChange(trip.id, value as TripStatus)}
+                            >
+                              <SelectTrigger className="w-[140px] h-8">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={TripStatus.PLANNED}>Planned</SelectItem>
+                                <SelectItem value={TripStatus.ONGOING}>Ongoing</SelectItem>
+                                <SelectItem value={TripStatus.COMPLETED}>Completed</SelectItem>
+                                <SelectItem value={TripStatus.CANCELLED}>Cancelled</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          )}
+                        </div>
+                      </TableCell>
                       {canManage && (
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">

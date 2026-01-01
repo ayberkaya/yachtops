@@ -78,9 +78,31 @@ export async function GET(
       return item;
     });
 
+    // Aggressive deduplication: by ID and by title+type combination
+    // This handles cases where database has duplicate records with different IDs
+    const seenById = new Set<string>();
+    const seenByTitleType = new Set<string>();
+    
+    const uniqueItems = itemsWithFallback.filter((item: { id: string; type: TripChecklistType; title: string }) => {
+      // Skip if duplicate ID
+      if (seenById.has(item.id)) {
+        return false;
+      }
+      seenById.add(item.id);
+      
+      // Skip if duplicate title+type (keep first occurrence)
+      const titleTypeKey = `${item.type}:${item.title}`;
+      if (seenByTitleType.has(titleTypeKey)) {
+        return false;
+      }
+      seenByTitleType.add(titleTypeKey);
+      
+      return true;
+    });
+
     return NextResponse.json({
-      preDeparture: itemsWithFallback.filter((item: { type: TripChecklistType }) => item.type === TripChecklistType.PRE_DEPARTURE),
-      postArrival: itemsWithFallback.filter((item: { type: TripChecklistType }) => item.type === TripChecklistType.POST_ARRIVAL),
+      preDeparture: uniqueItems.filter((item: { type: TripChecklistType }) => item.type === TripChecklistType.PRE_DEPARTURE),
+      postArrival: uniqueItems.filter((item: { type: TripChecklistType }) => item.type === TripChecklistType.POST_ARRIVAL),
     });
   } catch (error) {
     console.error("Error fetching trip checklists:", error);

@@ -108,6 +108,40 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
   const [selectedDateForNew, setSelectedDateForNew] = useState<Date | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
+  // Convert trips to calendar events and merge with regular events
+  const allEvents = useMemo(() => {
+    const tripEvents: CalendarEvent[] = trips.map((trip) => {
+      const tripStartDate = parseISO(trip.startDate);
+      const tripEndDate = trip.endDate ? parseISO(trip.endDate) : tripStartDate;
+      
+      return {
+        id: `trip-${trip.id}`,
+        title: trip.name,
+        description: null,
+        category: CalendarEventCategory.VOYAGE,
+        startDate: trip.startDate,
+        endDate: trip.endDate || trip.startDate,
+        tripId: trip.id,
+        color: categoryColors[CalendarEventCategory.VOYAGE],
+        createdBy: null,
+        trip: {
+          id: trip.id,
+          name: trip.name,
+          code: trip.code,
+          status: trip.status,
+        },
+        createdAt: tripStartDate.toISOString(),
+        updatedAt: tripEndDate.toISOString(),
+      };
+    });
+
+    // Merge trip events with regular events, avoiding duplicates
+    const regularEventIds = new Set(events.map(e => e.id));
+    const uniqueTripEvents = tripEvents.filter(te => !regularEventIds.has(te.id));
+    
+    return [...events, ...uniqueTripEvents];
+  }, [events, trips]);
+
   // Form state
   const [formData, setFormData] = useState<{
     title: string;
@@ -157,7 +191,7 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
   // Group events by date for quick lookup
   const eventsByDate = useMemo(() => {
     const grouped: Record<string, CalendarEvent[]> = {};
-    events.forEach((event) => {
+    allEvents.forEach((event) => {
       const start = parseISO(event.startDate);
       const end = parseISO(event.endDate);
       const days = eachDayOfInterval({ start, end });
@@ -172,12 +206,12 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
       });
     });
     return grouped;
-  }, [events]);
+  }, [allEvents]);
 
   // Get events that start on a specific date (for multi-day event display)
   const getEventsStartingOnDate = (date: Date): CalendarEvent[] => {
     const key = format(date, "yyyy-MM-dd");
-    return events.filter((event) => {
+    return allEvents.filter((event) => {
       const start = parseISO(event.startDate);
       const startKey = format(start, "yyyy-MM-dd");
       return startKey === key;
@@ -239,6 +273,13 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
   };
 
   const handleEventClick = (event: CalendarEvent) => {
+    // If it's a trip event (starts with "trip-"), navigate to trip detail
+    if (event.id.startsWith("trip-")) {
+      const tripId = event.id.replace("trip-", "");
+      router.push(`/dashboard/trips/${tripId}`);
+      return;
+    }
+    
     setEditingEvent(event);
     setFormData({
       title: event.title,
@@ -332,7 +373,7 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
       segment: { row: number; startCol: number; spanDays: number };
     }> = [];
 
-    events.forEach((event) => {
+    allEvents.forEach((event) => {
       const eventStart = parseISO(event.startDate);
       const eventEnd = parseISO(event.endDate);
       const startKey = format(eventStart, "yyyy-MM-dd");
@@ -414,7 +455,7 @@ export function CalendarView({ initialEvents, trips, canEdit, currentUser }: Cal
         rowIndex,
       };
     });
-  }, [events, calendarDays]);
+  }, [allEvents, calendarDays]);
 
   return (
     <div className="space-y-4">

@@ -213,6 +213,40 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     preDeparture: [],
     postArrival: [],
   });
+
+  // Helper to deduplicate checklist items by ID and title+type
+  const deduplicateItems = (items: ChecklistItem[]): ChecklistItem[] => {
+    const seenById = new Set<string>();
+    const seenByTitleType = new Set<string>();
+    
+    return items.filter((item) => {
+      // Skip if duplicate ID
+      if (seenById.has(item.id)) {
+        return false;
+      }
+      seenById.add(item.id);
+      
+      // Skip if duplicate title+type (keep first occurrence)
+      const titleTypeKey = `${item.type}:${item.title}`;
+      if (seenByTitleType.has(titleTypeKey)) {
+        return false;
+      }
+      seenByTitleType.add(titleTypeKey);
+      
+      return true;
+    });
+  };
+
+  // Wrapper for setChecklists that always deduplicates
+  const setChecklistsDeduplicated = (updater: ChecklistState | ((prev: ChecklistState) => ChecklistState)) => {
+    setChecklists((prev) => {
+      const newState = typeof updater === 'function' ? updater(prev) : updater;
+      return {
+        preDeparture: deduplicateItems(newState.preDeparture),
+        postArrival: deduplicateItems(newState.postArrival),
+      };
+    });
+  };
   const [isLoading, setIsLoading] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -232,8 +266,32 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
   const getChecklistData = (type: ChecklistType) => {
     const items =
       type === CHECKLIST_TYPES.PRE_DEPARTURE ? checklists.preDeparture : checklists.postArrival;
+    
+    // Aggressive deduplication: by ID and by title+type
+    const deduplicateItems = (items: ChecklistItem[]): ChecklistItem[] => {
+      const seenById = new Set<string>();
+      const seenByTitleType = new Set<string>();
+      
+      return items.filter((item) => {
+        // Skip if duplicate ID
+        if (seenById.has(item.id)) {
+          return false;
+        }
+        seenById.add(item.id);
+        
+        // Skip if duplicate title+type (keep first occurrence)
+        const titleTypeKey = `${item.type}:${item.title}`;
+        if (seenByTitleType.has(titleTypeKey)) {
+          return false;
+        }
+        seenByTitleType.add(titleTypeKey);
+        
+        return true;
+      });
+    };
+    
     if (items.length > 0) {
-      return { items, isFallback: false };
+      return { items: deduplicateItems(items), isFallback: false };
     }
     return {
       items: type === CHECKLIST_TYPES.PRE_DEPARTURE ? FALLBACK_PRE : FALLBACK_POST,
@@ -281,9 +339,9 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
         data = await load();
       }
 
-      // Normalize the data to match ChecklistItem type
-      const normalized = {
-        preDeparture: data.preDeparture.map((item: any) => ({
+      // Normalize the data to match ChecklistItem type and deduplicate by ID
+      const normalizeItems = (items: any[]): ChecklistItem[] => {
+        const normalized = items.map((item: any) => ({
           id: item.id,
           type: item.type,
           title: item.title,
@@ -301,35 +359,31 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                 email: item.completedBy.email,
               }
             : null,
-        })),
-        postArrival: data.postArrival.map((item: any) => ({
-          id: item.id,
-          type: item.type,
-          title: item.title,
-          completed: item.completed,
-          completedAt: item.completedAt
-            ? typeof item.completedAt === "string"
-              ? item.completedAt
-              : new Date(item.completedAt).toISOString()
-            : null,
-          remarks: item.remarks,
-          completedBy: item.completedBy
-            ? {
-                id: item.completedBy.id,
-                name: item.completedBy.name,
-                email: item.completedBy.email,
-              }
-            : null,
-        })),
+        }));
+        
+        // Deduplicate by ID, keeping the first occurrence
+        const seen = new Set<string>();
+        return normalized.filter((item) => {
+          if (seen.has(item.id)) {
+            return false;
+          }
+          seen.add(item.id);
+          return true;
+        });
       };
 
-      setChecklists(normalized);
+      const normalized = {
+        preDeparture: normalizeItems(data.preDeparture),
+        postArrival: normalizeItems(data.postArrival),
+      };
+
+      setChecklistsDeduplicated(normalized);
       setRemarksDrafts({});
     } catch (err) {
       if (!silent) {
         setError(err instanceof Error ? err.message : "Unable to load checklists");
       }
-      setChecklists({ preDeparture: [], postArrival: [] });
+      setChecklistsDeduplicated({ preDeparture: [], postArrival: [] });
     } finally {
       if (!silent) {
         setIsLoading(false);
@@ -338,7 +392,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
   };
 
   const applyChecklistUpdate = (updated: ChecklistItem) => {
-    setChecklists((prev) => {
+    setChecklistsDeduplicated((prev) => {
       const targetKey =
         updated.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
       const currentList = prev[targetKey];
@@ -377,7 +431,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
     if (!selectedTripId || !canManageChecklist) return;
     const isFallback = item.id.startsWith("pre-fallback") || item.id.startsWith("post-fallback");
     if (isFallback) {
-      setChecklists((prev) => {
+      setChecklistsDeduplicated((prev) => {
         const typeKey =
           item.type === CHECKLIST_TYPES.PRE_DEPARTURE ? "preDeparture" : "postArrival";
         const template =
@@ -533,7 +587,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
           "relative transition-all cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary",
           isComplete
             ? "border-emerald-300 bg-emerald-50/70 shadow-sm"
-            : "border-amber-200/70 bg-background/80"
+            : "border-amber-200/70 bg-white"
         )}
         role="button"
         tabIndex={0}
@@ -588,6 +642,29 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
       return <p className="text-sm text-muted-foreground">No items defined for this checklist.</p>;
     }
 
+    // Aggressive deduplication: first by ID, then by title+type combination
+    // This handles cases where database has duplicate records with different IDs
+    const seenById = new Set<string>();
+    const seenByTitleType = new Set<string>();
+    
+    const uniqueItems = items.filter((item) => {
+      // First check: skip if we've seen this exact ID
+      if (seenById.has(item.id)) {
+        return false;
+      }
+      seenById.add(item.id);
+      
+      // Second check: skip if we've seen this title+type combination
+      // Keep the first occurrence (earliest by ID or creation)
+      const titleTypeKey = `${item.type}:${item.title}`;
+      if (seenByTitleType.has(titleTypeKey)) {
+        return false;
+      }
+      seenByTitleType.add(titleTypeKey);
+      
+      return true;
+    });
+
     return (
       <div className="space-y-3 pt-2">
         {isFallbackList && (
@@ -595,7 +672,7 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
             Sample checklist shown until real checklist items are created.
           </p>
         )}
-        {items.map((item) => {
+        {uniqueItems.map((item) => {
           const who = item.completedBy?.name || item.completedBy?.email;
           const completedAtLabel =
             item.completed && item.completedAt
@@ -630,15 +707,9 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                 <p className="text-xs text-muted-foreground">
                   {item.completed ? completedAtLabel || "just now" : "Pending"}
                 </p>
-                {disableInteractions ? (
-                  <p className="text-xs text-muted-foreground pt-2">
-                    {item.remarks?.length ? item.remarks : "No notes recorded"}
-                  </p>
-                ) : (
-                  <p className="text-xs text-muted-foreground pt-2">
-                    {item.remarks?.length ? item.remarks : "No notes recorded"}
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground pt-2">
+                  {item.remarks?.length ? item.remarks : "No notes recorded"}
+                </p>
               </div>
             </div>
           );
@@ -718,10 +789,6 @@ export function VoyagePlanning({ trips, canEdit, currentUser }: VoyagePlanningPr
                   ? ` - ${format(new Date(selectedTrip.endDate), "d MMM yyyy")}`
                   : ""}
               </span>
-            </div>
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Route className="h-4 w-4" />
-              <span>Trip code: {selectedTrip.code || "N/A"}</span>
             </div>
           </CardContent>
         </Card>

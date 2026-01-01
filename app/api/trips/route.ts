@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
-import { canManageUsers } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { z } from "zod";
 import { TripStatus, TripType } from "@prisma/client";
@@ -109,7 +109,8 @@ export async function POST(request: NextRequest) {
     }
     const { tenantId, scopedSession } = tenantResult;
 
-    if (!canManageUsers(session!.user)) {
+    // Check if user has permission to create trips
+    if (!hasPermission(session!.user, "trips.create", session!.user.permissions)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

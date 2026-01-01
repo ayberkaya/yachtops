@@ -4,6 +4,7 @@ import { canManageUsers } from "@/lib/auth";
 import { hasPermission } from "@/lib/permissions";
 import { getTenantId } from "@/lib/tenant";
 import { LogbookTabs } from "@/components/trips/logbook-tabs";
+import { AddTripButton } from "@/components/trips/add-trip-button";
 import { TripStatus, TripMovementEvent } from "@prisma/client";
 import {
   getActiveTrips,
@@ -59,14 +60,27 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
     trips = [];
   }
 
+  // Helper to safely convert Date to ISO string
+  const toISOString = (date: Date | string | null | undefined): string | null => {
+    if (!date) return null;
+    if (typeof date === 'string') return date;
+    if (date instanceof Date) return date.toISOString();
+    return null;
+  };
+
   // Transform trips for display (only for active/past views)
-  const tripsForDisplay = trips.map((trip: any) => ({
-    ...trip,
-    startDate: trip.startDate.toISOString().split('T')[0],
-    endDate: trip.endDate ? trip.endDate.toISOString().split('T')[0] : null,
-    createdAt: trip.createdAt.toISOString(),
-    updatedAt: trip.updatedAt.toISOString(),
-  }));
+  const tripsForDisplay = trips.map((trip: any) => {
+    const startDateISO = toISOString(trip.startDate);
+    const endDateISO = toISOString(trip.endDate);
+    
+    return {
+      ...trip,
+      startDate: startDateISO ? startDateISO.split('T')[0] : '',
+      endDate: endDateISO ? endDateISO.split('T')[0] : null,
+      createdAt: toISOString(trip.createdAt) || '',
+      updatedAt: toISOString(trip.updatedAt) || '',
+    };
+  });
 
   const canEdit =
     hasPermission(session.user, "trips.edit", session.user.permissions) ||
@@ -78,6 +92,7 @@ export default async function TripsPage({ searchParams }: TripsPageProps) {
         <div>
           <h1 className="text-3xl font-bold">Logbook</h1>
         </div>
+        <AddTripButton canEdit={canEdit} />
       </div>
       <LogbookTabs
         currentView={view}

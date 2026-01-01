@@ -84,14 +84,16 @@ export function LogbookTabs({
         )}
         <TripList 
           initialTrips={trips} 
-          canManage={canManage} 
+          canManage={canManage}
+          canEdit={canEdit}
         />
       </TabsContent>
 
       <TabsContent value="past" className="mt-6">
         <TripList 
           initialTrips={trips} 
-          canManage={canManage} 
+          canManage={canManage}
+          canEdit={canEdit}
         />
       </TabsContent>
     </Tabs>

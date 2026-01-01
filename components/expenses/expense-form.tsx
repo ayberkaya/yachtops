@@ -978,7 +978,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                           ) : (
                             filteredTrips.map((trip) => (
                               <SelectItem key={trip.id} value={trip.id}>
-                                {trip.name} ({trip.code || "N/A"})
+                                {trip.name}{trip.code ? ` (${trip.code})` : ""}
                               </SelectItem>
                             ))
                           )}
