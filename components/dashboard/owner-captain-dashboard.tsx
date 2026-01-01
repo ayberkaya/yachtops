@@ -5,6 +5,8 @@ import { WidgetRenderer } from "./widgets/widget-renderer";
 import { getUserWidgetSettings } from "@/lib/dashboard/widget-settings";
 import {
   getPendingExpenses,
+  getPendingExpensesCount,
+  getPendingExpensesByCurrency,
   getRecentExpenses,
   getCreditCardExpenses,
   getCreditCards,
@@ -33,9 +35,17 @@ async function OwnerCaptainWidgets({
   const enabledWidgets = new Set(enabledWidgetIds);
 
   // Conditionally create promises only for enabled widgets
-  const pendingExpensesPromise = enabledWidgets.has("pending_expenses")
+  const pendingExpensesPromise = enabledWidgets.has("pending_expenses") || enabledWidgets.has("quick_stats")
     ? getPendingExpenses(yachtId)
     : Promise.resolve(undefined);
+  
+  const pendingExpensesCountPromise = enabledWidgets.has("quick_stats")
+    ? getPendingExpensesCount(yachtId)
+    : Promise.resolve(0);
+  
+  const pendingExpensesByCurrencyPromise = enabledWidgets.has("quick_stats")
+    ? getPendingExpensesByCurrency(yachtId)
+    : Promise.resolve([]);
 
   const recentExpensesPromise = enabledWidgets.has("recent_expenses")
     ? getRecentExpenses(yachtId)
@@ -79,6 +89,8 @@ async function OwnerCaptainWidgets({
 
   const [
     pendingExpenses,
+    pendingExpensesCount,
+    pendingExpensesByCurrency,
     recentExpenses,
     creditCardExpenses,
     creditCards,
@@ -91,6 +103,8 @@ async function OwnerCaptainWidgets({
     calendarEvents,
   ] = await Promise.all([
     pendingExpensesPromise,
+    pendingExpensesCountPromise,
+    pendingExpensesByCurrencyPromise,
     recentExpensesPromise,
     creditCardExpensesPromise,
     creditCardsPromise,
@@ -123,6 +137,8 @@ async function OwnerCaptainWidgets({
   return (
     <WidgetRenderer
       pendingExpenses={pendingExpenses}
+      pendingExpensesCount={pendingExpensesCount}
+      pendingExpensesByCurrency={pendingExpensesByCurrency}
       recentExpenses={recentExpenses}
       creditCardExpenses={creditCardExpenses}
       creditCards={creditCards}

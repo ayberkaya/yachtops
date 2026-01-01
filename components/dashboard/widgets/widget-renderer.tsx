@@ -62,6 +62,8 @@ import { MonthlyReportDownload } from "../monthly-report-download";
 interface WidgetRendererProps {
   // Data for widgets
   pendingExpenses?: any[];
+  pendingExpensesCount?: number;
+  pendingExpensesByCurrency?: Array<{ currency: string; total: number }>;
   recentExpenses?: any[];
   creditCardExpenses?: any[];
   creditCards?: Array<{ id: string; ownerName: string; lastFourDigits: string; billingCycleEndDate: number | null }>;
@@ -79,6 +81,8 @@ interface WidgetRendererProps {
 
 export const WidgetRenderer = memo(function WidgetRenderer({
   pendingExpenses = [],
+  pendingExpensesCount = 0,
+  pendingExpensesByCurrency = [],
   recentExpenses = [],
   creditCardExpenses = [],
   creditCards = [],
@@ -276,7 +280,8 @@ export const WidgetRenderer = memo(function WidgetRenderer({
       case "credit_card_expenses":
         return <CreditCardExpensesWidget expenses={creditCardExpenses} creditCards={creditCards} />;
       case "pending_expenses":
-        return <PendingExpensesWidget expenses={pendingExpenses} totalAmount={totalPendingAmount} />;
+        // Disabled - using quick_stats widget instead
+        return null;
       case "recent_expenses":
         return <RecentExpensesWidget expenses={recentExpenses} />;
       case "upcoming_trips":
@@ -324,10 +329,24 @@ export const WidgetRenderer = memo(function WidgetRenderer({
           </Suspense>
         );
       case "quick_stats":
+        // Format currency breakdown
+        const currencyDescription = pendingExpensesByCurrency.length > 0
+          ? pendingExpensesByCurrency
+              .map(({ currency, total }) => 
+                `${total.toLocaleString("en-US", { style: "currency", currency })}`
+              )
+              .join(" • ")
+          : "All reviewed";
+        
         return (
           <QuickStatsWidget
             stats={[
-              { label: "Awaiting Approval", value: pendingExpenses.length, description: totalPendingAmount > 0 ? `${totalPendingAmount.toLocaleString("en-US", { style: "currency", currency: "EUR" })} total` : "All reviewed" },
+              { 
+                label: "Awaiting Approval", 
+                value: pendingExpensesCount, 
+                description: currencyDescription,
+                href: "/dashboard/expenses/pending"
+              },
               { label: "Upcoming Trips", value: upcomingTrips.length, description: "Scheduled trips" },
             ]}
           />
@@ -338,6 +357,8 @@ export const WidgetRenderer = memo(function WidgetRenderer({
     },
     [
       pendingExpenses,
+      pendingExpensesCount,
+      pendingExpensesByCurrency,
       totalPendingAmount,
       recentExpenses,
       creditCardExpenses,
@@ -418,6 +439,8 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   // Custom comparison function for better performance
   return (
     prevProps.pendingExpenses === nextProps.pendingExpenses &&
+    prevProps.pendingExpensesCount === nextProps.pendingExpensesCount &&
+    JSON.stringify(prevProps.pendingExpensesByCurrency) === JSON.stringify(nextProps.pendingExpensesByCurrency) &&
     prevProps.recentExpenses === nextProps.recentExpenses &&
     prevProps.creditCardExpenses === nextProps.creditCardExpenses &&
     prevProps.creditCards === nextProps.creditCards &&

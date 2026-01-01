@@ -12,7 +12,7 @@ const getCacheKey = (key: string, yachtId: string | null) =>
   `dashboard-${key}-${yachtId || 'none'}`;
 
 /**
- * Fetch pending expenses for approval
+ * Fetch pending expenses for approval (first 5 for widget display)
  */
 export async function getPendingExpenses(yachtId: string | null) {
   if (!yachtId) return [];
@@ -46,6 +46,70 @@ export async function getPendingExpenses(yachtId: string | null) {
       take: 5,
     }),
     [getCacheKey("pending-expenses", yachtId)],
+    { revalidate: 30, tags: [`expenses-${yachtId}`] }
+  )();
+}
+
+/**
+ * Get total count of pending expenses
+ */
+export async function getPendingExpensesCount(yachtId: string | null) {
+  if (!yachtId) return 0;
+  
+  return unstable_cache(
+    async () => dbUnscoped.expense.count({
+      where: {
+        yachtId: yachtId,
+        status: ExpenseStatus.SUBMITTED,
+        deletedAt: null,
+      },
+    }),
+    [getCacheKey("pending-expenses-count", yachtId)],
+    { revalidate: 30, tags: [`expenses-${yachtId}`] }
+  )();
+}
+
+/**
+ * Get pending expenses totals grouped by currency
+ */
+export async function getPendingExpensesByCurrency(yachtId: string | null) {
+  if (!yachtId) return [];
+  
+  return unstable_cache(
+    async () => {
+      const expenses = await dbUnscoped.expense.findMany({
+        where: {
+          yachtId: yachtId,
+          status: ExpenseStatus.SUBMITTED,
+          deletedAt: null,
+        },
+        select: {
+          baseAmount: true,
+          amount: true,
+          currency: true,
+        },
+      });
+
+      // Group by currency and sum amounts
+      const totalsByCurrency = expenses.reduce((acc, exp) => {
+        const amount = Number(exp.baseAmount || exp.amount);
+        const currency = exp.currency;
+        
+        if (!acc[currency]) {
+          acc[currency] = 0;
+        }
+        acc[currency] += amount;
+        
+        return acc;
+      }, {} as Record<string, number>);
+
+      // Convert to array format
+      return Object.entries(totalsByCurrency).map(([currency, total]) => ({
+        currency,
+        total,
+      }));
+    },
+    [getCacheKey("pending-expenses-by-currency", yachtId)],
     { revalidate: 30, tags: [`expenses-${yachtId}`] }
   )();
 }
