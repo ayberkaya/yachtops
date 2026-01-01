@@ -508,6 +508,15 @@ export function Sidebar() {
     prevCollapsed.current = isCollapsed;
   }, [isCollapsed]);
 
+  // Close all menus when sidebar collapses
+  useEffect(() => {
+    if (isCollapsed && !isHovered) {
+      setSettingsOpen(false);
+      setSettingsOpenDesktop(false);
+      setHoveredItemId(null);
+    }
+  }, [isCollapsed, isHovered]);
+
   // Note: auto-expand on route change disabled to keep manual accordion behavior
 
   // Determine if sidebar should appear expanded (either not collapsed or hovered)
