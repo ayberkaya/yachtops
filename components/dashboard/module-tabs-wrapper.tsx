@@ -2,9 +2,14 @@
 
 import { usePathname } from "next/navigation";
 import { ModuleNav } from "@/components/ui/module-nav";
+import { useDashboardStats } from "@/hooks/use-dashboard-stats";
+import { useSession } from "next-auth/react";
+import { hasPermission } from "@/lib/permissions";
 
 export function ModuleTabsWrapper() {
   const pathname = usePathname();
+  const { data: session } = useSession();
+  const stats = useDashboardStats();
 
   // Finance module tabs
   if (
@@ -12,9 +17,18 @@ export function ModuleTabsWrapper() {
     pathname.startsWith("/dashboard/cash") ||
     pathname === "/dashboard/finance"
   ) {
+    // Get pending expenses count if user has approve permission
+    const pendingCount = session?.user && hasPermission(session.user, "expenses.approve", session.user.permissions)
+      ? stats.pendingExpensesCount
+      : undefined;
+
     const links = [
       { href: "/dashboard/expenses", label: "All Expenses" },
-      { href: "/dashboard/expenses/pending", label: "Approval Queue" },
+      { 
+        href: "/dashboard/expenses/pending", 
+        label: "Approval Queue",
+        badge: pendingCount
+      },
       { href: "/dashboard/expenses/reimbursable", label: "Reimbursements" },
       { href: "/dashboard/cash", label: "Cash Ledger" },
     ];

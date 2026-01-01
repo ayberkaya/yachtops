@@ -11,6 +11,7 @@ interface ModuleNavLink {
   href: string;
   label: string;
   icon?: LucideIcon;
+  badge?: number | string;
 }
 
 interface ModuleNavProps {
@@ -162,7 +163,7 @@ export function ModuleNav({ links }: ModuleNavProps) {
                 />
 
                 {/* Content */}
-                <div className="relative flex items-center justify-center z-10">
+                <div className="relative flex items-center justify-center gap-2 z-10">
                   <motion.span 
                     className="leading-tight relative"
                     animate={{
@@ -175,6 +176,11 @@ export function ModuleNav({ links }: ModuleNavProps) {
                   >
                     {link.label}
                   </motion.span>
+                  {link.badge !== undefined && link.badge !== null && link.badge !== 0 && (
+                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-semibold rounded-full bg-red-500 text-white">
+                      {typeof link.badge === 'number' && link.badge > 99 ? '99+' : link.badge}
+                    </span>
+                  )}
                 </div>
 
                 {/* Active underline accent */}

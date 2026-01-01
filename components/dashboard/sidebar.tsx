@@ -198,6 +198,14 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen, handleSignOut, mobileS
                   <span className="text-sm font-medium flex-1">
                     {item.label}
                   </span>
+                  {item.href === "/dashboard/finance" && 
+                   session?.user && 
+                   hasPermission(session.user, "expenses.approve", session.user.permissions) &&
+                   stats.pendingExpensesCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-semibold rounded-full bg-red-500 text-white">
+                      {stats.pendingExpensesCount > 99 ? '99+' : stats.pendingExpensesCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -676,10 +684,28 @@ export function Sidebar() {
                   isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                 }`}
               />
-              {containerExpanded && (
-                <span className="text-sm font-medium flex-1">
-                  {item.label}
-                </span>
+              {containerExpanded ? (
+                <>
+                  <span className="text-sm font-medium flex-1">
+                    {item.label}
+                  </span>
+                  {item.href === "/dashboard/finance" && 
+                   session?.user && 
+                   hasPermission(session.user, "expenses.approve", session.user.permissions) &&
+                   stats.pendingExpensesCount > 0 && (
+                    <span className="flex items-center justify-center min-w-[20px] h-5 px-1.5 text-xs font-semibold rounded-full bg-red-500 text-white">
+                      {stats.pendingExpensesCount > 99 ? '99+' : stats.pendingExpensesCount}
+                    </span>
+                  )}
+                </>
+              ) : (
+                // Collapsed state: show only red dot notification
+                item.href === "/dashboard/finance" && 
+                session?.user && 
+                hasPermission(session.user, "expenses.approve", session.user.permissions) &&
+                stats.pendingExpensesCount > 0 && (
+                  <span className="absolute top-2 right-2 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-background"></span>
+                )
               )}
             </Link>
           );
@@ -958,6 +984,13 @@ export function Sidebar() {
 export function MobileMenuButton() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSignOutDialogOpen, setMobileSignOutDialogOpen] = useState(false);
+  const { data: session } = useSession();
+  const stats = useDashboardStats();
+  
+  // Check if user has permission to see pending expenses
+  const hasPendingExpenses = session?.user && 
+    hasPermission(session.user, "expenses.approve", session.user.permissions) &&
+    stats.pendingExpensesCount > 0;
   
   // SignOut handler for mobile menu
   const handleSignOut = async () => {
@@ -1003,10 +1036,13 @@ export function MobileMenuButton() {
     <>
       <button
         onClick={() => setMobileMenuOpen(true)}
-        className="p-2.5 bg-primary text-primary-foreground rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+        className="relative p-2.5 bg-primary text-primary-foreground rounded-xl shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
         aria-label="Open menu"
       >
         <Menu className="h-6 w-6" />
+        {hasPendingExpenses && (
+          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-primary"></span>
+        )}
       </button>
       <MobileSheet 
         mobileMenuOpen={mobileMenuOpen} 

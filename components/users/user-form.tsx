@@ -231,6 +231,7 @@ export function UserForm({ onSuccess }: UserFormProps) {
                   </SelectTrigger>
                 </FormControl>
                 <SelectContent>
+                  <SelectItem value={UserRole.OWNER}>Owner</SelectItem>
                   <SelectItem value={UserRole.CREW}>Crew</SelectItem>
                   <SelectItem value={UserRole.CAPTAIN}>Captain</SelectItem>
                   {customRoles.map((role) => (

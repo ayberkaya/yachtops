@@ -31,6 +31,7 @@ type OnboardingFormData = {
   ownerName: string;
   ownerEmail: string;
   ownerPhone: string;
+  role: "Owner" | "Captain" | "Yacht Manager" | "Chief Stew" | "Purser";
   languagePreference: "tr" | "en";
   
   // Section 2: Vessel Details
@@ -52,6 +53,7 @@ export function OnboardingForm() {
     ownerName: "",
     ownerEmail: "",
     ownerPhone: "",
+    role: "Owner",
     languagePreference: "en",
     yachtName: "",
     yachtType: "Motor Yacht",
@@ -114,6 +116,7 @@ export function OnboardingForm() {
       formData.append("ownerName", form.ownerName.trim());
       formData.append("ownerEmail", form.ownerEmail.trim());
       formData.append("ownerPhone", form.ownerPhone.trim());
+      formData.append("role", form.role);
       formData.append("languagePreference", form.languagePreference);
       formData.append("yachtName", form.yachtName.trim());
       formData.append("yachtType", form.yachtType);
@@ -183,6 +186,29 @@ export function OnboardingForm() {
                 placeholder="+90 555 123 4567"
               />
             </div>
+            <div>
+              <Label htmlFor="role">Role *</Label>
+              <Select
+                value={form.role}
+                onValueChange={(value: OnboardingFormData["role"]) =>
+                  setForm((f) => ({ ...f, role: value }))
+                }
+                required
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Owner">Owner</SelectItem>
+                  <SelectItem value="Captain">Captain</SelectItem>
+                  <SelectItem value="Yacht Manager">Yacht Manager</SelectItem>
+                  <SelectItem value="Chief Stew">Chief Stew</SelectItem>
+                  <SelectItem value="Purser">Purser</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="languagePreference">Language Preference</Label>
               <Select

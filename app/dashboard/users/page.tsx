@@ -128,6 +128,7 @@ export default async function UsersPage() {
 
       // Build available roles list
       const standardRoles: { value: string; label: string }[] = [
+        { value: UserRole.OWNER, label: "Owner" },
         { value: UserRole.CAPTAIN, label: "Captain" },
         { value: UserRole.CHEF, label: "Chef" },
         { value: UserRole.STEWARDESS, label: "Stewardess" },
