@@ -33,7 +33,7 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
   const getStatusBadge = () => {
     return (
       <Badge className="bg-blue-600 text-white border-blue-700 dark:bg-blue-700 dark:text-white dark:border-blue-600 font-semibold">
-        Status: Underway
+        Ongoing
       </Badge>
     );
   };
@@ -70,11 +70,11 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-950 dark:text-gray-50 transition-colors duration-1000">
                     {trip.name}
                   </h2>
                   {trip.code && (
-                    <span className="text-lg font-medium text-gray-600 dark:text-gray-400">
+                    <span className="text-lg font-medium text-gray-800 dark:text-gray-200 transition-colors duration-1000">
                       ({trip.code})
                     </span>
                   )}
@@ -83,7 +83,7 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
                   {getStatusBadge()}
                   {getTypeBadge()}
                   {trip.guestCount !== null && (
-                    <Badge variant="outline" className="flex items-center gap-1.5 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
+                    <Badge variant="outline" className="flex items-center gap-1.5 border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100 bg-gray-100 dark:bg-gray-700 transition-colors duration-1000">
                       <Users className="h-3.5 w-3.5" />
                       <span className="font-semibold">Guests: {trip.guestCount}</span>
                     </Badge>
@@ -91,16 +91,16 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
                 </div>
 
                 {/* Route display */}
-                <div className="flex items-center gap-3 text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">
+                <div className="flex items-center gap-3 text-base font-semibold text-gray-900 dark:text-gray-100 mb-3 transition-colors duration-1000">
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <MapPin className="h-5 w-5 text-blue-700 dark:text-blue-300 transition-colors duration-1000" />
                     <span>
                       {trip.departurePort || "Departure TBD"}
                     </span>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
+                  <ArrowRight className="h-5 w-5 text-gray-600 dark:text-gray-300 transition-colors duration-1000" />
                   <div className="flex items-center gap-2">
-                    <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <MapPin className="h-5 w-5 text-blue-700 dark:text-blue-300 transition-colors duration-1000" />
                     <span>
                       {trip.arrivalPort || "Arrival TBD"}
                     </span>
@@ -108,14 +108,14 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
                 </div>
 
                 {/* Dates */}
-                <div className="flex flex-wrap gap-6 text-sm">
-                  <div className="text-gray-700 dark:text-gray-300">
-                    <span className="font-semibold text-gray-900 dark:text-gray-100">Started:</span>{" "}
+                <div className="flex flex-wrap gap-6 text-sm transition-colors duration-1000">
+                  <div className="text-gray-900 dark:text-gray-100">
+                    <span className="font-semibold text-gray-950 dark:text-gray-50">Started:</span>{" "}
                     <span className="font-medium">{format(new Date(trip.startDate), "PPP")}</span>
                   </div>
                   {trip.endDate && (
-                    <div className="text-gray-700 dark:text-gray-300">
-                      <span className="font-semibold text-gray-900 dark:text-gray-100">Expected End:</span>{" "}
+                    <div className="text-gray-900 dark:text-gray-100">
+                      <span className="font-semibold text-gray-950 dark:text-gray-50">Expected End:</span>{" "}
                       <span className="font-medium">{format(new Date(trip.endDate), "PPP")}</span>
                     </div>
                   )}
