@@ -117,10 +117,10 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
       if (result.success && result.data) {
         setReportData({ ...result.data, viewType: "detailed" });
       } else {
-        setError(result.error || "Rapor oluşturulurken bir hata oluştu");
+        setError(result.error || "An error occurred while generating the report");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Beklenmeyen bir hata oluştu");
+      setError(err instanceof Error ? err.message : "An unexpected error occurred");
     } finally {
       setIsGenerating(false);
     }
@@ -136,10 +136,10 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileBarChart className="h-5 w-5" />
-            Rapor Oluşturucu
+            Report Builder
           </CardTitle>
           <CardDescription>
-            Tarih aralığını seçerek raporunuzu oluşturun
+            Create your report by selecting a date range
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -151,7 +151,7 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
                 name="dateRange"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tarih Aralığı</FormLabel>
+                    <FormLabel>Date Range</FormLabel>
                     <Select
                       value={field.value}
                       onValueChange={(value) => {
@@ -161,15 +161,15 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Tarih aralığı seçin" />
+                          <SelectValue placeholder="Select date range" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="lastMonth">Geçen Ay</SelectItem>
-                        <SelectItem value="thisMonth">Bu Ay</SelectItem>
-                        <SelectItem value="thisYear">Bu Yıl</SelectItem>
-                        <SelectItem value="lastYear">Geçen Yıl</SelectItem>
-                        <SelectItem value="custom">Özel Aralık</SelectItem>
+                        <SelectItem value="lastMonth">Last Month</SelectItem>
+                        <SelectItem value="thisMonth">This Month</SelectItem>
+                        <SelectItem value="thisYear">This Year</SelectItem>
+                        <SelectItem value="lastYear">Last Year</SelectItem>
+                        <SelectItem value="custom">Custom Range</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -185,7 +185,7 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
                     name="startDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Başlangıç Tarihi</FormLabel>
+                        <FormLabel>Start Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />
                         </FormControl>
@@ -198,7 +198,7 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
                     name="endDate"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Bitiş Tarihi</FormLabel>
+                        <FormLabel>End Date</FormLabel>
                         <FormControl>
                           <Input type="date" {...field} value={field.value || ""} />
                         </FormControl>
@@ -215,8 +215,8 @@ export function ReportBuilder({ categories }: ReportBuilderProps) {
                 </div>
               )}
 
-              <Button type="submit" disabled={isGenerating} className="w-full mt-6">
-                {isGenerating ? "Rapor Oluşturuluyor..." : "Rapor Oluştur"}
+              <Button type="submit" disabled={isGenerating} className="w-full mb-6">
+                {isGenerating ? "Generating Report..." : "Generate Report"}
               </Button>
             </form>
           </Form>

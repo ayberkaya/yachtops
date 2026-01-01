@@ -32,7 +32,7 @@ export function ModuleTabsWrapper() {
       },
       { href: "/dashboard/expenses/reimbursable", label: "Reimbursements" },
       { href: "/dashboard/cash", label: "Cash Ledger" },
-      { href: "/dashboard/reports", label: "Raporlar" },
+      { href: "/dashboard/reports", label: "Reports" },
     ];
     return <ModuleNav links={links} />;
   }

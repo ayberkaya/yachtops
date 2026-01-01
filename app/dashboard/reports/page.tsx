@@ -38,9 +38,9 @@ export default async function ReportsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Raporlar</h1>
+          <h1 className="text-3xl font-bold">Reports</h1>
           <p className="text-muted-foreground mt-1">
-            Finansal ve operasyonel verilerinizi profesyonel raporlar halinde oluşturun
+            Create professional reports from your financial and operational data
           </p>
         </div>
       </div>

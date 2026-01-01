@@ -24,11 +24,19 @@ import {
   Lock,
   Smartphone
 } from "lucide-react";
-import { useActionState, useEffect, useState, startTransition } from "react";
+import { useActionState, useEffect, useState, startTransition, useRef } from "react";
 import { submitLead, type SubmitLeadState } from "@/actions/submit-lead";
+import anime from "animejs/lib/anime.es.js";
 
 export default function Home() {
   const { toast, toasts, removeToast } = useToast();
+  
+  // Refs for hero section animations
+  const badgeRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const descriptionRef = useRef<HTMLParagraphElement>(null);
+  const ctaContainerRef = useRef<HTMLDivElement>(null);
+  const mockupRef = useRef<HTMLDivElement>(null);
   
   const [formData, setFormData] = useState<{
     full_name: string;
@@ -52,6 +60,73 @@ export default function Home() {
   };
 
   const [state, formAction, isPending] = useActionState(submitLead, initialState);
+
+  // Hero section entrance animations
+  useEffect(() => {
+    // Check for reduced motion preference
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (prefersReducedMotion) return;
+
+    // Badge animation
+    if (badgeRef.current) {
+      anime({
+        targets: badgeRef.current,
+        opacity: [0, 1],
+        translateY: [-10, 0],
+        duration: 600,
+        easing: 'easeOutCubic',
+      });
+    }
+
+    // Title animation
+    if (titleRef.current) {
+      anime({
+        targets: titleRef.current,
+        opacity: [0, 1],
+        translateY: [30, 0],
+        duration: 1000,
+        delay: 200,
+        easing: 'easeOutCubic',
+      });
+    }
+
+    // Description animation
+    if (descriptionRef.current) {
+      anime({
+        targets: descriptionRef.current,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        duration: 800,
+        delay: 400,
+        easing: 'easeOutCubic',
+      });
+    }
+
+    // CTA buttons staggered animation
+    if (ctaContainerRef.current) {
+      const buttons = ctaContainerRef.current.querySelectorAll('a, button');
+      anime({
+        targets: buttons,
+        opacity: [0, 1],
+        translateY: [20, 0],
+        delay: anime.stagger(100, { start: 600 }),
+        duration: 700,
+        easing: 'easeOutCubic',
+      });
+    }
+
+    // Mockup card subtle entrance
+    if (mockupRef.current) {
+      anime({
+        targets: mockupRef.current,
+        opacity: [0, 1],
+        scale: [0.95, 1],
+        duration: 1000,
+        delay: 500,
+        easing: 'easeOutCubic',
+      });
+    }
+  }, []);
 
   // Handle success/error toasts and reset form on success
   useEffect(() => {
@@ -106,27 +181,40 @@ export default function Home() {
           <div className="grid lg:grid-cols-2 gap-16 items-center">
             {/* Left: Text Content */}
             <div className="space-y-8">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-50 border border-stone-200 text-sm text-slate-700">
+              <div 
+                ref={badgeRef}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-stone-50 border border-stone-200 text-sm text-slate-700 opacity-0"
+              >
                 <Sparkles className="w-4 h-4" style={{ color: '#C5A059' }} />
                 <span>Exclusive Concierge Onboarding</span>
               </div>
               
-              <h1 className="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-tight tracking-tight font-serif" style={{ fontFamily: 'var(--font-playfair), serif' }}>
+              <h1 
+                ref={titleRef}
+                className="text-5xl sm:text-6xl lg:text-7xl font-bold text-slate-900 leading-tight tracking-tight font-serif opacity-0" 
+                style={{ fontFamily: 'var(--font-playfair), serif' }}
+              >
                 The Operating System
                 <br />
                 for the Modern Superyacht.
               </h1>
               
-              <p className="text-xl sm:text-2xl text-slate-600 leading-relaxed max-w-2xl">
+              <p 
+                ref={descriptionRef}
+                className="text-xl sm:text-2xl text-slate-600 leading-relaxed max-w-2xl opacity-0"
+              >
                 Seamless operations, offline capability, and financial clarity. 
                 <span className="text-slate-900"> Designed for the elite.</span>
               </p>
               
-              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+              <div 
+                ref={ctaContainerRef}
+                className="flex flex-col sm:flex-row gap-4 pt-4"
+              >
                 <Button 
                   asChild 
                   size="lg" 
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-8 py-6 text-lg transition-all"
+                  className="bg-slate-900 hover:bg-slate-800 text-white font-medium px-8 py-6 text-lg transition-all opacity-0"
                 >
                   <Link href="/demo-request">Book a Private Demo</Link>
                 </Button>
@@ -137,7 +225,7 @@ export default function Home() {
                   }}
                   size="lg" 
                   variant="outline" 
-                  className="px-8 py-6 text-lg border-slate-900 text-slate-900 hover:bg-stone-50"
+                  className="px-8 py-6 text-lg border-slate-900 text-slate-900 hover:bg-stone-50 opacity-0"
                 >
                   Request Access
                 </Button>
@@ -145,7 +233,7 @@ export default function Home() {
             </div>
 
             {/* Right: Floating Card Mockup */}
-            <div className="relative">
+            <div ref={mockupRef} className="relative opacity-0">
               <div className="relative aspect-[4/3] rounded-2xl bg-white border border-stone-200 shadow-2xl overflow-hidden">
                 {/* Floating Card Effect */}
                 <div className="absolute inset-4 rounded-xl bg-gradient-to-br from-stone-50 to-white border border-stone-200 shadow-xl flex flex-col">

@@ -3,6 +3,8 @@
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
 import { XIcon } from "lucide-react"
+import { useEffect, useRef } from "react"
+import anime from "animejs/lib/anime.es.js"
 
 import { cn } from "@/lib/utils"
 
@@ -34,11 +36,50 @@ function DialogOverlay({
   className,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Overlay>) {
+  const overlayRef = useRef<React.ElementRef<typeof DialogPrimitive.Overlay>>(null)
+
+  useEffect(() => {
+    if (!overlayRef.current) return
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
+    const overlay = overlayRef.current
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-state') {
+          const state = overlay.getAttribute('data-state')
+          
+          if (state === 'open') {
+            anime({
+              targets: overlay,
+              opacity: [0, 1],
+              duration: 300,
+              easing: 'easeOutCubic',
+            })
+          } else if (state === 'closed') {
+            anime({
+              targets: overlay,
+              opacity: [1, 0],
+              duration: 200,
+              easing: 'easeInCubic',
+            })
+          }
+        }
+      })
+    })
+
+    observer.observe(overlay, { attributes: true, attributeFilter: ['data-state'] })
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <DialogPrimitive.Overlay
+      ref={overlayRef}
       data-slot="dialog-overlay"
       className={cn(
-        "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/70 dark:bg-black/80 backdrop-blur-md",
+        "fixed inset-0 z-50 bg-black/70 dark:bg-black/80 backdrop-blur-md",
         className
       )}
       {...props}
@@ -54,13 +95,60 @@ function DialogContent({
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
 }) {
+  const contentRef = useRef<React.ElementRef<typeof DialogPrimitive.Content>>(null)
+
+  useEffect(() => {
+    if (!contentRef.current) return
+
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReducedMotion) return
+
+    const content = contentRef.current
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-state') {
+          const state = content.getAttribute('data-state')
+          
+          if (state === 'open') {
+            // Reset initial state
+            content.style.opacity = '0'
+            content.style.transform = 'translate(-50%, -50%) scale(0.95)'
+            
+            // Animate in
+            anime({
+              targets: content,
+              opacity: [0, 1],
+              scale: [0.95, 1],
+              duration: 300,
+              easing: 'easeOutCubic',
+            })
+          } else if (state === 'closed') {
+            // Animate out
+            anime({
+              targets: content,
+              opacity: [1, 0],
+              scale: [1, 0.95],
+              duration: 200,
+              easing: 'easeInCubic',
+            })
+          }
+        }
+      })
+    })
+
+    observer.observe(content, { attributes: true, attributeFilter: ['data-state'] })
+
+    return () => observer.disconnect()
+  }, [])
+
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
+        ref={contentRef}
         data-slot="dialog-content"
         className={cn(
-          "bg-white data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-6 rounded-2xl border border-border/50 p-8 shadow-2xl backdrop-blur-sm duration-300 sm:max-w-lg max-h-[90vh] sm:max-h-[85vh] overflow-y-auto",
+          "bg-white fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-6 rounded-2xl border border-border/50 p-8 shadow-2xl backdrop-blur-sm sm:max-w-lg max-h-[90vh] sm:max-h-[85vh] overflow-y-auto",
           className
         )}
         {...props}
