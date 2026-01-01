@@ -87,6 +87,7 @@ export async function GET(request: NextRequest) {
         length: true,
         registrationNumber: true,
         logoUrl: true,
+        settings: true,
       },
     });
 
@@ -555,9 +556,10 @@ export async function GET(request: NextRequest) {
           const percentage = totalPrimaryCurrency > 0 ? ((data.total / totalPrimaryCurrency) * 100).toFixed(1) : "0";
           addText(
             `${index + 1}. ${category}`,
-            margin + 5,
             10,
-            true
+            true,
+            textColor,
+            margin + 5
           );
           addText(
             `   Amount: ${data.total.toLocaleString("en-US", { style: "currency", currency: primaryCurrency })} • Transactions: ${data.count} • ${percentage}% of total`,
@@ -741,7 +743,7 @@ export async function GET(request: NextRequest) {
           }
           
           if (details.length > 0) {
-            addText(details.join(" • "), margin + 10, 9);
+            addText(details.join(" • "), 9, false, undefined, margin + 10);
           }
           
           yPos += 3;
@@ -798,11 +800,11 @@ export async function GET(request: NextRequest) {
             details.push(`Created by: ${list.createdBy.name}`);
           }
           
-          addText(details.join(" • "), margin + 10, 9);
+          addText(details.join(" • "), 9, false, undefined, margin + 10);
           
           if (list.description) {
             doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-            addText(`Description: ${list.description}`, margin + 10, 9);
+            addText(`Description: ${list.description}`, 9, false, undefined, margin + 10);
           }
           
           yPos += 3;
