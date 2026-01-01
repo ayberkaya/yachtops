@@ -436,10 +436,10 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value={TripStatus.PLANNED}>Mark as Planned</SelectItem>
-                          <SelectItem value={TripStatus.ONGOING}>Mark as Ongoing</SelectItem>
-                          <SelectItem value={TripStatus.COMPLETED}>Mark as Completed</SelectItem>
-                          <SelectItem value={TripStatus.CANCELLED}>Mark as Cancelled</SelectItem>
+                          <SelectItem value={TripStatus.PLANNED}>Planned</SelectItem>
+                          <SelectItem value={TripStatus.ONGOING}>Ongoing</SelectItem>
+                          <SelectItem value={TripStatus.COMPLETED}>Completed</SelectItem>
+                          <SelectItem value={TripStatus.CANCELLED}>Cancelled</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -464,7 +464,6 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Type</TableHead>
-                    <TableHead>Code</TableHead>
                     <TableHead>Start Date</TableHead>
                     <TableHead>End Date</TableHead>
                     <TableHead>Route</TableHead>
@@ -478,7 +477,6 @@ export function TripList({ initialTrips, canManage, canEdit = false }: TripListP
                     <TableRow key={trip.id}>
                       <TableCell className="font-medium">{trip.name}</TableCell>
                       <TableCell>{getTypeBadge(trip.type)}</TableCell>
-                      <TableCell>{trip.code || "-"}</TableCell>
                       <TableCell>{format(new Date(trip.startDate), "MMM d, yyyy")}</TableCell>
                       <TableCell>
                         {trip.endDate ? format(new Date(trip.endDate), "MMM d, yyyy") : "-"}

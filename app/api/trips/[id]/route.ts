@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
+import { hasPermission } from "@/lib/permissions";
 import { db } from "@/lib/db";
 import { TripStatus, TripType } from "@prisma/client";
 import { z } from "zod";
@@ -77,7 +78,12 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!canManageUsers(session!.user)) {
+    // Allow users with trips.edit or trips.create permission, or users who can manage users
+    const canEdit =
+      hasPermission(session.user, "trips.edit", session.user.permissions) ||
+      hasPermission(session.user, "trips.create", session.user.permissions);
+    
+    if (!canEdit && !canManageUsers(session.user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

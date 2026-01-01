@@ -3,7 +3,7 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, ArrowRight, Users, Ship, Plus, Fuel } from "lucide-react";
+import { MapPin, ArrowRight, Users, Ship, Plus } from "lucide-react";
 import { TripStatus, TripType } from "@prisma/client";
 import { format } from "date-fns";
 import Link from "next/link";
@@ -32,7 +32,7 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
 
   const getStatusBadge = () => {
     return (
-      <Badge className="bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900 dark:text-blue-200">
+      <Badge className="bg-blue-600 text-white border-blue-700 dark:bg-blue-700 dark:text-white dark:border-blue-600 font-semibold">
         Status: Underway
       </Badge>
     );
@@ -54,24 +54,27 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
   };
 
   return (
-    <Card className="border-2 border-blue-200 dark:border-blue-800 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 dark:from-blue-950/30 dark:via-cyan-950/30 dark:to-blue-950/30 shadow-lg mb-6">
-      <CardContent className="p-6 md:p-8">
+    <Card className="border-2 border-blue-300 dark:border-blue-700 shadow-lg mb-6 relative overflow-hidden">
+      {/* Animated background layer */}
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-50 via-cyan-50 to-blue-50 dark:from-blue-950/40 dark:via-cyan-950/40 dark:to-blue-950/40 animate-pulse pointer-events-none" />
+      {/* Content layer */}
+      <CardContent className="p-6 md:p-8 relative z-10">
         <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-6">
           {/* Left side: Trip info */}
           <div className="flex-1 space-y-4">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-4">
               <div className="flex-shrink-0">
-                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center">
-                  <Ship className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                <div className="w-14 h-14 rounded-full bg-blue-600 dark:bg-blue-700 flex items-center justify-center shadow-md">
+                  <Ship className="h-7 w-7 text-white" />
                 </div>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <h2 className="text-2xl md:text-3xl font-bold text-blue-900 dark:text-blue-100">
+                <div className="flex items-center gap-2 mb-3">
+                  <h2 className="text-2xl md:text-3xl font-bold text-gray-900 dark:text-gray-100">
                     {trip.name}
                   </h2>
                   {trip.code && (
-                    <span className="text-lg text-blue-700 dark:text-blue-300">
+                    <span className="text-lg font-medium text-gray-600 dark:text-gray-400">
                       ({trip.code})
                     </span>
                   )}
@@ -80,40 +83,40 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
                   {getStatusBadge()}
                   {getTypeBadge()}
                   {trip.guestCount !== null && (
-                    <Badge variant="outline" className="flex items-center gap-1">
-                      <Users className="h-3 w-3" />
-                      Guests: {trip.guestCount}
+                    <Badge variant="outline" className="flex items-center gap-1.5 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800">
+                      <Users className="h-3.5 w-3.5" />
+                      <span className="font-semibold">Guests: {trip.guestCount}</span>
                     </Badge>
                   )}
                 </div>
 
                 {/* Route display */}
-                <div className="flex items-center gap-3 text-lg font-medium text-blue-900 dark:text-blue-100">
+                <div className="flex items-center gap-3 text-base font-semibold text-gray-800 dark:text-gray-200 mb-3">
                   <div className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span className="font-semibold">
+                    <span>
                       {trip.departurePort || "Departure TBD"}
                     </span>
                   </div>
-                  <ArrowRight className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                  <ArrowRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                   <div className="flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                    <span className="font-semibold">
+                    <span>
                       {trip.arrivalPort || "Arrival TBD"}
                     </span>
                   </div>
                 </div>
 
                 {/* Dates */}
-                <div className="flex flex-wrap gap-4 text-sm text-blue-700 dark:text-blue-300">
-                  <div>
-                    <span className="font-medium">Started:</span>{" "}
-                    {format(new Date(trip.startDate), "PPP")}
+                <div className="flex flex-wrap gap-6 text-sm">
+                  <div className="text-gray-700 dark:text-gray-300">
+                    <span className="font-semibold text-gray-900 dark:text-gray-100">Started:</span>{" "}
+                    <span className="font-medium">{format(new Date(trip.startDate), "PPP")}</span>
                   </div>
                   {trip.endDate && (
-                    <div>
-                      <span className="font-medium">Expected End:</span>{" "}
-                      {format(new Date(trip.endDate), "PPP")}
+                    <div className="text-gray-700 dark:text-gray-300">
+                      <span className="font-semibold text-gray-900 dark:text-gray-100">Expected End:</span>{" "}
+                      <span className="font-medium">{format(new Date(trip.endDate), "PPP")}</span>
                     </div>
                   )}
                 </div>
@@ -131,16 +134,6 @@ export function ActiveVoyageHero({ trip, canEdit }: ActiveVoyageHeroProps) {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Movement Log
-                </Button>
-              </Link>
-              <Link href={`/dashboard/trips?view=fuel&tripId=${trip.id}`}>
-                <Button
-                  variant="outline"
-                  className="w-full border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/50"
-                  size="lg"
-                >
-                  <Fuel className="h-4 w-4 mr-2" />
-                  Update Fuel
                 </Button>
               </Link>
             </div>

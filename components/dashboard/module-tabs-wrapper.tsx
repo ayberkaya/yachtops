@@ -58,10 +58,10 @@ export function ModuleTabsWrapper() {
     pathname.startsWith("/dashboard/trips")
   ) {
     const links = [
+      { href: "/dashboard/trips/calendar", label: "Calendar" },
       { href: "/dashboard/trips", label: "Voyages" },
       { href: "/dashboard/trips/voyage-planning", label: "Voyage Planning" },
       { href: "/dashboard/trips/post-voyage-report", label: "Post-Voyage Report" },
-      { href: "/dashboard/trips/calendar", label: "Calendar" },
     ];
     return <ModuleNav links={links} />;
   }
