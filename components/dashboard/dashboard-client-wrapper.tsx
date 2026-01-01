@@ -3,7 +3,7 @@
 import dynamic from "next/dynamic";
 import { DashboardNotificationsPanel } from "@/components/notifications/dashboard-notifications-panel";
 import { ModuleTabsWrapper } from "@/components/dashboard/module-tabs-wrapper";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
 
 // Dynamically import Sidebar with SSR disabled to avoid SessionProvider issues
 const Sidebar = dynamic(() => import("@/components/dashboard/sidebar").then(mod => ({ default: mod.Sidebar })), {
@@ -26,6 +26,19 @@ interface DashboardClientWrapperProps {
 }
 
 export function DashboardClientWrapper({ children }: DashboardClientWrapperProps) {
+  // Prevent auto-scroll on dashboard load
+  useEffect(() => {
+    // Ensure main content area starts at top
+    if (typeof window !== 'undefined') {
+      const mainElement = document.querySelector('main.flex-1.overflow-y-auto');
+      if (mainElement) {
+        mainElement.scrollTo(0, 0);
+      }
+      // Also ensure window scroll is at top
+      window.scrollTo(0, 0);
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-background flex flex-col md:flex-row transition-colors">
       <Sidebar />

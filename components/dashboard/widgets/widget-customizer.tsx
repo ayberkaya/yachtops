@@ -42,13 +42,11 @@ const WIDGET_LABELS: Record<WidgetType, string> = {
   credit_card_expenses: "Credit Card Expenses",
   pending_expenses: "Pending Expenses",
   recent_expenses: "Recent Expenses",
-  upcoming_trips: "Upcoming Trips",
   my_tasks: "My Tasks",
   role_tasks_alert: "Tasks Alert",
   upcoming_maintenance: "Upcoming Maintenance",
   expiring_permissions: "Expiring Permissions",
   low_stock_alert: "Low Stock Alert",
-  monthly_report: "Monthly Report",
   quick_stats: "Quick Stats",
   calendar_events: "Calendar Events",
 };

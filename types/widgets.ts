@@ -7,13 +7,11 @@ export type WidgetType =
   | "credit_card_expenses"
   | "pending_expenses"
   | "recent_expenses"
-  | "upcoming_trips"
   | "my_tasks"
   | "role_tasks_alert"
   | "upcoming_maintenance"
   | "expiring_permissions"
   | "low_stock_alert"
-  | "monthly_report"
   | "quick_stats"
   | "calendar_events";
 
@@ -46,9 +44,7 @@ export const DEFAULT_WIDGETS: Record<UserRoleType, WidgetConfig[]> = {
     { id: "quick_stats", enabled: true, order: 5, size: "medium" },
     { id: "pending_expenses", enabled: true, order: 6, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 7, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 8, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 9, size: "medium" },
-    { id: "monthly_report", enabled: true, order: 10, size: "full" },
+    { id: "calendar_events", enabled: true, order: 8, size: "medium" },
   ],
   CAPTAIN: [
     { id: "cash_ledger_summary", enabled: true, order: 0, size: "medium" },
@@ -59,43 +55,36 @@ export const DEFAULT_WIDGETS: Record<UserRoleType, WidgetConfig[]> = {
     { id: "quick_stats", enabled: true, order: 5, size: "medium" },
     { id: "pending_expenses", enabled: true, order: 6, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 7, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 8, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 9, size: "medium" },
-    { id: "monthly_report", enabled: true, order: 10, size: "full" },
+    { id: "calendar_events", enabled: true, order: 8, size: "medium" },
   ],
   CREW: [
     { id: "my_tasks", enabled: true, order: 0, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 3, size: "medium" },
+    { id: "calendar_events", enabled: true, order: 2, size: "medium" },
     { id: "upcoming_maintenance", enabled: true, order: 4, size: "full" },
   ],
   CHEF: [
     { id: "my_tasks", enabled: true, order: 0, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 3, size: "medium" },
+    { id: "calendar_events", enabled: true, order: 2, size: "medium" },
     { id: "low_stock_alert", enabled: true, order: 4, size: "full" },
   ],
   STEWARDESS: [
     { id: "my_tasks", enabled: true, order: 0, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 3, size: "medium" },
+    { id: "calendar_events", enabled: true, order: 2, size: "medium" },
     { id: "low_stock_alert", enabled: true, order: 4, size: "full" },
   ],
   DECKHAND: [
     { id: "my_tasks", enabled: true, order: 0, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 3, size: "medium" },
+    { id: "calendar_events", enabled: true, order: 2, size: "medium" },
     { id: "upcoming_maintenance", enabled: true, order: 4, size: "full" },
   ],
   ENGINEER: [
     { id: "my_tasks", enabled: true, order: 0, size: "medium" },
     { id: "recent_expenses", enabled: true, order: 1, size: "medium" },
-    { id: "upcoming_trips", enabled: true, order: 2, size: "medium" },
-    { id: "calendar_events", enabled: true, order: 3, size: "medium" },
+    { id: "calendar_events", enabled: true, order: 2, size: "medium" },
     { id: "upcoming_maintenance", enabled: true, order: 4, size: "full" },
   ],
   ADMIN: [

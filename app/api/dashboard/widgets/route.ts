@@ -15,13 +15,11 @@ const updateWidgetsSchema = z.object({
           "credit_card_expenses",
           "pending_expenses",
           "recent_expenses",
-          "upcoming_trips",
           "my_tasks",
           "role_tasks_alert",
           "upcoming_maintenance",
           "expiring_permissions",
           "low_stock_alert",
-          "monthly_report",
           "quick_stats",
           "calendar_events",
         ];

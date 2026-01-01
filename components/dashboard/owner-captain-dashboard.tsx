@@ -11,7 +11,6 @@ import {
   getCreditCardExpenses,
   getCreditCards,
   getCashBalances,
-  getUpcomingTrips,
   getAlcoholStocks,
   getMarinaPermissions,
   getMaintenanceLogs,
@@ -63,10 +62,6 @@ async function OwnerCaptainWidgets({
     ? getCashBalances(yachtId)
     : Promise.resolve(undefined);
 
-  const upcomingTripsPromise = enabledWidgets.has("upcoming_trips")
-    ? getUpcomingTrips(yachtId)
-    : Promise.resolve(undefined);
-
   const alcoholStocksPromise = enabledWidgets.has("low_stock_alert")
     ? getAlcoholStocks(yachtId, user)
     : Promise.resolve(undefined);
@@ -95,7 +90,6 @@ async function OwnerCaptainWidgets({
     creditCardExpenses,
     creditCards,
     cashBalances,
-    upcomingTrips,
     alcoholStocks,
     marinaPermissions,
     maintenanceLogs,
@@ -109,7 +103,6 @@ async function OwnerCaptainWidgets({
     creditCardExpensesPromise,
     creditCardsPromise,
     cashBalancesPromise,
-    upcomingTripsPromise,
     alcoholStocksPromise,
     marinaPermissionsPromise,
     maintenanceLogsPromise,
@@ -143,7 +136,6 @@ async function OwnerCaptainWidgets({
       creditCardExpenses={creditCardExpenses}
       creditCards={creditCards}
       cashBalances={cashBalances}
-      upcomingTrips={upcomingTrips}
       totalPendingAmount={totalPendingAmount}
       roleAssignedTasks={roleAssignedTasks}
       upcomingMaintenance={maintenanceLogs}

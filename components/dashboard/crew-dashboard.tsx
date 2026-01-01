@@ -336,7 +336,6 @@ export async function CrewDashboard({ user }: { user: DashboardUser }) {
         creditCardExpenses={creditCardExpenses}
         creditCards={creditCards}
         myTasks={myTasks}
-        upcomingTrips={[]}
         upcomingMaintenance={upcomingMaintenance}
         showCustomizerButton={false}
       />

@@ -29,10 +29,6 @@ import { SortableWidgetWrapper } from "./sortable-widget-wrapper";
 // Lazy load less critical widgets - using dynamic imports for code splitting
 // Error handling: if import fails, Suspense fallback will be shown
 // Removed catch handlers to avoid TypeScript type conflicts
-const UpcomingTripsWidget = lazy(() => 
-  import("./upcoming-trips-widget").then(m => ({ default: m.UpcomingTripsWidget }))
-);
-
 const MyTasksWidget = lazy(() => 
   import("./my-tasks-widget").then(m => ({ default: m.MyTasksWidget }))
 );
@@ -57,7 +53,6 @@ const CalendarEventsWidget = lazy(() =>
   import("./calendar-events-widget").then(m => ({ default: m.CalendarEventsWidget }))
 );
 import { WidgetCustomizer } from "./widget-customizer";
-import { MonthlyReportDownload } from "../monthly-report-download";
 
 interface WidgetRendererProps {
   // Data for widgets
@@ -68,7 +63,6 @@ interface WidgetRendererProps {
   creditCardExpenses?: any[];
   creditCards?: Array<{ id: string; ownerName: string; lastFourDigits: string; billingCycleEndDate: number | null }>;
   cashBalances?: Array<{ currency: string; balance: number }>;
-  upcomingTrips?: any[];
   totalPendingAmount?: number;
   roleAssignedTasks?: any[];
   upcomingMaintenance?: any[];
@@ -85,10 +79,9 @@ export const WidgetRenderer = memo(function WidgetRenderer({
   pendingExpensesByCurrency = [],
   recentExpenses = [],
   creditCardExpenses = [],
-  creditCards = [],
-  cashBalances = [],
-  upcomingTrips = [],
-  totalPendingAmount = 0,
+    creditCards = [],
+    cashBalances = [],
+    totalPendingAmount = 0,
   roleAssignedTasks = [],
   upcomingMaintenance = [],
   expiringPermissions = [],
@@ -284,12 +277,6 @@ export const WidgetRenderer = memo(function WidgetRenderer({
         return null;
       case "recent_expenses":
         return <RecentExpensesWidget expenses={recentExpenses} />;
-      case "upcoming_trips":
-        return (
-          <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
-            <UpcomingTripsWidget trips={upcomingTrips} />
-          </Suspense>
-        );
       case "my_tasks":
         return (
           <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
@@ -320,8 +307,6 @@ export const WidgetRenderer = memo(function WidgetRenderer({
             <LowStockAlertWidget items={lowStockItems} />
           </Suspense>
         );
-      case "monthly_report":
-        return <MonthlyReportDownload />;
       case "calendar_events":
         return (
           <Suspense fallback={<div className="h-32 animate-pulse bg-muted rounded-lg" />}>
@@ -345,7 +330,6 @@ export const WidgetRenderer = memo(function WidgetRenderer({
                 description: currencyDescriptions,
                 href: "/dashboard/expenses/pending"
               },
-              { label: "Upcoming Trips", value: upcomingTrips.length, description: "Scheduled trips" },
             ]}
           />
         );
@@ -362,7 +346,6 @@ export const WidgetRenderer = memo(function WidgetRenderer({
       creditCardExpenses,
       creditCards,
       cashBalances,
-      upcomingTrips,
       myTasks,
       roleAssignedTasks,
       upcomingMaintenance,
@@ -443,7 +426,6 @@ export const WidgetRenderer = memo(function WidgetRenderer({
     prevProps.creditCardExpenses === nextProps.creditCardExpenses &&
     prevProps.creditCards === nextProps.creditCards &&
     prevProps.cashBalances === nextProps.cashBalances &&
-    prevProps.upcomingTrips === nextProps.upcomingTrips &&
     prevProps.totalPendingAmount === nextProps.totalPendingAmount &&
     prevProps.roleAssignedTasks === nextProps.roleAssignedTasks &&
     prevProps.upcomingMaintenance === nextProps.upcomingMaintenance &&
