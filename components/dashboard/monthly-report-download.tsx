@@ -7,33 +7,39 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { ChevronDown, Download, FileText, Loader2 } from "lucide-react";
+import { ChevronDown, Download, FileText, Loader2, Info } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const SECTION_OPTIONS = [
   {
     id: "summary",
-    label: "Executive summary",
-    description: "Key KPIs for the selected timeframe.",
+    label: "Executive Summary",
+    description: "Comprehensive overview with key performance indicators, total expenses, trip statistics, task completion rates, and operational efficiency metrics.",
+    icon: "📊",
   },
   {
     id: "financial",
-    label: "Financial overview",
-    description: "Expense totals grouped by category and currency.",
+    label: "Financial Analysis",
+    description: "Detailed expense breakdown by category and currency, transaction summaries, spending trends, and financial insights with comparative analysis.",
+    icon: "💰",
   },
   {
     id: "trips",
-    label: "Trips",
-    description: "Voyages that started or ended in the chosen dates.",
+    label: "Voyage Report",
+    description: "Complete trip documentation including departure/arrival ports, dates, durations, status, crew assignments, and voyage-specific expenses.",
+    icon: "⚓",
   },
   {
     id: "tasks",
-    label: "Tasks",
-    description: "Completed maintenance and operational tasks.",
+    label: "Maintenance & Tasks",
+    description: "All completed maintenance tasks, operational assignments, completion dates, assignees, task categories, and maintenance schedules.",
+    icon: "🔧",
   },
   {
     id: "shopping",
-    label: "Shopping lists",
-    description: "Procurement activity and completion stats.",
+    label: "Procurement Activity",
+    description: "Shopping list completions, item counts, procurement timelines, vendor information, and inventory replenishment statistics.",
+    icon: "🛒",
   },
 ] as const;
 
@@ -126,7 +132,7 @@ export function MonthlyReportDownload() {
                   <CardTitle className="text-base font-semibold">Operations Report</CardTitle>
                 </div>
                 <CardDescription>
-                  Download a PDF report for any date range and choose which data blocks to include.
+                  Generate a comprehensive, premium PDF report with detailed analytics, yacht branding, and professional formatting for captains and owners.
                 </CardDescription>
               </div>
               <ChevronDown
@@ -178,55 +184,79 @@ export function MonthlyReportDownload() {
         )}
 
         <div>
-          <p className="text-sm font-medium">Report sections</p>
-          <p className="text-xs text-muted-foreground">Select one or more data blocks.</p>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mb-3 flex items-center gap-2">
+            <p className="text-sm font-semibold">Report Sections</p>
+            <Badge variant="secondary" className="text-xs">
+              {selectedSections.length} selected
+            </Badge>
+          </div>
+          <p className="text-xs text-muted-foreground mb-4">
+            Customize your report by selecting the sections you need. Each section includes detailed analytics and comprehensive data.
+          </p>
+          <div className="mt-3 grid gap-3 sm:grid-cols-1 lg:grid-cols-2">
             {SECTION_OPTIONS.map((option) => {
               const checked = selectedSections.includes(option.id);
               return (
                 <label
                   key={option.id}
                   htmlFor={`section-${option.id}`}
-                  className="flex items-start gap-3 rounded-xl border border-border/60 bg-muted/20 p-3 transition hover:bg-muted/40"
+                  className={`flex items-start gap-3 rounded-xl border-2 p-4 transition-all cursor-pointer ${
+                    checked
+                      ? "border-primary bg-primary/5 shadow-sm"
+                      : "border-border/60 bg-muted/20 hover:bg-muted/40 hover:border-border"
+                  }`}
                 >
                   <Checkbox
                     id={`section-${option.id}`}
                     checked={checked}
                     onCheckedChange={() => toggleSection(option.id)}
+                    className="mt-0.5"
                   />
-                  <div>
-                    <p className="text-sm font-medium leading-tight">{option.label}</p>
-                    <p className="text-xs text-muted-foreground">{option.description}</p>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-lg">{option.icon}</span>
+                      <p className="text-sm font-semibold leading-tight">{option.label}</p>
+                    </div>
+                    <p className="text-xs text-muted-foreground leading-relaxed">{option.description}</p>
                   </div>
                 </label>
               );
             })}
           </div>
           {selectedSections.length === 0 && (
-            <p className="mt-2 text-xs text-destructive">
-              Select at least one section to generate the report.
-            </p>
+            <div className="mt-3 flex items-start gap-2 rounded-lg border border-destructive/50 bg-destructive/5 p-3">
+              <Info className="h-4 w-4 text-destructive mt-0.5 shrink-0" />
+              <p className="text-xs text-destructive">
+                Please select at least one section to generate the report.
+              </p>
+            </div>
           )}
         </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-xs text-muted-foreground">
-                Your PDF will only include the timeframe and sections selected above.
-              </p>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between pt-2 border-t">
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-foreground">
+                  Report Preview
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Your PDF will include {selectedSections.length} section{selectedSections.length !== 1 ? "s" : ""} covering the period from {dateRange.start ? format(new Date(dateRange.start), "MMM d, yyyy") : "..."} to {dateRange.end ? format(new Date(dateRange.end), "MMM d, yyyy") : "..."}. The report will feature your yacht's branding and professional formatting.
+                </p>
+              </div>
               <Button
                 onClick={handleDownload}
                 disabled={isGenerating || !isRangeValid || selectedSections.length === 0}
-                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+                size="lg"
+                className="bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white shadow-lg hover:shadow-xl transition-all"
               >
                 {isGenerating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Generating...
+                    Generating Premium Report...
                   </>
                 ) : (
                   <>
                     <Download className="mr-2 h-4 w-4" />
-                    Download PDF
+                    Generate PDF Report
                   </>
                 )}
               </Button>
