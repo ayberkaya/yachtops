@@ -924,8 +924,26 @@ enum CashTransactionType {
 enum AlcoholCategory {
   @@schema("public")
   WINE
-  SPIRITS
   BEER
+  WHISKEY
+  VODKA
+  RUM
+  GIN
+  TEQUILA
+  CHAMPAGNE
+  COGNAC
+  BRANDY
+  SCOTCH
+  BOURBON
+  PROSECCO
+  SAKE
+  CIDER
+  PORT
+  SHERRY
+  LIQUEURS
+  VERMOUTH
+  ABSINTHE
+  SPIRITS
 }
 
 enum TripChecklistType {

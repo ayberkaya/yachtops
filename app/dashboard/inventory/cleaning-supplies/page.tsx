@@ -24,9 +24,9 @@ export default async function CleaningSuppliesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="px-4 md:px-0">
-        <h1 className="text-2xl md:text-3xl font-bold break-words">Cleaning Supplies</h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-2 break-words">
+      <div>
+        <h1 className="text-3xl font-bold">Cleaning Supplies</h1>
+        <p className="text-muted-foreground">
           Manage cleaning products, detergents, and maintenance supplies
         </p>
       </div>

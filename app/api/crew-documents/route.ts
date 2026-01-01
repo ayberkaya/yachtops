@@ -121,30 +121,29 @@ export async function POST(request: NextRequest) {
     const expiryDate = expiryDateStr ? new Date(expiryDateStr) : null;
     const userId = formData.get("userId") as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: "No file uploaded" }, { status: 400 });
-    }
+    let storageMetadata = null;
+    if (file) {
+      // Validate file upload security
+      const validation = validateFileUpload(file, "document");
+      if (!validation.valid) {
+        return NextResponse.json(
+          { error: validation.error || "File validation failed" },
+          { status: 400 }
+        );
+      }
 
-    // Validate file upload security
-    const validation = validateFileUpload(file, "document");
-    if (!validation.valid) {
-      return NextResponse.json(
-        { error: validation.error || "File validation failed" },
-        { status: 400 }
+      // Upload file to Supabase Storage
+      const { uploadFile, STORAGE_BUCKETS, generateFilePath } = await import("@/lib/supabase-storage");
+      const filePath = generateFilePath('crew-documents', file.name);
+      storageMetadata = await uploadFile(
+        STORAGE_BUCKETS.CREW_DOCUMENTS,
+        filePath,
+        file,
+        {
+          contentType: file.type || 'application/pdf',
+        }
       );
     }
-
-    // Upload file to Supabase Storage
-    const { uploadFile, STORAGE_BUCKETS, generateFilePath } = await import("@/lib/supabase-storage");
-    const filePath = generateFilePath('crew-documents', file.name);
-    const storageMetadata = await uploadFile(
-      STORAGE_BUCKETS.CREW_DOCUMENTS,
-      filePath,
-      file,
-      {
-        contentType: file.type || 'application/pdf',
-      }
-    );
 
     // Store only metadata in database (bucket, path, mimeType, size)
     const doc = await db.crewDocument.create({
@@ -153,10 +152,10 @@ export async function POST(request: NextRequest) {
         userId: userId || null,
         title,
         fileUrl: null, // No base64 - file is in Supabase Storage
-        storageBucket: storageMetadata.bucket,
-        storagePath: storageMetadata.path,
-        mimeType: storageMetadata.mimeType,
-        fileSize: storageMetadata.size,
+        storageBucket: storageMetadata?.bucket || null,
+        storagePath: storageMetadata?.path || null,
+        mimeType: storageMetadata?.mimeType || null,
+        fileSize: storageMetadata?.size || null,
         notes,
         expiryDate,
         createdByUserId: session.user.id,

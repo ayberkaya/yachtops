@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -15,7 +16,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format, differenceInDays, isPast, isToday } from "date-fns";
-import { AlertTriangle, Calendar } from "lucide-react";
+import { AlertTriangle, Calendar, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 
 interface CrewDocument {
   id: string;
@@ -49,6 +57,9 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
+  const [noExpiry, setNoExpiry] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedCrewMemberId, setSelectedCrewMemberId] = useState<string>("");
   
   // Filter out OWNER, SUPER_ADMIN, and ADMIN from crew member selection
   const filteredCrewMembers = crewMembers.filter((member) => {
@@ -56,6 +67,11 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
     return role !== "OWNER" && role !== "SUPER_ADMIN" && role !== "ADMIN";
   });
   const [userId, setUserId] = useState<string>("");
+  
+  // Filter documents by selected crew member
+  const filteredDocs = selectedCrewMemberId
+    ? docs.filter((doc) => doc.userId === selectedCrewMemberId)
+    : [];
   const [file, setFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,27 +100,30 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
     e.preventDefault();
     setError(null);
 
-    if (!file) {
-      setError("Please select a document file to upload.");
+    if (!title || !title.trim()) {
+      setError("Please select a document title.");
+      return;
+    }
+
+    if (!userId) {
+      setError("Please select a crew member.");
       return;
     }
 
     try {
       setIsSubmitting(true);
       const formData = new FormData();
-      if (title.trim()) {
-        formData.append("title", title.trim());
-      }
+      formData.append("title", title.trim());
       if (notes.trim()) {
         formData.append("notes", notes.trim());
       }
-      if (expiryDate) {
+      if (!noExpiry && expiryDate) {
         formData.append("expiryDate", expiryDate);
       }
-      if (userId) {
-        formData.append("userId", userId);
+      formData.append("userId", userId);
+      if (file) {
+        formData.append("file", file);
       }
-      formData.append("file", file);
 
       const res = await fetch("/api/crew-documents", {
         method: "POST",
@@ -120,12 +139,18 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
 
       const created = await res.json();
       setDocs((prev) => [created, ...prev]);
+      // Auto-select the crew member if not already selected
+      if (!selectedCrewMemberId && created.userId) {
+        setSelectedCrewMemberId(created.userId);
+      }
       setTitle("");
       setNotes("");
       setExpiryDate("");
+      setNoExpiry(false);
       setUserId("");
       setFile(null);
       setIsSubmitting(false);
+      setIsModalOpen(false);
     } catch (err) {
       console.error(err);
       setError("An unexpected error occurred.");
@@ -135,29 +160,45 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Crew Document</CardTitle>
-          <CardDescription>
-            Upload a document file (e.g. PDF or image) related to crew documentation.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Crew Document</DialogTitle>
+            <DialogDescription>
+              Upload a document file (e.g. PDF or image) related to crew documentation.
+            </DialogDescription>
+          </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Title</label>
-                <Input
-                  placeholder="Document title (optional)"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
+                <label className="text-sm font-medium">Title *</label>
+                <Select value={title || undefined} onValueChange={(value) => setTitle(value)}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select document title" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Radar Gözlem ve Pilotlama EĞitimi">Radar Gözlem ve Pilotlama EĞitimi</SelectItem>
+                    <SelectItem value="İlk Yardım Eğitimi">İlk Yardım Eğitimi</SelectItem>
+                    <SelectItem value="Tıbbi Bakım Eğitimi">Tıbbi Bakım Eğitimi</SelectItem>
+                    <SelectItem value="Belirlenmiş Güvenlik Görevleri Eğitimi">Belirlenmiş Güvenlik Görevleri Eğitimi</SelectItem>
+                    <SelectItem value="Güvenlik Farkındalk">Güvenlik Farkındalk</SelectItem>
+                    <SelectItem value="Güvenlikle İligli Tanıtım">Güvenlikle İligli Tanıtım</SelectItem>
+                    <SelectItem value="Seyir Vardiyası Tutma">Seyir Vardiyası Tutma</SelectItem>
+                    <SelectItem value="Otomatik Radar Pilotlama Aygıtı (ARPA) Kullanma">Otomatik Radar Pilotlama Aygıtı (ARPA) Kullanma</SelectItem>
+                    <SelectItem value="Can Kurtarma Araçlarını Kullanma Yeterliliği">Can Kurtarma Araçlarını Kullanma Yeterliliği</SelectItem>
+                    <SelectItem value="Denizde Kişisel Can Kurtarma Teknikleri Eğitimi">Denizde Kişisel Can Kurtarma Teknikleri Eğitimi</SelectItem>
+                    <SelectItem value="İleri Yangın Mücadele">İleri Yangın Mücadele</SelectItem>
+                    <SelectItem value="Personel Güvenliği Sosyal Sorumluluk Eğitimi">Personel Güvenliği Sosyal Sorumluluk Eğitimi</SelectItem>
+                    <SelectItem value="Temel ilk Yardım Eğitimi">Temel ilk Yardım Eğitimi</SelectItem>
+                    <SelectItem value="Yagın Önleme ve Yangınla Mücadele Eğitimi">Yagın Önleme ve Yangınla Mücadele Eğitimi</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
-                <label className="text-sm font-medium">File</label>
+                <label className="text-sm font-medium">File (Optional)</label>
                 <Input
                   type="file"
                   accept="application/pdf,image/*"
@@ -167,7 +208,7 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
             </div>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Crew Member (Optional)</label>
+                <label className="text-sm font-medium">Crew Member *</label>
                 <Select value={userId || undefined} onValueChange={(value) => setUserId(value || "")}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select crew member" />
@@ -184,27 +225,44 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
                   Select which crew member this document belongs to.
                 </p>
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Expiry Date (Optional)</label>
-                <Input
-                  type="date"
-                  value={expiryDate}
-                  onChange={(e) => setExpiryDate(e.target.value)}
-                  placeholder="When does this document expire?"
-                />
-                <p className="text-xs text-muted-foreground">
-                  You will receive a warning when the expiry date is approaching (30 days before).
-                </p>
-              </div>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Notes</label>
-              <Textarea
-                placeholder="Optional notes about this document"
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-              />
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Expiry Date</label>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="no-expiry"
+                      checked={noExpiry}
+                      onCheckedChange={(checked) => {
+                        setNoExpiry(checked as boolean);
+                        if (checked) {
+                          setExpiryDate("");
+                        }
+                      }}
+                    />
+                    <label
+                      htmlFor="no-expiry"
+                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      No expiry (unlimited)
+                    </label>
+                  </div>
+                  {!noExpiry && (
+                    <>
+                      <Input
+                        type="date"
+                        value={expiryDate}
+                        onChange={(e) => setExpiryDate(e.target.value)}
+                        placeholder="When does this document expire?"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        You will receive a warning when the expiry date is approaching (30 days before).
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
             <div className="flex justify-end mt-4">
               <Button type="submit" disabled={isSubmitting}>
@@ -212,24 +270,56 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </DialogContent>
+      </Dialog>
 
       <Card>
         <CardHeader>
-          <CardTitle>Document Records</CardTitle>
-          <CardDescription>
-            All crew documents uploaded for this yacht.
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Document Records</CardTitle>
+              <CardDescription>
+                Select a crew member to view their documents.
+              </CardDescription>
+            </div>
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Document
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {docs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No crew documents uploaded yet.
-            </p>
-          ) : (
-            <div className="space-y-3">
-              {docs.map((doc) => {
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Select Crew Member *</label>
+              <Select
+                value={selectedCrewMemberId || undefined}
+                onValueChange={(value) => setSelectedCrewMemberId(value || "")}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a crew member to view documents" />
+                </SelectTrigger>
+                <SelectContent>
+                  {filteredCrewMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name || member.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!selectedCrewMemberId ? (
+              <p className="text-sm text-muted-foreground">
+                Please select a crew member to view their documents.
+              </p>
+            ) : filteredDocs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No documents found for the selected crew member.
+              </p>
+            ) : (
+              <div className="space-y-1">
+                {filteredDocs.map((doc) => {
                 const expiryStatus = getExpiryStatus(doc.expiryDate);
                 return (
                   <div
@@ -279,17 +369,13 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
                           </Badge>
                         )}
                       </div>
-                      {doc.user && (
-                        <p className="text-xs text-muted-foreground">
-                          Crew Member: <span className="font-medium">{doc.user.name || doc.user.email}</span>
-                        </p>
-                      )}
-                      <p className="text-xs text-muted-foreground">
-                        Uploaded {format(new Date(doc.createdAt), "MMM d, yyyy")}
-                      </p>
-                      {doc.expiryDate && (
+                      {doc.expiryDate ? (
                         <p className="text-xs text-muted-foreground">
                           Expires: {format(new Date(doc.expiryDate), "MMM d, yyyy")}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Expiry: No expiry (unlimited)
                         </p>
                       )}
                       {doc.notes && (
@@ -308,9 +394,10 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
                     </a>
                   </div>
                 );
-              })}
-            </div>
-          )}
+                })}
+              </div>
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

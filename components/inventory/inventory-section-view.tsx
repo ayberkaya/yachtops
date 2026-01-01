@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -22,7 +23,9 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { History, Pencil, Plus, Trash2 } from "lucide-react";
+import { History, Pencil, Plus, Trash2, Minus, Settings, AlertTriangle, Filter } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
 
 export interface InventoryItem {
   id: string;
@@ -75,7 +78,6 @@ export function InventorySectionView({
   const [items, setItems] = useState<InventoryItem[]>(initialItems);
   const [isSaving, setIsSaving] = useState(false);
 
-  const [addOpen, setAddOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
 
@@ -83,8 +85,25 @@ export function InventorySectionView({
   const [historyForId, setHistoryForId] = useState<string | null>(null);
   const [history, setHistory] = useState<InventoryHistoryEntry[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<string>("ALL");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settingsItem, setSettingsItem] = useState<InventoryItem | null>(null);
+  const [settingsForm, setSettingsForm] = useState<{
+    category: string;
+    lowStockThreshold: string;
+  }>({
+    category: "NONE",
+    lowStockThreshold: "",
+  });
 
-  const categoryOptions = useMemo(() => [{ value: "NONE", label: "None" }, ...categories], [categories]);
+  // Sort categories alphabetically (excluding "NONE")
+  const sortedCategories = useMemo(() => {
+    const sorted = [...categories].sort((a, b) => a.label.localeCompare(b.label));
+    return [{ value: "NONE", label: "No category" }, ...sorted];
+  }, [categories]);
+
+  const categoryOptions = useMemo(() => sortedCategories, [sortedCategories]);
   const unitOptionList = useMemo(
     () => unitOptions ?? [{ value: defaultUnit, label: defaultUnit }],
     [unitOptions, defaultUnit]
@@ -160,7 +179,6 @@ export function InventorySectionView({
       }
       setItems((prev) => [...prev, data].sort((a, b) => a.name.localeCompare(b.name)));
       resetForm();
-      setAddOpen(false);
     } finally {
       setIsSaving(false);
     }
@@ -238,196 +256,404 @@ export function InventorySectionView({
     }
   };
 
+  const handleUpdateQuantity = async (item: InventoryItem, delta: number) => {
+    const newQuantity = Math.max(0, item.quantity + delta);
+    setIsSaving(true);
+    try {
+      const res = await fetch(`${apiBasePath}/${item.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ quantity: newQuantity }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setItems((prev) => prev.map((it) => (it.id === item.id ? updated : it)).sort((a, b) => a.name.localeCompare(b.name)));
+      } else {
+        alert("Failed to update quantity");
+      }
+    } catch (error) {
+      alert("An error occurred. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleOpenSettings = (item: InventoryItem) => {
+    setSettingsItem(item);
+    setSettingsForm({
+      category: item.category ?? "NONE",
+      lowStockThreshold: item.lowStockThreshold === null ? "" : String(item.lowStockThreshold),
+    });
+    setSettingsOpen(true);
+  };
+
+  const handleUpdateSettings = async () => {
+    if (!settingsItem) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`${apiBasePath}/${settingsItem.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: settingsForm.category === "NONE" ? null : settingsForm.category,
+          lowStockThreshold: settingsForm.lowStockThreshold === "" ? null : Number(settingsForm.lowStockThreshold),
+        }),
+      });
+
+      if (res.ok) {
+        const updated = await res.json();
+        setItems((prev) => prev.map((it) => (it.id === settingsItem.id ? updated : it)).sort((a, b) => a.name.localeCompare(b.name)));
+        setSettingsOpen(false);
+        setSettingsItem(null);
+      } else {
+        alert("Failed to update settings");
+      }
+    } catch (error) {
+      alert("An error occurred. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isLowStock = (item: InventoryItem): boolean => {
+    if (item.lowStockThreshold === null) return false;
+    return item.quantity <= item.lowStockThreshold;
+  };
+
+  const filteredItems = useMemo(() => {
+    if (categoryFilter === "ALL") return items;
+    return items.filter((item) => item.category === categoryFilter);
+  }, [items, categoryFilter]);
+
+  const getCategoryBadge = (category: string | null) => {
+    if (!category) return null;
+    return (
+      <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 leading-tight">
+        {category}
+      </Badge>
+    );
+  };
+
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 px-4 md:px-0">
-        <div className="text-sm text-muted-foreground">
-          {items.length} item{items.length === 1 ? "" : "s"}
-        </div>
+    <div className="space-y-6">
+      {/* Add New Item */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Add Item</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <Input
+                placeholder="Enter item name"
+                value={form.name}
+                onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
+                className="flex-1"
+              />
+              <Select value={form.category} onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}>
+                <SelectTrigger className="flex-1">
+                  <SelectValue placeholder="Select category (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex gap-4">
+              <Select value={form.unit} onValueChange={(v) => setForm((s) => ({ ...s, unit: v }))}>
+                <SelectTrigger className="w-[120px]">
+                  <SelectValue placeholder="Unit" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unitOptionList.map((u) => (
+                    <SelectItem key={u.value} value={u.value}>
+                      {u.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Input
+                type="number"
+                inputMode="decimal"
+                placeholder="Quantity"
+                value={form.quantity}
+                onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))}
+                className="w-[120px]"
+              />
+              <Button 
+                onClick={handleCreate} 
+                disabled={isSaving || !form.name.trim()}
+                className="h-11 bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Item
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add item
+      {/* Items List */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <CardTitle className="text-lg md:text-xl">Current Items</CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              {selectedItemId && (() => {
+                const selectedItem = items.find(i => i.id === selectedItemId);
+                if (!selectedItem) return null;
+                return (
+                  <>
+                    <Dialog
+                      open={historyOpen && historyForId === selectedItem.id}
+                      onOpenChange={(open) => {
+                        if (!open) {
+                          setHistoryOpen(false);
+                          setHistoryForId(null);
+                          setHistory([]);
+                        } else {
+                          handleViewHistory(selectedItem.id);
+                        }
+                      }}
+                    >
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8"
+                          title="View history"
+                        >
+                          <History className="h-4 w-4" />
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-2xl">
+                        <DialogHeader>
+                          <DialogTitle>Item History: {selectedItem.name}</DialogTitle>
+                          <DialogDescription>
+                            View all changes made to this item
+                          </DialogDescription>
+                        </DialogHeader>
+                        <ScrollArea className="h-[400px] pr-4">
+                          {loadingHistory ? (
+                            <p className="text-sm text-muted-foreground text-center py-8">Loading history...</p>
+                          ) : history.length === 0 ? (
+                            <p className="text-sm text-muted-foreground text-center py-8">No history available</p>
+                          ) : (
+                            <div className="space-y-4">
+                              {history.map((h, idx) => (
+                                <div key={`${historyForId}-${idx}`} className="border rounded-lg p-4">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="font-medium">{h.action}</div>
+                                    <div className="text-xs text-muted-foreground">{formatDate(h.at)}</div>
+                                  </div>
+                                  {h.note ? <div className="text-muted-foreground mt-1">{h.note}</div> : null}
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </ScrollArea>
+                      </DialogContent>
+                    </Dialog>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="h-8 w-8"
+                      title="Settings"
+                      onClick={() => handleOpenSettings(selectedItem)}
+                    >
+                      <Settings className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleDelete(selectedItem)}
+                      className="h-8 w-8"
+                      title="Delete"
+                      disabled={isSaving}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </>
+                );
+              })()}
+              <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+                <SelectTrigger className="w-full md:w-[165px]">
+                  <Filter className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">Categories</SelectItem>
+                  {sortedCategories.filter(c => c.value !== "NONE").map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {filteredItems.length === 0 ? (
+            <p className="text-sm text-muted-foreground text-center py-8">
+              {items.length === 0 
+                ? "No items yet. Add one above to get started."
+                : "No items found for selected category."}
+            </p>
+          ) : (
+            <div className="space-y-3 md:space-y-4">
+              {filteredItems.map((item) => {
+                const isLow = isLowStock(item);
+                return (
+                  <div
+                    key={item.id}
+                    className={`relative flex flex-col md:flex-row md:items-center md:justify-between gap-3 py-3 px-3 md:px-4 border-2 rounded-lg cursor-pointer transition-all ${
+                      isLow
+                        ? selectedItemId === item.id
+                          ? "border-yellow-400 bg-red-600/95 dark:bg-red-700/95 shadow-lg ring-2 ring-yellow-400/50"
+                          : "border-red-600 bg-red-600/90 dark:bg-red-700/90 shadow-sm"
+                        : selectedItemId === item.id 
+                          ? "border-primary bg-primary/10 dark:bg-primary/20 shadow-md ring-2 ring-primary/20" 
+                          : "border-border hover:border-primary/50"
+                    }`}
+                    onClick={() => setSelectedItemId(selectedItemId === item.id ? null : item.id)}
+                  >
+                    {getCategoryBadge(item.category) && (
+                      <div className="absolute -top-[12px] left-2 md:left-0 z-10">
+                        {getCategoryBadge(item.category)}
+                      </div>
+                    )}
+                    <div className={`flex-1 min-w-0 ${!isLow ? "!text-black" : ""}`}>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h3
+                          className={`font-semibold text-sm md:text-base truncate ${isLow ? "text-white" : "!text-black"}`}
+                        >
+                          {item.name}
+                        </h3>
+                        {isLow && (
+                          <Badge variant="destructive" className="gap-1 bg-red-700 hover:bg-red-800 border-red-800 text-[9px] md:text-[10px] px-1.5 py-0.5 flex-shrink-0">
+                            <AlertTriangle className="h-2 w-2 md:h-2.5 md:w-2.5" />
+                            Low Stock
+                          </Badge>
+                        )}
+                      </div>
+                      <div
+                        className={`flex items-center gap-2 md:gap-4 text-xs md:text-sm font-medium ${isLow ? "text-white" : "!text-black"}`}
+                      >
+                        <span className="whitespace-nowrap">
+                          Quantity: <strong className={`font-semibold text-xs md:text-sm ${isLow ? "text-white" : "!text-black"}`}>
+                            {item.quantity}
+                          </strong> {item.unit}
+                        </span>
+                        {item.location && (
+                          <span className="whitespace-nowrap text-xs md:text-sm">
+                            Location: {item.location}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1.5 md:gap-2 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateQuantity(item, -1);
+                        }}
+                        className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                        disabled={isSaving}
+                      >
+                        <Minus className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`} />
+                      </Button>
+                      <span
+                        className={`w-10 md:w-12 text-center font-semibold text-xs md:text-sm ${!isLow ? "!text-black" : "text-white"}`}
+                      >
+                        {item.quantity}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleUpdateQuantity(item, 1);
+                        }}
+                        className={`h-7 w-7 md:h-8 md:w-8 ${!isLow ? "!text-black [&_svg]:!stroke-black" : ""}`}
+                        disabled={isSaving}
+                      >
+                        <Plus className={`h-3.5 w-3.5 md:h-4 md:w-4 ${!isLow ? "!text-black !stroke-black" : "text-white stroke-white"}`} />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Settings Dialog */}
+      <Dialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Configure Settings</DialogTitle>
+            <DialogDescription>
+              Update category and alert threshold for {settingsItem?.name}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Category</Label>
+              <Select 
+                value={settingsForm.category} 
+                onValueChange={(v) => setSettingsForm((s) => ({ ...s, category: v }))}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select category" />
+                </SelectTrigger>
+                <SelectContent>
+                  {categoryOptions.map((c) => (
+                    <SelectItem key={c.value} value={c.value}>
+                      {c.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label>Low Stock Threshold</Label>
+              <Input
+                type="number"
+                min="0"
+                step="0.1"
+                placeholder="Leave empty to disable alert"
+                value={settingsForm.lowStockThreshold}
+                onChange={(e) => setSettingsForm((s) => ({ ...s, lowStockThreshold: e.target.value }))}
+              />
+              {settingsItem && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Current stock: {settingsItem.quantity} {settingsItem.unit}
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSettingsOpen(false)}>
+              Cancel
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Add item</DialogTitle>
-              <DialogDescription>Create a new inventory item for this vessel.</DialogDescription>
-            </DialogHeader>
+            <Button onClick={handleUpdateSettings} disabled={isSaving}>
+              Save Settings
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
-            <div className="grid gap-4 py-2">
-              <div className="grid gap-2">
-                <Label>Name</Label>
-                <Input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="e.g. Detergent" />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="grid gap-2">
-                  <Label>Category</Label>
-                  <Select value={form.category} onValueChange={(v) => setForm((s) => ({ ...s, category: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categoryOptions.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid gap-2">
-                  <Label>Unit</Label>
-                  <Select value={form.unit} onValueChange={(v) => setForm((s) => ({ ...s, unit: v }))}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Unit" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {unitOptionList.map((u) => (
-                        <SelectItem key={u.value} value={u.value}>
-                          {u.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="grid gap-2">
-                  <Label>Quantity</Label>
-                  <Input inputMode="decimal" value={form.quantity} onChange={(e) => setForm((s) => ({ ...s, quantity: e.target.value }))} />
-                </div>
-                <div className="grid gap-2">
-                  <Label>Low stock threshold (optional)</Label>
-                  <Input inputMode="decimal" value={form.lowStockThreshold} onChange={(e) => setForm((s) => ({ ...s, lowStockThreshold: e.target.value }))} placeholder="e.g. 2" />
-                </div>
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Location (optional)</Label>
-                <Input value={form.location} onChange={(e) => setForm((s) => ({ ...s, location: e.target.value }))} placeholder="e.g. Pantry" />
-              </div>
-
-              <div className="grid gap-2">
-                <Label>Notes (optional)</Label>
-                <Textarea value={form.notes} onChange={(e) => setForm((s) => ({ ...s, notes: e.target.value }))} />
-              </div>
-            </div>
-
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setAddOpen(false)} disabled={isSaving}>
-                Cancel
-              </Button>
-              <Button onClick={handleCreate} disabled={isSaving || !form.name.trim()}>
-                Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-
-      {/* Desktop table */}
-      <div className="hidden md:block overflow-x-auto rounded-lg border">
-        <table className="w-full text-sm">
-          <thead className="bg-muted/40 text-muted-foreground">
-            <tr>
-              <th className="text-left font-medium px-3 py-2">Item</th>
-              <th className="text-left font-medium px-3 py-2">Qty</th>
-              <th className="text-left font-medium px-3 py-2">Location</th>
-              <th className="text-left font-medium px-3 py-2">Updated</th>
-              <th className="text-right font-medium px-3 py-2">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="px-3 py-10 text-center text-muted-foreground">
-                  No items yet.
-                </td>
-              </tr>
-            ) : (
-              items.map((it) => (
-                <tr key={it.id} className="border-t">
-                  <td className="px-3 py-3">
-                    <div className="font-medium">{it.name}</div>
-                    <div className="mt-1 flex flex-wrap gap-2">
-                      {it.category ? <Badge variant="secondary">{it.category}</Badge> : null}
-                      {it.lowStockThreshold !== null ? (
-                        <Badge variant="outline">Low ≤ {it.lowStockThreshold}</Badge>
-                      ) : null}
-                    </div>
-                  </td>
-                  <td className="px-3 py-3">
-                    {it.quantity} {it.unit}
-                  </td>
-                  <td className="px-3 py-3">{it.location || "-"}</td>
-                  <td className="px-3 py-3 text-muted-foreground">{formatDate(it.updatedAt)}</td>
-                  <td className="px-3 py-3">
-                    <div className="flex items-center justify-end gap-2">
-                      <Button size="sm" variant="outline" onClick={() => handleViewHistory(it.id)}>
-                        <History className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="outline" onClick={() => openEdit(it)}>
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button size="sm" variant="destructive" onClick={() => handleDelete(it)} disabled={isSaving}>
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Mobile list */}
-      <div className="md:hidden space-y-2 px-4">
-        {items.length === 0 ? (
-          <div className="rounded-lg border p-4 text-sm text-muted-foreground">No items yet.</div>
-        ) : (
-          items.map((it) => (
-            <div key={it.id} className="rounded-lg border p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="font-medium truncate">{it.name}</div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {it.quantity} {it.unit}
-                    {it.location ? ` • ${it.location}` : ""}
-                  </div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {it.category ? <Badge variant="secondary">{it.category}</Badge> : null}
-                    {it.lowStockThreshold !== null ? (
-                      <Badge variant="outline">Low ≤ {it.lowStockThreshold}</Badge>
-                    ) : null}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleViewHistory(it.id)}>
-                    <History className="h-4 w-4" />
-                  </Button>
-                  <Button size="sm" variant="outline" onClick={() => openEdit(it)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-              <div className="mt-3 flex justify-end">
-                <Button size="sm" variant="destructive" onClick={() => handleDelete(it)} disabled={isSaving}>
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
 
       {/* Edit dialog */}
       <Dialog open={editOpen} onOpenChange={(o) => { setEditOpen(o); if (!o) setEditing(null); }}>
@@ -510,37 +736,6 @@ export function InventorySectionView({
         </DialogContent>
       </Dialog>
 
-      {/* History dialog */}
-      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>History</DialogTitle>
-            <DialogDescription>Recent changes for this item.</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-2 text-sm">
-            {loadingHistory ? (
-              <div className="text-muted-foreground">Loading…</div>
-            ) : history.length === 0 ? (
-              <div className="text-muted-foreground">No history.</div>
-            ) : (
-              history.map((h, idx) => (
-                <div key={`${historyForId}-${idx}`} className="rounded-md border p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="font-medium">{h.action}</div>
-                    <div className="text-xs text-muted-foreground">{formatDate(h.at)}</div>
-                  </div>
-                  {h.note ? <div className="text-muted-foreground mt-1">{h.note}</div> : null}
-                </div>
-              ))
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setHistoryOpen(false)}>
-              Close
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

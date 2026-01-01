@@ -51,10 +51,34 @@ const POPULAR_ALCOHOLS = [
   "Johnnie Walker",
 ];
 
+type AlcoholCategoryType = 
+  | "WINE"
+  | "BEER"
+  | "WHISKEY"
+  | "VODKA"
+  | "RUM"
+  | "GIN"
+  | "TEQUILA"
+  | "CHAMPAGNE"
+  | "COGNAC"
+  | "BRANDY"
+  | "SCOTCH"
+  | "BOURBON"
+  | "PROSECCO"
+  | "SAKE"
+  | "CIDER"
+  | "PORT"
+  | "SHERRY"
+  | "LIQUEURS"
+  | "VERMOUTH"
+  | "ABSINTHE"
+  | "SPIRITS"
+  | null;
+
 interface AlcoholStock {
   id: string;
   name: string;
-  category: "WINE" | "SPIRITS" | "BEER" | null;
+  category: AlcoholCategoryType;
   quantity: number;
   unit: string;
   lowStockThreshold: number | null;
@@ -89,15 +113,15 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
   const [stocks, setStocks] = useState<AlcoholStock[]>(initialStocks);
   const [selectedAlcohol, setSelectedAlcohol] = useState<string>("");
   const [customAlcohol, setCustomAlcohol] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<"WINE" | "SPIRITS" | "BEER" | "NONE">("NONE");
+  const [selectedCategory, setSelectedCategory] = useState<AlcoholCategoryType | "NONE">("NONE");
   const [isAdding, setIsAdding] = useState(false);
   const [editingStock, setEditingStock] = useState<AlcoholStock | null>(null);
   const [thresholdValue, setThresholdValue] = useState("");
-  const [editingCategory, setEditingCategory] = useState<"WINE" | "SPIRITS" | "BEER" | "NONE">("NONE");
+  const [editingCategory, setEditingCategory] = useState<AlcoholCategoryType | "NONE">("NONE");
   const [viewingHistory, setViewingHistory] = useState<string | null>(null);
   const [stockHistory, setStockHistory] = useState<StockHistory[]>([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<"ALL" | "WINE" | "SPIRITS" | "BEER">("ALL");
+  const [categoryFilter, setCategoryFilter] = useState<"ALL" | AlcoholCategoryType>("ALL");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedStockId, setSelectedStockId] = useState<string | null>(null);
@@ -200,14 +224,33 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
 
   const getCategoryBadge = (category: AlcoholStock["category"]) => {
     if (!category) return null;
-    const colors = {
+    const colors: Record<string, string> = {
       WINE: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
-      SPIRITS: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
       BEER: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+      WHISKEY: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      VODKA: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200",
+      RUM: "bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200",
+      GIN: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      TEQUILA: "bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200",
+      CHAMPAGNE: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
+      COGNAC: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      BRANDY: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      SCOTCH: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      BOURBON: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      PROSECCO: "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200",
+      SAKE: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200",
+      CIDER: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200",
+      PORT: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      SHERRY: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      LIQUEURS: "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200",
+      VERMOUTH: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
+      ABSINTHE: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
+      SPIRITS: "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200",
     };
+    const displayName = category.charAt(0) + category.slice(1).toLowerCase();
     return (
-      <Badge className={`${colors[category]} text-[10px] px-1.5 py-0.5 leading-tight`}>
-        {category}
+      <Badge className={`${colors[category] || colors.SPIRITS} text-[10px] px-1.5 py-0.5 leading-tight`}>
+        {displayName}
       </Badge>
     );
   };
@@ -389,9 +432,27 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="NONE">No category</SelectItem>
-                  <SelectItem value="WINE">Wine</SelectItem>
-                  <SelectItem value="SPIRITS">Spirits</SelectItem>
+                  <SelectItem value="ABSINTHE">Absinthe</SelectItem>
                   <SelectItem value="BEER">Beer</SelectItem>
+                  <SelectItem value="BOURBON">Bourbon</SelectItem>
+                  <SelectItem value="BRANDY">Brandy</SelectItem>
+                  <SelectItem value="CHAMPAGNE">Champagne</SelectItem>
+                  <SelectItem value="CIDER">Cider</SelectItem>
+                  <SelectItem value="COGNAC">Cognac</SelectItem>
+                  <SelectItem value="GIN">Gin</SelectItem>
+                  <SelectItem value="LIQUEURS">Liqueurs</SelectItem>
+                  <SelectItem value="PORT">Port</SelectItem>
+                  <SelectItem value="PROSECCO">Prosecco</SelectItem>
+                  <SelectItem value="RUM">Rum</SelectItem>
+                  <SelectItem value="SAKE">Sake</SelectItem>
+                  <SelectItem value="SCOTCH">Scotch</SelectItem>
+                  <SelectItem value="SHERRY">Sherry</SelectItem>
+                  <SelectItem value="SPIRITS">Spirits</SelectItem>
+                  <SelectItem value="TEQUILA">Tequila</SelectItem>
+                  <SelectItem value="VERMOUTH">Vermouth</SelectItem>
+                  <SelectItem value="VODKA">Vodka</SelectItem>
+                  <SelectItem value="WHISKEY">Whiskey</SelectItem>
+                  <SelectItem value="WINE">Wine</SelectItem>
                 </SelectContent>
               </Select>
               <Button 
@@ -634,9 +695,27 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectItem value="NONE">No category</SelectItem>
-                                <SelectItem value="WINE">Wine</SelectItem>
-                                <SelectItem value="SPIRITS">Spirits</SelectItem>
+                                <SelectItem value="ABSINTHE">Absinthe</SelectItem>
                                 <SelectItem value="BEER">Beer</SelectItem>
+                                <SelectItem value="BOURBON">Bourbon</SelectItem>
+                                <SelectItem value="BRANDY">Brandy</SelectItem>
+                                <SelectItem value="CHAMPAGNE">Champagne</SelectItem>
+                                <SelectItem value="CIDER">Cider</SelectItem>
+                                <SelectItem value="COGNAC">Cognac</SelectItem>
+                                <SelectItem value="GIN">Gin</SelectItem>
+                                <SelectItem value="LIQUEURS">Liqueurs</SelectItem>
+                                <SelectItem value="PORT">Port</SelectItem>
+                                <SelectItem value="PROSECCO">Prosecco</SelectItem>
+                                <SelectItem value="RUM">Rum</SelectItem>
+                                <SelectItem value="SAKE">Sake</SelectItem>
+                                <SelectItem value="SCOTCH">Scotch</SelectItem>
+                                <SelectItem value="SHERRY">Sherry</SelectItem>
+                                <SelectItem value="SPIRITS">Spirits</SelectItem>
+                                <SelectItem value="TEQUILA">Tequila</SelectItem>
+                                <SelectItem value="VERMOUTH">Vermouth</SelectItem>
+                                <SelectItem value="VODKA">Vodka</SelectItem>
+                                <SelectItem value="WHISKEY">Whiskey</SelectItem>
+                                <SelectItem value="WINE">Wine</SelectItem>
                               </SelectContent>
                             </Select>
                           </div>
@@ -694,9 +773,27 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="ALL">Categories</SelectItem>
-                  <SelectItem value="WINE">Wine</SelectItem>
-                  <SelectItem value="SPIRITS">Spirits</SelectItem>
+                  <SelectItem value="ABSINTHE">Absinthe</SelectItem>
                   <SelectItem value="BEER">Beer</SelectItem>
+                  <SelectItem value="BOURBON">Bourbon</SelectItem>
+                  <SelectItem value="BRANDY">Brandy</SelectItem>
+                  <SelectItem value="CHAMPAGNE">Champagne</SelectItem>
+                  <SelectItem value="CIDER">Cider</SelectItem>
+                  <SelectItem value="COGNAC">Cognac</SelectItem>
+                  <SelectItem value="GIN">Gin</SelectItem>
+                  <SelectItem value="LIQUEURS">Liqueurs</SelectItem>
+                  <SelectItem value="PORT">Port</SelectItem>
+                  <SelectItem value="PROSECCO">Prosecco</SelectItem>
+                  <SelectItem value="RUM">Rum</SelectItem>
+                  <SelectItem value="SAKE">Sake</SelectItem>
+                  <SelectItem value="SCOTCH">Scotch</SelectItem>
+                  <SelectItem value="SHERRY">Sherry</SelectItem>
+                  <SelectItem value="SPIRITS">Spirits</SelectItem>
+                  <SelectItem value="TEQUILA">Tequila</SelectItem>
+                  <SelectItem value="VERMOUTH">Vermouth</SelectItem>
+                  <SelectItem value="VODKA">Vodka</SelectItem>
+                  <SelectItem value="WHISKEY">Whiskey</SelectItem>
+                  <SelectItem value="WINE">Wine</SelectItem>
                 </SelectContent>
               </Select>
             </div>

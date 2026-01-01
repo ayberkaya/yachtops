@@ -24,9 +24,9 @@ export default async function SparePartsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="px-4 md:px-0">
-        <h1 className="text-2xl md:text-3xl font-bold break-words">Spare Parts</h1>
-        <p className="text-sm md:text-base text-muted-foreground mt-2 break-words">
+      <div>
+        <h1 className="text-3xl font-bold">Spare Parts</h1>
+        <p className="text-muted-foreground">
           Manage spare parts, tools, and equipment inventory
         </p>
       </div>

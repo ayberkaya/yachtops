@@ -6,7 +6,29 @@ import { resolveTenantOrResponse } from "@/lib/api-tenant";
 import { withTenantScope } from "@/lib/tenant-guard";
 
 const updateStockSchema = z.object({
-  category: z.enum(["WINE", "SPIRITS", "BEER"]).optional().nullable(),
+  category: z.enum([
+    "WINE",
+    "BEER",
+    "WHISKEY",
+    "VODKA",
+    "RUM",
+    "GIN",
+    "TEQUILA",
+    "CHAMPAGNE",
+    "COGNAC",
+    "BRANDY",
+    "SCOTCH",
+    "BOURBON",
+    "PROSECCO",
+    "SAKE",
+    "CIDER",
+    "PORT",
+    "SHERRY",
+    "LIQUEURS",
+    "VERMOUTH",
+    "ABSINTHE",
+    "SPIRITS",
+  ]).optional().nullable(),
   quantity: z.number().min(0).optional(),
   lowStockThreshold: z.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
@@ -53,7 +75,7 @@ export async function PATCH(
         }
 
         validated = updateStockSchema.parse({
-          category: category && category !== "NONE" ? category as "WINE" | "SPIRITS" | "BEER" : null,
+          category: category && category !== "NONE" ? category : null,
           quantity,
           lowStockThreshold,
           notes,
