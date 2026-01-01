@@ -145,7 +145,7 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
         // Send with FormData for image
         const formData = new FormData();
         formData.append("name", name);
-        formData.append("category", selectedCategory === "NONE" ? "" : selectedCategory);
+        formData.append("category", selectedCategory === "NONE" ? "" : (selectedCategory || ""));
         formData.append("quantity", "0");
         formData.append("unit", "bottle");
         formData.append("image", selectedImage);
@@ -426,7 +426,7 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
               </div>
             </div>
             <div className="flex gap-4">
-              <Select value={selectedCategory} onValueChange={(v) => setSelectedCategory(v as any)}>
+              <Select value={selectedCategory === "NONE" ? undefined : (selectedCategory as string)} onValueChange={(v) => setSelectedCategory(v as AlcoholCategoryType | "NONE")}>
                 <SelectTrigger className="flex-1">
                   <SelectValue placeholder="Select category (optional)" />
                 </SelectTrigger>
@@ -689,7 +689,7 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
                           </div>
                           <div>
                             <Label htmlFor="category">Category</Label>
-                            <Select value={editingCategory} onValueChange={(v) => setEditingCategory(v as any)}>
+                            <Select value={editingCategory === "NONE" ? undefined : (editingCategory as string)} onValueChange={(v) => setEditingCategory(v as AlcoholCategoryType | "NONE")}>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select category" />
                               </SelectTrigger>
@@ -766,7 +766,7 @@ export function AlcoholStockView({ initialStocks, readOnly = false }: AlcoholSto
                   </>
                 );
               })()}
-              <Select value={categoryFilter} onValueChange={(v) => setCategoryFilter(v as any)}>
+              <Select value={categoryFilter === "ALL" ? undefined : (categoryFilter as string)} onValueChange={(v) => setCategoryFilter(v as "ALL" | AlcoholCategoryType)}>
                 <SelectTrigger className="w-full md:w-[165px]">
                   <Filter className="mr-2 h-3.5 w-3.5 md:h-4 md:w-4" />
                   <SelectValue />

@@ -77,6 +77,20 @@ model User {
   feedback                 Feedback[]
   workRequests             WorkRequest[]  @relation("WorkRequestCreator")
   quotes                   Quote[]        @relation("QuoteCreator")
+  // Crew certification dates
+  walletDate               DateTime?                  @map("wallet_date") // Cüzdan Tarihi (Seaman's Book)
+  walletQualifications     String?                    @map("wallet_qualifications") // Yeterlilikler (JSON: [{ qualification: string, date: string }])
+  walletTcKimlikNo         String?                    @map("wallet_tc_kimlik_no") // TC Kimlik No
+  walletSicilLimani        String?                    @map("wallet_sicil_limani") // Sicil Limanı
+  walletSicilNumarasi      String?                    @map("wallet_sicil_numarasi") // Sicil Numarası
+  walletDogumTarihi        DateTime?                  @map("wallet_dogum_tarihi") // Doğum Tarihi
+  walletUyrugu             String?                    @map("wallet_uyrugu") // Uyruğu
+  licenseDate              DateTime?                  @map("license_date") // Ehliyet Tarihi
+  radioDate                DateTime?                  @map("radio_date") // Telsiz Tarihi
+  passportDate             DateTime?                  @map("passport_date") // Pasaport Tarihi
+  passportNumber            String?                    @map("passport_number") // Pasaport Numarası
+  healthReportDate         DateTime?                  @map("health_report_date") // Sağlık Raporu Tarihi
+  certificates             CrewCertificate[]
 
   @@map("users")
 }
@@ -123,6 +137,7 @@ model Yacht {
   currentPlan               Plan?                      @relation(fields: [currentPlanId], references: [id], onDelete: SetNull)
   workRequests              WorkRequest[]
   vendors                   Vendor[]
+  crewCertificates          CrewCertificate[]
 
   @@map("yachts")
 }
@@ -550,6 +565,26 @@ model CrewDocument {
   @@index([deletedAt])
   @@index([storageBucket, storagePath])
   @@map("crew_documents")
+}
+
+model CrewCertificate {
+  @@schema("public")
+  id              String    @id @default(cuid())
+  userId          String    @map("user_id")
+  yachtId         String    @map("yacht_id")
+  name            String    // Certificate name (e.g., "Radar Gözlem", "İlkyardım")
+  issueDate       DateTime? @map("issue_date")
+  expiryDate      DateTime? @map("expiry_date")
+  isIndefinite    Boolean   @default(false) @map("is_indefinite") // Süresiz
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  yacht           Yacht     @relation(fields: [yachtId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([yachtId])
+  @@index([expiryDate])
+  @@map("crew_certificates")
 }
 
 model MessageChannel {

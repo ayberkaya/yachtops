@@ -80,7 +80,7 @@ const createBasePrismaClient = (): PrismaClient => {
 const TENANT_SCOPED_MODELS = [
   'expense', 'task', 'trip', 'shoppingList', 'messageChannel',
   'alcoholStock', 'maintenanceLog', 'cashTransaction', 'crewDocument',
-  'vesselDocument', 'marinaPermissionDocument', 'shift', 'leave',
+  'crewCertificate', 'vesselDocument', 'marinaPermissionDocument', 'shift', 'leave',
   'customRole', 'product', 'shoppingStore', 'expenseCategory', 'creditCard',
   'tripItineraryDay', 'tripChecklistItem', 'tripTankLog', 'tripMovementLog',
   'taskComment', 'taskAttachment', 'expenseReceipt', 'maintenanceDocument',

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/get-session";
 import { canManageUsers } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/auth-server";
+import { hasPermission } from "@/lib/permissions";
 import { z } from "zod";
 import { UserRole } from "@prisma/client";
 import { resolveTenantOrResponse } from "@/lib/api-tenant";
@@ -15,6 +16,33 @@ const updateUserSchema = z.object({
   role: z.nativeEnum(UserRole).optional(),
   permissions: z.array(z.string()).nullable().optional(),
   customRoleId: z.string().nullable().optional(),
+  passportDate: z.string().nullable().optional(),
+  passportNumber: z.string().nullable().optional(),
+  healthReportDate: z.string().nullable().optional(),
+  walletDate: z.string().nullable().optional(),
+  walletQualifications: z.preprocess(
+    (val) => {
+      if (typeof val === 'string') {
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      }
+      return val;
+    },
+    z.array(z.object({
+      qualification: z.string(),
+      date: z.string().nullable(),
+    })).nullable().optional()
+  ),
+  walletTcKimlikNo: z.string().nullable().optional(),
+  walletSicilLimani: z.string().nullable().optional(),
+  walletSicilNumarasi: z.string().nullable().optional(),
+  walletDogumTarihi: z.string().nullable().optional(),
+  walletUyrugu: z.string().nullable().optional(),
+  licenseDate: z.string().nullable().optional(),
+  radioDate: z.string().nullable().optional(),
 });
 
 const changePasswordSchema = z.object({
@@ -70,25 +98,64 @@ export async function PATCH(
       return NextResponse.json({ success: true });
     }
 
-    // Otherwise, this is a user update (only OWNER can do this)
-    if (!canManageUsers(session.user)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    // Check if this is only a document date update (passportDate, passportNumber, healthReportDate, walletDate, etc.)
+    const isDocumentDateUpdate = 
+      (body.passportDate !== undefined || body.passportNumber !== undefined || body.healthReportDate !== undefined || 
+       body.walletDate !== undefined || body.walletQualifications !== undefined || body.walletTcKimlikNo !== undefined ||
+       body.walletSicilLimani !== undefined || body.walletSicilNumarasi !== undefined || body.walletDogumTarihi !== undefined ||
+       body.walletUyrugu !== undefined || body.licenseDate !== undefined || body.radioDate !== undefined) &&
+      body.name === undefined && body.phone === undefined && 
+      body.role === undefined && body.permissions === undefined && 
+      body.customRoleId === undefined;
+
+    // If it's only document date update, allow with documents.upload permission
+    // Otherwise, require canManageUsers (OWNER/SUPER_ADMIN)
+    if (isDocumentDateUpdate) {
+      if (!hasPermission(session.user, "documents.upload", session.user.permissions)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+      // Also verify the user belongs to the same yacht
+      const existingUser = await db.user.findUnique({
+        where: { id },
+        select: { yachtId: true },
+      });
+      if (!existingUser || existingUser.yachtId !== session.user.yachtId) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+    } else {
+      // Otherwise, this is a user update (only OWNER can do this)
+      if (!canManageUsers(session.user)) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
+
+      // OWNER cannot be modified (except by themselves)
+      const existingUser = await db.user.findUnique({
+        where: { id },
+      });
+
+      if (!existingUser) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
+
+      if (existingUser.role === "OWNER" && id !== session!.user.id) {
+        return NextResponse.json(
+          { error: "Cannot modify owner user" },
+          { status: 403 }
+        );
+      }
     }
 
-    // OWNER cannot be modified
-    const existingUser = await db.user.findUnique({
-      where: { id },
-    });
-
-    if (!existingUser) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
-    if (existingUser.role === "OWNER" && id !== session!.user.id) {
-      return NextResponse.json(
-        { error: "Cannot modify owner user" },
-        { status: 403 }
-      );
+    // For document date updates, we already checked user existence above
+    // For other updates, we need to get the user again for the update
+    let existingUser;
+    if (!isDocumentDateUpdate) {
+      existingUser = await db.user.findUnique({
+        where: { id },
+      });
+      
+      if (!existingUser) {
+        return NextResponse.json({ error: "User not found" }, { status: 404 });
+      }
     }
 
     console.log("📥 Received update request:", JSON.stringify(body, null, 2));
@@ -101,10 +168,66 @@ export async function PATCH(
       role?: UserRole;
       permissions?: string | null;
       customRoleId?: string | null;
+      passportDate?: Date | null;
+      passportNumber?: string | null;
+      healthReportDate?: Date | null;
+      walletDate?: Date | null;
+      walletQualifications?: string | null;
+      walletTcKimlikNo?: string | null;
+      walletSicilLimani?: string | null;
+      walletSicilNumarasi?: string | null;
+      walletDogumTarihi?: Date | null;
+      walletUyrugu?: string | null;
+      licenseDate?: Date | null;
+      radioDate?: Date | null;
     } = {};
     if (validated.name !== undefined) updateData.name = validated.name;
     if (validated.phone !== undefined) updateData.phone = validated.phone;
     if (validated.role !== undefined) updateData.role = validated.role;
+    if (validated.passportDate !== undefined) {
+      updateData.passportDate = validated.passportDate ? new Date(validated.passportDate) : null;
+    }
+    if (validated.passportNumber !== undefined) {
+      updateData.passportNumber = validated.passportNumber;
+    }
+    if (validated.healthReportDate !== undefined) {
+      updateData.healthReportDate = validated.healthReportDate ? new Date(validated.healthReportDate) : null;
+    }
+    if (validated.walletDate !== undefined) {
+      updateData.walletDate = validated.walletDate ? new Date(validated.walletDate) : null;
+    }
+    if (validated.walletQualifications !== undefined) {
+      if (validated.walletQualifications === null) {
+        updateData.walletQualifications = null;
+      } else if (typeof validated.walletQualifications === 'string') {
+        // Already a JSON string, use as-is
+        updateData.walletQualifications = validated.walletQualifications;
+      } else {
+        // Array, stringify it
+        updateData.walletQualifications = JSON.stringify(validated.walletQualifications);
+      }
+    }
+    if (validated.walletTcKimlikNo !== undefined) {
+      updateData.walletTcKimlikNo = validated.walletTcKimlikNo;
+    }
+    if (validated.walletSicilLimani !== undefined) {
+      updateData.walletSicilLimani = validated.walletSicilLimani;
+    }
+    if (validated.walletSicilNumarasi !== undefined) {
+      updateData.walletSicilNumarasi = validated.walletSicilNumarasi;
+    }
+    if (validated.walletDogumTarihi !== undefined) {
+      updateData.walletDogumTarihi = validated.walletDogumTarihi ? new Date(validated.walletDogumTarihi) : null;
+    }
+    if (validated.walletUyrugu !== undefined) {
+      updateData.walletUyrugu = validated.walletUyrugu;
+    }
+    if (validated.licenseDate !== undefined) {
+      updateData.licenseDate = validated.licenseDate ? new Date(validated.licenseDate) : null;
+    }
+    if (validated.radioDate !== undefined) {
+      updateData.radioDate = validated.radioDate ? new Date(validated.radioDate) : null;
+    }
     if (validated.permissions !== undefined) {
       // If permissions is null, clear custom permissions (use role defaults)
       // If permissions is an array, save it as JSON
@@ -122,7 +245,8 @@ export async function PATCH(
       // Validate custom role belongs to the same vessel
       if (validated.customRoleId) {
         // STRICT TENANT ISOLATION: Ensure custom role belongs to same yacht
-        if (!existingUser.yachtId) {
+        // existingUser is guaranteed to exist here because we check it above for non-document-date updates
+        if (!isDocumentDateUpdate && (!existingUser || !existingUser.yachtId)) {
           return NextResponse.json(
             { error: "User must be assigned to a yacht" },
             { status: 400 }

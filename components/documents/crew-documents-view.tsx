@@ -54,6 +54,7 @@ interface CrewDocumentsViewProps {
 
 export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsViewProps) {
   const [docs, setDocs] = useState<CrewDocument[]>(initialDocs);
+  const [documentType, setDocumentType] = useState<"STCW" | "License" | "">("");
   const [title, setTitle] = useState("");
   const [notes, setNotes] = useState("");
   const [expiryDate, setExpiryDate] = useState("");
@@ -100,6 +101,11 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
     e.preventDefault();
     setError(null);
 
+    if (!documentType) {
+      setError("Please select a document type.");
+      return;
+    }
+
     if (!title || !title.trim()) {
       setError("Please select a document title.");
       return;
@@ -143,6 +149,7 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
       if (!selectedCrewMemberId && created.userId) {
         setSelectedCrewMemberId(created.userId);
       }
+      setDocumentType("");
       setTitle("");
       setNotes("");
       setExpiryDate("");
@@ -172,31 +179,63 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
             {error && (
               <p className="text-sm text-destructive">{error}</p>
             )}
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Title *</label>
-                <Select value={title || undefined} onValueChange={(value) => setTitle(value)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select document title" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Radar Gözlem ve Pilotlama EĞitimi">Radar Gözlem ve Pilotlama EĞitimi</SelectItem>
-                    <SelectItem value="İlk Yardım Eğitimi">İlk Yardım Eğitimi</SelectItem>
-                    <SelectItem value="Tıbbi Bakım Eğitimi">Tıbbi Bakım Eğitimi</SelectItem>
-                    <SelectItem value="Belirlenmiş Güvenlik Görevleri Eğitimi">Belirlenmiş Güvenlik Görevleri Eğitimi</SelectItem>
-                    <SelectItem value="Güvenlik Farkındalk">Güvenlik Farkındalk</SelectItem>
-                    <SelectItem value="Güvenlikle İligli Tanıtım">Güvenlikle İligli Tanıtım</SelectItem>
-                    <SelectItem value="Seyir Vardiyası Tutma">Seyir Vardiyası Tutma</SelectItem>
-                    <SelectItem value="Otomatik Radar Pilotlama Aygıtı (ARPA) Kullanma">Otomatik Radar Pilotlama Aygıtı (ARPA) Kullanma</SelectItem>
-                    <SelectItem value="Can Kurtarma Araçlarını Kullanma Yeterliliği">Can Kurtarma Araçlarını Kullanma Yeterliliği</SelectItem>
-                    <SelectItem value="Denizde Kişisel Can Kurtarma Teknikleri Eğitimi">Denizde Kişisel Can Kurtarma Teknikleri Eğitimi</SelectItem>
-                    <SelectItem value="İleri Yangın Mücadele">İleri Yangın Mücadele</SelectItem>
-                    <SelectItem value="Personel Güvenliği Sosyal Sorumluluk Eğitimi">Personel Güvenliği Sosyal Sorumluluk Eğitimi</SelectItem>
-                    <SelectItem value="Temel ilk Yardım Eğitimi">Temel ilk Yardım Eğitimi</SelectItem>
-                    <SelectItem value="Yagın Önleme ve Yangınla Mücadele Eğitimi">Yagın Önleme ve Yangınla Mücadele Eğitimi</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Document Type *</label>
+              <Select
+                value={documentType || undefined}
+                onValueChange={(value) => {
+                  setDocumentType(value as "STCW" | "License");
+                  setTitle(""); // Reset title when document type changes
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select document type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="STCW">STCW</SelectItem>
+                  <SelectItem value="License">License</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {documentType && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Title *</label>
+                  <Select value={title || undefined} onValueChange={(value) => setTitle(value)}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select document title" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {documentType === "STCW" ? (
+                        <>
+                          <SelectItem value="Radar Gözlem ve Pilotlama EĞitimi">Radar Gözlem ve Pilotlama EĞitimi</SelectItem>
+                          <SelectItem value="İlk Yardım Eğitimi">İlk Yardım Eğitimi</SelectItem>
+                          <SelectItem value="Tıbbi Bakım Eğitimi">Tıbbi Bakım Eğitimi</SelectItem>
+                          <SelectItem value="Belirlenmiş Güvenlik Görevleri Eğitimi">Belirlenmiş Güvenlik Görevleri Eğitimi</SelectItem>
+                          <SelectItem value="Güvenlik Farkındalk">Güvenlik Farkındalk</SelectItem>
+                          <SelectItem value="Güvenlikle İligli Tanıtım">Güvenlikle İligli Tanıtım</SelectItem>
+                          <SelectItem value="Seyir Vardiyası Tutma">Seyir Vardiyası Tutma</SelectItem>
+                          <SelectItem value="Otomatik Radar Pilotlama Aygıtı (ARPA) Kullanma">Otomatik Radar Pilotlama Aygıtı (ARPA) Kullanma</SelectItem>
+                          <SelectItem value="Can Kurtarma Araçlarını Kullanma Yeterliliği">Can Kurtarma Araçlarını Kullanma Yeterliliği</SelectItem>
+                          <SelectItem value="Denizde Kişisel Can Kurtarma Teknikleri Eğitimi">Denizde Kişisel Can Kurtarma Teknikleri Eğitimi</SelectItem>
+                          <SelectItem value="İleri Yangın Mücadele">İleri Yangın Mücadele</SelectItem>
+                          <SelectItem value="Personel Güvenliği Sosyal Sorumluluk Eğitimi">Personel Güvenliği Sosyal Sorumluluk Eğitimi</SelectItem>
+                          <SelectItem value="Temel ilk Yardım Eğitimi">Temel ilk Yardım Eğitimi</SelectItem>
+                          <SelectItem value="Yagın Önleme ve Yangınla Mücadele Eğitimi">Yagın Önleme ve Yangınla Mücadele Eğitimi</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="Gemici">Gemici</SelectItem>
+                          <SelectItem value="Usta Gemici">Usta Gemici</SelectItem>
+                          <SelectItem value="Güverte Lostromosu">Güverte Lostromosu</SelectItem>
+                          <SelectItem value="Yat Master (149)">Yat Master (149)</SelectItem>
+                          <SelectItem value="Yat Master (499)">Yat Master (499)</SelectItem>
+                          <SelectItem value="Yat Master (3000)">Yat Master (3000)</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium">File (Optional)</label>
                 <Input
@@ -206,6 +245,7 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
                 />
               </div>
             </div>
+            )}
             <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Crew Member *</label>
@@ -275,22 +315,8 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Document Records</CardTitle>
-              <CardDescription>
-                Select a crew member to view their documents.
-              </CardDescription>
-            </div>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add Document
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="space-y-2">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1 space-y-2">
               <label className="text-sm font-medium">Select Crew Member *</label>
               <Select
                 value={selectedCrewMemberId || undefined}
@@ -308,6 +334,14 @@ export function CrewDocumentsView({ initialDocs, crewMembers }: CrewDocumentsVie
                 </SelectContent>
               </Select>
             </div>
+            <Button onClick={() => setIsModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Document
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
 
             {!selectedCrewMemberId ? (
               <p className="text-sm text-muted-foreground">
