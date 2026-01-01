@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,9 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { getDocumentStatus, getWorstStatus, type DocumentStatus } from "@/lib/crew-certification-utils";
-import { format } from "date-fns";
 
 interface CrewMember {
   id: string;
@@ -95,17 +92,6 @@ export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceT
     return getWorstStatus(statuses.length > 0 ? statuses : ["good"]);
   };
 
-  const getInitials = (name: string | null, email: string) => {
-    if (name) {
-      const parts = name.split(" ");
-      if (parts.length >= 2) {
-        return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-      }
-      return name.substring(0, 2).toUpperCase();
-    }
-    return email.substring(0, 2).toUpperCase();
-  };
-
   return (
     <div className="rounded-xl border border-zinc-200/60 overflow-hidden">
       <Table>
@@ -133,21 +119,9 @@ export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceT
                 onClick={() => onRowClick(member.id)}
               >
                 <TableCell>
-                  <div className="flex items-center gap-3">
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback className="bg-zinc-100 text-zinc-700 text-xs">
-                        {getInitials(member.name, member.email)}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="font-medium text-sm">
-                        {member.name || member.email}
-                      </p>
-                      {member.name && (
-                        <p className="text-xs text-muted-foreground">{member.email}</p>
-                      )}
-                    </div>
-                  </div>
+                  <p className="font-medium text-sm">
+                    {member.name || member.email}
+                  </p>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">{member.role}</span>
