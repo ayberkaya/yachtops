@@ -160,6 +160,9 @@ function MobileSheet({ mobileMenuOpen, setMobileMenuOpen, handleSignOut, mobileS
                 isActive = pathname.startsWith("/dashboard/expenses") || 
                           pathname.startsWith("/dashboard/cash") ||
                           pathname === "/dashboard/finance";
+              } else if (item.href === "/dashboard/reports") {
+                // Reports: active for reports pages
+                isActive = pathname.startsWith("/dashboard/reports");
               } else if (item.href === "/dashboard/shopping") {
                 // Shopping: active for shopping pages
                 isActive = pathname.startsWith("/dashboard/shopping");
@@ -652,6 +655,9 @@ export function Sidebar() {
             isActive = pathname.startsWith("/dashboard/expenses") || 
                       pathname.startsWith("/dashboard/cash") ||
                       pathname === "/dashboard/finance";
+          } else if (item.href === "/dashboard/reports") {
+            // Reports: active for reports pages
+            isActive = pathname.startsWith("/dashboard/reports");
           } else if (item.href === "/dashboard/shopping") {
             // Shopping: active for shopping pages
             isActive = pathname.startsWith("/dashboard/shopping");

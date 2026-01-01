@@ -20,7 +20,7 @@ function CardHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="card-header"
       className={cn(
-        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-y-3 gap-x-0 px-0 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:border-border/50",
+        "@container/card-header grid auto-rows-min grid-rows-[auto_auto] items-start gap-y-3 gap-x-0 px-0 has-data-[slot=card-action]:grid-cols-[1fr_auto] [.border-b]:border-border/50 print:grid-cols-1 print:grid-rows-1",
         className
       )}
       {...props}

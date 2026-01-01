@@ -15,6 +15,7 @@ export function ModuleTabsWrapper() {
   if (
     pathname.startsWith("/dashboard/expenses") ||
     pathname.startsWith("/dashboard/cash") ||
+    pathname.startsWith("/dashboard/reports") ||
     pathname === "/dashboard/finance"
   ) {
     // Get pending expenses count if user has approve permission
@@ -31,6 +32,7 @@ export function ModuleTabsWrapper() {
       },
       { href: "/dashboard/expenses/reimbursable", label: "Reimbursements" },
       { href: "/dashboard/cash", label: "Cash Ledger" },
+      { href: "/dashboard/reports", label: "Raporlar" },
     ];
     return <ModuleNav links={links} />;
   }

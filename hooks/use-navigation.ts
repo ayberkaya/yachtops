@@ -16,6 +16,7 @@ import {
   TrendingUp,
   Presentation,
   FileSearch,
+  FileBarChart,
   LucideIcon,
 } from "lucide-react";
 

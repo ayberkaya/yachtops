@@ -673,3 +673,89 @@ button[data-slot="button"][class*="variant-destructive"] svg {
     }
   }
 }
+
+/* Pie chart labels - bold font weight for screen and print */
+.recharts-pie-label-text {
+  font-weight: 700 !important;
+}
+
+/* Print Styles for Reports */
+@media print {
+  /* Force background colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+
+  /* Hide navigation, sidebar, and non-essential UI */
+  aside,
+  nav,
+  header,
+  footer,
+  button {
+    display: none !important;
+  }
+
+  /* Show buttons that are explicitly marked for print */
+  button[data-print-visible] {
+    display: inline-block !important;
+  }
+
+  /* Full width for print */
+  body {
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    color: black !important;
+  }
+
+  /* Ensure cards print properly */
+  [data-slot="card"] {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #e5e7eb !important;
+    box-shadow: none !important;
+  }
+
+  /* Prevent page breaks in tables */
+  table {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #e5e7eb !important;
+  }
+
+  tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Chart containers */
+  .recharts-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* Pie chart labels - bold font weight */
+  .recharts-pie-label-text {
+    font-weight: 700 !important;
+  }
+
+  /* Hide hover effects in print */
+  *:hover {
+    background-color: inherit !important;
+    color: inherit !important;
+  }
+
+  /* Ensure proper page breaks */
+  @page {
+    size: A4;
+    margin: 1.5cm;
+  }
+
+  /* First page header */
+  @page :first {
+    margin-top: 2cm;
+  }
+}
