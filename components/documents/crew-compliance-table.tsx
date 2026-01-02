@@ -8,7 +8,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { getDocumentStatus, getWorstStatus, type DocumentStatus } from "@/lib/crew-certification-utils";
 
 interface CrewMember {
@@ -52,19 +51,6 @@ function StatusIndicator({ status }: { status: DocumentStatus }) {
   );
 }
 
-function DocumentStatusBadge({ status }: { status: DocumentStatus }) {
-  if (status === "indefinite") {
-    return <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">Indefinite</Badge>;
-  }
-  if (status === "critical") {
-    return <Badge variant="destructive">Critical</Badge>;
-  }
-  if (status === "warning") {
-    return <Badge variant="outline" className="border-yellow-500 text-yellow-700 bg-yellow-50">Warning</Badge>;
-  }
-  return <Badge variant="outline" className="border-green-500 text-green-700 bg-green-50">Good</Badge>;
-}
-
 export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceTableProps) {
   const getMemberOverallStatus = (member: CrewMember): DocumentStatus => {
     const statuses: DocumentStatus[] = [];
@@ -102,7 +88,6 @@ export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceT
             <TableHead className="w-[120px]">Passport</TableHead>
             <TableHead className="w-[120px]">Health</TableHead>
             <TableHead className="w-[120px]">Seaman's Book</TableHead>
-            <TableHead className="w-[100px]">Status</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -119,9 +104,12 @@ export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceT
                 onClick={() => onRowClick(member.id)}
               >
                 <TableCell>
-                  <p className="font-medium text-sm">
-                    {member.name || member.email}
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <StatusIndicator status={overallStatus} />
+                    <p className="font-medium text-sm">
+                      {member.name || member.email}
+                    </p>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <span className="text-sm text-muted-foreground">{member.role}</span>
@@ -179,9 +167,6 @@ export function CrewComplianceTable({ crewMembers, onRowClick }: CrewComplianceT
                       </div>
                     )}
                   </div>
-                </TableCell>
-                <TableCell>
-                  <DocumentStatusBadge status={overallStatus} />
                 </TableCell>
               </TableRow>
             );

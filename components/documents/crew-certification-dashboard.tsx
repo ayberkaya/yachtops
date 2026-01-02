@@ -82,7 +82,7 @@ export function CrewCertificationDashboard({ crewMembers: initialCrewMembers }: 
       });
     });
 
-    const actionRequired = crewMembers.filter((member) => {
+    const actionRequired30Days = crewMembers.filter((member) => {
       const hasCritical =
         (member.passportDate && getDocumentStatus(member.passportDate).status === "critical") ||
         (member.healthReportDate && getDocumentStatus(member.healthReportDate).status === "critical") ||
@@ -91,6 +91,10 @@ export function CrewCertificationDashboard({ crewMembers: initialCrewMembers }: 
           (cert) => !cert.isIndefinite && getDocumentStatus(cert.expiryDate, cert.isIndefinite).status === "critical"
         );
       
+      return hasCritical;
+    }).length;
+
+    const actionRequired90Days = crewMembers.filter((member) => {
       const hasWarning =
         (member.passportDate && getDocumentStatus(member.passportDate).status === "warning") ||
         (member.healthReportDate && getDocumentStatus(member.healthReportDate).status === "warning") ||
@@ -99,14 +103,15 @@ export function CrewCertificationDashboard({ crewMembers: initialCrewMembers }: 
           (cert) => !cert.isIndefinite && getDocumentStatus(cert.expiryDate, cert.isIndefinite).status === "warning"
         );
 
-      return hasCritical || hasWarning;
+      return hasWarning;
     }).length;
 
     const complianceRate = calculateComplianceRate(totalDocuments, criticalCount, warningCount);
 
     return {
       totalCrew: crewMembers.length,
-      actionRequired,
+      actionRequired30Days,
+      actionRequired90Days,
       complianceRate,
     };
   }, [crewMembers]);
@@ -120,7 +125,8 @@ export function CrewCertificationDashboard({ crewMembers: initialCrewMembers }: 
     <div className="space-y-6">
       <CrewCertificationKPIs
         totalCrew={kpis.totalCrew}
-        actionRequired={kpis.actionRequired}
+        actionRequired30Days={kpis.actionRequired30Days}
+        actionRequired90Days={kpis.actionRequired90Days}
         complianceRate={kpis.complianceRate}
       />
 

@@ -1,62 +1,64 @@
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { Users, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Users, AlertTriangle } from "lucide-react";
 
 interface CrewCertificationKPIsProps {
   totalCrew: number;
-  actionRequired: number;
-  complianceRate: number;
+  actionRequired30Days: number;
+  actionRequired90Days: number;
+  complianceRate?: number; // Optional, kept for backward compatibility but not displayed
 }
 
 export function CrewCertificationKPIs({
   totalCrew,
-  actionRequired,
-  complianceRate,
+  actionRequired30Days,
+  actionRequired90Days,
 }: CrewCertificationKPIsProps) {
   return (
-    <div className="grid gap-4 md:grid-cols-3">
+    <div className="grid grid-cols-3 gap-2 md:gap-4">
       <Card className="border-zinc-200/60">
-        <CardContent className="p-6">
+        <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Total Crew</p>
-              <p className="text-3xl font-bold mt-2">{totalCrew}</p>
+              <p className="text-xs font-medium text-muted-foreground">Total Crew</p>
+              <p className="text-2xl font-bold mt-1">{totalCrew}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-zinc-100 flex items-center justify-center">
-              <Users className="h-6 w-6 text-zinc-600" />
+            <div className="h-8 w-8 rounded-full bg-zinc-100 flex items-center justify-center">
+              <Users className="h-4 w-4 text-zinc-600" />
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-zinc-200/60">
-        <CardContent className="p-6">
+        <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Action Required</p>
-              <p className="text-3xl font-bold mt-2 text-red-600">{actionRequired}</p>
+              <p className="text-xs font-medium text-muted-foreground">&lt; 90 Days</p>
+              <p className="text-2xl font-bold mt-1 text-yellow-600">{actionRequired90Days}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-red-50 flex items-center justify-center">
-              <AlertTriangle className="h-6 w-6 text-red-600" />
+            <div className="h-8 w-8 rounded-full bg-yellow-50 flex items-center justify-center">
+              <AlertTriangle className="h-4 w-4 text-yellow-600" />
             </div>
           </div>
         </CardContent>
       </Card>
 
       <Card className="border-zinc-200/60">
-        <CardContent className="p-6">
+        <CardContent className="p-3">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-muted-foreground">Compliance Rate</p>
-              <p className="text-3xl font-bold mt-2">{complianceRate}%</p>
+              <p className="text-xs font-medium text-muted-foreground">&lt; 30 Days</p>
+              <p className="text-2xl font-bold mt-1 text-red-600">{actionRequired30Days}</p>
             </div>
-            <div className="h-12 w-12 rounded-full bg-green-50 flex items-center justify-center">
-              <CheckCircle2 className="h-6 w-6 text-green-600" />
+            <div className="h-8 w-8 rounded-full bg-red-50 flex items-center justify-center">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
             </div>
           </div>
         </CardContent>
       </Card>
+
     </div>
   );
 }
