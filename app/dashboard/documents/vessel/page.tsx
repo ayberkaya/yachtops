@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/get-session";
 import { db } from "@/lib/db";
-import { VesselDocumentsView } from "@/components/documents/vessel-documents-view";
+import { VesselCertificationDashboard } from "@/components/documents/vessel-certification-dashboard";
 import { hasPermission } from "@/lib/permissions";
 
 export default async function VesselDocumentsPage() {
@@ -23,31 +23,46 @@ export default async function VesselDocumentsPage() {
   const docs = await db.vesselDocument.findMany({
     where: {
       yachtId: session.user.yachtId,
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      title: true,
+      notes: true,
+      expiryDate: true,
+      createdAt: true,
+      storageBucket: true,
+      storagePath: true,
+      fileUrl: true,
     },
     orderBy: { createdAt: "desc" },
   });
 
+  // Transform data for the dashboard component
+  // Use file endpoint URL for documents in storage, fallback to legacy fileUrl
+  const transformedDocs = docs
+    .filter((doc) => (doc.storageBucket && doc.storagePath) || doc.fileUrl)
+    .map((doc) => ({
+      id: doc.id,
+      title: doc.title,
+      fileUrl: doc.storageBucket && doc.storagePath 
+        ? `/api/vessel-documents/${doc.id}/file`
+        : doc.fileUrl || "",
+      notes: doc.notes,
+      expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
+      createdAt: doc.createdAt.toISOString(),
+    }));
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold">Vessel Certificates</h1>
+        <h1 className="text-3xl font-bold">Vessel Certification Dashboard</h1>
         <p className="text-muted-foreground">
-          Centralize registry certificates, class surveys, and technical attestations.
+          Track expiration dates for critical vessel documents and certificates.
         </p>
       </div>
 
-      <VesselDocumentsView 
-        initialDocs={docs
-          .filter((doc) => doc.fileUrl !== null)
-          .map((doc) => ({
-            id: doc.id,
-            title: doc.title,
-            fileUrl: doc.fileUrl!,
-            notes: doc.notes,
-            expiryDate: doc.expiryDate ? doc.expiryDate.toISOString() : null,
-            createdAt: doc.createdAt.toISOString(),
-          }))} 
-      />
+      <VesselCertificationDashboard documents={transformedDocs} />
     </div>
   );
 }
