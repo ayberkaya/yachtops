@@ -24,13 +24,154 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
+  SelectSeparator,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
 import { getDocumentStatus, calculateDaysLeft, type DocumentStatus } from "@/lib/crew-certification-utils";
 import { format } from "date-fns";
 import { Calendar, FileText, Plus, Pencil, Trash2 } from "lucide-react";
+
+const toTitleCase = (str: string): string => {
+  return str
+    .split(" ")
+    .map((word) => {
+      if (!word) return word;
+      // Preserve special cases like acronyms, slashes, hyphens
+      if (word.includes("/") || word.includes("–") || word.includes("-")) {
+        return word
+          .split(/([/–-])/)
+          .map((part) => {
+            if (part.match(/^[/–-]$/)) return part;
+            return part.charAt(0).toUpperCase() + part.slice(1).toLowerCase();
+          })
+          .join("");
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+    })
+    .join(" ");
+};
+
+const CERTIFICATE_CATEGORIES = [
+  {
+    title: "Temel STCW Eğitimleri",
+    items: [
+      "Belirlenmiş Güvenlik Görevleri Eğitimi (Designated Security Duties)",
+      "Güvenlik Farkındalığı Eğitimi (Security Awareness)",
+      "Kişisel Can Kurtarma Teknikleri (Personal Survival Techniques)",
+      "Kişisel Güvenlik ve Sosyal Sorumluluk (PSSR)",
+      "Temel İlk Yardım / Elementary First Aid",
+      "Temel Yangınla Mücadele (Fire Prevention and Fire Fighting)",
+    ],
+  },
+  {
+    title: "Güvenlik Zabiti ve ISPS Kapsamı",
+    items: [
+      "Gemi Güvenlik Zabiti (Ship Security Officer – SSO)",
+    ],
+  },
+  {
+    title: "İleri Seviye Yangın ve Tıbbi Eğitimler",
+    items: [
+      "Gemide Tıbbi Bakım (Medical Care on Board)",
+      "İleri İlk Yardım (Proficiency in Medical First Aid)",
+      "İleri Yangınla Mücadele (Advanced Fire Fighting – AFF)",
+    ],
+  },
+  {
+    title: "Can Kurtarma Araçları ve Bot Eğitimleri",
+    items: [
+      "Can Kurtarma Araçları ve Cankurtarma Botları Yeterliği (PSCRB)",
+      "Can Salı ve Filika Operasyonları Eğitimi",
+      "Hızlı Kurtarma Botu Eğitimi (Fast Rescue Boats – FRB)",
+    ],
+  },
+  {
+    title: "Köprüüstü – Seyir ve Operasyon Eğitimleri",
+    items: [
+      "ARPA Radar Eğitimi",
+      "ECDIS Eğitimi",
+      "GMDSS Genel Telsiz Operatörü (GOC)",
+      "GMDSS Tahditli Telsiz Operatörü (ROC)",
+      "Köprüüstü Ekip Yönetimi (BTM)",
+      "Köprüüstü Kaynak Yönetimi (BRM)",
+      "Radar Gözlem ve Plotting Eğitimi",
+    ],
+  },
+  {
+    title: "Makine Dairesi ve Mühendislik Eğitimleri",
+    items: [
+      "Başmühendis için STCW makine modülleri",
+      "Makine Dairesi Güvenliği Eğitimi",
+      "Makine Dairesi Kaynak Yönetimi (ERM)",
+      "Motor Zabiti için STCW makine modülleri",
+      "Yat mühendisliği sertifikaları (Y1–Y4)",
+    ],
+  },
+  {
+    title: "Tanker Operasyonları Eğitimleri",
+    items: [
+      "Kimyasal tankerler ileri seviye",
+      "LPG/LNG gaz tankerleri ileri seviye",
+      "Petrol tankerleri ileri seviye",
+      "Temel tanker eğitimi",
+    ],
+  },
+  {
+    title: "Yolcu ve Ro-Ro Gemileri Eğitimleri",
+    items: [
+      "Kalabalık yönetimi (Crowd Management)",
+      "Ro-Ro yolcu gemileri eğitimi",
+      "Yolcu güvenliği ve kriz yönetimi",
+    ],
+  },
+  {
+    title: "Özel Operasyon Eğitimleri",
+    items: [
+      "Dinamik konumlandırma ile ilgili modüller",
+      "Helideck acil durum müdahale eğitimi",
+      "Helikopter güvertesi personeli eğitimi",
+      "Polar sularda operasyon",
+      "Yüksek hızlı deniz araçları eğitimleri",
+    ],
+  },
+  {
+    title: "Yenileme (Refresher) Eğitimleri",
+    items: [
+      "Can kurtarma araçları/bot tazeleme",
+      "İleri Yangınla Mücadele tazeleme",
+      "Temel STCW tazeleme",
+      "Tıbbi eğitimler tazeleme",
+    ],
+  },
+].map((category) => ({
+  ...category,
+  title: toTitleCase(category.title),
+  items: category.items
+    .map((item) => {
+      // Split by parentheses to preserve English parts
+      const parts = item.split(/(\([^)]+\))/);
+      return parts
+        .map((part) => {
+          if (part.startsWith("(") && part.endsWith(")")) {
+            // Keep English parts in parentheses as-is
+            return part;
+          }
+          return toTitleCase(part);
+        })
+        .join("");
+    })
+    .sort((a, b) => {
+      const getSortKey = (str: string) => {
+        const turkishPart = str.split("(")[0].trim();
+        return turkishPart.toLowerCase();
+      };
+      return getSortKey(a).localeCompare(getSortKey(b), "tr");
+    }),
+}));
 
 interface CrewCertificate {
   id: string;
@@ -781,11 +922,27 @@ export function CrewDocumentSheet({ member, open, onOpenChange, onUpdate }: Crew
             {error && <p className="text-sm text-destructive">{error}</p>}
             <div className="space-y-2">
               <Label>Certificate Name *</Label>
-              <Input
+              <Select
                 value={certificateForm.name}
-                onChange={(e) => setCertificateForm({ ...certificateForm, name: e.target.value })}
-                placeholder="e.g., Radar Gözlem ve Pilotlama EĞitimi"
-              />
+                onValueChange={(value) => setCertificateForm({ ...certificateForm, name: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a certificate" />
+                </SelectTrigger>
+                <SelectContent>
+                  {CERTIFICATE_CATEGORIES.map((category, index) => (
+                    <SelectGroup key={category.title}>
+                      <SelectLabel>{category.title}</SelectLabel>
+                      {category.items.map((item) => (
+                        <SelectItem key={item} value={item}>
+                          {item}
+                        </SelectItem>
+                      ))}
+                      {index < CERTIFICATE_CATEGORIES.length - 1 && <SelectSeparator />}
+                    </SelectGroup>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center space-x-2">
               <Checkbox
