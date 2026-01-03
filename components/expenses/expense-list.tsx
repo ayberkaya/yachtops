@@ -82,8 +82,6 @@ interface FilterState {
   search: string;
   currency: string;
   paymentMethod: string;
-  minAmount: string;
-  maxAmount: string;
   createdBy: string;
   isReimbursable: string;
 }
@@ -114,6 +112,11 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
   });
   const [sortBy, setSortBy] = useState<"date" | "amount" | "status">("date");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  
+  // Generate years list (current year and 5 years back)
+  const currentYear = new Date().getFullYear();
+  const years = Array.from({ length: 6 }, (_, i) => currentYear - i);
+  const [selectedYear, setSelectedYear] = useState<string>(currentYear.toString());
 
   // Combined sort value for single dropdown
   const sortValue = `${sortBy}-${sortOrder}`;
@@ -138,8 +141,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
       search: params.get("search") || "",
       currency: params.get("currency") || "",
       paymentMethod: params.get("paymentMethod") || "",
-      minAmount: params.get("minAmount") || "",
-      maxAmount: params.get("maxAmount") || "",
       createdBy: params.get("createdBy") || "",
       isReimbursable: params.get("isReimbursable") || "",
     };
@@ -221,13 +222,11 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
           );
         }
 
-        // Client-side amount filtering
-        if (filters.minAmount || filters.maxAmount) {
+        // Filter by year if selected (skip if "all")
+        if (selectedYear && selectedYear !== "all") {
           filtered = filtered.filter((exp: Expense) => {
-            const amount = exp.amount;
-            if (filters.minAmount && amount < parseFloat(filters.minAmount)) return false;
-            if (filters.maxAmount && amount > parseFloat(filters.maxAmount)) return false;
-            return true;
+            const expenseYear = new Date(exp.date).getFullYear();
+            return expenseYear === parseInt(selectedYear);
           });
         }
 
@@ -241,7 +240,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
 
     fetchExpenses();
     updateURL(filters);
-  }, [filters, updateURL]);
+  }, [filters, selectedYear, updateURL]);
 
   const handleFilterChange = (key: keyof FilterState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value }));
@@ -258,8 +257,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
       search: "",
       currency: "",
       paymentMethod: "",
-      minAmount: "",
-      maxAmount: "",
       createdBy: "",
       isReimbursable: "",
     };
@@ -381,7 +378,7 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
               variant="outline"
               size="sm"
               onClick={() => setFiltersOpen((open) => !open)}
-              className="inline-flex items-center gap-2"
+              className="inline-flex items-center gap-2 h-8"
             >
               <SlidersHorizontal className="h-4 w-4" />
               <span>{filtersOpen ? "Hide filters" : "Show filters"}</span>
@@ -392,7 +389,12 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
               )}
             </Button>
 
-            <Button variant="outline" size="sm" onClick={exportToCSV}>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={exportToCSV}
+              className="h-8"
+            >
               <Download className="h-4 w-4 mr-2" />
               Export CSV
             </Button>
@@ -442,9 +444,25 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
+          {/* Year Selection */}
+          <Select value={selectedYear} onValueChange={setSelectedYear}>
+            <SelectTrigger className="w-[140px] !h-8">
+              <Calendar className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Year" />
+            </SelectTrigger>
+            <SelectContent>
+              {years.map((year) => (
+                <SelectItem key={year} value={year.toString()}>
+                  {year}
+                </SelectItem>
+              ))}
+              <SelectItem value="all">All Years</SelectItem>
+            </SelectContent>
+          </Select>
+
           {/* Sort By (combined with order) */}
           <Select value={sortValue} onValueChange={handleSortChange}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[160px] !h-8">
               <ArrowUpDown className="h-4 w-4 mr-2" />
               <SelectValue placeholder="Sort by" />
             </SelectTrigger>
@@ -659,36 +677,6 @@ export function ExpenseList({ initialExpenses, categories, trips, users, current
                     className="pl-8"
                   />
                 </div>
-              </div>
-
-              {/* Min Amount */}
-              <div className="space-y-1">
-                <Label className="text-xs font-medium text-muted-foreground">
-                  Min Amount
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={filters.minAmount}
-                  onChange={(e) => handleFilterChange("minAmount", e.target.value)}
-                />
-              </div>
-
-              {/* Max Amount */}
-              <div className="space-y-1">
-                <Label className="text-xs font-medium text-muted-foreground">
-                  Max Amount
-                </Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  placeholder="0.00"
-                  value={filters.maxAmount}
-                  onChange={(e) => handleFilterChange("maxAmount", e.target.value)}
-                />
               </div>
             </div>
           </CardContent>
