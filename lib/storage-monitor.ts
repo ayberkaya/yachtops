@@ -42,6 +42,55 @@ const WARNING_THRESHOLD = 0.8; // 80% of limit
 const CRITICAL_THRESHOLD = 0.9; // 90% of limit
 
 /**
+ * Get file size from Supabase Storage if fileSize is NULL in database
+ */
+async function getFileSizeFromStorage(
+  bucket: string,
+  path: string
+): Promise<number | null> {
+  try {
+    const { createClient } = await import("@supabase/supabase-js");
+    
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+    
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return null;
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
+
+    // Get file metadata from storage
+    // Path format: /yachtId/receipts/filename.jpg
+    const pathParts = path.split("/").filter(Boolean);
+    const directory = pathParts.slice(0, -1).join("/");
+    const filename = pathParts[pathParts.length - 1];
+
+    const { data, error } = await supabase.storage
+      .from(bucket)
+      .list(directory || "", {
+        limit: 1000,
+        search: filename,
+      });
+
+    if (error || !data || data.length === 0) {
+      return null;
+    }
+
+    const file = data.find((f) => f.name === filename);
+    return file?.metadata?.size || null;
+  } catch (error) {
+    console.error(`Error getting file size from storage for ${bucket}/${path}:`, error);
+    return null;
+  }
+}
+
+/**
  * Get storage usage for a specific yacht
  */
 export async function getYachtStorageUsage(yachtId: string): Promise<StorageUsage | null> {
@@ -55,19 +104,52 @@ export async function getYachtStorageUsage(yachtId: string): Promise<StorageUsag
       return null;
     }
 
-    const receipts = await db.expenseReceipt.aggregate({
+    // Get all receipts (including those with NULL fileSize)
+    const receipts = await db.expenseReceipt.findMany({
       where: {
         expense: { yachtId },
         deletedAt: null,
-        fileSize: { not: null },
+        // Only include receipts that have storage (either fileSize or storageBucket/storagePath)
+        OR: [
+          { fileSize: { not: null } },
+          { storageBucket: { not: null }, storagePath: { not: null } },
+        ],
       },
-      _sum: { fileSize: true },
-      _count: { id: true },
+      select: {
+        id: true,
+        fileSize: true,
+        storageBucket: true,
+        storagePath: true,
+      },
     });
 
-    const totalSizeBytes = receipts._sum.fileSize || 0;
-    const receiptCount = receipts._count.id || 0;
-    const averageSizeMB = receiptCount > 0 ? (totalSizeBytes / receiptCount) / (1024 * 1024) : 0;
+    // Calculate total size, fetching from storage if needed
+    let totalSizeBytes = 0;
+    let receiptsWithSize = 0;
+
+    for (const receipt of receipts) {
+      if (receipt.fileSize !== null) {
+        totalSizeBytes += receipt.fileSize;
+        receiptsWithSize++;
+      } else if (receipt.storageBucket && receipt.storagePath) {
+        // Try to get size from storage
+        const size = await getFileSizeFromStorage(receipt.storageBucket, receipt.storagePath);
+        if (size !== null) {
+          totalSizeBytes += size;
+          receiptsWithSize++;
+          // Optionally update database (async, don't wait)
+          db.expenseReceipt
+            .update({
+              where: { id: receipt.id },
+              data: { fileSize: size },
+            })
+            .catch((err) => console.error(`Failed to update fileSize for receipt ${receipt.id}:`, err));
+        }
+      }
+    }
+
+    const receiptCount = receipts.length;
+    const averageSizeMB = receiptsWithSize > 0 ? (totalSizeBytes / receiptsWithSize) / (1024 * 1024) : 0;
 
     return {
       yachtId: yacht.id,
@@ -97,26 +179,47 @@ export async function getStorageSummary(limit: number = 10): Promise<StorageSumm
     });
 
     const usagePromises = yachts.map(async (yacht) => {
-      const receipts = await db.expenseReceipt.aggregate({
+      // Get all receipts (including those with NULL fileSize)
+      const receipts = await db.expenseReceipt.findMany({
         where: {
           expense: { yachtId: yacht.id },
           deletedAt: null,
-          fileSize: { not: null },
+          // Only include receipts that have storage
+          OR: [
+            { fileSize: { not: null } },
+            { storageBucket: { not: null }, storagePath: { not: null } },
+          ],
         },
-        _sum: { fileSize: true },
-        _count: { id: true },
+        select: {
+          id: true,
+          fileSize: true,
+          storageBucket: true,
+          storagePath: true,
+        },
       });
 
-      const totalSizeBytes = receipts._sum.fileSize || 0;
-      const receiptCount = receipts._count.id || 0;
+      // Calculate total size
+      let totalSizeBytes = 0;
+      let receiptsWithSize = 0;
+
+      for (const receipt of receipts) {
+        if (receipt.fileSize !== null) {
+          totalSizeBytes += receipt.fileSize;
+          receiptsWithSize++;
+        } else if (receipt.storageBucket && receipt.storagePath) {
+          // Try to get size from storage (but don't wait for all - this could be slow)
+          // For summary, we'll use 0 for NULL sizes to keep it fast
+          // Individual yacht queries will fetch from storage
+        }
+      }
 
       return {
         yachtId: yacht.id,
         yachtName: yacht.name,
         totalSizeBytes,
         totalSizeGB: totalSizeBytes / (1024 * 1024 * 1024),
-        receiptCount,
-        averageSizeMB: receiptCount > 0 ? (totalSizeBytes / receiptCount) / (1024 * 1024) : 0,
+        receiptCount: receipts.length,
+        averageSizeMB: receiptsWithSize > 0 ? (totalSizeBytes / receiptsWithSize) / (1024 * 1024) : 0,
       };
     });
 
@@ -240,4 +343,3 @@ export async function getStorageGrowthTrend(): Promise<{
     };
   }
 }
-
