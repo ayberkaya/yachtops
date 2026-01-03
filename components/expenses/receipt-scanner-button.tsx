@@ -181,7 +181,6 @@ export function ReceiptScannerButton({
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
         onChange={handleFileSelect}
         className="hidden"
         disabled={disabled || isLoading}
