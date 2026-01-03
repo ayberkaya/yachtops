@@ -55,10 +55,12 @@ export interface ScanReceiptResult {
   error?: string;
   data?: ReceiptScanResult & {
     categoryId?: string;
-    imageFile?: File;
     hasMismatch?: boolean;
     itemsTotal?: number;
     receiptTotal?: number;
+    imageFileName?: string;
+    imageFileSize?: number;
+    imageFileType?: string;
   };
 }
 
@@ -84,6 +86,15 @@ export async function scanReceiptAction(
     // Validate file type
     if (!file.type.startsWith("image/")) {
       return { success: false, error: "File must be an image" };
+    }
+
+    // Validate file size (max 10MB for mobile photos)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return { 
+        success: false, 
+        error: `Image is too large (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum size is 10MB. Please compress the image or use a smaller resolution.` 
+      };
     }
 
     // Convert image to base64
@@ -204,7 +215,9 @@ CRITICAL: Most yacht receipts show only header and footer. Do NOT try to extract
             items,
             description,
             categoryId: fallbackCategory.id,
-            imageFile: file,
+            imageFileName: file.name,
+            imageFileSize: file.size,
+            imageFileType: file.type,
             hasMismatch,
             itemsTotal,
             receiptTotal,
@@ -221,7 +234,9 @@ CRITICAL: Most yacht receipts show only header and footer. Do NOT try to extract
         items,
         description,
         categoryId: categoryId || undefined,
-        imageFile: file,
+        imageFileName: file.name,
+        imageFileSize: file.size,
+        imageFileType: file.type,
         hasMismatch,
         itemsTotal,
         receiptTotal,

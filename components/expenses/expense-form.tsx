@@ -257,7 +257,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const [scannedReceiptPreview, setScannedReceiptPreview] = useState<string | null>(null);
 
   // Handle receipt scan completion
-  const handleReceiptScanComplete = (data: ScanReceiptResult["data"]) => {
+  const handleReceiptScanComplete = (data: ScanReceiptResult["data"], imageFile?: File) => {
     if (!data) return;
 
     // Pre-fill form fields with scanned data
@@ -286,10 +286,10 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     }
 
     // Add scanned image to receipt files if available
-    if (data.imageFile) {
-      setReceiptFiles((prev) => [...prev, data.imageFile!]);
+    if (imageFile) {
+      setReceiptFiles((prev) => [...prev, imageFile]);
       // Create preview URL for the scanned receipt
-      const previewUrl = URL.createObjectURL(data.imageFile);
+      const previewUrl = URL.createObjectURL(imageFile);
       setScannedReceiptPreview(previewUrl);
       setIsReceiptScanned(true);
     }

@@ -16,7 +16,7 @@ import { AlertCircle } from "lucide-react";
 import { ScanningOverlay } from "./scanning-overlay";
 
 interface ReceiptScannerButtonProps {
-  onScanComplete: (data: ScanReceiptResult["data"]) => void;
+  onScanComplete: (data: ScanReceiptResult["data"], imageFile?: File) => void;
   disabled?: boolean;
 }
 
@@ -30,6 +30,7 @@ export function ReceiptScannerButton({
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [receiptPreviewUrl, setReceiptPreviewUrl] = useState<string | null>(null);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadingSteps = [
@@ -78,6 +79,9 @@ export function ReceiptScannerButton({
       return;
     }
 
+    // Store the file for later use
+    setSelectedFile(file);
+
     setIsLoading(true);
     setIsDialogOpen(true);
     setError(null);
@@ -113,8 +117,8 @@ export function ReceiptScannerButton({
         throw new Error(result.error || "Failed to scan receipt");
       }
 
-      // Call the callback with the extracted data
-      onScanComplete(result.data);
+      // Call the callback with the extracted data and the original file
+      onScanComplete(result.data, selectedFile || undefined);
 
       // Close dialog after a short delay to show success
       setTimeout(() => {
@@ -127,10 +131,11 @@ export function ReceiptScannerButton({
           URL.revokeObjectURL(receiptPreviewUrl);
           setReceiptPreviewUrl(null);
         }
-        // Reset file input
+        // Reset file input and selected file
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
+        setSelectedFile(null);
       }, 800);
     } catch (err) {
       console.error("Error scanning receipt:", err);
@@ -146,6 +151,7 @@ export function ReceiptScannerButton({
       setIsLoading(false);
       setProgress(0);
       setCurrentStep(0);
+      setSelectedFile(null);
     }
   };
 
