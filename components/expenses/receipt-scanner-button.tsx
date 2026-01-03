@@ -14,6 +14,7 @@ import { scanReceiptAction, ScanReceiptResult } from "@/actions/scan-receipt";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { ScanningOverlay } from "./scanning-overlay";
+import { compressImage } from "@/lib/image-compression";
 
 interface ReceiptScannerButtonProps {
   onScanComplete: (data: ScanReceiptResult["data"], imageFile?: File) => void;
@@ -72,24 +73,54 @@ export function ReceiptScannerButton({
       return;
     }
 
-    // Validate file size (max 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (file.size > maxSize) {
-      setError("Image size must be less than 10MB");
-      return;
-    }
-
-    // Store the file for later use
-    setSelectedFile(file);
-
     setIsLoading(true);
     setIsDialogOpen(true);
     setError(null);
     setProgress(0);
     setCurrentStep(0);
 
+    // Check file size and compress if needed (max 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    let fileToUse = file;
+    
+    if (file.size > maxSize) {
+      // Show compression message
+      setError(null);
+      
+      try {
+        // Compress image to max 2MB (with quality preserved for receipts)
+        fileToUse = await compressImage(file, {
+          maxSizeMB: 2,
+          maxWidthOrHeight: 2560, // Higher resolution for receipts to preserve text readability
+          useWebWorker: true,
+          fileType: 'image/jpeg',
+          initialQuality: 0.9, // Higher quality for receipts
+        });
+        
+        // If still too large after compression, try more aggressive compression
+        if (fileToUse.size > maxSize) {
+          fileToUse = await compressImage(file, {
+            maxSizeMB: 1,
+            maxWidthOrHeight: 1920,
+            useWebWorker: true,
+            fileType: 'image/jpeg',
+            initialQuality: 0.85,
+          });
+        }
+      } catch (compressionError) {
+        console.error("Image compression failed:", compressionError);
+        setError("Image is too large and could not be compressed. Please use a smaller image.");
+        setIsLoading(false);
+        setIsDialogOpen(false);
+        return;
+      }
+    }
+
+    // Store the file for later use
+    setSelectedFile(fileToUse);
+
     // Create preview URL for the receipt image
-    const previewUrl = URL.createObjectURL(file);
+    const previewUrl = URL.createObjectURL(fileToUse);
     setReceiptPreviewUrl(previewUrl);
 
     // Simulate progress updates
@@ -103,7 +134,7 @@ export function ReceiptScannerButton({
 
     try {
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("image", fileToUse);
 
       const result = await scanReceiptAction(formData);
 
