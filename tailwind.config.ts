@@ -53,6 +53,21 @@ const config: Config = {
         "premium": "0 2px 8px rgba(0, 0, 0, 0.04)",
         "premium-lg": "0 4px 16px rgba(0, 0, 0, 0.06)",
       },
+      keyframes: {
+        progress: {
+          "0%": { width: "0%" },
+          "50%": { width: "100%" },
+          "100%": { width: "0%" },
+        },
+        shimmer: {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
+      },
+      animation: {
+        progress: "progress 2s ease-in-out infinite",
+        shimmer: "shimmer 2s ease-in-out infinite",
+      },
     },
   },
   plugins: [],

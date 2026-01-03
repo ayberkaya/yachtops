@@ -28,6 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import { ExpenseCategory, Trip, PaymentMethod, PaidBy, ExpenseStatus, TripStatus } from "@prisma/client";
 import { Textarea } from "@/components/ui/textarea";
+import { ReceiptScannerButton } from "./receipt-scanner-button";
+import { ScanReceiptResult } from "@/actions/scan-receipt";
 
 // UI-only schema for the expense form. We intentionally drop VAT/base amount fields
 // to simplify the UI. The API schema still supports them optionally, but we no longer
@@ -199,6 +201,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const [error, setError] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [pendingPayload, setPendingPayload] = useState<ExpenseFormData | null>(null);
+  const [isReceiptScanned, setIsReceiptScanned] = useState(false);
   const [crewUsers, setCrewUsers] = useState<
     { id: string; name: string | null; email: string; role?: string | null }[]
   >([]);
@@ -251,6 +254,71 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
   const [receiptFiles, setReceiptFiles] = useState<File[]>([]);
   const [existingReceipts, setExistingReceipts] = useState<any[]>([]);
   const [deletingReceiptId, setDeletingReceiptId] = useState<string | null>(null);
+  const [scannedReceiptPreview, setScannedReceiptPreview] = useState<string | null>(null);
+
+  // Handle receipt scan completion
+  const handleReceiptScanComplete = (data: ScanReceiptResult["data"]) => {
+    if (!data) return;
+
+    // Pre-fill form fields with scanned data
+    form.setValue("vendorName", data.merchantName || null);
+    form.setValue("date", data.date || new Date().toISOString().split("T")[0]);
+    form.setValue("amount", data.amount || undefined);
+    form.setValue("currency", data.currency || "EUR");
+    form.setValue("description", data.description || "");
+
+    // Set category if we found a matching categoryId
+    if (data.categoryId) {
+      form.setValue("categoryId", data.categoryId);
+    } else {
+      // Try to find category by name if categoryId wasn't found
+      const matchingCategory = categories.find(
+        (cat) =>
+          cat.name.toLowerCase() === data.category?.toLowerCase() ||
+          cat.name.toLowerCase().includes(data.category?.toLowerCase() || "") ||
+          data.category?.toLowerCase().includes(cat.name.toLowerCase())
+      );
+      if (matchingCategory) {
+        form.setValue("categoryId", matchingCategory.id);
+      }
+    }
+
+    // Add scanned image to receipt files if available
+    if (data.imageFile) {
+      setReceiptFiles((prev) => [...prev, data.imageFile!]);
+      // Create preview URL for the scanned receipt
+      const previewUrl = URL.createObjectURL(data.imageFile);
+      setScannedReceiptPreview(previewUrl);
+      setIsReceiptScanned(true);
+    }
+
+    // Show success message with warning if there's a mismatch
+    import("@/components/ui/toast").then((toastModule) => {
+      if (data.hasMismatch) {
+        const missingAmount = (data.receiptTotal || 0) - (data.itemsTotal || 0);
+        toastModule.toast({
+          description: `⚠️ Receipt scanned, but item total (${(data.itemsTotal || 0).toFixed(2)}) doesn't match receipt total (${(data.receiptTotal || 0).toFixed(2)}). Missing: ${missingAmount.toFixed(2)}. Some items may not have been read correctly. Please review the description and add missing items manually.`,
+          variant: "error",
+          duration: 10000,
+        });
+      } else {
+        toastModule.toast({
+          description: "Receipt scanned successfully! Please review and correct the information.",
+          variant: "success",
+          duration: 5000,
+        });
+      }
+    });
+  };
+
+  // Cleanup scanned receipt preview URL on unmount
+  React.useEffect(() => {
+    return () => {
+      if (scannedReceiptPreview) {
+        URL.revokeObjectURL(scannedReceiptPreview);
+      }
+    };
+  }, [scannedReceiptPreview]);
 
   // Load crew users (for PaidBy = CREW_PERSONAL dropdown)
   // Include all users except OWNER, SUPER_ADMIN, and ADMIN
@@ -493,6 +561,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     // Close dialog immediately for better UX
     setConfirmOpen(false);
     setPendingPayload(null);
+    setIsReceiptScanned(false);
     // Perform save (which will navigate)
     await performSave(pendingPayload, "/api/expenses", "POST");
   };
@@ -504,14 +573,42 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
   return (
     <>
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+      <Dialog 
+        open={confirmOpen} 
+        onOpenChange={(open) => {
+          setConfirmOpen(open);
+          if (!open) {
+            setIsReceiptScanned(false);
+          }
+        }}
+      >
         <DialogContent className="max-w-xl">
           <DialogHeader>
             <DialogTitle>Confirm expense</DialogTitle>
             <DialogDescription>
-              Review the expense details before submitting.
+              {isReceiptScanned ? (
+                <>
+                  You are about to create an expense from a scanned receipt/invoice. 
+                  Please review the extracted information below and confirm that everything is correct.
+                </>
+              ) : (
+                "Review the expense details before submitting."
+              )}
             </DialogDescription>
           </DialogHeader>
+
+          {isReceiptScanned && scannedReceiptPreview && (
+            <div className="mb-4 space-y-2">
+              <p className="text-sm font-medium text-muted-foreground">Scanned Receipt:</p>
+              <div className="relative border rounded-lg overflow-hidden max-w-full">
+                <img
+                  src={scannedReceiptPreview}
+                  alt="Scanned receipt"
+                  className="max-h-64 w-auto mx-auto object-contain"
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-3 text-sm">
             <div className="flex justify-between gap-4">
@@ -580,8 +677,16 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
 
       <Card>
         <CardHeader>
-          <CardTitle>{initialData ? "Edit Expense" : "New Expense"}</CardTitle>
-          <CardDescription>Enter expense details</CardDescription>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <CardTitle>{initialData ? "Edit Expense" : "New Expense"}</CardTitle>
+              <CardDescription>Enter expense details</CardDescription>
+            </div>
+            <ReceiptScannerButton
+              onScanComplete={handleReceiptScanComplete}
+              disabled={isLoading}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -696,8 +801,44 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                       <Textarea
                         placeholder="Enter expense description"
                         {...field}
+                        rows={6}
                       />
                     </FormControl>
+                    {scannedReceiptPreview && (
+                      <div className="mt-2 space-y-2">
+                        <p className="text-xs text-muted-foreground">Scanned Receipt Preview:</p>
+                        <div className="relative inline-block border rounded-lg overflow-hidden max-w-xs">
+                          <img
+                            src={scannedReceiptPreview}
+                            alt="Scanned receipt preview"
+                            className="max-h-48 w-auto object-contain"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setScannedReceiptPreview(null);
+                              URL.revokeObjectURL(scannedReceiptPreview);
+                            }}
+                            className="absolute top-1 right-1 bg-black/50 hover:bg-black/70 text-white rounded-full p-1"
+                            aria-label="Remove preview"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              className="h-4 w-4"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <line x1="18" y1="6" x2="6" y2="18"></line>
+                              <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
@@ -1034,7 +1175,7 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
                   }}
                 />
                 <p className="text-xs text-muted-foreground">
-                  You can attach multiple receipt photos or PDFs for this expense.
+                  You can attach multiple receipt photos or PDFs for this expense. Use "Scan Receipt" button above to automatically extract information from receipt images.
                 </p>
                 {receiptFiles.length > 0 && (
                   <div className="mt-2 space-y-1">
