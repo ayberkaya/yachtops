@@ -57,11 +57,18 @@ export function CashView() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  // Get today's date in YYYY-MM-DD format for default value
+  const getTodayDate = () => {
+    const today = new Date();
+    return today.toISOString().split('T')[0];
+  };
+
   const [formData, setFormData] = useState({
     type: CashTransactionType.DEPOSIT,
     amount: "",
     currency: "EUR" as "USD" | "EUR" | "TRY",
     description: "",
+    date: getTodayDate(),
   });
 
   // Calculate balance by currency from transactions
@@ -163,6 +170,7 @@ export function CashView() {
           amount,
           currency: formData.currency,
           description: formData.description || null,
+          date: formData.date,
         }),
       });
 
@@ -188,6 +196,7 @@ export function CashView() {
           amount: "",
           currency: "EUR",
           description: "",
+          date: getTodayDate(),
         });
         fetchData();
         router.refresh();
@@ -269,7 +278,19 @@ export function CashView() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="date">Date *</Label>
+                <Input
+                  id="date"
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) =>
+                    setFormData({ ...formData, date: e.target.value })
+                  }
+                  required
+                />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="amount">Amount *</Label>
                 <Input

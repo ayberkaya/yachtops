@@ -13,6 +13,7 @@ const cashTransactionSchema = z.object({
   amount: z.number().positive("Amount must be positive"),
   currency: z.string().default("EUR"),
   description: z.string().optional().nullable(),
+  date: z.string().optional(), // Date in YYYY-MM-DD format
 });
 
 export async function GET(request: NextRequest) {
@@ -184,6 +185,11 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      // Use provided date or current date for createdAt
+      const transactionDate = validated.date 
+        ? new Date(validated.date + 'T00:00:00.000Z')
+        : new Date();
+
       const transaction = await db.cashTransaction.create({
         data: {
           yachtId: ensuredTenantId,
@@ -192,6 +198,7 @@ export async function POST(request: NextRequest) {
           currency: validated.currency,
           description: validated.description,
           createdByUserId: session!.user.id,
+          createdAt: transactionDate,
         },
         include: {
           createdBy: {
