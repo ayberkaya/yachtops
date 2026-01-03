@@ -263,7 +263,9 @@ export function ExpenseForm({ categories, trips, initialData }: ExpenseFormProps
     // Pre-fill form fields with scanned data
     form.setValue("vendorName", data.merchantName || null);
     form.setValue("date", data.date || new Date().toISOString().split("T")[0]);
-    form.setValue("amount", data.amount || undefined);
+    if (data.amount !== undefined) {
+      form.setValue("amount", data.amount);
+    }
     form.setValue("currency", data.currency || "EUR");
     form.setValue("description", data.description || "");
 
