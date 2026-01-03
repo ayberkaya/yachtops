@@ -17,6 +17,7 @@ import {
   Presentation,
   FileSearch,
   FileBarChart,
+  HardDrive,
   LucideIcon,
 } from "lucide-react";
 
@@ -148,6 +149,12 @@ export function useNavigation() {
             href: "/admin/usage",
             label: "Usage Insights",
             icon: TrendingUp,
+            permission: null,
+          },
+          {
+            href: "/admin/storage",
+            label: "Storage Monitoring",
+            icon: HardDrive,
             permission: null,
           },
           ...coreNavItemsWithoutDashboard,
