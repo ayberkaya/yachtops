@@ -178,7 +178,7 @@ export function ShoppingListView({ initialLists, initialProducts }: ShoppingList
         </CardHeader>
         <CardContent>
           {lists.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-sm text-muted-foreground text-center pb-4 pt-0">
               No shopping lists yet. Create your first list.
             </p>
           ) : (
